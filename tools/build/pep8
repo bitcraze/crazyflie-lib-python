@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+import os
+import subprocess
+
+__author__ = 'kristoffer'
+
+
+def _check_files_without_ext(path):
+    subprocess.check_call(["pep8", "--statistics", "--filename=*", path])
+
+
+def _check_files_with_ext(path):
+    subprocess.check_call(["pep8", "--statistics", path])
+
+
+try:
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+
+    _check_files_without_ext(script_dir)
+    _check_files_with_ext(script_dir + "/../..")
+
+    print("PEP8 check pass")
+except subprocess.CalledProcessError as e:
+    print("Error: PEP8 check fail")
+    raise e

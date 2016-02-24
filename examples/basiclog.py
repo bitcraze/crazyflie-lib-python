@@ -30,13 +30,10 @@ Simple example that connects to the first Crazyflie found, logs the Stabilizer
 and prints it to the console. After 10s the application disconnects and exits.
 """
 
-import sys
 import logging
 import time
 from threading import Timer
 
-sys.path.append("../src")
-sys.path.append("../src/cflib")
 import cflib.crtp  # noqa
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie import Crazyflie

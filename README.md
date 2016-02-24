@@ -1,4 +1,4 @@
-# cflib: Crazyflie python driver [![Build Status](https://api.travis-ci.org/bitcraze/crazyflie-clients-python.svg)](https://travis-ci.org/bitcraze/crazyflie-clients-python)
+# cflib: Crazyflie python driver [![Build Status](https://api.travis-ci.org/bitcraze/crazyflie-lib-python.svg)](https://travis-ci.org/bitcraze/crazyflie-lib-python)
 
 Cflib is the low-level python driver used to communicate with the Crazyflie and Crazyflie 2.0 quadcopters. It is intended to be used by client softwares to communicate with and control a Crazyflie quadcopter.
 

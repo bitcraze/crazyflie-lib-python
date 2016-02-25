@@ -20,23 +20,21 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 USB driver for the Crazyflie.
 """
-
-import os
-import usb
-import logging
-import sys
-import time
 import array
 import binascii
+import logging
+import os
+import sys
+import time
+
+import usb
 
 __author__ = 'Bitcraze AB'
 __all__ = ['CfUsb']
@@ -50,7 +48,7 @@ try:
     import usb.core
 
     pyusb_backend = None
-    if os.name == "nt":
+    if os.name == 'nt':
         import usb.backend.libusb0 as libusb0
 
         pyusb_backend = libusb0.get_backend()
@@ -65,7 +63,7 @@ def _find_devices():
     """
     ret = []
 
-    logger.info("Looking for devices....")
+    logger.info('Looking for devices....')
 
     if pyusb1:
         for d in usb.core.find(idVendor=USB_VID, idProduct=USB_PID, find_all=1,
@@ -104,7 +102,7 @@ class CfUsb:
                 self.dev.set_configuration(1)
                 self.handle = self.dev
                 self.version = float(
-                    "{0:x}.{1:x}".format(self.dev.bcdDevice >> 8,
+                    '{0:x}.{1:x}'.format(self.dev.bcdDevice >> 8,
                                          self.dev.bcdDevice & 0x0FF))
             else:
                 self.handle = self.dev.open()
@@ -130,7 +128,7 @@ class CfUsb:
     def scan(self):
         # TODO: Currently only supports one device
         if self.dev:
-            return [("usb://0", "")]
+            return [('usb://0', '')]
         return []
 
     def set_crtp_to_usb(self, crtp_to_usb):
@@ -165,7 +163,7 @@ class CfUsb:
                     # Normal, the read was empty
                     pass
                 else:
-                    raise IOError("Crazyflie disconnected")
+                    raise IOError('Crazyflie disconnected')
             except AttributeError as e:
                 # pyusb < 1.0 doesn't implement getting the underlying error
                 # number and it seems as if it's not possible to detect

@@ -20,43 +20,40 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 An early serial link driver. This could still be used (after some fixing) to
 run high-speed CRTP with the Crazyflie. The UART can be run at 2Mbit.
 """
+import re
 
 from .crtpdriver import CRTPDriver
-
 from .exceptions import WrongUriType
-
-import re
 
 __author__ = 'Bitcraze AB'
 __all__ = ['SerialDriver']
 
 
 class SerialDriver(CRTPDriver):
+
     def __init__(self):
         None
 
     def connect(self, uri, linkQualityCallback, linkErrorCallback):
         # check if the URI is a serial URI
-        if not re.search("^serial://", uri):
-            raise WrongUriType("Not a serial URI")
+        if not re.search('^serial://', uri):
+            raise WrongUriType('Not a serial URI')
 
         # Check if it is a valid serial URI
-        uriRe = re.search("^serial://([a-z A-Z 0-9]+)/?([0-9]+)?$", uri)
+        uriRe = re.search('^serial://([a-z A-Z 0-9]+)/?([0-9]+)?$', uri)
         if not uriRe:
-            raise Exception("Invalid serial URI")
+            raise Exception('Invalid serial URI')
 
     def get_name(self):
-        return "serial"
+        return 'serial'
 
     def scan_interface(self, address):
         return []

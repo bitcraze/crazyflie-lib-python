@@ -20,22 +20,18 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 Access the TOC cache for reading/writing. It supports both user
 cache and dist cache.
 """
-
-import os
 import json
-from glob import glob
-
 import logging
+import os
+from glob import glob
 
 from .log import LogTocElement  # pylint: disable=W0611
 from .param import ParamTocElement  # pylint: disable=W0611
@@ -55,9 +51,9 @@ class TocCache():
     def __init__(self, ro_cache=None, rw_cache=None):
         self._cache_files = []
         if (ro_cache):
-            self._cache_files += glob(ro_cache + "/*.json")
+            self._cache_files += glob(ro_cache + '/*.json')
         if (rw_cache):
-            self._cache_files += glob(rw_cache + "/*.json")
+            self._cache_files += glob(rw_cache + '/*.json')
             if not os.path.exists(rw_cache):
                 os.makedirs(rw_cache)
 
@@ -66,7 +62,7 @@ class TocCache():
     def fetch(self, crc):
         """ Try to get a hit in the cache, return None otherwise """
         cache_data = None
-        pattern = "%08X.json" % crc
+        pattern = '%08X.json' % crc
         hit = None
 
         for name in self._cache_files:
@@ -80,7 +76,7 @@ class TocCache():
                                        object_hook=self._decoder)
                 cache.close()
             except Exception as exp:
-                logger.warning("Error while parsing cache file [%s]:%s",
+                logger.warning('Error while parsing cache file [%s]:%s',
                                hit, str(exp))
 
         return cache_data
@@ -89,18 +85,18 @@ class TocCache():
         """ Save a new cache to file """
         if self._rw_cache:
             try:
-                filename = "%s/%08X.json" % (self._rw_cache, crc)
+                filename = '%s/%08X.json' % (self._rw_cache, crc)
                 cache = open(filename, 'w')
                 cache.write(json.dumps(toc, indent=2,
                                        default=self._encoder))
                 cache.close()
-                logger.info("Saved cache to [%s]", filename)
+                logger.info('Saved cache to [%s]', filename)
                 self._cache_files += [filename]
             except Exception as exp:
-                logger.warning("Could not save cache to file [%s]: %s",
+                logger.warning('Could not save cache to file [%s]: %s',
                                filename, str(exp))
         else:
-            logger.warning("Could not save cache, no writable directory")
+            logger.warning('Could not save cache, no writable directory')
 
     def _encoder(self, obj):
         """ Encode a toc element leaf-node """

@@ -19,24 +19,22 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 Simple example that connects to the first Crazyflie found, looks for
 EEPROM memories and lists its contents.
 """
-
-import sys
 import logging
+import sys
 import time
 
 import cflib.crtp
-from cflib.crazyflie.mem import MemoryElement, OWElement
 from cflib.crazyflie import Crazyflie
+from cflib.crazyflie.mem import MemoryElement
+from cflib.crazyflie.mem import OWElement
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -59,7 +57,7 @@ class EEPROMExample:
         self._cf.connection_failed.add_callback(self._connection_failed)
         self._cf.connection_lost.add_callback(self._connection_lost)
 
-        print("Connecting to %s" % link_uri)
+        print('Connecting to %s' % link_uri)
 
         # Try to connect to the Crazyflie
         self._cf.open_link(link_uri)
@@ -70,13 +68,13 @@ class EEPROMExample:
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
         has been connected and the TOCs have been downloaded."""
-        print("Connected to %s" % link_uri)
+        print('Connected to %s' % link_uri)
 
         mems = self._cf.mem.get_mems(MemoryElement.TYPE_1W)
-        print("Found {} 1-wire memories".format(len(mems)))
+        print('Found {} 1-wire memories'.format(len(mems)))
         if len(mems) > 0:
-            print("Writing test configuration to"
-                  " memory {}".format(mems[0].id))
+            print('Writing test configuration to'
+                  ' memory {}'.format(mems[0].id))
 
             mems[0].vid = 0xBC
             mems[0].pid = 0xFF
@@ -84,73 +82,73 @@ class EEPROMExample:
             board_name_id = OWElement.element_mapping[1]
             board_rev_id = OWElement.element_mapping[2]
 
-            mems[0].elements[board_name_id] = "Test board"
-            mems[0].elements[board_rev_id] = "A"
+            mems[0].elements[board_name_id] = 'Test board'
+            mems[0].elements[board_rev_id] = 'A'
 
             mems[0].write_data(self._data_written)
 
     def _data_written(self, mem, addr):
-            print("Data written, reading back...")
-            mem.update(self._data_updated)
+        print('Data written, reading back...')
+        mem.update(self._data_updated)
 
     def _data_updated(self, mem):
-        print("Updated id={}".format(mem.id))
-        print("\tType      : {}".format(mem.type))
-        print("\tSize      : {}".format(mem.size))
-        print("\tValid     : {}".format(mem.valid))
-        print("\tName      : {}".format(mem.name))
-        print("\tVID       : 0x{:02X}".format(mem.vid))
-        print("\tPID       : 0x{:02X}".format(mem.pid))
-        print("\tPins      : 0x{:02X}".format(mem.pins))
-        print("\tElements  : ")
+        print('Updated id={}'.format(mem.id))
+        print('\tType      : {}'.format(mem.type))
+        print('\tSize      : {}'.format(mem.size))
+        print('\tValid     : {}'.format(mem.valid))
+        print('\tName      : {}'.format(mem.name))
+        print('\tVID       : 0x{:02X}'.format(mem.vid))
+        print('\tPID       : 0x{:02X}'.format(mem.pid))
+        print('\tPins      : 0x{:02X}'.format(mem.pins))
+        print('\tElements  : ')
 
         for key in mem.elements:
-            print("\t\t{}={}".format(key, mem.elements[key]))
+            print('\t\t{}={}'.format(key, mem.elements[key]))
 
         self._cf.close_link()
 
     def _stab_log_error(self, logconf, msg):
         """Callback from the log API when an error occurs"""
-        print("Error when logging %s: %s" % (logconf.name, msg))
+        print('Error when logging %s: %s' % (logconf.name, msg))
 
     def _stab_log_data(self, timestamp, data, logconf):
         """Callback froma the log API when data arrives"""
-        print("[%d][%s]: %s" % (timestamp, logconf.name, data))
+        print('[%d][%s]: %s' % (timestamp, logconf.name, data))
 
     def _connection_failed(self, link_uri, msg):
         """Callback when connection initial connection fails (i.e no Crazyflie
         at the speficied address)"""
-        print("Connection to %s failed: %s" % (link_uri, msg))
+        print('Connection to %s failed: %s' % (link_uri, msg))
         self.is_connected = False
 
     def _connection_lost(self, link_uri, msg):
         """Callback when disconnected after a connection has been made (i.e
         Crazyflie moves out of range)"""
-        print("Connection to %s lost: %s" % (link_uri, msg))
+        print('Connection to %s lost: %s' % (link_uri, msg))
 
     def _disconnected(self, link_uri):
         """Callback when the Crazyflie is disconnected (called in all cases)"""
-        print("Disconnected from %s" % link_uri)
+        print('Disconnected from %s' % link_uri)
         self.is_connected = False
 
 
 if __name__ == '__main__':
-    print("This example will not work with the BLE version of the nRF51"
-          " firmware (flashed on production units). See https://github.com"
-          "/bitcraze/crazyflie-clients-python/issues/166")
+    print('This example will not work with the BLE version of the nRF51'
+          ' firmware (flashed on production units). See https://github.com'
+          '/bitcraze/crazyflie-clients-python/issues/166')
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=True)
     # Scan for Crazyflies and use the first one found
-    print("Scanning interfaces for Crazyflies...")
+    print('Scanning interfaces for Crazyflies...')
     available = cflib.crtp.scan_interfaces()
-    print("Crazyflies found:")
+    print('Crazyflies found:')
     for i in available:
         print(i[0])
 
     if len(available) > 0:
         le = EEPROMExample(available[0][0])
     else:
-        print("No Crazyflies found, cannot run example")
+        print('No Crazyflies found, cannot run example')
 
     # The Crazyflie lib doesn't contain anything to keep the application alive,
     # so this is where your application should do something. In our case we

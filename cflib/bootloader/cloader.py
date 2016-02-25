@@ -20,27 +20,24 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 Crazyflie radio bootloader for flashing firmware.
 """
-
 import logging
-
-import time
-import struct
 import math
 import random
+import struct
+import time
 
 import cflib.crtp
-from cflib.crtp.crtpstack import CRTPPacket, CRTPPort
-
-from .boottypes import TargetTypes, Target
+from .boottypes import Target
+from .boottypes import TargetTypes
+from cflib.crtp.crtpstack import CRTPPacket
+from cflib.crtp.crtpstack import CRTPPort
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Cloader']
@@ -66,7 +63,7 @@ class Cloader:
         self.buffer_pages = 0
         self.flash_pages = 0
         self.start_page = 0
-        self.cpuid = "N/A"
+        self.cpuid = 'N/A'
         self.error_code = 0
         self.protocol_version = 0xFF
 
@@ -75,7 +72,7 @@ class Cloader:
 
         self.targets = {}
         self.mapping = None
-        self._available_boot_uri = ("radio://0/110/2M", "radio://0/0/2M")
+        self._available_boot_uri = ('radio://0/110/2M', 'radio://0/0/2M')
 
     def close(self):
         """ Close the link """
@@ -83,7 +80,7 @@ class Cloader:
             self.link.close()
 
     def scan_for_bootloader(self):
-        link = cflib.crtp.get_link_driver("radio://0")
+        link = cflib.crtp.get_link_driver('radio://0')
         ts = time.time()
         res = ()
         while len(res) == 0 and (time.time() - ts) < 10:
@@ -105,26 +102,26 @@ class Cloader:
         pk = self.link.receive_packet(1)
 
         while ((not pk or pk.header != 0xFF or
-                struct.unpack("<BB", pk.data[0:2]) != (target_id, 0xFF)
+                struct.unpack('<BB', pk.data[0:2]) != (target_id, 0xFF)
                 ) and retry_counter >= 0):
             pk = self.link.receive_packet(1)
             retry_counter -= 1
 
         if pk:
-            new_address = (0xb1,) + struct.unpack("<BBBB", pk.data[2:6][::-1])
+            new_address = (0xb1,) + struct.unpack('<BBBB', pk.data[2:6][::-1])
 
             pk = CRTPPacket()
             pk.set_header(0xFF, 0xFF)
             pk.data = (target_id, 0xF0, 0x00)
             self.link.send_packet(pk)
 
-            addr = int(struct.pack("B" * 5, *new_address).encode('hex'), 16)
+            addr = int(struct.pack('B' * 5, *new_address).encode('hex'), 16)
 
             time.sleep(0.2)
             self.link.close()
             time.sleep(0.2)
             self.link = cflib.crtp.get_link_driver(
-                "radio://0/0/2M/{}".format(addr))
+                'radio://0/0/2M/{}'.format(addr))
 
             return True
         else:
@@ -205,7 +202,7 @@ class Cloader:
                 return False
 
             if (pk.header == 0xFF and struct.unpack(
-                    "B" * len(pk.data), pk.data)[:2] == (target_id, 0xFF)):
+                    'B' * len(pk.data), pk.data)[:2] == (target_id, 0xFF)):
                 # Difference in CF1 and CF2 (CPU ID)
                 if target_id == 0xFE:
                     pk.data = (target_id, 0xF0, 0x01)
@@ -246,23 +243,23 @@ class Cloader:
             This function works only with crazyradio CRTP link.
         """
 
-        logging.debug("Setting bootloader radio address to"
-                      " {}".format(new_address))
+        logging.debug('Setting bootloader radio address to'
+                      ' {}'.format(new_address))
 
         if len(new_address) != 5:
-            raise Exception("Radio address should be 5 bytes long")
+            raise Exception('Radio address should be 5 bytes long')
 
         self.link.pause()
 
         for _ in range(10):
-            logging.debug("Trying to set new radio address")
+            logging.debug('Trying to set new radio address')
             self.link.cradio.set_address((0xE7,) * 5)
             pkdata = (0xFF, 0xFF, 0x11) + tuple(new_address)
             self.link.cradio.send_packet(pkdata)
             self.link.cradio.set_address(tuple(new_address))
             if self.link.cradio.send_packet((0xff,)).ack:
-                logging.info("Bootloader set to radio address"
-                             " {}".format(new_address))
+                logging.info('Bootloader set to radio address'
+                             ' {}'.format(new_address))
                 self.link.restart()
                 return True
 
@@ -290,10 +287,10 @@ class Cloader:
         # Wait for the answer
         pk = self.link.receive_packet(2)
 
-        if (pk and pk.header == 0xFF and struct.unpack("<BB", pk.data[0:2]) ==
+        if (pk and pk.header == 0xFF and struct.unpack('<BB', pk.data[0:2]) ==
                 (target_id, 0x10)):
-            tab = struct.unpack("BBHHHH", pk.data[0:10])
-            cpuid = struct.unpack("B" * 12, pk.data[10:22])
+            tab = struct.unpack('BBHHHH', pk.data[0:10])
+            cpuid = struct.unpack('B' * 12, pk.data[10:22])
             if target_id not in self.targets:
                 self.targets[target_id] = Target(target_id)
             self.targets[target_id].addr = target_id
@@ -304,9 +301,9 @@ class Cloader:
             self.targets[target_id].buffer_pages = tab[3]
             self.targets[target_id].flash_pages = tab[4]
             self.targets[target_id].start_page = tab[5]
-            self.targets[target_id].cpuid = "%02X" % cpuid[0]
+            self.targets[target_id].cpuid = '%02X' % cpuid[0]
             for i in cpuid[1:]:
-                self.targets[target_id].cpuid += ":%02X" % i
+                self.targets[target_id].cpuid += ':%02X' % i
 
             if (self.protocol_version == 0x10 and
                     target_id == TargetTypes.STM32):
@@ -324,12 +321,12 @@ class Cloader:
 
         pk = self.link.receive_packet(2)
 
-        if (pk and pk.header == 0xFF and struct.unpack("<BB", pk.data[0:2]) ==
+        if (pk and pk.header == 0xFF and struct.unpack('<BB', pk.data[0:2]) ==
                 (target_id, 0x12)):
             m = pk.datat[2:]
 
             if (len(m) % 2) != 0:
-                raise Exception("Malformed flash mapping packet")
+                raise Exception('Malformed flash mapping packet')
 
             self.mapping = []
             page = 0
@@ -344,7 +341,7 @@ class Cloader:
         count = 0
         pk = CRTPPacket()
         pk.set_header(0xFF, 0xFF)
-        pk.data = struct.pack("=BBHH", target_id, 0x14, page, address)
+        pk.data = struct.pack('=BBHH', target_id, 0x14, page, address)
 
         for i in range(0, len(buff)):
             pk.data.append(buff[i])
@@ -356,7 +353,7 @@ class Cloader:
                 count = 0
                 pk = CRTPPacket()
                 pk.set_header(0xFF, 0xFF)
-                pk.data = struct.pack("=BBHH", target_id, 0x14, page,
+                pk.data = struct.pack('=BBHH', target_id, 0x14, page,
                                       i + address + 1)
 
         self.link.send_packet(pk)
@@ -371,11 +368,11 @@ class Cloader:
             pk = None
             retry_counter = 5
             while ((not pk or pk.header != 0xFF or
-                    struct.unpack("<BB", pk.data[0:2]) != (addr, 0x1C)) and
+                    struct.unpack('<BB', pk.data[0:2]) != (addr, 0x1C)) and
                     retry_counter >= 0):
                 pk = CRTPPacket()
                 pk.set_header(0xFF, 0xFF)
-                pk.data = struct.pack("<BBHH", addr, 0x1C, page, (i * 25))
+                pk.data = struct.pack('<BBHH', addr, 0x1C, page, (i * 25))
                 self.link.send_packet(pk)
 
                 pk = self.link.receive_packet(1)
@@ -396,11 +393,11 @@ class Cloader:
         retry_counter = 5
         # print "Flasing to 0x{:X}".format(addr)
         while ((not pk or pk.header != 0xFF or
-                struct.unpack("<BB", pk.data[0:2]) != (addr, 0x18)) and
+                struct.unpack('<BB', pk.data[0:2]) != (addr, 0x18)) and
                retry_counter >= 0):
             pk = CRTPPacket()
             pk.set_header(0xFF, 0xFF)
-            pk.data = struct.pack("<BBHHH", addr, 0x18, page_buffer,
+            pk.data = struct.pack('<BBHHH', addr, 0x18, page_buffer,
                                   target_page, page_count)
             self.link.send_packet(pk)
             pk = self.link.receive_packet(1)
@@ -418,6 +415,6 @@ class Cloader:
         """Decode the CPU id into a string"""
         ret = ()
         for i in cpuid.split(':'):
-            ret += (eval("0x" + i),)
+            ret += (eval('0x' + i),)
 
         return ret

@@ -20,12 +20,10 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 Bootloading utilities for the Crazyflie.
 """
@@ -43,10 +41,10 @@ class BootVersion:
     def to_ver_string(ver):
         if (ver == BootVersion.CF1_PROTO_VER_0 or ver == BootVersion.
                 CF1_PROTO_VER_1):
-            return "Crazyflie Nano Quadcopter (1.0)"
+            return 'Crazyflie Nano Quadcopter (1.0)'
         if ver == BootVersion.CF2_PROTO_VER:
-            return "Crazyflie 2.0"
-        return "Unknown"
+            return 'Crazyflie 2.0'
+        return 'Unknown'
 
     @staticmethod
     def is_cf2(ver):
@@ -60,21 +58,22 @@ class TargetTypes:
     @staticmethod
     def to_string(target):
         if target == TargetTypes.STM32:
-            return "stm32"
+            return 'stm32'
         if target == TargetTypes.NRF51:
-            return "nrf51"
-        return "Unknown"
+            return 'nrf51'
+        return 'Unknown'
 
     @staticmethod
     def from_string(name):
-        if name == "stm32":
+        if name == 'stm32':
             return TargetTypes.STM32
-        if name == "nrf51":
+        if name == 'nrf51':
             return TargetTypes.NRF51
         return 0
 
 
 class Target:
+
     def __init__(self, id):
         self.id = id
         self.protocol_version = 0xFF
@@ -82,16 +81,16 @@ class Target:
         self.buffer_pages = 0
         self.flash_pages = 0
         self.start_page = 0
-        self.cpuid = ""
+        self.cpuid = ''
         self.data = None
 
     def __str__(self):
-        ret = ""
-        ret += "Target info: {} (0x{:X})\n".format(
+        ret = ''
+        ret += 'Target info: {} (0x{:X})\n'.format(
             TargetTypes.to_string(self.id), self.id)
-        ret += "Flash pages: %d | Page size: %d | Buffer pages: %d |" \
-               " Start page: %d\n" % (self.flash_pages, self.page_size,
+        ret += 'Flash pages: %d | Page size: %d | Buffer pages: %d |' \
+               ' Start page: %d\n' % (self.flash_pages, self.page_size,
                                       self.buffer_pages, self.start_page)
-        ret += "%d KBytes of flash available for firmware image." % (
+        ret += '%d KBytes of flash available for firmware image.' % (
             (self.flash_pages - self.start_page) * self.page_size / 1024)
         return ret

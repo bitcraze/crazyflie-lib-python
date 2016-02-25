@@ -20,19 +20,17 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 USB driver for the Crazyradio USB dongle.
 """
-
-import os
-import usb
 import logging
+import os
+
+import usb
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Crazyradio']
@@ -60,7 +58,7 @@ try:
     import usb.core
 
     pyusb_backend = None
-    if os.name == "nt":
+    if os.name == 'nt':
         import usb.backend.libusb0 as libusb0
 
         pyusb_backend = libusb0.get_backend()
@@ -115,14 +113,14 @@ class Crazyradio:
             try:
                 device = _find_devices()[devid]
             except Exception:
-                raise Exception("Cannot find a Crazyradio Dongle")
+                raise Exception('Cannot find a Crazyradio Dongle')
 
         self.dev = device
 
         if (pyusb1 is True):
             self.dev.set_configuration(1)
             self.handle = self.dev
-            self.version = float("{0:x}.{1:x}".format(
+            self.version = float('{0:x}.{1:x}'.format(
                 self.dev.bcdDevice >> 8, self.dev.bcdDevice & 0x0FF))
         else:
             self.handle = self.dev.open()
@@ -131,10 +129,10 @@ class Crazyradio:
             self.version = float(self.dev.deviceVersion)
 
         if self.version < 0.3:
-            raise "This driver requires Crazyradio firmware V0.3+"
+            raise 'This driver requires Crazyradio firmware V0.3+'
 
         if self.version < 0.4:
-            logger.warning("You should update to Crazyradio firmware V0.4+")
+            logger.warning('You should update to Crazyradio firmware V0.4+')
 
         # Reset the dongle to power up settings
         self.set_data_rate(self.DR_2MPS)
@@ -167,8 +165,8 @@ class Crazyradio:
     def set_address(self, address):
         """ Set the radio address to be used"""
         if len(address) != 5:
-            raise Exception("Crazyradio: the radio address shall be 5"
-                            " bytes long")
+            raise Exception('Crazyradio: the radio address shall be 5'
+                            ' bytes long')
 
         _send_vendor_setup(self.handle, SET_RADIO_ADDRESS, 0, 0, address)
 
@@ -219,8 +217,8 @@ class Crazyradio:
     def scan_selected(self, selected, packet):
         result = ()
         for s in selected:
-            self.set_channel(s["channel"])
-            self.set_data_rate(s["datarate"])
+            self.set_channel(s['channel'])
+            self.set_data_rate(s['datarate'])
             status = self.send_packet(packet)
             if status and status.ack:
                 result = result + (s,)

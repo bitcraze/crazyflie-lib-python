@@ -20,12 +20,10 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 The Crazyflie module is used to easily connect/send/receive data
 from a Crazyflie.
@@ -34,25 +32,22 @@ Each function in the Crazyflie has a class in the module that can be used
 to access that functionality. The same design is then used in the Crazyflie
 firmware which makes the mapping 1:1 in most cases.
 """
-
-import logging
-
-import time
 import datetime
-from threading import Thread
-from threading import Timer, Lock
+import logging
+import time
 from collections import namedtuple
-
-from .commander import Commander
-from .console import Console
-from .param import Param
-from .log import Log
-from .toccache import TocCache
-from .mem import Memory
-from .platformservice import PlatformService
+from threading import Lock
+from threading import Thread
+from threading import Timer
 
 import cflib.crtp
-
+from .commander import Commander
+from .console import Console
+from .log import Log
+from .mem import Memory
+from .param import Param
+from .platformservice import PlatformService
+from .toccache import TocCache
 from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
@@ -116,7 +111,7 @@ class Crazyflie():
         self.mem = Memory(self)
         self.platform = PlatformService(self)
 
-        self.link_uri = ""
+        self.link_uri = ''
 
         # Used for retry when no reply was sent back
         self.packet_received.add_callback(self._check_for_initial_packet_cb)
@@ -130,22 +125,22 @@ class Crazyflie():
 
         # Connect callbacks to logger
         self.disconnected.add_callback(
-            lambda uri: logger.info("Callback->Disconnected from [%s]", uri))
+            lambda uri: logger.info('Callback->Disconnected from [%s]', uri))
         self.disconnected.add_callback(self._disconnected)
         self.link_established.add_callback(
-            lambda uri: logger.info("Callback->Connected to [%s]", uri))
+            lambda uri: logger.info('Callback->Connected to [%s]', uri))
         self.connection_lost.add_callback(
             lambda uri, errmsg: logger.info(
-                "Callback->Connection lost to [%s]: %s", uri, errmsg))
+                'Callback->Connection lost to [%s]: %s', uri, errmsg))
         self.connection_failed.add_callback(
             lambda uri, errmsg: logger.info(
-                "Callback->Connected failed to [%s]: %s", uri, errmsg))
+                'Callback->Connected failed to [%s]: %s', uri, errmsg))
         self.connection_requested.add_callback(
             lambda uri: logger.info(
-                "Callback->Connection initialized[%s]", uri))
+                'Callback->Connection initialized[%s]', uri))
         self.connected.add_callback(
             lambda uri: logger.info(
-                "Callback->Connection setup finished [%s]", uri))
+                'Callback->Connection setup finished [%s]', uri))
 
     def _disconnected(self, link_uri):
         """ Callback when disconnected."""
@@ -153,13 +148,13 @@ class Crazyflie():
 
     def _start_connection_setup(self):
         """Start the connection setup by refreshing the TOCs"""
-        logger.info("We are connected[%s], request connection setup",
+        logger.info('We are connected[%s], request connection setup',
                     self.link_uri)
         self.log.refresh_toc(self._log_toc_updated_cb, self._toc_cache)
 
     def _param_toc_updated_cb(self):
         """Called when the param TOC has been fully updated"""
-        logger.info("Param TOC finished updating")
+        logger.info('Param TOC finished updating')
         self.connected_ts = datetime.datetime.now()
         self.connected.call(self.link_uri)
         # Trigger the update for all the parameters
@@ -167,17 +162,17 @@ class Crazyflie():
 
     def _mems_updated_cb(self):
         """Called when the memories have been identified"""
-        logger.info("Memories finished updating")
+        logger.info('Memories finished updating')
         self.param.refresh_toc(self._param_toc_updated_cb, self._toc_cache)
 
     def _log_toc_updated_cb(self):
         """Called when the log TOC has been fully updated"""
-        logger.info("Log TOC finished updating")
+        logger.info('Log TOC finished updating')
         self.mem.refresh(self._mems_updated_cb)
 
     def _link_error_cb(self, errmsg):
         """Called from the link driver when there's an error"""
-        logger.warning("Got link error callback [%s] in state [%s]",
+        logger.warning('Got link error callback [%s] in state [%s]',
                        errmsg, self.state)
         if (self.link is not None):
             self.link.close()
@@ -218,7 +213,7 @@ class Crazyflie():
                 link_uri, self._link_quality_cb, self._link_error_cb)
 
             if not self.link:
-                message = "No driver found or malformed URI: {}" \
+                message = 'No driver found or malformed URI: {}' \
                     .format(link_uri)
                 logger.warning(message)
                 self.connection_failed.call(link_uri, message)
@@ -245,7 +240,7 @@ class Crazyflie():
 
     def close_link(self):
         """Close the communication link."""
-        logger.info("Closing link")
+        logger.info('Closing link')
         if (self.link is not None):
             self.commander.send_setpoint(0, 0, 0, 0)
         if (self.link is not None):
@@ -264,7 +259,7 @@ class Crazyflie():
 
     def _no_answer_do_retry(self, pk, pattern):
         """Resend packets that we have not gotten answers to"""
-        logger.info("Resending for pattern %s", pattern)
+        logger.info('Resending for pattern %s', pattern)
         # Set the timer to None before trying to send again
         self.send_packet(pk, expected_reply=pattern, resend=True)
 
@@ -278,12 +273,12 @@ class Crazyflie():
         if len(self._answer_patterns) > 0:
             data = (pk.header,) + tuple(pk.data)
             for p in list(self._answer_patterns.keys()):
-                logger.debug("Looking for pattern match on %s vs %s", p, data)
+                logger.debug('Looking for pattern match on %s vs %s', p, data)
                 if len(p) <= len(data):
                     if p == data[0:len(p)]:
                         match = data[0:len(p)]
                         if len(match) >= len(longest_match):
-                            logger.debug("Found new longest match %s", match)
+                            logger.debug('Found new longest match %s', match)
                             longest_match = match
         if len(longest_match) > 0:
             self._answer_patterns[longest_match].cancel()
@@ -304,7 +299,7 @@ class Crazyflie():
                     self.link.needs_resending:
                 pattern = (pk.header,) + expected_reply
                 logger.debug(
-                    "Sending packet and expecting the %s pattern back",
+                    'Sending packet and expecting the %s pattern back',
                     pattern)
                 new_timer = Timer(timeout,
                                   lambda: self._no_answer_do_retry(pk,
@@ -315,7 +310,7 @@ class Crazyflie():
                 # Check if we have gotten an answer, if not try again
                 pattern = expected_reply
                 if pattern in self._answer_patterns:
-                    logger.debug("We want to resend and the pattern is there")
+                    logger.debug('We want to resend and the pattern is there')
                     if self._answer_patterns[pattern]:
                         new_timer = Timer(timeout,
                                           lambda:
@@ -324,15 +319,15 @@ class Crazyflie():
                         self._answer_patterns[pattern] = new_timer
                         new_timer.start()
                 else:
-                    logger.debug("Resend requested, but no pattern found: %s",
+                    logger.debug('Resend requested, but no pattern found: %s',
                                  self._answer_patterns)
             self.link.send_packet(pk)
             self.packet_sent.call(pk)
         self._send_lock.release()
 
 
-_CallbackContainer = namedtuple("CallbackConstainer",
-                                "port port_mask channel channel_mask callback")
+_CallbackContainer = namedtuple('CallbackConstainer',
+                                'port port_mask channel channel_mask callback')
 
 
 class _IncomingPacketHandler(Thread):
@@ -345,12 +340,12 @@ class _IncomingPacketHandler(Thread):
 
     def add_port_callback(self, port, cb):
         """Add a callback for data that comes on a specific port"""
-        logger.debug("Adding callback on port [%d] to [%s]", port, cb)
+        logger.debug('Adding callback on port [%d] to [%s]', port, cb)
         self.add_header_callback(cb, port, 0, 0xff, 0x0)
 
     def remove_port_callback(self, port, cb):
         """Remove a callback for data that comes on a specific port"""
-        logger.debug("Removing callback on port [%d] to [%s]", port, cb)
+        logger.debug('Removing callback on port [%d] to [%s]', port, cb)
         for port_callback in self.cb:
             if port_callback.port == port and port_callback.callback == cb:
                 self.cb.remove(port_callback)
@@ -390,8 +385,8 @@ class _IncomingPacketHandler(Thread):
                     # the callbacks.
                     import traceback
 
-                    logger.warning("Exception while doing callback on port"
-                                   " [%d]\n\n%s", pk.port,
+                    logger.warning('Exception while doing callback on port'
+                                   ' [%d]\n\n%s', pk.port,
                                    traceback.format_exc())
                 if cb.port != 0xFF:
                     found = True

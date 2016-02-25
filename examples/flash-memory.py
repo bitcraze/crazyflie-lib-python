@@ -11,7 +11,6 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
@@ -19,11 +18,10 @@
 """
 Flash the DS28E05 EEPROM via CRTP.
 """
-
+import datetime
 import os
 import sys
 import time
-import datetime
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -38,6 +36,7 @@ class Flasher(object):
     """
     A class that can flash the DS28E05 EEPROM via CRTP.
     """
+
     def __init__(self, link_uri):
         self._cf = Crazyflie()
         self._link_uri = link_uri
@@ -195,8 +194,8 @@ if __name__ == '__main__':
     print('  Elements: %s' % mem.elements)
 
     # Ask for new information
-    print("Please specify what information to write. If you just press enter, "
-          "the value will not be changed.")
+    print('Please specify what information to write. If you just press enter, '
+          'the value will not be changed.')
 
     # Vendor ID
     vid_input = input('New vendor ID: ')

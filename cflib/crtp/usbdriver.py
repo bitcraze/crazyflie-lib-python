@@ -33,9 +33,6 @@ import logging
 import re
 import sys
 import threading
-import time
-
-from usb import USBError
 
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType

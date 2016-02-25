@@ -889,7 +889,6 @@ class FakeConsoleThread(Thread):
         p = CRTPPacket()
         p.set_header(0, 0)
 
-        us = '%is' % len(message)
         # This might be done prettier ;-)
         p.data = message
 

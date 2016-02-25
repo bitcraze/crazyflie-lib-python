@@ -63,7 +63,6 @@ States of a configuration:
 import errno
 import logging
 import struct
-import sys
 
 from .toc import Toc
 from .toc import TocFetcher

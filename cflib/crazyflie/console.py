@@ -28,8 +28,6 @@
 Crazyflie console is used to receive characters printed using printf
 from the firmware.
 """
-import struct
-
 from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
 

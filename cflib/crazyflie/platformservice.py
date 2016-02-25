@@ -27,8 +27,6 @@
 """
 Used for sending control setpoints to the Crazyflie
 """
-import struct
-
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 

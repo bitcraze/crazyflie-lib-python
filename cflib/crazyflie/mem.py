@@ -28,7 +28,6 @@
 Enables flash access to the Crazyflie.
 
 """
-import binascii
 import errno
 import logging
 import struct
@@ -208,7 +207,7 @@ class I2CElement(MemoryElement):
                         self.datav0 = data
                         self.mem_handler.read(self, 16, 5)
                 else:
-                    valid = False
+                    self.valid = False
                     if self._update_finished_cb:
                         self._update_finished_cb(self)
                         self._update_finished_cb = None
@@ -338,7 +337,7 @@ class OWElement(MemoryElement):
         """
         Parse and check the CRC and length of the elements part of the memory
         """
-        (elem_ver, elem_len, crc) = (data[0], data[1], data[-1])
+        crc = data[-1]
         test_crc = crc32(data[:-1]) & 0x0ff
         elem_data = data[2:-1]
         if test_crc == crc:
@@ -789,9 +788,9 @@ class Memory():
                     ows = self.get_mems(MemoryElement.TYPE_1W)
                     # If there are any OW mems start reading them, otherwise
                     # we are done
-                    for ow_mem in self.get_mems(MemoryElement.TYPE_1W):
+                    for ow_mem in ows:
                         ow_mem.update(self._mem_update_done)
-                    if len(self.get_mems(MemoryElement.TYPE_1W)) == 0:
+                    if len(ows) == 0:
                         if self._refresh_callback:
                             self._refresh_callback()
                             self._refresh_callback = None

@@ -27,12 +27,8 @@
 """
 USB driver for the Crazyflie.
 """
-import array
-import binascii
 import logging
 import os
-import sys
-import time
 
 import usb
 
@@ -144,10 +140,10 @@ class CfUsb:
             and a data payload if the ack packet contained any """
         try:
             if (pyusb1 is False):
-                count = self.handle.bulkWrite(1, dataOut, 20)
+                self.handle.bulkWrite(1, dataOut, 20)
             else:
-                count = self.handle.write(endpoint=1, data=dataOut, timeout=20)
-        except usb.USBError as e:
+                self.handle.write(endpoint=1, data=dataOut, timeout=20)
+        except usb.USBError:
             pass
 
     def receive_packet(self):

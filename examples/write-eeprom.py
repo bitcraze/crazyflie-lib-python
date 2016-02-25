@@ -31,12 +31,9 @@ import logging
 import sys
 import time
 
-import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
-
-# Only output errors from the logging framework
-logging.basicConfig(level=logging.ERROR)
+from examples.util import get_first_crazyflie
 
 
 class EEPROMExample:
@@ -71,7 +68,7 @@ class EEPROMExample:
         print('Connected to %s' % link_uri)
 
         mems = self._cf.mem.get_mems(MemoryElement.TYPE_I2C)
-        print('Found {} EEPOM(s)'.format(len(mems)))
+        print('Found {} EEPROM(s)'.format(len(mems)))
         if len(mems) > 0:
             print('Writing default configuration to'
                   ' memory {}'.format(mems[0].id))
@@ -126,26 +123,22 @@ class EEPROMExample:
         self.is_connected = False
 
 
-if __name__ == '__main__':
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=True)
-    # Scan for Crazyflies and use the first one found
-    print('Scanning interfaces for Crazyflies...')
-    available = cflib.crtp.scan_interfaces()
-    print('Crazyflies found:')
-    for i in available:
-        print(i[0])
+def main():
 
-    if len(available) > 0:
-        le = EEPROMExample(available[0][0])
-    else:
-        print('No Crazyflies found, cannot run example')
+    # Only output errors from the logging framework
+    logging.basicConfig(level=logging.ERROR)
+
+    example = EEPROMExample(get_first_crazyflie())
 
     # The Crazyflie lib doesn't contain anything to keep the application alive,
     # so this is where your application should do something. In our case we
     # are just waiting until we are disconnected.
     try:
-        while le.is_connected:
+        while example.is_connected:
             time.sleep(1)
     except KeyboardInterrupt:
         sys.exit(1)
+
+
+if __name__ == '__main__':
+    exit(main())

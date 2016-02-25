@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='cflib',
     version='0.1.0',
-    packages=['cflib'],
+    packages=find_packages(exclude=['examples', 'tests']),
 
     description='Crazyflie python driver',
     url='https://github.com/bitcraze/crazyflie-lib-python',

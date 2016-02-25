@@ -20,30 +20,24 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 Crazyflie USB driver.
 
 This driver is used to communicate with the Crazyflie using the USB connection.
 """
-
 import logging
+import re
+import sys
+import threading
 
-from cflib.crtp.crtpdriver import CRTPDriver
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
-import threading
-import sys
-import re
-import time
-
+from cflib.crtp.crtpdriver import CRTPDriver
 from cflib.drivers.cfusb import CfUsb
-from usb import USBError
 if sys.version_info < (3,):
     import Queue as queue
 else:
@@ -62,7 +56,7 @@ class UsbDriver(CRTPDriver):
         """ Create the link driver """
         CRTPDriver.__init__(self)
         self.cfusb = None
-        self.uri = ""
+        self.uri = ''
         self.link_error_callback = None
         self.link_quality_callback = None
         self.in_queue = None
@@ -82,15 +76,15 @@ class UsbDriver(CRTPDriver):
         """
 
         # check if the URI is a radio URI
-        if not re.search("^usb://", uri):
-            raise WrongUriType("Not a radio URI")
+        if not re.search('^usb://', uri):
+            raise WrongUriType('Not a radio URI')
 
         # Open the USB dongle
-        if not re.search("^usb://([0-9]+)$",
+        if not re.search('^usb://([0-9]+)$',
                          uri):
             raise WrongUriType('Wrong radio URI format!')
 
-        uri_data = re.search("^usb://([0-9]+)$",
+        uri_data = re.search('^usb://([0-9]+)$',
                              uri)
 
         self.uri = uri
@@ -101,10 +95,10 @@ class UsbDriver(CRTPDriver):
                 self.cfusb.set_crtp_to_usb(True)
             else:
                 self.cfusb = None
-                raise Exception("Could not open {}".format(self.uri))
+                raise Exception('Could not open {}'.format(self.uri))
 
         else:
-            raise Exception("Link already open!")
+            raise Exception('Link already open!')
 
         # Prepare the inter-thread communication queue
         self.in_queue = queue.Queue()
@@ -154,7 +148,7 @@ class UsbDriver(CRTPDriver):
         except queue.Full:
             if self.link_error_callback:
                 self.link_error_callback(
-                    "UsbDriver: Could not send packet to Crazyflie")
+                    'UsbDriver: Could not send packet to Crazyflie')
 
     def pause(self):
         self._thread.stop()
@@ -181,7 +175,7 @@ class UsbDriver(CRTPDriver):
                 self.cfusb.close()
         except Exception as e:
             # If we pull out the dongle we will not make this call
-            logger.info("Could not close {}".format(e))
+            logger.info('Could not close {}'.format(e))
             pass
         self.cfusb = None
 
@@ -192,11 +186,11 @@ class UsbDriver(CRTPDriver):
                 self.cfusb = CfUsb()
             except Exception as e:
                 logger.warn(
-                    "Exception while scanning for Crazyflie USB: {}".format(
+                    'Exception while scanning for Crazyflie USB: {}'.format(
                         str(e)))
                 return []
         else:
-            raise Exception("Cannot scan for links while the link is open!")
+            raise Exception('Cannot scan for links while the link is open!')
 
         # FIXME: implements serial number in the Crazyradio driver!
         # serial = "N/A"
@@ -209,10 +203,10 @@ class UsbDriver(CRTPDriver):
         return found
 
     def get_status(self):
-        return "No information available"
+        return 'No information available'
 
     def get_name(self):
-        return "UsbCdc"
+        return 'UsbCdc'
 
 
 # Transmit/receive radio thread
@@ -257,7 +251,7 @@ class _UsbReceiveThread(threading.Thread):
                 import traceback
 
                 self.link_error_callback(
-                    "Error communicating with the Crazyflie"
-                    " ,it has probably been unplugged!\n"
-                    "Exception:%s\n\n%s" % (e,
+                    'Error communicating with the Crazyflie'
+                    ' ,it has probably been unplugged!\n'
+                    'Exception:%s\n\n%s' % (e,
                                             traceback.format_exc()))

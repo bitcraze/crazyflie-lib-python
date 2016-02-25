@@ -20,7 +20,6 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
@@ -29,10 +28,8 @@
 Crazyflie console is used to receive characters printed using printf
 from the firmware.
 """
-
-import struct
-from cflib.utils.callbacks import Caller
 from cflib.crtp.crtpstack import CRTPPort
+from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Console']
@@ -58,6 +55,6 @@ class Console:
         Callback for data received from the copter.
         """
         # This might be done prettier ;-)
-        console_text = packet.data.decode("UTF-8")
+        console_text = packet.data.decode('UTF-8')
 
         self.receivedChar.call(console_text)

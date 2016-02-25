@@ -20,21 +20,18 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 A generic TableOfContents module that is used to fetch, store and minipulate
 a TOC for logging or parameters.
 """
-
-from cflib.crtp.crtpstack import CRTPPacket
+import logging
 import struct
 
-import logging
+from cflib.crtp.crtpstack import CRTPPacket
 
 __author__ = 'Bitcraze AB'
 __all__ = ['TocElement', 'Toc', 'TocFetcher']
@@ -48,9 +45,9 @@ CMD_TOC_ELEMENT = 0
 CMD_TOC_INFO = 1
 
 # Possible states when receiving TOC
-IDLE = "IDLE"
-GET_TOC_INFO = "GET_TOC_INFO"
-GET_TOC_ELEMENT = "GET_TOC_ELEMENT"
+IDLE = 'IDLE'
+GET_TOC_INFO = 'GET_TOC_INFO'
+GET_TOC_ELEMENT = 'GET_TOC_ELEMENT'
 
 
 class TocElement:
@@ -59,10 +56,10 @@ class TocElement:
     RO_ACCESS = 1
 
     ident = 0
-    group = ""
-    name = ""
-    ctype = ""
-    pytype = ""
+    group = ''
+    name = ''
+    ctype = ''
+    pytype = ''
     access = RO_ACCESS
 
 
@@ -96,12 +93,12 @@ class Toc:
     def get_element_id(self, complete_name):
         """Get the TocElement element id-number of the element with the
         supplied name."""
-        [group, name] = complete_name.split(".")
+        [group, name] = complete_name.split('.')
         element = self.get_element(group, name)
         if element:
             return element.ident
         else:
-            logger.warning("Unable to find variable [%s]", complete_name)
+            logger.warning('Unable to find variable [%s]', complete_name)
             return None
 
     def get_element(self, group, name):
@@ -140,7 +137,7 @@ class TocFetcher:
 
     def start(self):
         """Initiate fetching of the TOC."""
-        logger.debug("[%d]: Start fetching...", self.port)
+        logger.debug('[%d]: Start fetching...', self.port)
         # Register callback in this class for the port
         self.cf.add_port_callback(self.port, self._new_packet_cb)
 
@@ -154,7 +151,7 @@ class TocFetcher:
     def _toc_fetch_finished(self):
         """Callback for when the TOC fetching is finished"""
         self.cf.remove_port_callback(self.port, self._new_packet_cb)
-        logger.debug("[%d]: Done!", self.port)
+        logger.debug('[%d]: Done!', self.port)
         self.finished_callback()
 
     def _new_packet_cb(self, packet):
@@ -165,14 +162,14 @@ class TocFetcher:
         payload = packet.data[1:]
 
         if (self.state == GET_TOC_INFO):
-            [self.nbr_of_items, self._crc] = struct.unpack("<BI", payload[:5])
-            logger.debug("[%d]: Got TOC CRC, %d items and crc=0x%08X",
+            [self.nbr_of_items, self._crc] = struct.unpack('<BI', payload[:5])
+            logger.debug('[%d]: Got TOC CRC, %d items and crc=0x%08X',
                          self.port, self.nbr_of_items, self._crc)
 
             cache_data = self._toc_cache.fetch(self._crc)
             if (cache_data):
                 self.toc.toc = cache_data
-                logger.info("TOC for port [%s] found in cache" % self.port)
+                logger.info('TOC for port [%s] found in cache' % self.port)
                 self._toc_fetch_finished()
             else:
                 self.state = GET_TOC_ELEMENT
@@ -185,10 +182,10 @@ class TocFetcher:
             if self.requested_index != payload[0]:
                 return
             self.toc.add_element(self.element_class(payload))
-            logger.debug("Added element [%s]",
+            logger.debug('Added element [%s]',
                          self.element_class(payload).ident)
             if (self.requested_index < (self.nbr_of_items - 1)):
-                logger.debug("[%d]: More variables, requesting index %d",
+                logger.debug('[%d]: More variables, requesting index %d',
                              self.port, self.requested_index + 1)
                 self.requested_index = self.requested_index + 1
                 self._request_toc_element(self.requested_index)
@@ -198,7 +195,7 @@ class TocFetcher:
 
     def _request_toc_element(self, index):
         """Request information about a specific item in the TOC"""
-        logger.debug("Requesting index %d on port %d", index, self.port)
+        logger.debug('Requesting index %d on port %d', index, self.port)
         pk = CRTPPacket()
         pk.set_header(self.port, TOC_CHANNEL)
         pk.data = (CMD_TOC_ELEMENT, index)

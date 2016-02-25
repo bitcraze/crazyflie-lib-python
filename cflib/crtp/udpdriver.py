@@ -20,22 +20,20 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """ CRTP UDP Driver. Work either with the UDP server or with an UDP device
 See udpserver.py for the protocol"""
+import re
+import struct
+import sys
+from socket import socket
 
 from .crtpdriver import CRTPDriver
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
-import sys
-import re
-import struct
-from socket import socket
 if sys.version_info < (3,):
     import Queue as queue
 else:
@@ -46,21 +44,22 @@ __all__ = ['UdpDriver']
 
 
 class UdpDriver(CRTPDriver):
+
     def __init__(self):
         None
 
     def connect(self, uri, linkQualityCallback, linkErrorCallback):
         # check if the URI is a radio URI
-        if not re.search("^udp://", uri):
-            raise WrongUriType("Not an UDP URI")
+        if not re.search('^udp://', uri):
+            raise WrongUriType('Not an UDP URI')
 
         self.queue = queue.Queue()
         self.socket = socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.addr = ("localhost", 7777)
+        self.addr = ('localhost', 7777)
         self.socket.connect(self.addr)
 
         # Add this to the server clients list
-        self.socket.sendto("\xFF\x01\x01\x01", self.addr)
+        self.socket.sendto('\xFF\x01\x01\x01', self.addr)
 
     def receive_packet(self, time=0):
         data, addr = self.socket.recvfrom(1024)
@@ -84,7 +83,7 @@ class UdpDriver(CRTPDriver):
             return None
 
     def send_packet(self, pk):
-        raw = (pk.port,) + struct.unpack("B" * len(pk.data), pk.data)
+        raw = (pk.port,) + struct.unpack('B' * len(pk.data), pk.data)
 
         cksum = 0
         for i in raw:
@@ -99,10 +98,10 @@ class UdpDriver(CRTPDriver):
 
     def close(self):
         # Remove this from the server clients list
-        self.socket.sendto("\xFF\x01\x02\x02", self.addr)
+        self.socket.sendto('\xFF\x01\x02\x02', self.addr)
 
     def get_name(self):
-        return "udp"
+        return 'udp'
 
     def scan_interface(self, address):
         return []

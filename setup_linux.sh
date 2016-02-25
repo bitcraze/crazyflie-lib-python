@@ -18,4 +18,3 @@ MODE=\"0664\", GROUP=\"plugdev\" > /etc/udev/rules.d/99-crazyflie.rules
 
 # Install Crazyflie PC client
 python3 setup.py install
-

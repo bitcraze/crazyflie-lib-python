@@ -20,12 +20,10 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 Enables reading/writing of parameter values to/from the Crazyflie.
 
@@ -33,14 +31,17 @@ When a Crazyflie is connected it's possible to download a TableOfContent of all
 the parameters that can be written/read.
 
 """
-
-from cflib.utils.callbacks import Caller
-import struct
-from cflib.crtp.crtpstack import CRTPPacket, CRTPPort
-from .toc import Toc, TocFetcher
-from threading import Thread, Lock
-import sys
 import logging
+import struct
+import sys
+from threading import Lock
+from threading import Thread
+
+from .toc import Toc
+from .toc import TocFetcher
+from cflib.crtp.crtpstack import CRTPPacket
+from cflib.crtp.crtpstack import CRTPPort
+from cflib.utils.callbacks import Caller
 if sys.version_info < (3,):
     from Queue import Queue
 else:
@@ -75,29 +76,29 @@ class ParamTocElement:
     RW_ACCESS = 0
     RO_ACCESS = 1
 
-    types = {0x08: ("uint8_t", '<B'),
-             0x09: ("uint16_t", '<H'),
-             0x0A: ("uint32_t", '<L'),
-             0x0B: ("uint64_t", '<Q'),
-             0x00: ("int8_t", '<b'),
-             0x01: ("int16_t", '<h'),
-             0x02: ("int32_t", '<i'),
-             0x03: ("int64_t", '<q'),
-             0x05: ("FP16", ''),
-             0x06: ("float", '<f'),
-             0x07: ("double", '<d')}
+    types = {0x08: ('uint8_t', '<B'),
+             0x09: ('uint16_t', '<H'),
+             0x0A: ('uint32_t', '<L'),
+             0x0B: ('uint64_t', '<Q'),
+             0x00: ('int8_t', '<b'),
+             0x01: ('int16_t', '<h'),
+             0x02: ('int32_t', '<i'),
+             0x03: ('int64_t', '<q'),
+             0x05: ('FP16', ''),
+             0x06: ('float', '<f'),
+             0x07: ('double', '<d')}
 
     def __init__(self, data=None):
         """TocElement creator. Data is the binary payload of the element."""
         if (data):
-            strs = struct.unpack("s" * len(data[2:]), data[2:])
+            strs = struct.unpack('s' * len(data[2:]), data[2:])
             if sys.version_info < (3,):
-                strs = ("{}" * len(strs)).format(*strs).split("\0")
+                strs = ('{}' * len(strs)).format(*strs).split('\0')
             else:
-                s = ""
+                s = ''
                 for ch in strs:
                     s += ch.decode('ISO-8859-1')
-                strs = s.split("\x00")
+                strs = s.split('\x00')
             self.group = strs[0]
             self.name = strs[1]
 
@@ -119,8 +120,8 @@ class ParamTocElement:
 
     def get_readable_access(self):
         if (self.access == ParamTocElement.RO_ACCESS):
-            return "RO"
-        return "RW"
+            return 'RO'
+        return 'RW'
 
 
 class Param():
@@ -151,7 +152,7 @@ class Param():
         """Request an update of all the parameters in the TOC"""
         for group in self.toc.toc:
             for name in self.toc.toc[group]:
-                complete_name = "%s.%s" % (group, name)
+                complete_name = '%s.%s' % (group, name)
                 self.request_param_update(complete_name)
 
     def _check_if_all_updated(self):
@@ -173,14 +174,14 @@ class Param():
         if element:
             s = struct.unpack(element.pytype, pk.data[1:])[0]
             s = s.__str__()
-            complete_name = "%s.%s" % (element.group, element.name)
+            complete_name = '%s.%s' % (element.group, element.name)
 
             # Save the value for synchronous access
             if element.group not in self.values:
                 self.values[element.group] = {}
             self.values[element.group][element.name] = s
 
-            logger.debug("Updated parameter [%s]" % complete_name)
+            logger.debug('Updated parameter [%s]' % complete_name)
             if complete_name in self.param_update_callbacks:
                 self.param_update_callbacks[complete_name].call(
                     complete_name, s)
@@ -196,7 +197,7 @@ class Param():
                 self.is_updated = True
                 self.all_updated.call()
         else:
-            logger.debug("Variable id [%d] not found in TOC", var_id)
+            logger.debug('Variable id [%d] not found in TOC', var_id)
 
     def remove_update_callback(self, group, name=None, cb=None):
         """Remove the supplied callback for a group or a group.name"""
@@ -207,7 +208,7 @@ class Param():
             if group in self.group_update_callbacks:
                 self.group_update_callbacks[group].remove_callback(cb)
         else:
-            paramname = "{}.{}".format(group, name)
+            paramname = '{}.{}'.format(group, name)
             if paramname in self.param_update_callbacks:
                 self.param_update_callbacks[paramname].remove_callback(cb)
 
@@ -223,7 +224,7 @@ class Param():
                 self.group_update_callbacks[group] = Caller()
             self.group_update_callbacks[group].add_callback(cb)
         else:
-            paramname = "{}.{}".format(group, name)
+            paramname = '{}.{}'.format(group, name)
             if paramname not in self.param_update_callbacks:
                 self.param_update_callbacks[paramname] = Caller()
             self.param_update_callbacks[paramname].add_callback(cb)
@@ -261,11 +262,11 @@ class Param():
         if not element:
             logger.warning("Cannot set value for [%s], it's not in the TOC!",
                            complete_name)
-            raise KeyError("{} not in param TOC".format(complete_name))
+            raise KeyError('{} not in param TOC'.format(complete_name))
         elif element.access == ParamTocElement.RO_ACCESS:
-            logger.debug("[%s] is read only, no trying to set value",
+            logger.debug('[%s] is read only, no trying to set value',
                          complete_name)
-            raise AttributeError("{} is read-only!".format(complete_name))
+            raise AttributeError('{} is read-only!'.format(complete_name))
         else:
             varid = element.ident
             pk = CRTPPacket()
@@ -325,7 +326,7 @@ class _ParamUpdater(Thread):
         pk = CRTPPacket()
         pk.set_header(CRTPPort.PARAM, READ_CHANNEL)
         pk.data = struct.pack('<B', var_id)
-        logger.debug("Requesting request to update param [%d]", var_id)
+        logger.debug('Requesting request to update param [%d]', var_id)
         self.request_queue.put(pk)
 
     def run(self):

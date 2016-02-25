@@ -20,22 +20,19 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """Scans and creates communication interfaces."""
-
 import logging
 
-from .radiodriver import RadioDriver
-from .udpdriver import UdpDriver
-from .serialdriver import SerialDriver
 from .debugdriver import DebugDriver
-from .usbdriver import UsbDriver
 from .exceptions import WrongUriType
+from .radiodriver import RadioDriver
+from .serialdriver import SerialDriver
+from .udpdriver import UdpDriver
+from .usbdriver import UsbDriver
 
 __author__ = 'Bitcraze AB'
 __all__ = []
@@ -62,7 +59,7 @@ def scan_interfaces(address=None):
     available = []
     found = []
     for instance in INSTANCES:
-        logger.debug("Scanning: %s", instance)
+        logger.debug('Scanning: %s', instance)
         try:
             found = instance.scan_interface(address)
             available += found

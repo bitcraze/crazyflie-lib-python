@@ -19,23 +19,20 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 Simple example that scans for available Crazyflies and lists them.
 """
-
 import cflib.crtp
 
 # Initiate the low level drivers
 cflib.crtp.init_drivers(enable_debug_driver=False)
 
-print("Scanning interfaces for Crazyflies...")
+print('Scanning interfaces for Crazyflies...')
 available = cflib.crtp.scan_interfaces()
-print("Crazyflies found:")
+print('Crazyflies found:')
 for i in available:
     print(i[0])

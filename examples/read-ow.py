@@ -19,24 +19,21 @@
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 """
 Simple example that connects to the first Crazyflie found, looks for
 1-wire memories and lists its contents.
 """
-
-import sys
 import logging
+import sys
 import time
 
 import cflib.crtp  # noqa
-from cflib.crazyflie.mem import MemoryElement
 from cflib.crazyflie import Crazyflie
+from cflib.crazyflie.mem import MemoryElement
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -59,7 +56,7 @@ class OWExample:
         self._cf.connection_failed.add_callback(self._connection_failed)
         self._cf.connection_lost.add_callback(self._connection_lost)
 
-        print("Connecting to %s" % link_uri)
+        print('Connecting to %s' % link_uri)
 
         # Try to connect to the Crazyflie
         self._cf.open_link(link_uri)
@@ -71,28 +68,28 @@ class OWExample:
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
         has been connected and the TOCs have been downloaded."""
-        print("Connected to %s" % link_uri)
+        print('Connected to %s' % link_uri)
 
         mems = self._cf.mem.get_mems(MemoryElement.TYPE_1W)
         self._mems_to_update = len(mems)
-        print("Found {} 1-wire memories".format(len(mems)))
+        print('Found {} 1-wire memories'.format(len(mems)))
         for m in mems:
-            print("Updating id={}".format(m.id))
+            print('Updating id={}'.format(m.id))
             m.update(self._data_updated)
 
     def _data_updated(self, mem):
-        print("Updated id={}".format(mem.id))
-        print("\tType      : {}".format(mem.type))
-        print("\tSize      : {}".format(mem.size))
-        print("\tValid     : {}".format(mem.valid))
-        print("\tName      : {}".format(mem.name))
-        print("\tVID       : 0x{:02X}".format(mem.vid))
-        print("\tPID       : 0x{:02X}".format(mem.pid))
-        print("\tPins      : 0x{:02X}".format(mem.pins))
-        print("\tElements  : ")
+        print('Updated id={}'.format(mem.id))
+        print('\tType      : {}'.format(mem.type))
+        print('\tSize      : {}'.format(mem.size))
+        print('\tValid     : {}'.format(mem.valid))
+        print('\tName      : {}'.format(mem.name))
+        print('\tVID       : 0x{:02X}'.format(mem.vid))
+        print('\tPID       : 0x{:02X}'.format(mem.pid))
+        print('\tPins      : 0x{:02X}'.format(mem.pins))
+        print('\tElements  : ')
 
         for key in mem.elements:
-            print("\t\t{}={}".format(key, mem.elements[key]))
+            print('\t\t{}={}'.format(key, mem.elements[key]))
 
         self._mems_to_update -= 1
         if self._mems_to_update == 0:
@@ -100,26 +97,26 @@ class OWExample:
 
     def _stab_log_error(self, logconf, msg):
         """Callback from the log API when an error occurs"""
-        print("Error when logging %s: %s" % (logconf.name, msg))
+        print('Error when logging %s: %s' % (logconf.name, msg))
 
     def _stab_log_data(self, timestamp, data, logconf):
         """Callback froma the log API when data arrives"""
-        print("[%d][%s]: %s" % (timestamp, logconf.name, data))
+        print('[%d][%s]: %s' % (timestamp, logconf.name, data))
 
     def _connection_failed(self, link_uri, msg):
         """Callback when connection initial connection fails (i.e no Crazyflie
         at the speficied address)"""
-        print("Connection to %s failed: %s" % (link_uri, msg))
+        print('Connection to %s failed: %s' % (link_uri, msg))
         self.is_connected = False
 
     def _connection_lost(self, link_uri, msg):
         """Callback when disconnected after a connection has been made (i.e
         Crazyflie moves out of range)"""
-        print("Connection to %s lost: %s" % (link_uri, msg))
+        print('Connection to %s lost: %s' % (link_uri, msg))
 
     def _disconnected(self, link_uri):
         """Callback when the Crazyflie is disconnected (called in all cases)"""
-        print("Disconnected from %s" % link_uri)
+        print('Disconnected from %s' % link_uri)
         self.is_connected = False
 
 
@@ -127,16 +124,16 @@ if __name__ == '__main__':
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=False)
     # Scan for Crazyflies and use the first one found
-    print("Scanning interfaces for Crazyflies...")
+    print('Scanning interfaces for Crazyflies...')
     available = cflib.crtp.scan_interfaces()
-    print("Crazyflies found:")
+    print('Crazyflies found:')
     for i in available:
         print(i[0])
 
     if len(available) > 0:
         le = OWExample(available[0][0])
     else:
-        print("No Crazyflies found, cannot run example")
+        print('No Crazyflies found, cannot run example')
 
     # The Crazyflie lib doesn't contain anything to keep the application alive,
     # so this is where your application should do something. In our case we

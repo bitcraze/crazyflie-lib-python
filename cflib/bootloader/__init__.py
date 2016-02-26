@@ -34,10 +34,10 @@ import time
 import zipfile
 
 from .boottypes import BootVersion
-from .boottypes import Target
+from .boottypes import Target  # noqa
 from .boottypes import TargetTypes
 from .cloader import Cloader
-from cflib.utils.callbacks import Caller
+from cflib.utils.callbacks import Caller  # noqa
 
 logger = logging.getLogger(__name__)
 

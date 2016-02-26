@@ -31,10 +31,8 @@ import logging
 import time
 from threading import Thread
 
-import cflib
 from cflib.crazyflie import Crazyflie
-
-logging.basicConfig(level=logging.ERROR)
+from examples.util import get_first_crazyflie
 
 
 class MotorRampExample:
@@ -101,17 +99,13 @@ class MotorRampExample:
         self._cf.close_link()
 
 
-if __name__ == '__main__':
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
-    # Scan for Crazyflies and use the first one found
-    print('Scanning interfaces for Crazyflies...')
-    available = cflib.crtp.scan_interfaces()
-    print('Crazyflies found:')
-    for i in available:
-        print(i[0])
+def main():
 
-    if len(available) > 0:
-        le = MotorRampExample(available[0][0])
-    else:
-        print('No Crazyflies found, cannot run example')
+    # Only output errors from the logging framework
+    logging.basicConfig(level=logging.ERROR)
+
+    MotorRampExample(get_first_crazyflie())
+
+
+if __name__ == '__main__':
+    exit(main())

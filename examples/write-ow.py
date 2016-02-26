@@ -31,13 +31,10 @@ import logging
 import sys
 import time
 
-import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
 from cflib.crazyflie.mem import OWElement
-
-# Only output errors from the logging framework
-logging.basicConfig(level=logging.ERROR)
+from examples.util import get_first_crazyflie
 
 
 class EEPROMExample:
@@ -132,29 +129,25 @@ class EEPROMExample:
         self.is_connected = False
 
 
-if __name__ == '__main__':
+def main():
+    # Only output errors from the logging framework
+    logging.basicConfig(level=logging.ERROR)
+
     print('This example will not work with the BLE version of the nRF51'
           ' firmware (flashed on production units). See https://github.com'
           '/bitcraze/crazyflie-clients-python/issues/166')
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=True)
-    # Scan for Crazyflies and use the first one found
-    print('Scanning interfaces for Crazyflies...')
-    available = cflib.crtp.scan_interfaces()
-    print('Crazyflies found:')
-    for i in available:
-        print(i[0])
 
-    if len(available) > 0:
-        le = EEPROMExample(available[0][0])
-    else:
-        print('No Crazyflies found, cannot run example')
+    example = EEPROMExample(get_first_crazyflie())
 
     # The Crazyflie lib doesn't contain anything to keep the application alive,
     # so this is where your application should do something. In our case we
     # are just waiting until we are disconnected.
     try:
-        while le.is_connected:
+        while example.is_connected:
             time.sleep(1)
     except KeyboardInterrupt:
         sys.exit(1)
+
+
+if __name__ == '__main__':
+    exit(main())

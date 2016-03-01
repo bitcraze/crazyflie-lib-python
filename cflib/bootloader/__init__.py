@@ -34,10 +34,8 @@ import time
 import zipfile
 
 from .boottypes import BootVersion
-from .boottypes import Target
 from .boottypes import TargetTypes
 from .cloader import Cloader
-from cflib.utils.callbacks import Caller
 
 logger = logging.getLogger(__name__)
 

@@ -33,8 +33,8 @@ import logging
 import os
 from glob import glob
 
-from .log import LogTocElement  # pylint: disable=W0611
-from .param import ParamTocElement  # pylint: disable=W0611
+from .log import LogTocElement  # noqa
+from .param import ParamTocElement  # noqa
 
 __author__ = 'Bitcraze AB'
 __all__ = ['TocCache']

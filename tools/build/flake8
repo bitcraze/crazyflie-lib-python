@@ -6,11 +6,11 @@ __author__ = 'kristoffer'
 
 
 def _check_files_without_ext(path):
-    subprocess.check_call(["pep8", "--statistics", "--filename=*", path])
+    subprocess.check_call(["flake8", "--statistics", "--filename=*", path])
 
 
 def _check_files_with_ext(path):
-    subprocess.check_call(["pep8", "--statistics", path])
+    subprocess.check_call(["flake8", "--statistics", path])
 
 
 try:
@@ -19,7 +19,7 @@ try:
     _check_files_without_ext(script_dir)
     _check_files_with_ext(script_dir + "/../..")
 
-    print("PEP8 check pass")
+    print("flake8 check pass")
 except subprocess.CalledProcessError as e:
-    print("Error: PEP8 check fail")
+    print("Error: flake8 check fail")
     raise e

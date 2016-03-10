@@ -82,3 +82,9 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", MODE="0664"
 ```
 
 [cfclient]: https://www.github.com/bitcraze/crazyflie-clients-python
+
+
+Contribute
+----------
+
+Everyone is encouraged to contribute to the CrazyFlie library by forking the Github repository and making a pull request or opening an issue.

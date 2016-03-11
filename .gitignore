@@ -2,3 +2,6 @@
 build/*
 dist/*
 *.egg-info/
+.venv*
+.tox*
+venv*

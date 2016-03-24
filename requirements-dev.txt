@@ -1,4 +1,5 @@
 -e .
 
+coverage
 pre-commit
 tox

@@ -33,12 +33,18 @@ Note: The first three steps can be skipped if you don't mind installing cflib de
 
 
 # Testing
-### With docker
-* [install docker](https://docs.docker.com/engine/installation/)
-* Check to see if you pass tests: `python tools/build/test`
-* Check to see if you pass style guidelines: `python tools/build/verify`
+### With docker and the toolbelt
 
-### Linux, OSX, Windows
+For information and installation of the 
+[toolbelt.](https://wiki.bitcraze.io/projects:dockerbuilderimage:index)
+  
+* Check to see if you pass tests: `tb test`
+* Check to see if you pass style guidelines: `tb verify`
+
+Note: Docker and the toolbelt is an optional way of running tests and reduces the 
+work needed to maintain your python environmet. 
+
+### Native python on Linux, OSX, Windows
 * [Tox](http://tox.readthedocs.org/en/latest/) is used for native testing: `pip install tox`
 * Test package in python2.7 `TOXENV=py27 tox`
 * Test package in python3.4 `TOXENV=py34 tox`

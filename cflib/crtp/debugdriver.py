@@ -150,13 +150,15 @@ class DebugDriver(CRTPDriver):
                                 'vargroup': 'baro', 'varname': 'aslRaw',
                                 'min': 540, 'max': 545, 'mod': 1.0})
         self.fakeLogToc.append({'varid': 17, 'vartype': 7,
-                                'vargroup': 'baro', 'varname': 'aslLong',
+                                'vargroup': 'posEstimatorAlt',
+                                'varname': 'estimatedZ',
                                 'min': 540, 'max': 545, 'mod': 0.5})
         self.fakeLogToc.append({'varid': 18, 'vartype': 7,
                                 'vargroup': 'baro', 'varname': 'temp',
                                 'min': 26, 'max': 38, 'mod': 1.0})
         self.fakeLogToc.append({'varid': 19, 'vartype': 7,
-                                'vargroup': 'altHold', 'varname': 'target',
+                                'vargroup': 'posCtlAlt',
+                                'varname': 'targetZ',
                                 'min': 542, 'max': 543, 'mod': 0.1})
         self.fakeLogToc.append({'varid': 20, 'vartype': 6,
                                 'vargroup': 'gps', 'varname': 'lat',

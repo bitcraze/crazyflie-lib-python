@@ -144,6 +144,7 @@ class Crazyradio:
             self.set_power(self.P_0DBM)
             self.set_arc(3)
             self.set_ard_bytes(32)
+            self.set_ack_enable(True)
 
     def close(self):
         if (pyusb1 is False):
@@ -208,6 +209,12 @@ class Crazyradio:
             _send_vendor_setup(self.handle, SET_CONT_CARRIER, 1, 0, ())
         else:
             _send_vendor_setup(self.handle, SET_CONT_CARRIER, 0, 0, ())
+
+    def set_ack_enable(self, enable):
+        if enable:
+            _send_vendor_setup(self.handle, ACK_ENABLE, 1, 0, ())
+        else:
+            _send_vendor_setup(self.handle, ACK_ENABLE, 0, 0, ())
 
     def _has_fw_scan(self):
         # return self.version >= 0.5

@@ -27,12 +27,12 @@
 """
 Crazyflie radio bootloader for flashing firmware.
 """
+import binascii
 import logging
 import math
 import random
 import struct
 import time
-import binascii
 
 import cflib.crtp
 from .boottypes import Target

@@ -116,7 +116,8 @@ class Cloader:
             pk.data = (target_id, 0xF0, 0x00)
             self.link.send_packet(pk)
 
-            addr = int(binascii.hexlify(struct.pack('B' * 5, *new_address)), 16)
+            addr = int(binascii.hexlify(
+                struct.pack('B' * 5, *new_address)), 16)
 
             time.sleep(0.2)
             self.link.close()

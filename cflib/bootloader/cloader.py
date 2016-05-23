@@ -27,6 +27,7 @@
 """
 Crazyflie radio bootloader for flashing firmware.
 """
+import binascii
 import logging
 import math
 import random
@@ -115,13 +116,14 @@ class Cloader:
             pk.data = (target_id, 0xF0, 0x00)
             self.link.send_packet(pk)
 
-            addr = int(struct.pack('B' * 5, *new_address).encode('hex'), 16)
+            addr = int(binascii.hexlify(
+                struct.pack('B' * 5, *new_address)), 16)
 
             time.sleep(0.2)
             self.link.close()
             time.sleep(0.2)
             self.link = cflib.crtp.get_link_driver(
-                'radio://0/0/2M/{}'.format(addr))
+                'radio://0/0/2M/{:X}'.format(addr))
 
             return True
         else:

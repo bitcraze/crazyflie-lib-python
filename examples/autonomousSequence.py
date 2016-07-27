@@ -114,7 +114,7 @@ class AutonomousSequence:
         self.is_connected = False
 
     def _run_sequence(self):
-        #Setting up the anchors position
+        # Setting up the anchors position
         for i in range(len(anchors)):
             self._cf.param.set_value('anchorpos.anchor{}x'.format(i),
                                      '{}'.format(anchors[i][0]))
@@ -129,11 +129,11 @@ class AutonomousSequence:
         time.sleep(0.1)
 
         for position in sequence:
-            print("Setting position {}".format(position))
+            print('Setting position {}'.format(position))
             for i in range(50):
                 self._cf.commander.send_setpoint(position[1], position[0],
                                                  position[3],
-                                                 int(position[2]*1000))
+                                                 int(position[2] * 1000))
                 time.sleep(0.1)
 
         self._cf.commander.send_setpoint(0, 0, 0, 0)
@@ -142,8 +142,8 @@ class AutonomousSequence:
         time.sleep(0.1)
         self._cf.close_link()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
     # le = AutonomousSequence("radio://0/80/2M/E7E7E7E701")
-    le = AutonomousSequence("radio://0/23/2M")
+    le = AutonomousSequence('radio://0/23/2M')

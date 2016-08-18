@@ -418,9 +418,7 @@ class _RadioDriverThread(threading.Thread):
 
             # Analise the in data packet ...
             if ackStatus is None:
-                if (self.link_error_callback is not None):
-                    self.link_error_callback('Dongle communication error'
-                                             ' (ackStatus==None)')
+                logger.info("Dongle reported ACK status == None")
                 continue
 
             if (self.link_quality_callback is not None):

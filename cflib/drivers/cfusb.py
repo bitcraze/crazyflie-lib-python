@@ -49,6 +49,7 @@ try:
 
         pyusb_backend = libusb0.get_backend()
     pyusb1 = True
+
 except:
     pyusb1 = False
 
@@ -107,7 +108,13 @@ class CfUsb:
                 self.version = float(self.dev.deviceVersion)
 
     def get_serial(self):
-        return usb.util.get_string(self.dev, 255, self.dev.iSerialNumber)
+        # The signature for get_string has changed between versions to 1.0.0b1,
+        # 1.0.0b2 and 1.0.0. Try the old signature first, if that fails try
+        # the newer one.
+        try:
+            return usb.util.get_string(self.dev, 255, self.dev.iSerialNumber)
+        except (usb.core.USBError, ValueError):
+            return usb.util.get_string(self.dev, self.dev.iSerialNumber)
 
     def close(self):
         if (pyusb1 is False):

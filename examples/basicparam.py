@@ -92,11 +92,6 @@ class ParamExample:
                                            cb=self._cpu_flash_callback)
 
         print('')
-        print('Reading back back all parameter values')
-        # Request update for all the parameters using the full name
-        # group.name
-        for p in self._param_check_list:
-            self._cf.param.request_param_update(p)
 
     def _cpu_flash_callback(self, name, value):
         """Specific callback for the cpu.flash parameter"""

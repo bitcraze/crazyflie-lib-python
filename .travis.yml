@@ -11,9 +11,6 @@ matrix:
           script: tox
         - os: osx
           sudo: required
-          before_install: 
-            - brew update
-            - brew install python
           install: pip install tox
           env: TOXENV=py27
           script: tox

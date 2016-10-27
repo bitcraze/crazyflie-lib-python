@@ -1,68 +1,81 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import statistics
 import cflib.drivers.crazyradio as crazyradio
+import argparse
 
 radio = crazyradio.Crazyradio()
-#by default my crazyflie uses channel 80
 
-radio.set_channel(80)
+# optional user input
+parser = argparse.ArgumentParser(description='Key variables')
+
+parser.add_argument(
+    '-try', '--try', dest="TRY", type=int, default=100, 
+	help='the time to send data for each channel')
+
+# by default my crazyflie uses channel 80
+parser.add_argument(
+	'-channel', "--channel", dest="channel", type=int, default=80, 
+	help='the default channel in crazyflie')
+
+parser.add_argument(
+	'-frac', "--fraction", 	dest="fraction", type=float, default=0.25, 
+	help='top fraction of suggested channels')
+args = parser.parse_args()
+
+init_channel = args.channel
+TRY = args.TRY
+Fraction = args.fraction
+
+radio.set_channel(init_channel)
 radio.set_data_rate(2)
-
-TRY = 100
 SET_RADIO_CHANNEL = 1
-Fraction = 0.25
+
 rssi_std = []
 rssi = []
 ack = []
 channel = 0
+radio.set_arc(0)
 
-#initialize channel
+# initialize channel
 for x in range(20):
-	radio.send_packet((0xff, 0xf3, SET_RADIO_CHANNEL, 0))
+	radio.send_packet((0xff, 0x03, SET_RADIO_CHANNEL, 0))
 
 while(channel < 126):
 	count = 0
 	rssi_sum = 0
 	temp = []
-	radio.set_arc(0)
+	radio.set_channel(channel)
 	
 	for i in range(TRY):
 		pk = radio.send_packet((0xff, ))
 		if pk.ack:
 			count += 1
-		if pk.ack and len(pk.data) > 2 and pk.data[0] & 0xf3 == 0xf3 and pk.data[1] == 0x01:
+		if pk.ack and len(pk.data) > 2 and 
+           	pk.data[0] & 0xf3 == 0xf3 and pk.data[1] == 0x01:			
 			rssi_sum += pk.data[2]
 			temp.append(pk.data[2])
 			
 	ack_rate = count / TRY
 	rssi_avg = rssi_sum / count
-	std = statistics.stdev(temp)
+	std = np.std(temp)
 
 	rssi.append(rssi_avg)
 	ack.append(ack_rate)
 	rssi_std.append(std)
 	
-	print("Channel", channel, "ack_rate:", ack_rate, "rssi average:", rssi_avg, "rssi std:", std)
+	print("Channel", channel, "ack_rate:", ack_rate, 
+         "rssi average:", rssi_avg, "rssi std:", std)
 	channel += 1
 	for x in range(20):
-		radio.send_packet((0xff, 0xf3, SET_RADIO_CHANNEL, channel))
+		radio.send_packet((0xff, 0x03, SET_RADIO_CHANNEL, channel))
 
-#store data
-fh = open("data.txt", "w")
 
-for x in range(126):
-	fh.write(str(rssi_std[x]) + "\n")
-for x in range(126):
-	fh.write(str(rssi[x]) + "\n")
-for x in range(126):
-	fh.write(str(ack[x]) + "\n")
-fh.close()
-
-#divide each std by 2 for plotting convenience
+# divide each std by 2 for plotting convenience
 for x in range(126):
         rssi_std[x] /= 2
 
+# divide each std by 2 for plotting convenience
+rssi_std = [x / 2 for x in rssi_std]
 rssi_std = np.array(rssi_std)
 rssi = np.array(rssi)
 ack = np.array(ack)
@@ -70,7 +83,7 @@ ack = np.array(ack)
 rssi_rank = []
 ack_rank = []
 
-#suggestion for rssi
+# suggestion for rssi
 order = rssi.argsort()
 ranks = order.argsort()
 for x in range(int(125*Fraction)):
@@ -78,30 +91,22 @@ for x in range(int(125*Fraction)):
 		if ranks[y] == x:
 			rssi_rank.append(y)
 
-#suggestion for ack
+# suggestion for ack
 order = ack.argsort()
 ranks = order.argsort()
 for x in range(126, 126-int(125*Fraction)-1, -1):
 	for y in range(126):
 		if ranks[y] == x:
 			ack_rank.append(y)
-			
-#print("\nSuggested Channels:\nRSSI low 25%: \t Ack high 25%: \tRank:" )
-#for x in range(int(125*Fraction)):
-#	print(rssi_rank[x], "\t\t ", ack_rank[x], "\t\t", x)
 
-rssi_set = set()
-ack_set = set()
-for x in range(int(125*Fraction)):
-	rssi_set.add(rssi_rank[x])
-	ack_set.add(ack_rank[x])
-
+rssi_set = set(rssi_rank[0:int(125*Fraction)])
+ack_set = set(ack_rank[0:int(125*Fraction)])
 final_rank = rssi_set.intersection(ack_rank)
 print("\nSuggested Channels:")
 for x in final_rank:
 	print("\t", x)
 
-#graph 1 for ack
+# graph 1 for ack
 x = np.arange(0, 126, 1)
 fig, ax1 = plt.subplots()
 ax1.axis([0, 125, 0, 1.25])
@@ -111,7 +116,7 @@ ax1.set_ylabel('Ack Rate', color = 'b')
 for tl in ax1.get_yticklabels():
     tl.set_color('b')
 
-#graph 2 for rssi & rssi_std
+# graph 2 for rssi & rssi_std
 ax2 = ax1.twinx()
 ax2.grid(True)
 ax2.errorbar(x, rssi, yerr=rssi_std, fmt='r-')

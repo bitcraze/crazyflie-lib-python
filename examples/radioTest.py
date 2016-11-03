@@ -18,51 +18,29 @@ import argparse
 radio = crazyradio.Crazyradio()
 
 # optional user input
-
 parser = argparse.ArgumentParser(description='Key variables')
-
 parser.add_argument(
-
-    '-try', '--try', dest="TRY", type=int, default=100, 
-
+    '-try', '--try', dest="TRY", type=int, default=100,
     help='the time to send data for each channel')
-
 # by default my crazyflie uses channel 80
-
 parser.add_argument(
-
-    '-channel', "--channel", dest="channel", type=int, default=80, 
-
+    '-channel', "--channel", dest="channel", type=int, default=80,
     help='the default channel in crazyflie')
 # by default my crazyflie uses datarate 2M
-
 parser.add_argument(
-
-    '-rate', "--rate", dest="rate", type=int, default=2, 
-
+    '-rate', "--rate", dest="rate", type=int, default=2,
     help='the default datarate in crazyflie')
-
 parser.add_argument(
-
-    '-frac', "--fraction",  dest="fraction", type=float, default=0.25, 
-
+    '-frac', "--fraction",  dest="fraction", type=float, default=0.25,
     help='top fraction of suggested channels')
-
 args = parser.parse_args()
 
-
-
 init_channel = args.channel
-
 TRY = args.TRY
-
 Fraction = args.fraction
 data_rate = args.rate
 
-
-
 radio.set_channel(init_channel)
-
 radio.set_data_rate(data_rate)
 SET_RADIO_CHANNEL = 1
 
@@ -72,7 +50,7 @@ ack = []
 radio.set_arc(0)
 
 for channel in range(0,126,1):
-
+    
     # change Crazyflie channel
     for x in range(20):
         radio.send_packet((0xff, 0x03, SET_RADIO_CHANNEL, channel))
@@ -99,17 +77,14 @@ for channel in range(0,126,1):
     ack.append(ack_rate)
     rssi_std.append(std)
     
-    print("Channel", channel, "ack_rate:", ack_rate, 
-
+    print("Channel", channel, "ack_rate:", ack_rate,
          "rssi average:", rssi_avg, "rssi std:", std)
 
-    
 #change channel back to default
 for x in range(20):
     radio.send_packet((0xff, 0x03, SET_RADIO_CHANNEL, init_channel))
 
 # divide each std by 2 for plotting convenience
-
 rssi_std = [x / 2 for x in rssi_std]
 rssi_std = np.array(rssi_std)
 rssi = np.array(rssi)
@@ -135,7 +110,6 @@ for x in range(126, 126-int(125*Fraction)-1, -1):
             ack_rank.append(y)
 
 rssi_set = set(rssi_rank[0:int(125*Fraction)])
-
 ack_set = set(ack_rank[0:int(125*Fraction)])
 final_rank = rssi_set.intersection(ack_rank)
 print("\nSuggested Channels:")

@@ -20,19 +20,23 @@ radio = crazyradio.Crazyradio()
 # optional user input
 parser = argparse.ArgumentParser(description='Key variables')
 parser.add_argument(
-                    '-try', '--try', dest="TRY", type=int, default=100,
-                    help='the time to send data for each channel')
+    '-try', '--try', dest="TRY", type=int, default=100,
+    help='the time to send data for each channel'
+)
 # by default my crazyflie uses channel 80
 parser.add_argument(
-                    '-channel', "--channel", dest="channel", type=int,
-                    default=80, help='the default channel in crazyflie')
+    '-channel', "--channel", dest="channel", type=int,
+    default=80, help='the default channel in crazyflie'
+)
 # by default my crazyflie uses datarate 2M
 parser.add_argument(
-                    '-rate', "--rate", dest="rate", type=int, default=2,
-                    help='the default datarate in crazyflie')
+    '-rate', "--rate", dest="rate", type=int, default=2,
+    help='the default datarate in crazyflie'
+)
 parser.add_argument(
-                    '-frac', "--fraction",  dest="fraction", type=float,
-                    default=0.25, help='top fraction of suggested channels')
+    '-frac', "--fraction",  dest="fraction", type=float,
+    default=0.25, help='top fraction of suggested channels'
+)
 args = parser.parse_args()
 
 init_channel = args.channel
@@ -65,7 +69,7 @@ for channel in range(0, 126, 1):
         pk = radio.send_packet((0xff, ))
         if pk.ack:
             count += 1
-        if pk.ack and len(pk.data) > 2 and pk.data[0] & 0xf3 == 0xf3
+        if pk.ack and len(pk.data) > 2 and (pk.data[0] & 0xf3 == 0xf3)
         and pk.data[1] == 0x01:
             temp.append(pk.data[2])
 

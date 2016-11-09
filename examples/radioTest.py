@@ -2,39 +2,39 @@
 # The Automatic Coordination of Teams (ACT) Lab
 # University of Southern California
 # ericyihc@usc.edu
-
-"""
+'''
     Simple example that connects to the first Crazyflie found, triggers
     reading of rssi data and acknowledgement rate for every channel (0 to 125).
     It finally sets the Crazyflie channel back to default, plots link
     quality data, and offers good channel suggestion.
-    """
-
-import numpy as np
-import matplotlib.pyplot as plt
-import cflib.drivers.crazyradio as crazyradio
+'''
 import argparse
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+import cflib.drivers.crazyradio as crazyradio
 
 radio = crazyradio.Crazyradio()
 
 # optional user input
 parser = argparse.ArgumentParser(description='Key variables')
 parser.add_argument(
-    '-try', '--try', dest="TRY", type=int, default=100,
+    '-try', '--try', dest='TRY', type=int, default=100,
     help='the time to send data for each channel'
 )
 # by default my crazyflie uses channel 80
 parser.add_argument(
-    '-channel', "--channel", dest="channel", type=int,
+    '-channel', '--channel', dest='channel', type=int,
     default=80, help='the default channel in crazyflie'
 )
 # by default my crazyflie uses datarate 2M
 parser.add_argument(
-    '-rate', "--rate", dest="rate", type=int, default=2,
+    '-rate', '--rate', dest='rate', type=int, default=2,
     help='the default datarate in crazyflie'
 )
 parser.add_argument(
-    '-frac', "--fraction",  dest="fraction", type=float,
+    '-frac', '--fraction',  dest='fraction', type=float,
     default=0.25, help='top fraction of suggested channels'
 )
 args = parser.parse_args()
@@ -82,8 +82,8 @@ for channel in range(0, 126, 1):
     ack.append(ack_rate)
     rssi_std.append(std)
 
-    print("Channel", channel, "ack_rate:", ack_rate,
-          "rssi average:", rssi_avg, "rssi std:", std)
+    print('Channel', channel, 'ack_rate:', ack_rate,
+          'rssi average:', rssi_avg, 'rssi std:', std)
 
 # change channel back to default
 for x in range(20):
@@ -101,7 +101,7 @@ ack_rank = []
 # suggestion for rssi
 order = rssi.argsort()
 ranks = order.argsort()
-for x in range(int(125*Fraction)):
+for x in range(int(125 * Fraction)):
     for y in range(126):
         if ranks[y] == x:
             rssi_rank.append(y)
@@ -109,17 +109,17 @@ for x in range(int(125*Fraction)):
 # suggestion for ack
 order = ack.argsort()
 ranks = order.argsort()
-for x in range(126, 126-int(125*Fraction)-1, -1):
+for x in range(126, 126 - int(125 * Fraction) - 1, -1):
     for y in range(126):
         if ranks[y] == x:
             ack_rank.append(y)
 
-rssi_set = set(rssi_rank[0:int(125*Fraction)])
-ack_set = set(ack_rank[0:int(125*Fraction)])
+rssi_set = set(rssi_rank[0:int(125 * Fraction)])
+ack_set = set(ack_rank[0:int(125 * Fraction)])
 final_rank = rssi_set.intersection(ack_rank)
-print("\nSuggested Channels:")
+print('\nSuggested Channels:')
 for x in final_rank:
-    print("\t", x)
+    print('\t', x)
 
 # graph 1 for ack
 x = np.arange(0, 126, 1)
@@ -135,7 +135,7 @@ for tl in ax1.get_yticklabels():
 ax2 = ax1.twinx()
 ax2.grid(True)
 ax2.errorbar(x, rssi, yerr=rssi_std, fmt='r-')
-ax2.fill_between(x, rssi+rssi_std, rssi-rssi_std,
+ax2.fill_between(x, rssi + rssi_std, rssi - rssi_std,
                  facecolor='orange', edgecolor='k')
 ax2.axis([0, 125, 0, 90])
 plt.ylabel('RSSI Average', color='r')
@@ -147,3 +147,4 @@ for x in final_rank:
              color='cornflowerblue', linewidth=1)
 
 plt.show()
+

@@ -69,8 +69,8 @@ for channel in range(0, 126, 1):
         pk = radio.send_packet((0xff, ))
         if pk.ack:
             count += 1
-        if pk.ack and len(pk.data) > 2 and (pk.data[0] & 0xf3 == 0xf3)
-        and pk.data[1] == 0x01:
+        if pk.ack and len(pk.data) > 2 /
+        and (pk.data[0] & 0xf3 == 0xf3) and pk.data[1] == 0x01:
             temp.append(pk.data[2])
 
     ack_rate = count / TRY

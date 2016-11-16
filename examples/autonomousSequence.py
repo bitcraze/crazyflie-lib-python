@@ -142,6 +142,7 @@ class AutonomousSequence:
         time.sleep(0.1)
         self._cf.close_link()
 
+
 if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
 

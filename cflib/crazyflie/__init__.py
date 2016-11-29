@@ -67,28 +67,6 @@ class State:
 class Crazyflie():
     """The Crazyflie class"""
 
-    # Called on disconnect, no matter the reason
-    disconnected = Caller()
-    # Called on unintentional disconnect only
-    connection_lost = Caller()
-    # Called when the first packet in a new link is received
-    link_established = Caller()
-    # Called when the user requests a connection
-    connection_requested = Caller()
-    # Called when the link is established and the TOCs (that are not cached)
-    # have been downloaded
-    connected = Caller()
-    # Called if establishing of the link fails (i.e times out)
-    connection_failed = Caller()
-    # Called for every packet received
-    packet_received = Caller()
-    # Called for every packet sent
-    packet_sent = Caller()
-    # Called when the link driver updates the link quality measurement
-    link_quality_updated = Caller()
-
-    state = State.DISCONNECTED
-
     def __init__(self, link=None, ro_cache=None, rw_cache=None):
         """
         Create the objects from this module and register callbacks.
@@ -96,6 +74,29 @@ class Crazyflie():
         ro_cache -- Path to read-only cache (string)
         rw_cache -- Path to read-write cache (string)
         """
+
+        # Called on disconnect, no matter the reason
+        self.disconnected = Caller()
+        # Called on unintentional disconnect only
+        self.connection_lost = Caller()
+        # Called when the first packet in a new link is received
+        self.link_established = Caller()
+        # Called when the user requests a connection
+        self.connection_requested = Caller()
+        # Called when the link is established and the TOCs (that are not
+        # cached) have been downloaded
+        self.connected = Caller()
+        # Called if establishing of the link fails (i.e times out)
+        self.connection_failed = Caller()
+        # Called for every packet received
+        self.packet_received = Caller()
+        # Called for every packet sent
+        self.packet_sent = Caller()
+        # Called when the link driver updates the link quality measurement
+        self.link_quality_updated = Caller()
+
+        self.state = State.DISCONNECTED
+
         self.link = link
         self._toc_cache = TocCache(ro_cache=ro_cache,
                                    rw_cache=rw_cache)

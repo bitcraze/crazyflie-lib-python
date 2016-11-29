@@ -41,12 +41,13 @@ class Console:
     from the firmware.
     """
 
-    receivedChar = Caller()
-
     def __init__(self, crazyflie):
         """
         Initialize the console and register it to receive data from the copter.
         """
+
+        self.receivedChar = Caller()
+
         self.cf = crazyflie
         self.cf.add_port_callback(CRTPPort.CONSOLE, self.incoming)
 

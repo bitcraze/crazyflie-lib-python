@@ -106,4 +106,4 @@ if __name__ == "__main__":
     cflib.crtp.init_drivers(enable_debug_driver=False)
     # Connect the two Crazyflies and ramps them up-down
     le0 = MotorRampExample("radio://0/70/2M")
-    le1 = MotorRampExample("radio://1/80/250K")
+    le1 = MotorRampExample("usb://0")

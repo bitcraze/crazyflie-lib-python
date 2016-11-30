@@ -75,7 +75,7 @@ def get_interfaces_status():
     for driverClass in CLASSES:
         try:
             instance = driverClass()
-            status[driverClass.get_name()] = instance.get_status()
+            status[instance.get_name()] = instance.get_status()
         except Exception:
             raise
     return status

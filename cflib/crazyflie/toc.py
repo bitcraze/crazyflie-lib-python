@@ -34,7 +34,7 @@ import struct
 from cflib.crtp.crtpstack import CRTPPacket
 
 __author__ = 'Bitcraze AB'
-__all__ = ['TocElement', 'Toc', 'TocFetcher']
+__all__ = ['Toc', 'TocFetcher']
 
 logger = logging.getLogger(__name__)
 
@@ -48,19 +48,6 @@ CMD_TOC_INFO = 1
 IDLE = 'IDLE'
 GET_TOC_INFO = 'GET_TOC_INFO'
 GET_TOC_ELEMENT = 'GET_TOC_ELEMENT'
-
-
-class TocElement:
-    """An element in the TOC."""
-    RW_ACCESS = 0
-    RO_ACCESS = 1
-
-    ident = 0
-    group = ''
-    name = ''
-    ctype = ''
-    pytype = ''
-    access = RO_ACCESS
 
 
 class Toc:

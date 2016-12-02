@@ -135,7 +135,80 @@ class Bootloader:
 
         self._internal_flash(target=to_flash)
 
-    def flash(self, filename, targets):
+    def verify(self, filename, targets):
+        for target in targets:
+            if TargetTypes.from_string(target) not in self._cload.targets:
+                print('Target {} not found by bootloader'.format(target))
+                return False
+
+        files_to_verify = ()
+        if zipfile.is_zipfile(filename):
+            # Read the manifest (don't forget to check so there is one!)
+            try:
+                zf = zipfile.ZipFile(filename)
+                js = zf.read('manifest.json').decode('UTF-8')
+                j = json.loads(js)
+                files = j['files']
+                platform_id = self._get_platform_id()
+                files_for_platform = self._filter_platform(files, platform_id)
+                if len(targets) == 0:
+                    targets = self._extract_targets_from_manifest_files(
+                        files_for_platform)
+
+                zip_targets = self._extract_zip_targets(files_for_platform)
+            except KeyError as e:
+                print(e)
+                print('No manifest.json in {}'.format(filename))
+                return False
+
+            try:
+                # Match and create targets
+                for target in targets:
+                    t = targets[target]
+                    for type in t:
+                        file_to_verify = {}
+                        current_target = '{}-{}'.format(target, type)
+                        file_to_verify['type'] = type
+                        # Read the data, if this fails we bail
+                        file_to_verify['target'] = self._cload.targets[
+                            TargetTypes.from_string(target)]
+                        file_to_verify['data'] = zf.read(
+                            zip_targets[target][type]['filename'])
+                        file_to_verify['start_page'] = file_to_verify[
+                            'target'].start_page
+                        files_to_verify += (file_to_verify,)
+            except KeyError as e:
+                print('Could not find a file for {} in {}'.format(
+                    current_target, filename))
+                return False
+        else:
+            if len(targets) != 1:
+                print('Not an archive, must supply one target to verify')
+            else:
+                file_to_verify = {}
+                file_to_verify['type'] = 'binary'
+                f = open(filename, 'rb')
+                for t in targets:
+                    file_to_verify['target'] = self._cload.targets[
+                        TargetTypes.from_string(t)]
+                    file_to_verify['type'] = targets[t][0]
+                    file_to_verify['start_page'] = file_to_verify[
+                        'target'].start_page
+                file_to_verify['data'] = f.read()
+                f.close()
+                files_to_verify += (file_to_verify,)
+
+        if not self.progress_cb:
+            print('')
+
+        file_counter = 0
+        for target in files_to_verify:
+            file_counter += 1
+            if not self._internal_verify(target, file_counter, len(files_to_verify)):
+                return False
+        return True
+
+    def flash(self, filename, targets, verify):
         for target in targets:
             if TargetTypes.from_string(target) not in self._cload.targets:
                 print('Target {} not found by bootloader'.format(target))
@@ -205,7 +278,7 @@ class Bootloader:
         file_counter = 0
         for target in files_to_flash:
             file_counter += 1
-            self._internal_flash(target, file_counter, len(files_to_flash))
+            self._internal_flash(target, file_counter, len(files_to_flash), verify)
 
     def _filter_platform(self, files, platform_id):
         result = {}
@@ -252,7 +325,80 @@ class Bootloader:
         if self._cload:
             self._cload.close()
 
-    def _internal_flash(self, target, current_file_number=1, total_files=1):
+    def _internal_verify(self, target, current_file_number=1, total_files=1):
+
+        image = target['data']
+        t_data = target['target']
+        start_page = target['start_page']
+
+        # If used from a UI we need some extra things for reporting progress
+        factor = (100.0 * t_data.page_size) / len(image)
+        progress = 0
+
+        if self.progress_cb:
+            self.progress_cb(
+                '({}/{}) Starting...'.format(current_file_number, total_files),
+                int(progress))
+        else:
+            sys.stdout.write(
+                'Verifying {} of {} to {} ({}): '.format(
+                    current_file_number, total_files,
+                    TargetTypes.to_string(t_data.id), target['type']))
+            sys.stdout.flush()
+
+        if not self.progress_cb:
+            logger.info(('%d bytes (%d pages) ' % (
+                (len(image) - 1), int(len(image) / t_data.page_size) + 1)))
+            sys.stdout.write(('%d bytes (%d pages) ' % (
+                (len(image) - 1), int(len(image) / t_data.page_size) + 1)))
+            sys.stdout.flush()
+
+        # For each page
+        page_number = int((len(image) - 1) / t_data.page_size) + 1
+        for i in range(0, page_number):
+            progress += factor
+            # Load the data
+            file_data_page = bytearray()
+            if ((i + 1) * t_data.page_size) > len(image):
+                file_data_page = image[i * t_data.page_size:]
+            else:
+                file_data_page = image[i * t_data.page_size: (i + 1) * t_data.page_size]
+            if self.progress_cb:
+                self.progress_cb('({}/{}) Verifying data page {}/{}...'.format(
+                    current_file_number,
+                    total_files,
+                    i,
+                    page_number),
+                    int(progress))
+            data_page = bytearray()
+            data_page = self._cload.read_flash(t_data.addr, start_page + i)
+            
+            if not data_page == file_data_page:
+                print('wrong!')
+                progress = 100
+                if self.progress_cb:
+                    self.progress_cb('Verification complete: ({}/{}) data page ({}/{}) is not successfully flashed '.format(
+                        current_file_number,
+                        total_files,
+                        i,
+                        page_number),
+                        int(progress))
+                else:
+                    print('\nError during verify operation (code %d). '
+                          'Maybe wrong radio link?' %
+                          self._cload.error_code)
+                return False
+
+        if self.progress_cb:
+            self.progress_cb(
+                '({}/{}) Verification complete: This file is successfully flashed. '.format(current_file_number,
+                                                total_files),
+                int(100))
+        else:
+            print('')
+        return True
+
+    def _internal_flash(self, target, current_file_number=1, total_files=1, verify=False):
 
         image = target['data']
         t_data = target['target']
@@ -262,7 +408,7 @@ class Bootloader:
         # If used from a UI we need some extra things for reporting progress
         factor = (100.0 * t_data.page_size) / len(image)
         progress = 0
-
+        page_number = (int((len(image) - 1) / t_data.page_size)) + 1
         if self.progress_cb:
             self.progress_cb(
                 '({}/{}) Starting...'.format(current_file_number, total_files),
@@ -293,7 +439,7 @@ class Bootloader:
 
         # For each page
         ctr = 0  # Buffer counter
-        for i in range(0, int((len(image) - 1) / t_data.page_size) + 1):
+        for i in range(0, page_number):
             # Load the buffer
             if ((i + 1) * t_data.page_size) > len(image):
                 self._cload.upload_buffer(
@@ -302,7 +448,6 @@ class Bootloader:
                 self._cload.upload_buffer(
                     t_data.addr, ctr, 0,
                     image[i * t_data.page_size: (i + 1) * t_data.page_size])
-
             ctr += 1
 
             if self.progress_cb:
@@ -329,9 +474,64 @@ class Bootloader:
                 else:
                     sys.stdout.write('%d' % ctr)
                     sys.stdout.flush()
-                if not self._cload.write_flash(t_data.addr, 0,
+                if self._cload.write_flash(t_data.addr, 0,
                                                start_page + i - (ctr - 1),
                                                ctr):
+                    if verify:
+                        for page in range(0, ctr):
+                            print('verifying sub page {}/{}'.format(page + 1, ctr))
+                            data_page = bytearray()
+                            file_page = bytearray()
+                            current_page = i - (ctr - 1) + page
+
+                            if ((current_page + 1) * t_data.page_size) > len(image):
+                                file_data_page = image[current_page * t_data.page_size:]
+                                current_filedata_size = len(image) - current_page * t_data.page_size
+                            else: 
+                                file_data_page = image[current_page * t_data.page_size: (current_page + 1) * t_data.page_size]
+                                current_filedata_size = t_data.page_size
+                            data_page = self._cload.read_flash(t_data.addr,
+                                   start_page + current_page)
+                            if self.progress_cb:
+                                self.progress_cb('({}/{}) Verifying data page ({}/{})...'.format(
+                                    current_file_number,
+                                    total_files,
+                                    i - (ctr - 1) + page,
+                                    page_number),
+                                    int(progress))
+                            retry = 10
+                            while not data_page[0:current_filedata_size] == file_data_page[0:current_filedata_size] \
+                                and retry > 0:
+                                print('Resending...')
+                                print('Retry:', retry)
+                                self._cload.write_flash(t_data.addr, page,
+                                                        start_page + i - (ctr - 1) + page,
+                                                        1)
+                                data_page = self._cload.read_flash(t_data.addr,
+                                                                   start_page + i - (ctr - 1) + page)
+                                retry -= 1
+                                print('current file data size:', current_filedata_size)
+                                print('current readback data size:', len(data_page))
+                                print('i: ', i)
+                                print('len:', len(image))
+                                print('current page:', current_page)
+                                if self.progress_cb:
+                                    print('reflashing data page {}/{}'.format(i - (ctr - 1) + page, page_number))
+                                    self.progress_cb('({}/{}) Reflashing data page {}/{}...'.format(
+                                        current_file_number,
+                                        total_files,
+                                        i - (ctr - 1) + page,
+                                        page_number),
+                                        int(progress))
+                                if retry == 0:
+                                    if self.progress_cb:
+                                        self.progress_cb(
+                                            'Error during flash operation',
+                                            int(progress))
+                                    print('not able to reflash, probably some problem in uploading buffer?')
+                                    raise Exception()
+
+                else:
                     if self.progress_cb:
                         self.progress_cb(
                             'Error during flash operation (code %d)'.format(
@@ -355,10 +555,53 @@ class Bootloader:
             else:
                 sys.stdout.write('%d' % ctr)
                 sys.stdout.flush()
-            if not self._cload.write_flash(
+            if self._cload.write_flash(
                     t_data.addr, 0,
                     (start_page + (int((len(image) - 1) / t_data.page_size)) -
-                     (ctr - 1)), ctr):
+                    (ctr - 1)), ctr):
+                if verify: 
+                    for page in range(0, ctr):
+                        print('verifying page {}/{}'.format(page + 1, ctr))
+                        data_page = bytearray()
+                        file_page = bytearray()
+                        current_page = (int((len(image) - 1) / t_data.page_size)) - (ctr - 1) + page
+                        data_page = self._cload.read_flash(t_data.addr,
+                                                           start_page + current_page)
+                        if ((current_page + 1) * t_data.page_size) > len(image):
+                            file_data_page = image[current_page * t_data.page_size:]
+                            current_filedata_size = len(image) - current_page * t_data.page_size
+                        else: 
+                            file_data_page = image[current_page * t_data.page_size: (current_page + 1) * t_data.page_size]
+                            current_filedata_size = t_data.page_size
+                        print('current file data size:', current_filedata_size)
+                        print('current readback data size:', len(data_page[0:current_filedata_size]))
+                        if self.progress_cb:
+                            self.progress_cb('({}/{}) Verifying data page {}/{}...'.format(
+                                current_file_number,
+                                total_files,
+                                i - (ctr - 1) + page,
+                                page_number),
+                                int(progress))
+                        retry = 10
+                        while not data_page[0:current_filedata_size] == file_data_page[0:current_filedata_size] \
+                        and retry > 0:
+                            print('Resending...')
+                            print('retry:', retry)
+                            self._cload.write_flash(t_data.addr, page,
+                                                    start_page + i - (ctr - 1) + page,
+                                                    1)
+                            data_page = self._cload.read_flash(t_data.addr,
+                                                               start_page + i - (ctr - 1) + page)
+                            retry -= 1
+                            if self.progress_cb:
+                                print('reflashing data page {}/{}'.format(i - (ctr - 1) + page, page_number))
+                                self.progress_cb('({}/{}) Reflashing data page {}/{}...'.format(
+                                    current_file_number,
+                                    total_files,
+                                    i - (ctr - 1) + page,
+                                    page_number),
+                                    int(progress))
+            else:
                 if self.progress_cb:
                     self.progress_cb(
                         'Error during flash operation (code %d)'.format(
@@ -369,11 +612,18 @@ class Bootloader:
                           ' wrong radio link?' % self._cload.error_code)
                 raise Exception()
 
+
         if self.progress_cb:
-            self.progress_cb(
-                '({}/{}) Flashing done!'.format(current_file_number,
-                                                total_files),
-                int(100))
+            if verify:
+                self.progress_cb(
+                    '({}/{}) Flashing and verification done!'.format(current_file_number,
+                                                    total_files),
+                    int(100))
+            else:
+                self.progress_cb(
+                    '({}/{}) Flashing  done!'.format(current_file_number,
+                                                    total_files),
+                    int(100))
         else:
             print('')
 

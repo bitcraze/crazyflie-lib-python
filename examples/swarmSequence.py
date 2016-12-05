@@ -24,13 +24,9 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Simple example that connects to one crazyflie (check the address on the last
-line and update it to your crazyflie address), sets the anchors postition and
-send a sequence of setpoints, one every 5 secondes.
-
-This exemple is intended to work with the Loco Positioning System in TWR TOA
-mode. It aims at documenting how to set the Crazyflie in position control mode
-and how to send setpoints.
+Version of the AutonomousSequence.py example connecting to 2 Crazyflie and
+flying them throught a list of setpoint at the same time. This shows hot to
+control more than one Crazyflie autonomously.
 """
 import random
 import time
@@ -39,7 +35,7 @@ from threading import Thread
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 
-# Change anchor position and sequence according to your setup
+# Change anchor position and sequences according to your setup
 anchors = [(0.00,  0.00, 0.00),
            (4.00,  0.00, 0.00),
            (0.00,  5.00, 0.00),
@@ -48,13 +44,17 @@ anchors = [(0.00,  0.00, 0.00),
            (0.20, -3.96, 2.60)]
 
 #             x    y    z  YAW
-sequence = [(2.5, 2.5, 1.5, 0),
-            (1.0, 1.0, 1.5, 0),
-            (4.0, 1.0, 1.5, 0),
-            (4.0, 4.0, 1.5, 0),
-            (1.0, 4.0, 1.5, 0),
-            (2.5, 2.5, 1.0, 0),
-            (2.5, 2.5, 0.5, 0)]
+sequence0 = [(2.5, 2.5, 1.0, 0),
+             (2.5, 2.3, 1.0, 0),
+             (2.0, 2.3, 1.0, 0),
+             (2.0, 2.5, 1.0, 0),
+             (2.0, 2.5, 0.5, 0)]
+
+sequence1 = [(2.0, 2.5, 1.0, 0),
+             (2.0, 2.7, 1.0, 0),
+             (2.5, 2.7, 1.0, 0),
+             (2.5, 2.5, 1.0, 0),
+             (2.5, 2.5, 0.5, 0)]
 
 
 class AutonomousSequence:
@@ -63,11 +63,12 @@ class AutonomousSequence:
     link uri and disconnects after 5s.
     """
 
-    def __init__(self, link_uri):
+    def __init__(self, link_uri, sequence):
         """ Initialize and run the example with the specified link_uri """
 
         # Create a Crazyflie object without specifying any cache dirs
         self._cf = Crazyflie()
+        self._sequence = sequence
 
         # Connect some callbacks from the Crazyflie API
         self._cf.connected.add_callback(self._connected)
@@ -127,9 +128,9 @@ class AutonomousSequence:
 
         self._cf.param.set_value('flightmode.posSet', '1')
 
-        time.sleep(0.1)
+        time.sleep(1)
 
-        for position in sequence:
+        for position in self._sequence:
             print('Setting position {}'.format(position))
             for i in range(50):
                 self._cf.commander.send_setpoint(position[1], position[0],
@@ -147,5 +148,5 @@ class AutonomousSequence:
 if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
-    # le = AutonomousSequence("radio://0/80/2M/E7E7E7E701")
-    le = AutonomousSequence('radio://0/23/2M')
+    le = AutonomousSequence('radio://0/70/2M', sequence0)
+    le = AutonomousSequence('radio://0/35/2M', sequence1)

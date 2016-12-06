@@ -128,7 +128,12 @@ class AutonomousSequence:
 
         self._cf.param.set_value('flightmode.posSet', '1')
 
-        time.sleep(1)
+        self._cf.param.set_value('kalman.resetEstimation', '1')
+        time.sleep(0.1)
+        self._cf.param.set_value('kalman.resetEstimation', '0')
+
+        # TODO: replace the 3 second sleep by detecting filter convergence
+        time.sleep(3)
 
         for position in self._sequence:
             print('Setting position {}'.format(position))

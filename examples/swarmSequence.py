@@ -36,12 +36,12 @@ import cflib.crtp
 from cflib.crazyflie import Crazyflie
 
 # Change anchor position and sequences according to your setup
-anchors = [(0.00,  0.00, 0.00),
-           (4.00,  0.00, 0.00),
-           (0.00,  5.00, 0.00),
-           (0.10,  6.98, 2.60),
-           (5.30,  1.70, 2.20),
-           (0.20, -3.96, 2.60)]
+anchors = [(0.99, 1.49, 1.80),
+           (0.99, 3.29, 1.80),
+           (4.67, 2.54, 1.80),
+           (0.59, 2.27, 0.20),
+           (4.70, 3.38, 0.20),
+           (4.70, 1.14, 0.20)]
 
 #             x    y    z  YAW
 sequence0 = [(2.5, 2.5, 1.0, 0),

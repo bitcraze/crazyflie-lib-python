@@ -372,7 +372,7 @@ class Cloader:
             while ((not pk or pk.header != 0xFF or
                     struct.unpack('<BB', pk.data[0:2]) != (addr, 0x1C)) and
                     retry_counter >= 0):
-                pk = CRTPPacket() 
+                pk = CRTPPacket()
                 pk.set_header(0xFF, 0xFF)
                 pk.data = struct.pack('<BBHH', addr, 0x1C, page, (i * 25))
                 self.link.send_packet(pk)

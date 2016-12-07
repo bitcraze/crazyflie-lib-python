@@ -30,7 +30,8 @@ control more than one Crazyflie autonomously.
 """
 import random
 import time
-from threading import Thread, Event
+from threading import Event
+from threading import Thread
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -91,9 +92,9 @@ class AutonomousSequence:
 
         self._filter_ready = Event()
 
-        self._var_x_history = [1000]*10
-        self._var_y_history = [1000]*10
-        self._var_z_history = [1000]*10
+        self._var_x_history = [1000] * 10
+        self._var_y_history = [1000] * 10
+        self._var_z_history = [1000] * 10
 
         random.seed()
 

@@ -30,10 +30,12 @@ control more than one Crazyflie autonomously.
 """
 import random
 import time
-from threading import Thread
+from threading import Thread, Event
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
+from cflib.crazyflie.log import LogConfig
+
 
 # Change anchor position and sequences according to your setup
 anchors = [(0.99, 1.49, 1.80),
@@ -87,6 +89,12 @@ class AutonomousSequence:
         self._param_check_list = []
         self._param_groups = []
 
+        self._filter_ready = Event()
+
+        self._var_x_history = [1000]*10
+        self._var_y_history = [1000]*10
+        self._var_z_history = [1000]*10
+
         random.seed()
 
     def _connected(self, link_uri):
@@ -114,6 +122,29 @@ class AutonomousSequence:
         print('Disconnected from %s' % link_uri)
         self.is_connected = False
 
+    def _variance_log(self, ts, data, logblock):
+        print(data)
+
+        self._var_x_history.append(data["kalman.varPX"])
+        self._var_x_history.pop(0)
+        self._var_y_history.append(data["kalman.varPY"])
+        self._var_y_history.pop(0)
+        self._var_z_history.append(data["kalman.varPZ"])
+        self._var_z_history.pop(0)
+
+        min_x = min(self._var_x_history)
+        max_x = max(self._var_x_history)
+        min_y = min(self._var_y_history)
+        max_y = max(self._var_y_history)
+        min_z = min(self._var_z_history)
+        max_z = max(self._var_z_history)
+
+        if (max_x - min_x) < 0.001 and \
+           (max_y - min_y) < 0.001 and \
+           (max_z - min_z) < 0.001:
+            self._filter_ready.set()
+            logblock.stop()
+
     def _run_sequence(self):
         # Setting up the anchors position
         for i in range(len(anchors)):
@@ -132,8 +163,25 @@ class AutonomousSequence:
         time.sleep(0.1)
         self._cf.param.set_value('kalman.resetEstimation', '0')
 
-        # TODO: replace the 3 second sleep by detecting filter convergence
-        time.sleep(3)
+        print("Waiting for filter to reset")
+
+        lb = LogConfig(name='Kalman Variance', period_in_ms=100)
+        lb.add_variable('kalman.varPX', 'float')
+        lb.add_variable('kalman.varPY', 'float')
+        lb.add_variable('kalman.varPZ', 'float')
+
+        try:
+            self._cf.log.add_config(lb)
+            lb.data_received_cb.add_callback(self._variance_log)
+            lb.start()
+        except KeyError as e:
+            print('Could not start log configuration,'
+                  '{} not found in TOC'.format(str(e)))
+        except AttributeError:
+            print('Could not add Kalman logblock, not going to start')
+
+        self._filter_ready.wait()
+        print("Filter is ready!")
 
         for position in self._sequence:
             print('Setting position {}'.format(position))

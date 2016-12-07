@@ -109,6 +109,11 @@ class Crazyradio:
 
     def __init__(self, device=None, devid=0):
         """ Create object and scan for USB dongle if no device is supplied """
+
+        self.current_channel = None
+        self.current_address = None
+        self.current_datarate = None
+
         if device is None:
             try:
                 device = _find_devices()[devid]
@@ -158,22 +163,31 @@ class Crazyradio:
         self.handle = None
         self.dev = None
 
+        self.current_channel = None
+        self.current_address = None
+        self.current_datarate = None
+
     # Dongle configuration
     def set_channel(self, channel):
         """ Set the radio channel to be used """
-        _send_vendor_setup(self.handle, SET_RADIO_CHANNEL, channel, 0, ())
+        if channel != self.current_channel:
+            _send_vendor_setup(self.handle, SET_RADIO_CHANNEL, channel, 0, ())
+            self.current_channel = channel
 
     def set_address(self, address):
         """ Set the radio address to be used"""
         if len(address) != 5:
             raise Exception('Crazyradio: the radio address shall be 5'
                             ' bytes long')
-
-        _send_vendor_setup(self.handle, SET_RADIO_ADDRESS, 0, 0, address)
+        if address != self.current_address:
+            _send_vendor_setup(self.handle, SET_RADIO_ADDRESS, 0, 0, address)
+            self.current_address = address
 
     def set_data_rate(self, datarate):
         """ Set the radio datarate to be used """
-        _send_vendor_setup(self.handle, SET_DATA_RATE, datarate, 0, ())
+        if datarate != self.current_datarate:
+            _send_vendor_setup(self.handle, SET_DATA_RATE, datarate, 0, ())
+            self.current_datarate = datarate
 
     def set_power(self, power):
         """ Set the radio power to be used """
@@ -234,6 +248,10 @@ class Crazyradio:
 
     def scan_channels(self, start, stop, packet):
         if self._has_fw_scan():  # Fast firmware-driven scan
+            self.current_channel = None
+            self.current_address = None
+            self.current_datarate = None
+
             _send_vendor_setup(self.handle, SCANN_CHANNELS, start, stop,
                                packet)
             return tuple(_get_vendor_setup(self.handle, SCANN_CHANNELS,

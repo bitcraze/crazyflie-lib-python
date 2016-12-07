@@ -125,11 +125,11 @@ class AutonomousSequence:
     def _variance_log(self, ts, data, logblock):
         print(data)
 
-        self._var_x_history.append(data["kalman.varPX"])
+        self._var_x_history.append(data['kalman.varPX'])
         self._var_x_history.pop(0)
-        self._var_y_history.append(data["kalman.varPY"])
+        self._var_y_history.append(data['kalman.varPY'])
         self._var_y_history.pop(0)
-        self._var_z_history.append(data["kalman.varPZ"])
+        self._var_z_history.append(data['kalman.varPZ'])
         self._var_z_history.pop(0)
 
         min_x = min(self._var_x_history)
@@ -163,7 +163,7 @@ class AutonomousSequence:
         time.sleep(0.1)
         self._cf.param.set_value('kalman.resetEstimation', '0')
 
-        print("Waiting for filter to reset")
+        print('Waiting for filter to reset')
 
         lb = LogConfig(name='Kalman Variance', period_in_ms=100)
         lb.add_variable('kalman.varPX', 'float')
@@ -181,7 +181,7 @@ class AutonomousSequence:
             print('Could not add Kalman logblock, not going to start')
 
         self._filter_ready.wait()
-        print("Filter is ready!")
+        print('Filter is ready!')
 
         for position in self._sequence:
             print('Setting position {}'.format(position))

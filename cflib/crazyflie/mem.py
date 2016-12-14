@@ -35,6 +35,7 @@ import sys
 from binascii import crc32
 from functools import reduce
 from threading import Lock
+from array import array
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
@@ -380,6 +381,13 @@ class OWElement(MemoryElement):
         self.mem_handler.write(self, 0x00,
                                struct.unpack('B' * len(data), data))
 
+        self._write_finished_cb = write_finished_cb
+
+    def erase(self, write_finished_cb):
+        erase_data = array('B', [0xFF]*112)
+        self.mem_handler.write(self, 0x00, 
+                               struct.unpack('B' * len(erase_data), erase_data))
+        
         self._write_finished_cb = write_finished_cb
 
     def update(self, update_finished_cb):
@@ -815,7 +823,6 @@ class Memory():
                         # Get a new one to start (if there are any)
                         if len(self._write_requests[id]) > 0:
                             self._write_requests[id][0].start()
-
                 else:
                     logger.info('Status {}: write resending...'.format(status))
                     wreq.resend()

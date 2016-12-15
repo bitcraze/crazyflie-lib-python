@@ -34,7 +34,6 @@ import time
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
-from cflib.crazyflie.mem import OWElement
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.INFO)

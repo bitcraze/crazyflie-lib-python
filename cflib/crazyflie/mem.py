@@ -386,7 +386,8 @@ class OWElement(MemoryElement):
     def erase(self, write_finished_cb):
         erase_data = array('B', [0xFF]*112)
         self.mem_handler.write(self, 0x00, 
-                               struct.unpack('B' * len(erase_data), erase_data))
+                               struct.unpack('B' * len(erase_data), 
+                               erase_data))
         
         self._write_finished_cb = write_finished_cb
 

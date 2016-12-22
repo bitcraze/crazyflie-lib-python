@@ -23,19 +23,19 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
-from threading import Thread, Event
-from cflib.crazyflie import Crazyflie
-
 """
 The syncronous Crazyflie class is a wrapper around the "normal" Crazyflie
 class. It handles the asynchronous nature of the Crazyflie API and turns it
 into blocking function. It is useful for simple scripts that performs tasks
 as a sequence of events.
 """
+from threading import Event
+
+from cflib.crazyflie import Crazyflie
 
 
 class SyncCrazyflie:
+
     def __init__(self, link_uri, cf=Crazyflie()):
         """ Create a synchronous Crazyflie instance with the specified
         link_uri """

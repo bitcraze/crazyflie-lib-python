@@ -6,7 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) Bitcraze AB
+#  Copyright (C) 2016 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -40,23 +40,23 @@ class SyncCrazyflie:
         """ Create a synchronous Crazyflie instance with the specified
         link_uri """
 
-        self._link_uri = link_uri
-        self._cf = cf
+        self.cf = cf
 
+        self._link_uri = link_uri
         self._connect_event = Event()
         self._is_link_open = False
         self._error_message = None
 
-        self._cf.connected.add_callback(self._connected)
-        self._cf.connection_failed.add_callback(self._connection_failed)
-        self._cf.disconnected.add_callback(self._disconnected)
+        self.cf.connected.add_callback(self._connected)
+        self.cf.connection_failed.add_callback(self._connection_failed)
+        self.cf.disconnected.add_callback(self._disconnected)
 
     def open_link(self):
         if (self.is_link_open()):
             raise Exception('Link already open')
 
         print('Connecting to %s' % self._link_uri)
-        self._cf.open_link(self._link_uri)
+        self.cf.open_link(self._link_uri)
         self._connect_event.wait()
         if not self._is_link_open:
             raise Exception(self._error_message)
@@ -66,7 +66,7 @@ class SyncCrazyflie:
         return self
 
     def close_link(self):
-        self._cf.close_link()
+        self.cf.close_link()
         self._is_link_open = False
 
     def __exit__(self, exc_type, exc_val, exc_tb):

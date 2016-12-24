@@ -6,7 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) Bitcraze AB
+#  Copyright (C) 2016 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -25,7 +25,7 @@
 #  MA  02110-1301, USA.
 import sys
 import unittest
-from threading import Thread
+from test.support.asyncCallbackCaller import AsyncCallbackCaller
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
@@ -48,7 +48,8 @@ class SyncCrazyflieTest(unittest.TestCase):
         self.cf_mock.disconnected = Caller()
 
         self.cf_mock.open_link = AsyncCallbackCaller(
-            self.cf_mock.connected, self.uri).trigger
+            cb=self.cf_mock.connected,
+            args=[self.uri]).trigger
 
         self.sut = SyncCrazyflie(self.uri, self.cf_mock)
 
@@ -65,7 +66,8 @@ class SyncCrazyflieTest(unittest.TestCase):
         # Fixture
         expected = 'Some error message'
         self.cf_mock.open_link = AsyncCallbackCaller(
-            self.cf_mock.connection_failed, self.uri, expected).trigger
+            cb=self.cf_mock.connection_failed,
+            args=[self.uri, expected]).trigger
 
         # Test
         try:
@@ -112,8 +114,9 @@ class SyncCrazyflieTest(unittest.TestCase):
         self.sut.open_link()
 
         # Test
-        AsyncCallbackCaller(self.cf_mock.disconnected, self.uri).\
-            call_and_wait()
+        AsyncCallbackCaller(
+            cb=self.cf_mock.disconnected,
+            args=[self.uri]).call_and_wait()
 
         # Assert
         self.assertFalse(self.sut.is_link_open())
@@ -127,22 +130,3 @@ class SyncCrazyflieTest(unittest.TestCase):
 
         # Assert
         self.cf_mock.close_link.assert_called_once_with()
-
-
-class AsyncCallbackCaller:
-
-    def __init__(self, caller, *args, **kwargs):
-        self.caller = caller
-        self.args = args
-        self.kwargs = kwargs
-
-    def trigger(self, *args, **kwargs):
-        Thread(target=self._make_call).start()
-
-    def call_and_wait(self):
-        thread = Thread(target=self._make_call)
-        thread.start()
-        thread.join()
-
-    def _make_call(self):
-        self.caller.call(*self.args, **self.kwargs)

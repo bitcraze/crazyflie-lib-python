@@ -90,9 +90,9 @@ class SyncLoggerTest(unittest.TestCase):
         self.sut.disconnect()
 
         # Assert
-        self.assertEquals(0, len(self.cf_mock.disconnected.callbacks))
-        self.assertEquals(0,
-                          len(self.log_config_mock.data_received_cb.callbacks))
+        self.assertEqual(0, len(self.cf_mock.disconnected.callbacks))
+        self.assertEqual(0,
+                         len(self.log_config_mock.data_received_cb.callbacks))
 
     def test_that_log_config_is_stopped_on_disconnect(self):
         # Fixture

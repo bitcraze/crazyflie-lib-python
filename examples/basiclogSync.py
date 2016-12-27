@@ -59,8 +59,8 @@ if __name__ == '__main__':
         lg_stab.add_variable('stabilizer.pitch', 'float')
         lg_stab.add_variable('stabilizer.yaw', 'float')
 
-        with SyncCrazyflie(available[0][0]) as cf:
-            with SyncLogger(cf, lg_stab) as logger:
+        with SyncCrazyflie(available[0][0]) as scf:
+            with SyncLogger(scf, lg_stab) as logger:
                 endTime = time.time() + 10
 
                 for log_entry in logger:

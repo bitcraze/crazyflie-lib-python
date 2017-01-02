@@ -53,6 +53,18 @@ class SyncCrazyflieTest(unittest.TestCase):
 
         self.sut = SyncCrazyflie(self.uri, self.cf_mock)
 
+    def test_different_underlying_cf_instances(self):
+        # Fixture
+
+        # Test
+        scf1 = SyncCrazyflie('uri 1')
+        scf2 = SyncCrazyflie('uri 2')
+
+        # Assert
+        actual1 = scf1.cf
+        actual2 = scf2.cf
+        self.assertNotEquals(actual1, actual2)
+
     def test_open_link(self):
         # Fixture
 

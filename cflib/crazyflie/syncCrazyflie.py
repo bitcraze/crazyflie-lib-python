@@ -36,11 +36,14 @@ from cflib.crazyflie import Crazyflie
 
 class SyncCrazyflie:
 
-    def __init__(self, link_uri, cf=Crazyflie()):
+    def __init__(self, link_uri, cf=None):
         """ Create a synchronous Crazyflie instance with the specified
         link_uri """
 
-        self.cf = cf
+        if cf:
+            self.cf = cf
+        else:
+            self.cf = Crazyflie()
 
         self._link_uri = link_uri
         self._connect_event = Event()

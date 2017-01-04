@@ -6,7 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2014 Bitcraze AB
+#  Copyright (C) 2017 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -28,17 +28,19 @@ Version of the AutonomousSequence.py example connecting to 2 Crazyflie and
 flying them throught a list of setpoint at the same time. This shows hot to
 control more than one Crazyflie autonomously.
 """
-import random
 import time
-from threading import Event
-from threading import Thread
 
 import cflib.crtp
-from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie.swarm import Swarm
+from cflib.crazyflie.syncLogger import SyncLogger
 
+# Change uris, anchor position and sequences according to your setup
+URI0 = 'radio://0/70/2M'
+URI1 = 'radio://0/90/2M'
 
-# Change anchor position and sequences according to your setup
+uris = {URI0, URI1}
+
 anchors = [(0.99, 1.49, 1.80),
            (0.99, 3.29, 1.80),
            (4.67, 2.54, 1.80),
@@ -59,148 +61,99 @@ sequence1 = [(2.0, 2.5, 1.0, 0),
              (2.5, 2.5, 1.0, 0),
              (2.5, 2.5, 0.5, 0)]
 
+seq_args = {
+    URI0: [sequence0],
+    URI1: [sequence1],
+}
 
-class AutonomousSequence:
-    """
-    Simple logging example class that logs the Stabilizer from a supplied
-    link uri and disconnects after 5s.
-    """
 
-    def __init__(self, link_uri, sequence):
-        """ Initialize and run the example with the specified link_uri """
+def set_anchor_positions(scf):
+    cf = scf.cf
 
-        # Create a Crazyflie object without specifying any cache dirs
-        self._cf = Crazyflie()
-        self._sequence = sequence
+    for i in range(len(anchors)):
+        cf.param.set_value('anchorpos.anchor{}x'.format(i),
+                           '{}'.format(anchors[i][0]))
+        cf.param.set_value('anchorpos.anchor{}y'.format(i),
+                           '{}'.format(anchors[i][1]))
+        cf.param.set_value('anchorpos.anchor{}z'.format(i),
+                           '{}'.format(anchors[i][2]))
 
-        # Connect some callbacks from the Crazyflie API
-        self._cf.connected.add_callback(self._connected)
-        self._cf.disconnected.add_callback(self._disconnected)
-        self._cf.connection_failed.add_callback(self._connection_failed)
-        self._cf.connection_lost.add_callback(self._connection_lost)
+    cf.param.set_value('anchorpos.enable', '1')
 
-        print('Connecting to %s' % link_uri)
 
-        # Try to connect to the Crazyflie
-        self._cf.open_link(link_uri)
+def wait_for_position_estimator(scf):
+    print('Waiting for estimator to find position...')
 
-        # Variable used to keep main loop occupied until disconnect
-        self.is_connected = True
+    log_config = LogConfig(name='Kalman Variance', period_in_ms=500)
+    log_config.add_variable('kalman.varPX', 'float')
+    log_config.add_variable('kalman.varPY', 'float')
+    log_config.add_variable('kalman.varPZ', 'float')
 
-        self._param_check_list = []
-        self._param_groups = []
+    var_y_history = [1000] * 10
+    var_x_history = [1000] * 10
+    var_z_history = [1000] * 10
 
-        self._filter_ready = Event()
+    threshold = 0.001
 
-        self._var_x_history = [1000] * 10
-        self._var_y_history = [1000] * 10
-        self._var_z_history = [1000] * 10
+    with SyncLogger(scf, log_config) as logger:
+        for log_entry in logger:
+            data = log_entry[1]
 
-        random.seed()
+            var_x_history.append(data['kalman.varPX'])
+            var_x_history.pop(0)
+            var_y_history.append(data['kalman.varPY'])
+            var_y_history.pop(0)
+            var_z_history.append(data['kalman.varPZ'])
+            var_z_history.pop(0)
 
-    def _connected(self, link_uri):
-        """ This callback is called form the Crazyflie API when a Crazyflie
-        has been connected and the TOCs have been downloaded."""
-        print('Connected to %s' % link_uri)
+            min_x = min(var_x_history)
+            max_x = max(var_x_history)
+            min_y = min(var_y_history)
+            max_y = max(var_y_history)
+            min_z = min(var_z_history)
+            max_z = max(var_z_history)
 
-        # Start a separate thread to do the motor test.
-        # Do not hijack the calling thread!
-        Thread(target=self._run_sequence).start()
+            # print("{} {} {}".
+            #       format(max_x - min_x, max_y - min_y, max_z - min_z))
 
-    def _connection_failed(self, link_uri, msg):
-        """Callback when connection initial connection fails (i.e no Crazyflie
-        at the specified address)"""
-        print('Connection to %s failed: %s' % (link_uri, msg))
-        self.is_connected = False
+            if (max_x - min_x) < threshold and (
+                    max_y - min_y) < threshold and (
+                    max_z - min_z) < threshold:
+                break
 
-    def _connection_lost(self, link_uri, msg):
-        """Callback when disconnected after a connection has been made (i.e
-        Crazyflie moves out of range)"""
-        print('Connection to %s lost: %s' % (link_uri, msg))
 
-    def _disconnected(self, link_uri):
-        """Callback when the Crazyflie is disconnected (called in all cases)"""
-        print('Disconnected from %s' % link_uri)
-        self.is_connected = False
+def reset_estimator(scf):
+    cf = scf.cf
+    cf.param.set_value('kalman.resetEstimation', '1')
+    time.sleep(0.1)
+    cf.param.set_value('kalman.resetEstimation', '0')
 
-    def _variance_log(self, ts, data, logblock):
-        print(data)
+    wait_for_position_estimator(cf)
 
-        self._var_x_history.append(data['kalman.varPX'])
-        self._var_x_history.pop(0)
-        self._var_y_history.append(data['kalman.varPY'])
-        self._var_y_history.pop(0)
-        self._var_z_history.append(data['kalman.varPZ'])
-        self._var_z_history.pop(0)
 
-        min_x = min(self._var_x_history)
-        max_x = max(self._var_x_history)
-        min_y = min(self._var_y_history)
-        max_y = max(self._var_y_history)
-        min_z = min(self._var_z_history)
-        max_z = max(self._var_z_history)
+def run_sequence(scf, sequence):
+    cf = scf.cf
 
-        if (max_x - min_x) < 0.001 and \
-           (max_y - min_y) < 0.001 and \
-           (max_z - min_z) < 0.001:
-            self._filter_ready.set()
-            logblock.stop()
+    cf.param.set_value('flightmode.posSet', '1')
 
-    def _run_sequence(self):
-        # Setting up the anchors position
-        for i in range(len(anchors)):
-            self._cf.param.set_value('anchorpos.anchor{}x'.format(i),
-                                     '{}'.format(anchors[i][0]))
-            self._cf.param.set_value('anchorpos.anchor{}y'.format(i),
-                                     '{}'.format(anchors[i][1]))
-            self._cf.param.set_value('anchorpos.anchor{}z'.format(i),
-                                     '{}'.format(anchors[i][2]))
+    for position in sequence:
+        print('Setting position {}'.format(position))
+        for i in range(50):
+            cf.commander.send_setpoint(position[1], position[0],
+                                       position[3],
+                                       int(position[2] * 1000))
+            time.sleep(0.1)
 
-        self._cf.param.set_value('anchorpos.enable', '1')
-
-        self._cf.param.set_value('flightmode.posSet', '1')
-
-        self._cf.param.set_value('kalman.resetEstimation', '1')
-        time.sleep(0.1)
-        self._cf.param.set_value('kalman.resetEstimation', '0')
-
-        print('Waiting for filter to reset')
-
-        lb = LogConfig(name='Kalman Variance', period_in_ms=100)
-        lb.add_variable('kalman.varPX', 'float')
-        lb.add_variable('kalman.varPY', 'float')
-        lb.add_variable('kalman.varPZ', 'float')
-
-        try:
-            self._cf.log.add_config(lb)
-            lb.data_received_cb.add_callback(self._variance_log)
-            lb.start()
-        except KeyError as e:
-            print('Could not start log configuration,'
-                  '{} not found in TOC'.format(str(e)))
-        except AttributeError:
-            print('Could not add Kalman logblock, not going to start')
-
-        self._filter_ready.wait()
-        print('Filter is ready!')
-
-        for position in self._sequence:
-            print('Setting position {}'.format(position))
-            for i in range(50):
-                self._cf.commander.send_setpoint(position[1], position[0],
-                                                 position[3],
-                                                 int(position[2] * 1000))
-                time.sleep(0.1)
-
-        self._cf.commander.send_setpoint(0, 0, 0, 0)
-        # Make sure that the last packet leaves before the link is closed
-        # since the message queue is not flushed before closing
-        time.sleep(0.1)
-        self._cf.close_link()
+    cf.commander.send_setpoint(0, 0, 0, 0)
+    # Make sure that the last packet leaves before the link is closed
+    # since the message queue is not flushed before closing
+    time.sleep(0.1)
 
 
 if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
-    le = AutonomousSequence('radio://0/70/2M', sequence0)
-    le = AutonomousSequence('radio://0/35/2M', sequence1)
+    with Swarm(uris) as swarm:
+        swarm.parallel(set_anchor_positions)
+        swarm.parallel(reset_estimator)
+        swarm.parallel(run_sequence, args_dict=seq_args)

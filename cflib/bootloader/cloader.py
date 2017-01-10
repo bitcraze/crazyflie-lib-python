@@ -370,7 +370,7 @@ class Cloader:
             pk = None
             retry_counter = 5
             while ((not pk or pk.header != 0xFF or
-                    struct.unpack('<BB', pk.data[0:2]) != (addr, 0x1C)) and
+                    struct.unpack('<BBHH', pk.data[0:6]) != (addr, 0x1C, page, (i * 25))) and
                     retry_counter >= 0):
                 pk = CRTPPacket()
                 pk.set_header(0xFF, 0xFF)
@@ -378,6 +378,7 @@ class Cloader:
                 self.link.send_packet(pk)
 
                 pk = self.link.receive_packet(1)
+
                 retry_counter -= 1
             if (retry_counter < 0):
                 return None
@@ -393,7 +394,7 @@ class Cloader:
         # print "Writing page [%d] and [%d] forward" % (flashPage, nPage)
         pk = None
         retry_counter = 5
-        # print "Flasing to 0x{:X}".format(addr)
+        # print("Flasing to 0x{:X}".format(addr))
         while ((not pk or pk.header != 0xFF or
                 struct.unpack('<BB', pk.data[0:2]) != (addr, 0x18)) and
                retry_counter >= 0):
@@ -403,6 +404,7 @@ class Cloader:
                                   target_page, page_count)
             self.link.send_packet(pk)
             pk = self.link.receive_packet(1)
+            print(pk)
             retry_counter -= 1
 
         if retry_counter < 0:

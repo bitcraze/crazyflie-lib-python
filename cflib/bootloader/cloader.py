@@ -394,6 +394,7 @@ class Cloader:
         # print "Writing page [%d] and [%d] forward" % (flashPage, nPage)
         pk = None
         retry_counter = 5
+
         # print("Flasing to 0x{:X}".format(addr))
         while ((not pk or pk.header != 0xFF or
                 struct.unpack('<BB', pk.data[0:2]) != (addr, 0x18)) and
@@ -404,7 +405,7 @@ class Cloader:
                                   target_page, page_count)
             self.link.send_packet(pk)
             pk = self.link.receive_packet(1)
-            print(pk)
+
             retry_counter -= 1
 
         if retry_counter < 0:

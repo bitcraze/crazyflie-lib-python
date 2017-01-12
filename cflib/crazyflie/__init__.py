@@ -42,8 +42,8 @@ from threading import Timer
 
 import cflib.crtp
 from .commander import Commander
-from .extpos import Extpos
 from .console import Console
+from .extpos import Extpos
 from .log import Log
 from .mem import Memory
 from .param import Param

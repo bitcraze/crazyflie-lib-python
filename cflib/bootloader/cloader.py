@@ -233,39 +233,7 @@ class Cloader:
                         target_id].protocol_version)
                 if self._info_cb:
                     self._info_cb.call(self.targets[target_id])
-                if self.protocol_version != 1:
-                    return True
-                # Set radio link to a random address
-                addr = [0xbc] + [random.randint(0, 255) for x in range(4)]
-                return self._set_address(addr)
-        return False
-
-    def _set_address(self, new_address):
-        """ Change copter radio address.
-            This function works only with crazyradio CRTP link.
-        """
-
-        logging.debug('Setting bootloader radio address to'
-                      ' {}'.format(new_address))
-
-        if len(new_address) != 5:
-            raise Exception('Radio address should be 5 bytes long')
-
-        self.link.pause()
-
-        for _ in range(10):
-            logging.debug('Trying to set new radio address')
-            self.link.cradio.set_address((0xE7,) * 5)
-            pkdata = (0xFF, 0xFF, 0x11) + tuple(new_address)
-            self.link.cradio.send_packet(pkdata)
-            self.link.cradio.set_address(tuple(new_address))
-            if self.link.cradio.send_packet((0xff,)).ack:
-                logging.info('Bootloader set to radio address'
-                             ' {}'.format(new_address))
-                self.link.restart()
                 return True
-
-        self.link.restart()
         return False
 
     def request_info_update(self, target_id):

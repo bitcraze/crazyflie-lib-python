@@ -30,7 +30,6 @@ Crazyflie radio bootloader for flashing firmware.
 import binascii
 import logging
 import math
-import random
 import struct
 import time
 

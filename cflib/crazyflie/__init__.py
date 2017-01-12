@@ -42,6 +42,7 @@ from threading import Timer
 
 import cflib.crtp
 from .commander import Commander
+from .extpos import Extpos
 from .console import Console
 from .log import Log
 from .mem import Memory
@@ -106,6 +107,7 @@ class Crazyflie():
         self.incoming.start()
 
         self.commander = Commander(self)
+        self.extpos = Extpos(self)
         self.log = Log(self)
         self.console = Console(self)
         self.param = Param(self)

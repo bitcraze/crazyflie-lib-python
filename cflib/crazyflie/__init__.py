@@ -388,9 +388,9 @@ class _IncomingPacketHandler(Thread):
                     # the callbacks.
                     import traceback
 
-                    logger.warning('Exception while doing callback on port'
-                                   ' [%d]\n\n%s', pk.port,
-                                   traceback.format_exc())
+                    logger.error('Exception while doing callback on port'
+                                 ' [%d]\n\n%s', pk.port,
+                                 traceback.format_exc())
                 if cb.port != 0xFF:
                     found = True
 

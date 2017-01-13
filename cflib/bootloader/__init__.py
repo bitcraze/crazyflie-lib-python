@@ -361,8 +361,10 @@ class Bootloader:
             file_data_page = bytearray()
             if ((i + 1) * t_data.page_size) > len(image):
                 file_data_page = image[i * t_data.page_size:]
+                current_filedata_size = len(image) - i * t_data.page_size
             else:
                 file_data_page = image[i * t_data.page_size: (i + 1) * t_data.page_size]
+                current_filedata_size = t_data.page_size
             if self.progress_cb:
                 self.progress_cb('({}/{}) Verifying data page {}/{}...'.format(
                     current_file_number,
@@ -371,9 +373,9 @@ class Bootloader:
                     page_number),
                     int(progress))
             data_page = bytearray()
-            data_page = self._cload.read_flash(t_data.addr, start_page + i)
-            
-            if not data_page == file_data_page:
+            data_page = self._cload.batch_read_flash(t_data.addr, start_page + i)
+
+            if not data_page[0:current_filedata_size] == file_data_page[0:current_filedata_size]:
                 print('wrong!')
                 progress = 100
                 if self.progress_cb:
@@ -490,7 +492,7 @@ class Bootloader:
                             else: 
                                 file_data_page = image[current_page * t_data.page_size: (current_page + 1) * t_data.page_size]
                                 current_filedata_size = t_data.page_size
-                            data_page = self._cload.read_flash(t_data.addr,
+                            data_page = self._cload.batch_read_flash(t_data.addr,
                                    start_page + current_page)
                             if self.progress_cb:
                                 self.progress_cb('({}/{}) Verifying data page ({}/{})...'.format(
@@ -507,7 +509,7 @@ class Bootloader:
                                 self._cload.write_flash(t_data.addr, page,
                                                         start_page + i - (ctr - 1) + page,
                                                         1)
-                                data_page = self._cload.read_flash(t_data.addr,
+                                data_page = self._cload.batch_read_flash(t_data.addr,
                                                                    start_page + i - (ctr - 1) + page)
                                 retry -= 1
                                 print('current file data size:', current_filedata_size)
@@ -565,7 +567,7 @@ class Bootloader:
                         data_page = bytearray()
                         file_page = bytearray()
                         current_page = (int((len(image) - 1) / t_data.page_size)) - (ctr - 1) + page
-                        data_page = self._cload.read_flash(t_data.addr,
+                        data_page = self._cload.batch_read_flash(t_data.addr,
                                                            start_page + current_page)
                         if ((current_page + 1) * t_data.page_size) > len(image):
                             file_data_page = image[current_page * t_data.page_size:]
@@ -573,8 +575,6 @@ class Bootloader:
                         else: 
                             file_data_page = image[current_page * t_data.page_size: (current_page + 1) * t_data.page_size]
                             current_filedata_size = t_data.page_size
-                        print('current file data size:', current_filedata_size)
-                        print('current readback data size:', len(data_page[0:current_filedata_size]))
                         if self.progress_cb:
                             self.progress_cb('({}/{}) Verifying data page {}/{}...'.format(
                                 current_file_number,
@@ -590,7 +590,7 @@ class Bootloader:
                             self._cload.write_flash(t_data.addr, page,
                                                     start_page + i - (ctr - 1) + page,
                                                     1)
-                            data_page = self._cload.read_flash(t_data.addr,
+                            data_page = self._cload.batch_read_flash(t_data.addr,
                                                                start_page + i - (ctr - 1) + page)
                             retry -= 1
                             if self.progress_cb:

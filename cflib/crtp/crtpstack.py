@@ -46,6 +46,7 @@ class CRTPPort:
     MEM = 0x04
     LOGGING = 0x05
     POSITION = 0x06
+    COMMANDER_GENERIC = 0x07
     PLATFORM = 0x0D
     DEBUGDRIVER = 0x0E
     LINKCTRL = 0x0F

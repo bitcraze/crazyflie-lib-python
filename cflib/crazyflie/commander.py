@@ -35,8 +35,9 @@ from cflib.crtp.crtpstack import CRTPPort
 __author__ = 'Bitcraze AB'
 __all__ = ['Commander']
 
-TYPE_STOP           = 0
+TYPE_STOP = 0
 TYPE_VELOCITY_WORLD = 1
+
 
 class Commander():
     """

@@ -201,12 +201,112 @@ class Bootloader:
         if not self.progress_cb:
             print('')
 
-        file_counter = 0
+        # create batch data list
+        batch_list = [] # for storing batch requests
+        batch_index = [] # for updating avaliable batch requests
+        datalist = {}
+        file_info = {}
+        loaded_first = True
         for target in files_to_verify:
-            file_counter += 1
-            if not self._internal_verify(target, file_counter, len(files_to_verify)):
+            image = target['data']
+            t_data = target['target']
+            page_number = int((len(image) - 1) / t_data.page_size) + 1
+
+            if loaded_first:
+                first_file = t_data.addr
+                # print(image[10240-26: 10240+26])
+                loaded_first = False
+
+            file_info[t_data.addr] = (len(image), page_number, target['start_page'])
+            datalist[t_data.addr] = bytearray(len(image))
+
+            for i in range(0, page_number):
+                for x in range(0, int(t_data.page_size / 25.0)+1):
+                    tup = (t_data.addr, i+target['start_page'], x)
+                    batch_list.append(tup)
+                    batch_index.append(1)
+
+        # print(len(batch_index)) 8484
+        # print(file_page) 142 60
+        # print(t_data.page_size) 1024
+        # for reporting progress
+        factor = (100.0 * 1024 / 41) / (file_info[255][0] + file_info[254][1])
+        progress = 0
+        count = 0
+
+        while not sum(batch_index) == 0:
+            count += 1
+
+            # something is wrong
+            if count > 7:
+                print("Go too long")
+                print("Remaining index")
+                ctr = 0
+                for index in range(len(batch_index)):
+                    if batch_index[index] == 1:
+                        print(batch_list[index], index)
+                print(file_info)
+                print(first_file)
                 return False
+
+            for index in range(len(batch_index)):
+
+                if batch_index[index] == 1:
+
+                    addr = batch_list[index][0]
+                    page = batch_list[index][1]
+                    page_index = batch_list[index][2]
+
+                    back_data = self._cload.batch_helper(addr, page, page_index)
+
+                    if back_data is not None:
+                        temp_pk = back_data[0]
+
+                        if temp_pk[1] == (0x1C) and (temp_pk[0] == 255 or temp_pk[0] == 254):
+                            this_file = temp_pk[0]
+                            back_element = temp_pk[3]
+                            start_page = file_info[this_file][2]
+
+                            place = back_element + (temp_pk[2] - start_page)*1024
+
+                            if back_element == 1000:
+                                datalist[this_file][place: place+24] = back_data[1][6:30]
+                            else:
+                                datalist[this_file][place: place+25] = back_data[1][6:]
+
+                            print("received: segment/page #{}/{}".format(
+                                  int(back_element/25), \
+                                  temp_pk[2]-start_page))
+
+                            # if the pack is from the file that was loaded first
+                            if this_file == first_file:
+                                batch_index[int(back_element/25) + (temp_pk[2]-start_page)*41] = 0 # add 1
+                            else:
+                                batch_index[int(back_element/25) + \
+                                (file_info[first_file][1] + temp_pk[2]-start_page)*41] = 0
+
+                        progress += factor
+                        if self.progress_cb:
+                            self.progress_cb('Data page {} is verified'.format(
+                                page),
+                                int(progress))
+
+        for key in file_info.keys():
+            print("info:", file_info[key])
+        for target in files_to_verify:
+            if not target['data'] == datalist[target['target'].addr][:len(target['data'])]:
+                for x in range(len(target['data'])):
+                    if target['data'][x] != datalist[target['target'].addr][x]:
+                        print(target['data'][x-1: x+26])
+                        print(datalist[target['target'].addr][x-1: x+26])
+                        print(x)
+                print(target['data'][len(target['data'])-100:len(target['data'])])
+                print(datalist[target['target'].addr][len(target['data'])-1000:len(target['data'])-500])
+
+                return False
+        print("Success")
         return True
+
 
     def flash(self, filename, targets, verify):
         for target in targets:
@@ -440,7 +540,7 @@ class Bootloader:
             sys.stdout.flush()
 
         # For each page
-        ctr = 0  # Buffer counter
+        ctr = 0 # Buffer counter
         for i in range(0, page_number):
             # Load the buffer
             if ((i + 1) * t_data.page_size) > len(image):
@@ -479,6 +579,7 @@ class Bootloader:
                 if self._cload.write_flash(t_data.addr, 0,
                                                start_page + i - (ctr - 1),
                                                ctr):
+
                     if verify:
                         for page in range(0, ctr):
                             print('verifying sub page {}/{}'.format(page + 1, ctr))
@@ -533,6 +634,7 @@ class Bootloader:
                                     print('not able to reflash, probably some problem in uploading buffer?')
                                     raise Exception()
 
+
                 else:
                     if self.progress_cb:
                         self.progress_cb(
@@ -561,6 +663,7 @@ class Bootloader:
                     t_data.addr, 0,
                     (start_page + (int((len(image) - 1) / t_data.page_size)) -
                     (ctr - 1)), ctr):
+
                 if verify: 
                     for page in range(0, ctr):
                         print('verifying page {}/{}'.format(page + 1, ctr))
@@ -601,6 +704,7 @@ class Bootloader:
                                     i - (ctr - 1) + page,
                                     page_number),
                                     int(progress))
+
             else:
                 if self.progress_cb:
                     self.progress_cb(
@@ -614,12 +718,15 @@ class Bootloader:
 
 
         if self.progress_cb:
+
             if verify:
                 self.progress_cb(
                     '({}/{}) Flashing and verification done!'.format(current_file_number,
                                                     total_files),
                     int(100))
+
             else:
+
                 self.progress_cb(
                     '({}/{}) Flashing  done!'.format(current_file_number,
                                                     total_files),

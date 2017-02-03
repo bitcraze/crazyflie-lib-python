@@ -412,12 +412,30 @@ class Cloader:
                         print(temp_pk)
                         back_element = int(temp_pk[3])
 
-                        if list(temp_pk[:3]) == [addr, 0x1C,page]:
+                        if list(temp_pk[:2]) == [addr, 0x1C]:
                             buff[back_element : back_element+25] = pk.data[6:]
                             print("received: index #{}".format(int(back_element/25)))
                             batch_index[int(back_element/25)] = 0
 
         return buff[0:page_size]
+
+    def batch_helper(self, addr, page, page_index):
+        '''helper function for batch verification'''
+        pk = CRTPPacket()
+        pk.set_header(0xFF, 0xFF)
+        pk.data = struct.pack('<BBHH', addr, 0x1C, page, (page_index * 25))
+        self.link.send_packet(pk)
+
+        pk = self.link.receive_packet(0)
+
+        if pk and len(pk.data) >= 6:
+            temp_pk = struct.unpack('<BBHH', pk.data[0:6])
+            print(temp_pk)
+            back_data = [temp_pk, pk.data]
+            return back_data
+        else:
+            return None
+
 
     def write_flash(self, addr, page_buffer, target_page, page_count):
         """Initiate flashing of data in the buffer to flash."""

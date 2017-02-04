@@ -39,8 +39,6 @@ import struct
 import sys
 import threading
 
-from usb import USBError
-
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
@@ -57,6 +55,73 @@ __all__ = ['RadioDriver']
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_ADDR_A = [0xe7, 0xe7, 0xe7, 0xe7, 0xe7]
+DEFAULT_ADDR = 0xE7E7E7E7E7
+
+
+class _SharedRadio():
+    """ Manages access to one shared radio
+    """
+
+    def __init__(self, devid):
+        self.radio = Crazyradio(devid=devid)
+        self.lock = threading.Lock()
+        self.usage_counter = 0
+
+
+class _RadioManager():
+    """ Radio manager helper class
+     Get a Crazyradio with:
+       radio_manager = _RadioManager(devid)
+     Then use your Crazyradio:
+       with radio_manager as cradio:
+           # cradio is the Crazyradio driver object, it is locked
+     Finally close it when finished.
+      cradio.close()
+    """
+    # Configuration lock. Protects opening and closing Crazyradios
+    _config_lock = threading.Lock()
+
+    _radios = []  # Hardware Crazyradio objects
+
+    def __init__(self, devid, channel=0, datarate=0, address=DEFAULT_ADDR_A):
+        self._devid = devid
+        self._channel = channel
+        self._datarate = datarate
+        self._address = address
+
+        with _RadioManager._config_lock:
+            if len(_RadioManager._radios) <= self._devid or \
+                    _RadioManager._radios[self._devid] is None:
+                _RadioManager._radios += ((self._devid + 1) -
+                                          len(_RadioManager._radios)) * [None]
+                _RadioManager._radios[self._devid] = _SharedRadio(self._devid)
+
+            _RadioManager._radios[self._devid].usage_counter += 1
+
+    def close(self):
+        with _RadioManager._config_lock:
+            _RadioManager._radios[self._devid].usage_counter -= 1
+
+            if _RadioManager._radios[self._devid].usage_counter == 0:
+                try:
+                    _RadioManager._radios[self._devid].radio.close()
+                except:
+                    pass
+                _RadioManager._radios[self._devid] = None
+
+    def __enter__(self):
+        _RadioManager._radios[self._devid].lock.acquire()
+
+        _RadioManager._radios[self._devid].radio.set_channel(self._channel)
+        _RadioManager._radios[self._devid].radio.set_data_rate(self._datarate)
+        _RadioManager._radios[self._devid].radio.set_address(self._address)
+
+        return _RadioManager._radios[self._devid].radio
+
+    def __exit__(self, type, value, traceback):
+        _RadioManager._radios[self._devid].lock.release()
+
 
 class RadioDriver(CRTPDriver):
     """ Crazyradio link driver """
@@ -64,7 +129,7 @@ class RadioDriver(CRTPDriver):
     def __init__(self):
         """ Create the link driver """
         CRTPDriver.__init__(self)
-        self.cradio = None
+        self._radio_manager = None
         self.uri = ''
         self.link_error_callback = None
         self.link_quality_callback = None
@@ -110,24 +175,25 @@ class RadioDriver(CRTPDriver):
         if uri_data.group(7) == '2M':
             datarate = Crazyradio.DR_2MPS
 
-        if self.cradio is None:
-            self.cradio = Crazyradio(devid=int(uri_data.group(1)))
-        else:
-            raise Exception('Link already open!')
-
-        if self.cradio.version >= 0.4:
-            self.cradio.set_arc(10)
-        else:
-            logger.warning('Radio version <0.4 will be obsoleted soon!')
-
-        self.cradio.set_channel(channel)
-
-        self.cradio.set_data_rate(datarate)
-
+        address = DEFAULT_ADDR_A
         if uri_data.group(9):
             addr = str(uri_data.group(9))
             new_addr = struct.unpack('<BBBBB', binascii.unhexlify(addr))
-            self.cradio.set_address(new_addr)
+            address = new_addr
+
+        if self._radio_manager is None:
+            self._radio_manager = _RadioManager(int(uri_data.group(1)),
+                                                channel,
+                                                datarate,
+                                                address)
+        else:
+            raise Exception('Link already open!')
+
+        with self._radio_manager as cradio:
+            if cradio.version >= 0.4:
+                cradio.set_arc(10)
+            else:
+                logger.warning('Radio version <0.4 will be obsoleted soon!')
 
         # Prepare the inter-thread communication queue
         self.in_queue = queue.Queue()
@@ -135,7 +201,8 @@ class RadioDriver(CRTPDriver):
         self.out_queue = queue.Queue(1)
 
         # Launch the comm thread
-        self._thread = _RadioDriverThread(self.cradio, self.in_queue,
+        self._thread = _RadioDriverThread(self._radio_manager,
+                                          self.in_queue,
                                           self.out_queue,
                                           link_quality_callback,
                                           link_error_callback,
@@ -167,11 +234,6 @@ class RadioDriver(CRTPDriver):
 
     def send_packet(self, pk):
         """ Send the packet pk though the link """
-        # if self.out_queue.full():
-        #    self.out_queue.get()
-        if (self.cradio is None):
-            return
-
         try:
             self.out_queue.put(pk, True, 2)
         except queue.Full:
@@ -187,7 +249,7 @@ class RadioDriver(CRTPDriver):
         if self._thread:
             return
 
-        self._thread = _RadioDriverThread(self.cradio, self.in_queue,
+        self._thread = _RadioDriverThread(self._radio_manager, self.in_queue,
                                           self.out_queue,
                                           self.link_quality_callback,
                                           self.link_error_callback,
@@ -200,13 +262,8 @@ class RadioDriver(CRTPDriver):
         self._thread.stop()
 
         # Close the USB dongle
-        try:
-            if self.cradio:
-                self.cradio.close()
-        except:
-            # If we pull out the dongle we will not make this call
-            pass
-        self.cradio = None
+        self._radio_manager.close()
+        self._radio_manager = None
 
         while not self.out_queue.empty():
             self.out_queue.get()
@@ -215,9 +272,9 @@ class RadioDriver(CRTPDriver):
         self.link_error_callback = None
         self.link_quality_callback = None
 
-    def _scan_radio_channels(self, start=0, stop=125):
+    def _scan_radio_channels(self, cradio, start=0, stop=125):
         """ Scan for Crazyflies between the supplied channels. """
-        return list(self.cradio.scan_channels(start, stop, (0xff,)))
+        return list(cradio.scan_channels(start, stop, (0xff,)))
 
     def scan_selected(self, links):
         to_scan = ()
@@ -241,7 +298,8 @@ class RadioDriver(CRTPDriver):
 
             to_scan += (one_to_scan,)
 
-        found = self.cradio.scan_selected(to_scan, (0xFF, 0xFF, 0xFF))
+        with self._radio_manager as cradio:
+            found = cradio.scan_selected(to_scan, (0xFF, 0xFF, 0xFF))
 
         ret = ()
         for f in found:
@@ -259,67 +317,61 @@ class RadioDriver(CRTPDriver):
 
     def scan_interface(self, address):
         """ Scan interface for Crazyflies """
-        if self.cradio is None:
+
+        if self._radio_manager is None:
             try:
-                self.cradio = Crazyradio()
+                self._radio_manager = _RadioManager(0)
             except Exception:
                 return []
-        else:
-            raise Exception('Cannot scann for links while the link is open!')
 
-        # FIXME: implements serial number in the Crazyradio driver!
-        serial = 'N/A'
+        with self._radio_manager as cradio:
+            # FIXME: implements serial number in the Crazyradio driver!
+            serial = 'N/A'
 
-        logger.info('v%s dongle with serial %s found', self.cradio.version,
-                    serial)
-        found = []
+            logger.info('v%s dongle with serial %s found', cradio.version,
+                        serial)
+            found = []
 
-        if address is not None:
-            addr = '{:X}'.format(address)
-            new_addr = struct.unpack('<BBBBB', binascii.unhexlify(addr))
-            self.cradio.set_address(new_addr)
+            if address is not None:
+                addr = '{:X}'.format(address)
+                new_addr = struct.unpack('<BBBBB', binascii.unhexlify(addr))
+                cradio.set_address(new_addr)
 
-        self.cradio.set_arc(1)
+            cradio.set_arc(1)
 
-        self.cradio.set_data_rate(self.cradio.DR_250KPS)
+            cradio.set_data_rate(cradio.DR_250KPS)
 
-        if address is None or address == 0xE7E7E7E7E7:
-            found += [['radio://0/{}/250K'.format(c), '']
-                      for c in self._scan_radio_channels()]
-            self.cradio.set_data_rate(self.cradio.DR_1MPS)
-            found += [['radio://0/{}/1M'.format(c), '']
-                      for c in self._scan_radio_channels()]
-            self.cradio.set_data_rate(self.cradio.DR_2MPS)
-            found += [['radio://0/{}/2M'.format(c), '']
-                      for c in self._scan_radio_channels()]
-        else:
-            found += [['radio://0/{}/250K/{:X}'.format(c, address), '']
-                      for c in self._scan_radio_channels()]
-            self.cradio.set_data_rate(self.cradio.DR_1MPS)
-            found += [['radio://0/{}/1M/{:X}'.format(c, address), '']
-                      for c in self._scan_radio_channels()]
-            self.cradio.set_data_rate(self.cradio.DR_2MPS)
-            found += [['radio://0/{}/2M/{:X}'.format(c, address), '']
-                      for c in self._scan_radio_channels()]
+            if address is None or address == DEFAULT_ADDR:
+                found += [['radio://0/{}/250K'.format(c), '']
+                          for c in self._scan_radio_channels(cradio)]
+                cradio.set_data_rate(cradio.DR_1MPS)
+                found += [['radio://0/{}/1M'.format(c), '']
+                          for c in self._scan_radio_channels(cradio)]
+                cradio.set_data_rate(cradio.DR_2MPS)
+                found += [['radio://0/{}/2M'.format(c), '']
+                          for c in self._scan_radio_channels(cradio)]
+            else:
+                found += [['radio://0/{}/250K/{:X}'.format(c, address), '']
+                          for c in self._scan_radio_channels(cradio)]
+                cradio.set_data_rate(cradio.DR_1MPS)
+                found += [['radio://0/{}/1M/{:X}'.format(c, address), '']
+                          for c in self._scan_radio_channels(cradio)]
+                cradio.set_data_rate(cradio.DR_2MPS)
+                found += [['radio://0/{}/2M/{:X}'.format(c, address), '']
+                          for c in self._scan_radio_channels(cradio)]
 
-        self.cradio.close()
-        self.cradio = None
+        self._radio_manager.close()
+        self._radio_manager = None
 
         return found
 
     def get_status(self):
-        if self.cradio is None:
-            try:
-                self.cradio = Crazyradio()
-            except USBError as e:
-                return 'Cannot open Crazyradio. Permission problem?' \
-                       ' ({})'.format(str(e))
-            except Exception as e:
-                return str(e)
+        radio_manager = _RadioManager(0)
 
-        ver = self.cradio.version
-        self.cradio.close()
-        self.cradio = None
+        with radio_manager as cradio:
+            ver = cradio.version
+
+        radio_manager.close()
 
         return 'Crazyradio version {}'.format(ver)
 
@@ -333,31 +385,31 @@ class _RadioDriverThread(threading.Thread):
     Radio link receiver thread used to read data from the
     Crazyradio USB driver. """
 
-    RETRYCOUNT_BEFORE_DISCONNECT = 10
+    TRIES_BEFORE_DISCON = 10
 
-    def __init__(self, cradio, inQueue, outQueue, link_quality_callback,
-                 link_error_callback, link):
+    def __init__(self, radio_manager, inQueue, outQueue,
+                 link_quality_callback, link_error_callback, link):
         """ Create the object """
         threading.Thread.__init__(self)
-        self.cradio = cradio
-        self.in_queue = inQueue
-        self.out_queue = outQueue
-        self.sp = False
-        self.link_error_callback = link_error_callback
-        self.link_quality_callback = link_quality_callback
-        self.retryBeforeDisconnect = self.RETRYCOUNT_BEFORE_DISCONNECT
-        self.retries = collections.deque()
-        self.retry_sum = 0
+        self._radio_manager = radio_manager
+        self._in_queue = inQueue
+        self._out_queue = outQueue
+        self._sp = False
+        self._link_error_callback = link_error_callback
+        self._link_quality_callback = link_quality_callback
+        self._retry_before_disconnect = _RadioDriverThread.TRIES_BEFORE_DISCON
+        self._retries = collections.deque()
+        self._retry_sum = 0
 
-        self.curr_up = 0
-        self.curr_down = 1
+        self._curr_up = 0
+        self._curr_down = 1
 
-        self.has_safelink = False
+        self._has_safelink = False
         self._link = link
 
     def stop(self):
         """ Stop the thread """
-        self.sp = True
+        self._sp = True
         try:
             self.join()
         except Exception:
@@ -370,15 +422,15 @@ class _RadioDriverThread(threading.Thread):
         The caller should resend packet if not acked (ie. same as with a
         direct call to crazyradio.send_packet)
         """
-        packet = bytearray(packet)
+        # packet = bytearray(packet)
         packet[0] &= 0xF3
-        packet[0] |= self.curr_up << 3 | self.curr_down << 2
+        packet[0] |= self._curr_up << 3 | self._curr_down << 2
         resp = cr.send_packet(packet)
         if resp and resp.ack and len(resp.data) and \
-           (resp.data[0] & 0x04) == (self.curr_down << 2):
-            self.curr_down = 1 - self.curr_down
+           (resp.data[0] & 0x04) == (self._curr_down << 2):
+            self._curr_down = 1 - self._curr_down
         if resp and resp.ack:
-            self.curr_up = 1 - self.curr_up
+            self._curr_up = 1 - self._curr_up
 
         return resp
 
@@ -389,56 +441,60 @@ class _RadioDriverThread(threading.Thread):
         emptyCtr = 0
 
         # Try up to 10 times to enable the safelink mode
-        for _ in range(10):
-            resp = self.cradio.send_packet((0xff, 0x05, 0x01))
-            if resp and resp.data and tuple(resp.data) == (0xff, 0x05, 0x01):
-                self.has_safelink = True
-                self.curr_up = 0
-                self.curr_down = 0
-                break
-        logging.info('Has safelink: {}'.format(self.has_safelink))
-        self._link.needs_resending = not self.has_safelink
+        with self._radio_manager as cradio:
+            for _ in range(10):
+                resp = cradio.send_packet((0xff, 0x05, 0x01))
+                if resp and resp.data and tuple(resp.data) == (
+                        0xff, 0x05, 0x01):
+                    self._has_safelink = True
+                    self._curr_up = 0
+                    self._curr_down = 0
+                    break
+        self._link.needs_resending = not self._has_safelink
 
         while (True):
-            if (self.sp):
+            if (self._sp):
                 break
 
-            try:
-                if self.has_safelink:
-                    ackStatus = self._send_packet_safe(self.cradio, dataOut)
-                else:
-                    ackStatus = self.cradio.send_packet(dataOut)
-            except Exception as e:
-                import traceback
+            with self._radio_manager as cradio:
+                try:
+                    if self._has_safelink:
+                        ackStatus = self._send_packet_safe(cradio, dataOut)
+                    else:
+                        ackStatus = cradio.send_packet(dataOut)
+                except Exception as e:
+                    import traceback
 
-                self.link_error_callback(
-                    'Error communicating with crazy radio ,it has probably '
-                    'been unplugged!\nException:%s\n\n%s' % (
-                        e, traceback.format_exc()))
+                    self._link_error_callback(
+                        'Error communicating with crazy radio ,it has '
+                        'probably been unplugged!\nException:%s\n\n%s' % (
+                            e, traceback.format_exc()))
 
-            # Analise the in data packet ...
+            # Analyse the in data packet ...
             if ackStatus is None:
                 logger.info('Dongle reported ACK status == None')
                 continue
 
-            if (self.link_quality_callback is not None):
+            if (self._link_quality_callback is not None):
                 # track the mean of a sliding window of the last N packets
                 retry = 10 - ackStatus.retry
-                self.retries.append(retry)
-                self.retry_sum += retry
-                if len(self.retries) > 100:
-                    self.retry_sum -= self.retries.popleft()
-                link_quality = float(self.retry_sum) / len(self.retries) * 10
-                self.link_quality_callback(link_quality)
+                self._retries.append(retry)
+                self._retry_sum += retry
+                if len(self._retries) > 100:
+                    self._retry_sum -= self._retries.popleft()
+                link_quality = float(self._retry_sum) / len(self._retries) * 10
+                self._link_quality_callback(link_quality)
 
             # If no copter, retry
             if ackStatus.ack is False:
-                self.retryBeforeDisconnect = self.retryBeforeDisconnect - 1
-                if (self.retryBeforeDisconnect == 0 and
-                        self.link_error_callback is not None):
-                    self.link_error_callback('Too many packets lost')
+                self._retry_before_disconnect = \
+                    self._retry_before_disconnect - 1
+                if (self._retry_before_disconnect == 0 and
+                        self._link_error_callback is not None):
+                    self._link_error_callback('Too many packets lost')
                 continue
-            self.retryBeforeDisconnect = self.RETRYCOUNT_BEFORE_DISCONNECT
+            self._retry_before_disconnect = \
+                _RadioDriverThread.TRIES_BEFORE_DISCON
 
             data = ackStatus.data
 
@@ -446,8 +502,7 @@ class _RadioDriverThread(threading.Thread):
             # next packet to send is prepared
             if (len(data) > 0):
                 inPacket = CRTPPacket(data[0], list(data[1:]))
-                # print "<- " + inPacket.__str__()
-                self.in_queue.put(inPacket)
+                self._in_queue.put(inPacket)
                 waitTime = 0
                 emptyCtr = 0
             else:
@@ -462,14 +517,13 @@ class _RadioDriverThread(threading.Thread):
             # get the next packet to send of relaxation (wait 10ms)
             outPacket = None
             try:
-                outPacket = self.out_queue.get(True, waitTime)
+                outPacket = self._out_queue.get(True, waitTime)
             except queue.Empty:
                 outPacket = None
 
             dataOut = array.array('B')
 
             if outPacket:
-                # print "-> " + outPacket.__str__()
                 dataOut.append(outPacket.header)
                 for X in outPacket.data:
                     if type(X) == int:

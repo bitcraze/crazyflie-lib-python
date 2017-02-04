@@ -129,9 +129,9 @@ class Param():
     Used to read and write parameter values in the Crazyflie.
     """
 
-    toc = Toc()
-
     def __init__(self, crazyflie):
+        self.toc = Toc()
+
         self.cf = crazyflie
         self.param_update_callbacks = {}
         self.group_update_callbacks = {}

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 #     ||          ____  _ __
@@ -7,9 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2011-2013 Bitcraze AB
-#
-#  Crazyflie Nano Quadcopter Client
+#  Copyright (C) 2016 Bitcraze AB
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -24,38 +21,26 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-"""
-Crazyflie console is used to receive characters printed using printf
-from the firmware.
-"""
-from cflib.crtp.crtpstack import CRTPPort
-from cflib.utils.callbacks import Caller
-
-__author__ = 'Bitcraze AB'
-__all__ = ['Console']
+import time
+from threading import Thread
 
 
-class Console:
-    """
-    Crazyflie console is used to receive characters printed using printf
-    from the firmware.
-    """
+class AsyncCallbackCaller:
 
-    def __init__(self, crazyflie):
-        """
-        Initialize the console and register it to receive data from the copter.
-        """
+    def __init__(self, cb=None, delay=0, args=(), kwargs={}):
+        self.caller = cb
+        self.delay = delay
+        self.args = args
+        self.kwargs = kwargs
 
-        self.receivedChar = Caller()
+    def trigger(self, *args, **kwargs):
+        Thread(target=self._make_call).start()
 
-        self.cf = crazyflie
-        self.cf.add_port_callback(CRTPPort.CONSOLE, self.incoming)
+    def call_and_wait(self):
+        thread = Thread(target=self._make_call)
+        thread.start()
+        thread.join()
 
-    def incoming(self, packet):
-        """
-        Callback for data received from the copter.
-        """
-        # This might be done prettier ;-)
-        console_text = packet.data.decode('UTF-8')
-
-        self.receivedChar.call(console_text)
+    def _make_call(self):
+        time.sleep(self.delay)
+        self.caller.call(*self.args, **self.kwargs)

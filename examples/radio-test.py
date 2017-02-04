@@ -7,6 +7,9 @@
     reading of rssi data and acknowledgement rate for every channel (0 to 125).
     It finally sets the Crazyflie channel back to default, plots link
     quality data, and offers good channel suggestion.
+
+    Better used when the Crazyflie2-nrf-firmware is compiled with bluetooth
+    disabled.
 '''
 import argparse
 
@@ -56,7 +59,7 @@ radio.set_arc(0)
 for channel in range(0, 126, 1):
 
     # change Crazyflie channel
-    for x in range(20):
+    for x in range(50):
         radio.send_packet((0xff, 0x03, SET_RADIO_CHANNEL, channel))
 
     count = 0
@@ -86,7 +89,7 @@ for channel in range(0, 126, 1):
           'rssi average:', rssi_avg, 'rssi std:', std)
 
 # change channel back to default
-for x in range(20):
+for x in range(50):
     radio.send_packet((0xff, 0x03, SET_RADIO_CHANNEL, init_channel))
 
 # divide each std by 2 for plotting convenience

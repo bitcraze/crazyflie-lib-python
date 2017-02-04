@@ -6,7 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2016 Bitcraze AB
+#  Copyright (C) 2017 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -24,25 +24,23 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Simple example that connects to one crazyflie (check the address at the top
-and update it to your crazyflie address), sets the anchor positions and
-send a sequence of setpoints, one every 5 seconds.
-
-This example is intended to work with the Loco Positioning System in TWR TOA
-mode. It aims at documenting how to set the Crazyflie in position control mode
-and how to send setpoints.
+Version of the AutonomousSequence.py example connecting to 2 Crazyflie and
+flying them throught a list of setpoint at the same time. This shows hot to
+control more than one Crazyflie autonomously.
 """
 import time
 
 import cflib.crtp
 from cflib.crazyflie.log import LogConfig
-from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.crazyflie.swarm import Swarm
 from cflib.crazyflie.syncLogger import SyncLogger
 
-# URI to the Crazyflie to connect to
-uri = 'radio://0/70/2M'
+# Change uris, anchor position and sequences according to your setup
+URI0 = 'radio://0/70/2M'
+URI1 = 'radio://0/90/2M'
 
-# Change anchor position and sequence according to your setup
+uris = {URI0, URI1}
+
 anchors = [(0.99, 1.49, 1.80),
            (0.99, 3.29, 1.80),
            (4.67, 2.54, 1.80),
@@ -51,13 +49,22 @@ anchors = [(0.99, 1.49, 1.80),
            (4.70, 1.14, 0.20)]
 
 #             x    y    z  YAW
-sequence = [(2.5, 2.5, 1.5, 0),
-            (1.0, 1.0, 1.5, 0),
-            (4.0, 1.0, 1.5, 0),
-            (4.0, 4.0, 1.5, 0),
-            (1.0, 4.0, 1.5, 0),
-            (2.5, 2.5, 1.0, 0),
-            (2.5, 2.5, 0.5, 0)]
+sequence0 = [(2.5, 2.5, 1.0, 0),
+             (2.5, 2.3, 1.0, 0),
+             (2.0, 2.3, 1.0, 0),
+             (2.0, 2.5, 1.0, 0),
+             (2.0, 2.5, 0.5, 0)]
+
+sequence1 = [(2.0, 2.5, 1.0, 0),
+             (2.0, 2.7, 1.0, 0),
+             (2.5, 2.7, 1.0, 0),
+             (2.5, 2.5, 1.0, 0),
+             (2.5, 2.5, 0.5, 0)]
+
+seq_args = {
+    URI0: [sequence0],
+    URI1: [sequence1],
+}
 
 
 def set_anchor_positions(scf):
@@ -146,7 +153,7 @@ def run_sequence(scf, sequence):
 if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
-    with SyncCrazyflie(uri) as scf:
-        set_anchor_positions(scf)
-        reset_estimator(scf)
-        run_sequence(scf, sequence)
+    with Swarm(uris) as swarm:
+        swarm.parallel(set_anchor_positions)
+        swarm.parallel(reset_estimator)
+        swarm.parallel(run_sequence, args_dict=seq_args)

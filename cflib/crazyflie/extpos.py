@@ -25,37 +25,35 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Crazyflie console is used to receive characters printed using printf
-from the firmware.
+Used for sending external position to the Crazyflie
 """
+import struct
+
+from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
-from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
-__all__ = ['Console']
+__all__ = ['Extpos']
 
 
-class Console:
+class Extpos():
     """
-    Crazyflie console is used to receive characters printed using printf
-    from the firmware.
+    Used for sending its position to the Crazyflie
     """
 
-    def __init__(self, crazyflie):
+    def __init__(self, crazyflie=None):
         """
-        Initialize the console and register it to receive data from the copter.
+        Initialize the Extpos object.
+        """
+        self._cf = crazyflie
+
+    def send_extpos(self, x, y, z):
+        """
+        Send the current Crazyflie X, Y, Z position. This is going to be
+        forwarded to the Crazyflie's position estimator.
         """
 
-        self.receivedChar = Caller()
-
-        self.cf = crazyflie
-        self.cf.add_port_callback(CRTPPort.CONSOLE, self.incoming)
-
-    def incoming(self, packet):
-        """
-        Callback for data received from the copter.
-        """
-        # This might be done prettier ;-)
-        console_text = packet.data.decode('UTF-8')
-
-        self.receivedChar.call(console_text)
+        pk = CRTPPacket()
+        pk.port = CRTPPort.POSITION
+        pk.data = struct.pack('<fff', x, y, z)
+        self._cf.send_packet(pk)

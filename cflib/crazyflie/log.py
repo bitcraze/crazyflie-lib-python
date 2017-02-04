@@ -141,7 +141,6 @@ class LogVariable():
 class LogConfig(object):
     """Representation of one log configuration that enables logging
     from the Crazyflie"""
-    _config_id_counter = 1
 
     def __init__(self, name, period_in_ms):
         """Initialize the entry"""
@@ -151,8 +150,7 @@ class LogConfig(object):
         self.added_cb = Caller()
         self.err_no = 0
 
-        self.id = LogConfig._config_id_counter
-        LogConfig._config_id_counter = (LogConfig._config_id_counter + 1) % 255
+        self.id = 0
         self.cf = None
         self.period = int(period_in_ms / 10)
         self.period_in_ms = period_in_ms
@@ -386,6 +384,8 @@ class Log():
         self._refresh_callback = None
         self._toc_cache = None
 
+        self._config_id_counter = 1
+
     def add_config(self, logconf):
         """Add a log configuration to the logging framework.
 
@@ -435,6 +435,8 @@ class Log():
                 (logconf.period > 0 and logconf.period < 0xFF)):
             logconf.valid = True
             logconf.cf = self.cf
+            logconf.id = self._config_id_counter
+            self._config_id_counter = (self._config_id_counter + 1) % 255
             self.log_blocks.append(logconf)
             self.block_added_cb.call(logconf)
         else:

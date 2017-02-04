@@ -370,11 +370,13 @@ class Cloader:
             pk = None
             retry_counter = 5
             while ((not pk or pk.header != 0xFF or
-                    struct.unpack('<BBHH', pk.data[0:6]) != (addr, 0x1C, page, (i * 25))) and
-                    retry_counter >= 0):
+                    struct.unpack('<BBHH', pk.data[0:6])
+                    != (addr, 0x1C, page, (i * 25)))
+                    and retry_counter >= 0):
                 pk = CRTPPacket()
                 pk.set_header(0xFF, 0xFF)
-                pk.data = struct.pack('<BBHH', addr, 0x1C, page, (i * 25))
+                pk.data = struct.pack('<BBHH', addr,
+                                      0x1C, page, (i * 25))
                 self.link.send_packet(pk)
 
                 pk = self.link.receive_packet(1)
@@ -391,32 +393,28 @@ class Cloader:
     def batch_read_flash(self, addr=0xFF, page=0x00):
         """Read back a flash page from the Crazyflie and return it"""
         page_size = self.targets[addr].page_size
-
         batch_index = []
+
         for i in range(0, int(math.ceil(page_size / 25.0))):
             batch_index.append(1)
-
         buff = bytearray(len(batch_index) * 25)
-        print("new page")
         while not sum(batch_index) == 0:
             for index in range(len(batch_index)):
                 if batch_index[index] == 1:
                     pk = CRTPPacket()
                     pk.set_header(0xFF, 0xFF)
-                    pk.data = struct.pack('<BBHH', addr, 0x1C, page, (index * 25))
+                    pk.data = struct.pack('<BBHH', addr, 0x1C,
+                                          page, (index * 25))
                     self.link.send_packet(pk)
 
                     pk = self.link.receive_packet(0)
                     if pk and len(pk.data) >= 6:
                         temp_pk = struct.unpack('<BBHH', pk.data[0:6])
-                        print(temp_pk)
+
                         back_element = int(temp_pk[3])
-
-                        if list(temp_pk[:2]) == [addr, 0x1C]:
-                            buff[back_element : back_element+25] = pk.data[6:]
-                            print("received: index #{}".format(int(back_element/25)))
+                        if list(temp_pk[: 2]) == [addr, 0x1C]:
+                            buff[back_element: back_element+25] = pk.data[6:]
                             batch_index[int(back_element/25)] = 0
-
         return buff[0:page_size]
 
     def batch_helper(self, addr, page, page_index):
@@ -430,12 +428,10 @@ class Cloader:
 
         if pk and len(pk.data) >= 6:
             temp_pk = struct.unpack('<BBHH', pk.data[0:6])
-            print(temp_pk)
             back_data = [temp_pk, pk.data]
             return back_data
         else:
             return None
-
 
     def write_flash(self, addr, page_buffer, target_page, page_count):
         """Initiate flashing of data in the buffer to flash."""

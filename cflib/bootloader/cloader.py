@@ -30,6 +30,7 @@ Crazyflie radio bootloader for flashing firmware.
 import binascii
 import logging
 import math
+import random
 import struct
 import time
 
@@ -232,7 +233,39 @@ class Cloader:
                         target_id].protocol_version)
                 if self._info_cb:
                     self._info_cb.call(self.targets[target_id])
+                if self.protocol_version != 1:
+                    return True
+                # Set radio link to a random address
+                addr = [0xbc] + [random.randint(0, 255) for x in range(4)]
+                return self._set_address(addr)
+        return False
+
+    def _set_address(self, new_address):
+        """ Change copter radio address.
+            This function works only with crazyradio CRTP link.
+        """
+
+        logging.debug('Setting bootloader radio address to'
+                      ' {}'.format(new_address))
+
+        if len(new_address) != 5:
+            raise Exception('Radio address should be 5 bytes long')
+
+        self.link.pause()
+
+        for _ in range(10):
+            logging.debug('Trying to set new radio address')
+            self.link.cradio.set_address((0xE7,) * 5)
+            pkdata = (0xFF, 0xFF, 0x11) + tuple(new_address)
+            self.link.cradio.send_packet(pkdata)
+            self.link.cradio.set_address(tuple(new_address))
+            if self.link.cradio.send_packet((0xff,)).ack:
+                logging.info('Bootloader set to radio address'
+                             ' {}'.format(new_address))
+                self.link.restart()
                 return True
+
+        self.link.restart()
         return False
 
     def request_info_update(self, target_id):
@@ -337,14 +370,17 @@ class Cloader:
             pk = None
             retry_counter = 5
             while ((not pk or pk.header != 0xFF or
-                    struct.unpack('<BB', pk.data[0:2]) != (addr, 0x1C)) and
-                    retry_counter >= 0):
+                    struct.unpack('<BBHH', pk.data[0:6])
+                    != (addr, 0x1C, page, (i * 25)))
+                    and retry_counter >= 0):
                 pk = CRTPPacket()
                 pk.set_header(0xFF, 0xFF)
-                pk.data = struct.pack('<BBHH', addr, 0x1C, page, (i * 25))
+                pk.data = struct.pack('<BBHH', addr,
+                                      0x1C, page, (i * 25))
                 self.link.send_packet(pk)
 
                 pk = self.link.receive_packet(1)
+
                 retry_counter -= 1
             if (retry_counter < 0):
                 return None
@@ -354,13 +390,58 @@ class Cloader:
         # For some reason we get one byte extra here...
         return buff[0:page_size]
 
+    def batch_read_flash(self, addr=0xFF, page=0x00):
+        """Read back a flash page from the Crazyflie and return it"""
+        page_size = self.targets[addr].page_size
+        batch_index = []
+
+        for i in range(0, int(math.ceil(page_size / 25.0))):
+            batch_index.append(1)
+        buff = bytearray(len(batch_index) * 25)
+        print("new page")
+        while not sum(batch_index) == 0:
+            for index in range(len(batch_index)):
+                if batch_index[index] == 1:
+                    pk = CRTPPacket()
+                    pk.set_header(0xFF, 0xFF)
+                    pk.data = struct.pack('<BBHH', addr, 0x1C,
+                                          page, (index * 25))
+                    self.link.send_packet(pk)
+
+                    pk = self.link.receive_packet(0)
+                    if pk and len(pk.data) >= 6:
+                        temp_pk = struct.unpack('<BBHH', pk.data[0:6])
+                        # print(temp_pk)
+                        back_element = int(temp_pk[3])
+                        if list(temp_pk[: 2]) == [addr, 0x1C]:
+                            buff[back_element: back_element+25] = pk.data[6:]
+                            batch_index[int(back_element/25)] = 0
+        return buff[0:page_size]
+
+    def batch_helper(self, addr, page, page_index):
+        '''helper function for batch verification'''
+        pk = CRTPPacket()
+        pk.set_header(0xFF, 0xFF)
+        pk.data = struct.pack('<BBHH', addr, 0x1C, page, (page_index * 25))
+        self.link.send_packet(pk)
+
+        pk = self.link.receive_packet(0)
+
+        if pk and len(pk.data) >= 6:
+            temp_pk = struct.unpack('<BBHH', pk.data[0:6])
+            # print(temp_pk)
+            back_data = [temp_pk, pk.data]
+            return back_data
+        else:
+            return None
+
     def write_flash(self, addr, page_buffer, target_page, page_count):
         """Initiate flashing of data in the buffer to flash."""
         # print "Write page", flashPage
         # print "Writing page [%d] and [%d] forward" % (flashPage, nPage)
         pk = None
         retry_counter = 5
-        # print "Flasing to 0x{:X}".format(addr)
+        # print("Flasing to 0x{:X}".format(addr))
         while ((not pk or pk.header != 0xFF or
                 struct.unpack('<BB', pk.data[0:2]) != (addr, 0x18)) and
                retry_counter >= 0):
@@ -370,6 +451,7 @@ class Cloader:
                                   target_page, page_count)
             self.link.send_packet(pk)
             pk = self.link.receive_packet(1)
+
             retry_counter -= 1
 
         if retry_counter < 0:

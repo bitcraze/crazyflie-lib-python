@@ -398,7 +398,7 @@ class Cloader:
         for i in range(0, int(math.ceil(page_size / 25.0))):
             batch_index.append(1)
         buff = bytearray(len(batch_index) * 25)
-        print("new page")
+        # print("new page")
         while not sum(batch_index) == 0:
             for index in range(len(batch_index)):
                 if batch_index[index] == 1:

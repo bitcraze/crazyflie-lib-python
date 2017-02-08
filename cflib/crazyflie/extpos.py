@@ -27,10 +27,6 @@
 """
 Used for sending external position to the Crazyflie
 """
-import struct
-
-from cflib.crtp.crtpstack import CRTPPacket
-from cflib.crtp.crtpstack import CRTPPort
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Extpos']
@@ -53,7 +49,4 @@ class Extpos():
         forwarded to the Crazyflie's position estimator.
         """
 
-        pk = CRTPPacket()
-        pk.port = CRTPPort.POSITION
-        pk.data = struct.pack('<fff', x, y, z)
-        self._cf.send_packet(pk)
+        self._cf.loc.send_extpos([x, y, z])

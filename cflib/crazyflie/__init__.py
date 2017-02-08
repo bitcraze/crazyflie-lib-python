@@ -44,6 +44,7 @@ import cflib.crtp
 from .commander import Commander
 from .console import Console
 from .extpos import Extpos
+from .localization import Localization
 from .log import Log
 from .mem import Memory
 from .param import Param
@@ -107,6 +108,7 @@ class Crazyflie():
         self.incoming.start()
 
         self.commander = Commander(self)
+        self.loc = Localization(self)
         self.extpos = Extpos(self)
         self.log = Log(self)
         self.console = Console(self)

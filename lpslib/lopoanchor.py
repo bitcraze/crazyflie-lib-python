@@ -48,4 +48,4 @@ class LoPoAnchor():
         z = position[2]
         data = struct.pack('<Bfff', LoPoAnchor.LPP_TYPE_POSITION, x, y, z)
 
-        self.crazyflie.loc.send_short_lpp(anchor_id, data)
+        self.crazyflie.loc.send_short_lpp_packet(anchor_id, data)

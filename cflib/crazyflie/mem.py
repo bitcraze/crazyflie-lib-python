@@ -424,6 +424,7 @@ class OWElement(MemoryElement):
 
 
 class AnchorData:
+
     def __init__(self, position=(0.0, 0.0, 0.0), is_valid=False):
         self.position = position
         self.is_valid = is_valid
@@ -465,7 +466,7 @@ class LocoMemory(MemoryElement):
                         [AnchorData() for _ in range(self.nr_of_anchors)]
                     self._request_page(0)
             else:
-                page = int((addr - LocoMemory.MEM_LOCO_ANCHOR_BASE) / \
+                page = int((addr - LocoMemory.MEM_LOCO_ANCHOR_BASE) /
                            LocoMemory.MEM_LOCO_ANCHOR_PAGE_SIZE)
 
                 self.anchor_data[page].set_from_mem_data(data)
@@ -500,7 +501,7 @@ class LocoMemory(MemoryElement):
 
     def _request_page(self, page):
         addr = LocoMemory.MEM_LOCO_ANCHOR_BASE + \
-               LocoMemory.MEM_LOCO_ANCHOR_PAGE_SIZE * page
+            LocoMemory.MEM_LOCO_ANCHOR_PAGE_SIZE * page
         self.mem_handler.read(self, addr, LocoMemory.MEM_LOCO_PAGE_LEN)
 
 

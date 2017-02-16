@@ -671,6 +671,7 @@ class Memory():
 
         self.cf = crazyflie
         self.cf.add_port_callback(CRTPPort.MEM, self._new_packet_cb)
+        self.cf.disconnected.add_callback(self._disconnected)
 
         self._refresh_callback = None
         self._fetch_id = 0
@@ -782,6 +783,15 @@ class Memory():
         pk.set_header(CRTPPort.MEM, CHAN_INFO)
         pk.data = (CMD_INFO_NBR,)
         self.cf.send_packet(pk, expected_reply=(CMD_INFO_NBR,))
+
+    def _disconnected(self, uri):
+        """The link to the Crazyflie has been broken. Reset state"""
+        for m in self.mems:
+            try:
+                m.disconnect()
+            except Exception as e:
+                logger.info(
+                    'Error when resetting after disconnect: {}'.format(e))
 
     def _new_packet_cb(self, packet):
         """Callback for newly arrived packets for the memory port"""

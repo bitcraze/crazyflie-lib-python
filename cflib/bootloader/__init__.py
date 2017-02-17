@@ -226,7 +226,7 @@ class Bootloader:
                     batch_list.append(tup)
                     batch_index.append(1)
 
-        factor = (100.0 * 1024 / 41) / (file_info[255][0] + file_info[254][1])
+        factor = (100.0*1024/41) / (file_info[255][0] + file_info[254][1])
         progress = 0
         count = 0
 
@@ -236,8 +236,8 @@ class Bootloader:
             # something is wrong
             if count > 10:
                 '''
-                print("Go too long")
-                print("Remaining index")
+                print('Go too long')
+                print('Remaining index')
                 for index in range(len(batch_index)):
                     if batch_index[index] == 1:
                         print(batch_list[index], index)
@@ -298,9 +298,10 @@ class Bootloader:
             if not target['data'] == \
                     datalist[target['target'].addr][:len(target['data'])]:
                 for x in range(len(target['data'])):
-                    if target['data'][x] != datalist[target['target'].addr][x]:
+                    if target['data'][x] != \
+                       datalist[target['target'].addr][x]:
                         return False
-        print("Success")
+        print('Success')
         return True
 
     def flash(self, filename, targets, verify):
@@ -479,9 +480,10 @@ class Bootloader:
             if not target['data'] == \
                     datalist[target['target'].addr][:len(target['data'])]:
                 for x in range(len(target['data'])):
-                    if target['data'][x] != datalist[target['target'].addr][x]:
+                    if target['data'][x] != \
+                       datalist[target['target'].addr][x]:
                         return False
-        print("Verified, Success")
+        print('Verified, Success')
         return True
 
     def _filter_platform(self, files, platform_id):
@@ -541,7 +543,8 @@ class Bootloader:
 
         if self.progress_cb:
             self.progress_cb(
-                '({}/{}) Starting...'.format(current_file_number, total_files),
+                '({}/{}) Starting...'.format(
+                    current_file_number, total_files),
                 int(progress))
         else:
             sys.stdout.write(
@@ -572,11 +575,13 @@ class Bootloader:
                 ]
                 current_filedata_size = t_data.page_size
             if self.progress_cb:
-                self.progress_cb('({}/{}) Verifying data page {}/{}...'.format(
-                    current_file_number,
-                    total_files,
-                    i,
-                    page_number),
+                self.progress_cb(
+                    '({}/{}) Verifying data page {}/{}...'.
+                    format(
+                        current_file_number,
+                        total_files,
+                        i,
+                        page_number),
                     int(progress))
             data_page = bytearray()
             data_page = self._cload.batch_read_flash(
@@ -590,7 +595,8 @@ class Bootloader:
                 if self.progress_cb:
                     self.progress_cb(
                         'Verification complete: ({}/{}) data page ({}/{}) \
-                        is not successfully flashed '.format(
+                        is not successfully flashed '.
+                        format(
                             current_file_number,
                             total_files,
                             i,
@@ -605,7 +611,8 @@ class Bootloader:
         if self.progress_cb:
             self.progress_cb(
                 '({}/{}) Verification complete: \
-                This file is successfully flashed. '.format(
+                This file is successfully flashed. '.
+                format(
                     current_file_number,
                     total_files),
                 int(100))
@@ -715,7 +722,7 @@ class Bootloader:
                                 file_data_page = (
                                     image[current_page * t_data.page_size:])
                                 current_filedata_size = (
-                                    len(image) - current_page*t_data.page_size
+                                    len(image)-current_page*t_data.page_size
                                 )
                             else:
                                 file_data_page = image[
@@ -735,7 +742,7 @@ class Bootloader:
                                     page_number),
                                     int(progress))
                             retry = 10
-                            while not data_page[0:current_filedata_size] == \
+                            while not data_page[0:current_filedata_size] ==\
                                 file_data_page[0:current_filedata_size] \
                                     and retry > 0:
                                 self._cload.write_flash(
@@ -814,7 +821,7 @@ class Bootloader:
                         data_page = self._cload.batch_read_flash(
                             t_data.addr, start_page + current_page
                         )
-                        if ((current_page + 1)*t_data.page_size) > len(image):
+                        if ((current_page+1)*t_data.page_size) > len(image):
                             file_data_page = image[
                                 current_page * t_data.page_size:
                             ]

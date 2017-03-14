@@ -29,6 +29,10 @@ import struct
 
 class LoPoAnchor():
     LPP_TYPE_POSITION = 1
+    LPP_TYPE_REBOOT = 2
+
+    REBOOT_TO_BOOTLOADER = 0
+    REBOOT_TO_FIRMWARE = 1
 
     def __init__(self, crazyflie):
         """
@@ -48,4 +52,8 @@ class LoPoAnchor():
         z = position[2]
         data = struct.pack('<Bfff', LoPoAnchor.LPP_TYPE_POSITION, x, y, z)
 
+        self.crazyflie.loc.send_short_lpp_packet(anchor_id, data)
+
+    def reboot(self, anchor_id, mode):
+        data = struct.pack('<BB', LoPoAnchor.LPP_TYPE_REBOOT, mode)
         self.crazyflie.loc.send_short_lpp_packet(anchor_id, data)

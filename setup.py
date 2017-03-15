@@ -4,13 +4,14 @@ from setuptools import setup
 
 setup(
     name='cflib',
-    version='0.1.0',
+    version='0.1.1',
     packages=find_packages(exclude=['examples', 'tests']),
 
     description='Crazyflie python driver',
     url='https://github.com/bitcraze/crazyflie-lib-python',
 
     author='Bitcraze and contributors',
+    author_email='contact@bitcraze.io',
     license='GPLv3',
 
     classifiers=[

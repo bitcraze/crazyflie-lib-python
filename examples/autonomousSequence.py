@@ -25,8 +25,8 @@
 #  MA  02110-1301, USA.
 """
 Simple example that connects to one crazyflie (check the address at the top
-and update it to your crazyflie address), sets the anchor positions and
-send a sequence of setpoints, one every 5 seconds.
+and update it to your crazyflie address) and send a sequence of setpoints,
+one every 5 seconds.
 
 This example is intended to work with the Loco Positioning System in TWR TOA
 mode. It aims at documenting how to set the Crazyflie in position control mode
@@ -40,38 +40,19 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 
 # URI to the Crazyflie to connect to
-uri = 'radio://0/70/2M'
+uri = 'radio://0/80/2M'
 
-# Change anchor position and sequence according to your setup
-anchors = [(0.99, 1.49, 1.80),
-           (0.99, 3.29, 1.80),
-           (4.67, 2.54, 1.80),
-           (0.59, 2.27, 0.20),
-           (4.70, 3.38, 0.20),
-           (4.70, 1.14, 0.20)]
-
+# Change the sequence according to your setup
 #             x    y    z  YAW
-sequence = [(2.5, 2.5, 1.5, 0),
-            (1.0, 1.0, 1.5, 0),
-            (4.0, 1.0, 1.5, 0),
-            (4.0, 4.0, 1.5, 0),
-            (1.0, 4.0, 1.5, 0),
-            (2.5, 2.5, 1.0, 0),
-            (2.5, 2.5, 0.5, 0)]
-
-
-def set_anchor_positions(scf):
-    cf = scf.cf
-
-    for i in range(len(anchors)):
-        cf.param.set_value('anchorpos.anchor{}x'.format(i),
-                           '{}'.format(anchors[i][0]))
-        cf.param.set_value('anchorpos.anchor{}y'.format(i),
-                           '{}'.format(anchors[i][1]))
-        cf.param.set_value('anchorpos.anchor{}z'.format(i),
-                           '{}'.format(anchors[i][2]))
-
-    cf.param.set_value('anchorpos.enable', '1')
+sequence = [
+    (2.5, 2.5, 1.2, 0),
+    (1.5, 2.5, 1.2, 0),
+    (2.5, 2.0, 1.2, 0),
+    (3.5, 2.5, 1.2, 0),
+    (2.5, 3.0, 1.2, 0),
+    (2.5, 2.5, 1.2, 0),
+    (2.5, 2.5, 0.4, 0),
+]
 
 
 def wait_for_position_estimator(scf):
@@ -124,6 +105,24 @@ def reset_estimator(scf):
     wait_for_position_estimator(cf)
 
 
+def position_callback(timestamp, data, logconf):
+    x = data['kalman.stateX']
+    y = data['kalman.stateY']
+    z = data['kalman.stateZ']
+    print('pos: ({}, {}, {})'.format(x, y, z))
+
+
+def start_position_printing(scf):
+    log_conf = LogConfig(name='Position', period_in_ms=500)
+    log_conf.add_variable('kalman.stateX', 'float')
+    log_conf.add_variable('kalman.stateY', 'float')
+    log_conf.add_variable('kalman.stateZ', 'float')
+
+    scf.cf.log.add_config(log_conf)
+    log_conf.data_received_cb.add_callback(position_callback)
+    log_conf.start()
+
+
 def run_sequence(scf, sequence):
     cf = scf.cf
 
@@ -147,6 +146,6 @@ if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
     with SyncCrazyflie(uri) as scf:
-        set_anchor_positions(scf)
         reset_estimator(scf)
+        # start_position_printing(scf)
         run_sequence(scf, sequence)

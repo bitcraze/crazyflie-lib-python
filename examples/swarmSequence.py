@@ -24,8 +24,8 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Version of the AutonomousSequence.py example connecting to 2 Crazyflie and
-flying them throught a list of setpoint at the same time. This shows hot to
+Version of the AutonomousSequence.py example connecting to 2 Crazyflies and
+flying them throught a list of setpoints at the same time. This shows how to
 control more than one Crazyflie autonomously.
 """
 import time
@@ -35,18 +35,11 @@ from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.swarm import Swarm
 from cflib.crazyflie.syncLogger import SyncLogger
 
-# Change uris, anchor position and sequences according to your setup
+# Change uris and sequences according to your setup
 URI0 = 'radio://0/70/2M'
 URI1 = 'radio://0/90/2M'
 
 uris = {URI0, URI1}
-
-anchors = [(0.99, 1.49, 1.80),
-           (0.99, 3.29, 1.80),
-           (4.67, 2.54, 1.80),
-           (0.59, 2.27, 0.20),
-           (4.70, 3.38, 0.20),
-           (4.70, 1.14, 0.20)]
 
 #             x    y    z  YAW
 sequence0 = [(2.5, 2.5, 1.0, 0),
@@ -65,20 +58,6 @@ seq_args = {
     URI0: [sequence0],
     URI1: [sequence1],
 }
-
-
-def set_anchor_positions(scf):
-    cf = scf.cf
-
-    for i in range(len(anchors)):
-        cf.param.set_value('anchorpos.anchor{}x'.format(i),
-                           '{}'.format(anchors[i][0]))
-        cf.param.set_value('anchorpos.anchor{}y'.format(i),
-                           '{}'.format(anchors[i][1]))
-        cf.param.set_value('anchorpos.anchor{}z'.format(i),
-                           '{}'.format(anchors[i][2]))
-
-    cf.param.set_value('anchorpos.enable', '1')
 
 
 def wait_for_position_estimator(scf):
@@ -154,6 +133,5 @@ if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
     with Swarm(uris) as swarm:
-        swarm.parallel(set_anchor_positions)
         swarm.parallel(reset_estimator)
         swarm.parallel(run_sequence, args_dict=seq_args)

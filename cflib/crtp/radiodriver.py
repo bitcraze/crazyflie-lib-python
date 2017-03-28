@@ -262,7 +262,8 @@ class RadioDriver(CRTPDriver):
         self._thread.stop()
 
         # Close the USB dongle
-        self._radio_manager.close()
+        if self._radio_manager:
+            self._radio_manager.close()
         self._radio_manager = None
 
         while not self.out_queue.empty():

@@ -37,6 +37,7 @@ __all__ = ['Commander']
 
 TYPE_STOP = 0
 TYPE_VELOCITY_WORLD = 1
+TYPE_ZDISTANCE = 2
 
 
 class Commander():
@@ -97,4 +98,17 @@ class Commander():
         pk.port = CRTPPort.COMMANDER_GENERIC
         pk.data = struct.pack('<Bffff', TYPE_VELOCITY_WORLD,
                               vx, vy, vz, yawrate)
+        self._cf.send_packet(pk)
+
+    def send_zdistance_setpoint(self, roll, pitch, yawrate, zdistance):
+        """
+        Control mode where the height is send as an absolute setpoint (intended
+        to be the distance to the surface under the Crazflie).
+
+        Roll, pitch, yawrate are defined as rad, rad, rad/s
+        """
+        pk = CRTPPacket()
+        pk.port = CRTPPort.COMMANDER_GENERIC
+        pk.data = struct.pack('<Bffff', TYPE_ZDISTANCE,
+                              roll, pitch, yawrate, zdistance)
         self._cf.send_packet(pk)

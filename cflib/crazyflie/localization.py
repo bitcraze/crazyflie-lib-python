@@ -106,7 +106,7 @@ class Localization():
 
         pk = CRTPPacket()
         pk.port = CRTPPort.LOCALIZATION
-        pk.channel = self.POSITON_CH
+        pk.channel = self.POSITION_CH
         pk.data = struct.pack('<fff', pos[0], pos[1], pos[2])
         self._cf.send_packet(pk)
 

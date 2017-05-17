@@ -110,6 +110,24 @@ def reset_estimator(scf):
     wait_for_position_estimator(cf)
 
 
+def position_callback(timestamp, data, logconf):
+    x = data['kalman.stateX']
+    y = data['kalman.stateY']
+    z = data['kalman.stateZ']
+    print('pos: ({}, {}, {})'.format(x, y, z))
+
+
+def start_position_printing(scf):
+    log_conf = LogConfig(name='Position', period_in_ms=500)
+    log_conf.add_variable('kalman.stateX', 'float')
+    log_conf.add_variable('kalman.stateY', 'float')
+    log_conf.add_variable('kalman.stateZ', 'float')
+
+    scf.cf.log.add_config(log_conf)
+    log_conf.data_received_cb.add_callback(position_callback)
+    log_conf.start()
+
+
 def run_sequence(scf, sequence):
     cf = scf.cf
 
@@ -134,4 +152,5 @@ if __name__ == '__main__':
 
     with Swarm(uris) as swarm:
         swarm.parallel(reset_estimator)
+        # swarm.parallel(start_position_printing)
         swarm.parallel(run_sequence, args_dict=seq_args)

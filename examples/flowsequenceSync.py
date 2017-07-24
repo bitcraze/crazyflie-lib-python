@@ -42,16 +42,16 @@ URI = "radio://0/80/250K"
 logging.basicConfig(level=logging.ERROR)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
     with SyncCrazyflie(URI) as scf:
         cf = scf.cf
 
-        cf.param.set_value('kalman.resetEstimation', '1')
+        cf.param.set_value("kalman.resetEstimation", "1")
         time.sleep(0.1)
-        cf.param.set_value('kalman.resetEstimation', '0')
+        cf.param.set_value("kalman.resetEstimation", "0")
         time.sleep(2)
 
         for _ in range(20):

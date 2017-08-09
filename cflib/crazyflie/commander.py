@@ -93,7 +93,7 @@ class Commander():
         Send Velocity in the world frame of reference setpoint.
 
         vx, vy, vz are in m/s
-        yawrate is in rad/s
+        yawrate is in degrees/s
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
@@ -106,7 +106,7 @@ class Commander():
         Control mode where the height is send as an absolute setpoint (intended
         to be the distance to the surface under the Crazflie).
 
-        Roll, pitch, yawrate are defined as rad, rad, rad/s
+        Roll, pitch, yawrate are defined as degrees, degrees, degrees/s
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
@@ -119,7 +119,8 @@ class Commander():
         Control mode where the height is send as an absolute setpoint (intended
         to be the distance to the surface under the Crazflie).
 
-        Roll, pitch, yawrate are defined as rad, rad, rad/s
+        vx and vy are in m/s
+        yawrate is in degrees/s
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC

@@ -24,9 +24,9 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Simple example that connects to the crazyflie at `URI` and runs a 8 sequence.
-This script requires some kind of location system, it has been tested with
-(and designed for) the flow deck.
+Simple example that connects to the crazyflie at `URI` and runs a figure 8
+sequence. This script requires some kind of location system, it has been
+tested with (and designed for) the flow deck.
 
 Change the URI variable to your Crazyflie configuration.
 """
@@ -36,7 +36,7 @@ import time
 import cflib.crtp
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
-URI = 'radio://0/80/250K'
+URI = 'radio://0/80/250k'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -54,28 +54,28 @@ if __name__ == '__main__':
         cf.param.set_value('kalman.resetEstimation', '0')
         time.sleep(2)
 
+        for y in range(10):
+            cf.commander.send_hover_setpoint(0, 0, 0, y / 25)
+            time.sleep(0.1)
+
         for _ in range(20):
-            cf.commander.send_hover_setpoint(0, 0, 0, 0.2)
-            time.sleep(0.1)
-
-        for _ in range(30):
             cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
             time.sleep(0.1)
 
-        for _ in range(100):
-            cf.commander.send_hover_setpoint(0.5, 0, 36, 0.4)
+        for _ in range(50):
+            cf.commander.send_hover_setpoint(0.5, 0, 36 * 2, 0.4)
             time.sleep(0.1)
 
-        for _ in range(100):
-            cf.commander.send_hover_setpoint(0.5, 0, -36, 0.4)
+        for _ in range(50):
+            cf.commander.send_hover_setpoint(0.5, 0, -36 * 2, 0.4)
             time.sleep(0.1)
 
-        for _ in range(30):
+        for _ in range(20):
             cf.commander.send_hover_setpoint(0, 0, 0, 0.4)
             time.sleep(0.1)
 
-        for _ in range(30):
-            cf.commander.send_hover_setpoint(0, 0, 0, 0.2)
+        for y in range(10):
+            cf.commander.send_hover_setpoint(0, 0, 0, (10 - y) / 25)
             time.sleep(0.1)
 
         cf.commander.send_stop_setpoint()

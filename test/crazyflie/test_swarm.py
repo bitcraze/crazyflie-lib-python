@@ -172,6 +172,43 @@ class TestSwarm(unittest.TestCase):
         func.assert_any_call(cf2, 'cf2-arg1')
         func.assert_any_call(cf3, 'cf3-arg1')
 
+    def test_parallel_execution_with_exception(self):
+        # Fixture
+        func_fail = MagicMock()
+        func_fail.side_effect = Exception()
+        args_dict = {
+            self.URI1: ['cf1-arg1'],
+            self.URI2: ['cf2-arg1'],
+            self.URI3: ['cf3-arg1'],
+        }
+
+        cf1 = self.factory.mocks[self.URI1]
+        cf2 = self.factory.mocks[self.URI2]
+        cf3 = self.factory.mocks[self.URI3]
+
+        # Test
+        self.sut.parallel(func_fail, args_dict=args_dict)
+
+        # Assert
+        func_fail.assert_any_call(cf1, 'cf1-arg1')
+        func_fail.assert_any_call(cf2, 'cf2-arg1')
+        func_fail.assert_any_call(cf3, 'cf3-arg1')
+
+    def test_parallel_safe_execution_with_exception(self):
+        # Fixture
+        func_fail = MagicMock()
+        func_fail.side_effect = Exception()
+        args_dict = {
+            self.URI1: ['cf1-arg1'],
+            self.URI2: ['cf2-arg1'],
+            self.URI3: ['cf3-arg1'],
+        }
+
+        # Test
+        # Assert
+        with self.assertRaises(Exception):
+            self.sut.parallel_safe(func_fail, args_dict=args_dict)
+
 
 class MockFactory:
 

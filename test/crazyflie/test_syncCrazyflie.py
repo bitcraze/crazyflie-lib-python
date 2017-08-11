@@ -63,7 +63,7 @@ class SyncCrazyflieTest(unittest.TestCase):
         # Assert
         actual1 = scf1.cf
         actual2 = scf2.cf
-        self.assertNotEquals(actual1, actual2)
+        self.assertNotEqual(actual1, actual2)
 
     def test_open_link(self):
         # Fixture

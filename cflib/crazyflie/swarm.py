@@ -131,7 +131,7 @@ class Swarm:
         """
         try:
             self.parallel_safe(func, args_dict)
-        except Exception as e:
+        except Exception:
             pass
 
     def parallel_safe(self, func, args_dict=None):

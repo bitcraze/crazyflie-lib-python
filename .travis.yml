@@ -6,7 +6,7 @@ matrix:
           script: docker run --rm -v ${PWD}:/module bitcraze/builder ./tools/build/build 
         - os: linux
           language: python
-          env: TOXENV=py27,py33,py34
+          env: TOXENV=py27,py34,py35,py36
           install: pip install tox
           script: tox
         - os: osx

@@ -36,7 +36,7 @@ import time
 import cflib.crtp
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
-URI = 'radio://0/80/250k'
+URI = 'radio://0/80/250K'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)

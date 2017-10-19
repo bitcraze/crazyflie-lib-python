@@ -24,7 +24,7 @@ Note: If you are developing for the [cfclient][cfclient] you must use python3.
   * `source venv/bin/activate`
 * `pip install -r requirements.txt`
 * Activate the environment: `source venv/bin/activate`
-* Connect the crazyflie and run an example: `python -m examples.basiclog`
+* Connect the crazyflie and run an example: `python examples/basiclog`
 * Deactivate the virtualenv if you activated it `deactivate`
 
 Note: For systems that support [make](https://www.gnu.org/software/make/manual/html_node/Simple-Makefile.html), the first four steps can be replaced with `make venv`

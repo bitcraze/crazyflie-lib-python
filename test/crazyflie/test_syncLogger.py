@@ -115,7 +115,10 @@ class SyncLoggerTest(unittest.TestCase):
                             ).trigger()
 
         # Test
-        actual = self.sut.__next__()
+        actual = None
+        for log_block in self.sut:
+            actual = log_block
+            break
 
         # Assert
         self.assertEqual(expected, actual)

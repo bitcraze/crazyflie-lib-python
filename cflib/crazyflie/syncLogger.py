@@ -89,6 +89,9 @@ class SyncLogger:
     def __iter__(self):
         return self
 
+    def next(self):
+        return self.__next__()
+
     def __next__(self):
         if not self._is_connected:
             raise StopIteration

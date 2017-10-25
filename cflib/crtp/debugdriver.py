@@ -572,19 +572,19 @@ class _PacketHandlingThread(Thread):
                                  ' it 0 !', pk.port)
 
                 if (pk.port == CRTPPort.LOGGING):
-                    l = self.fakeLogToc[varIndex]
+                    entry = self.fakeLogToc[varIndex]
                 if (pk.port == CRTPPort.PARAM):
-                    l = self.fakeParamToc[varIndex]
+                    entry = self.fakeParamToc[varIndex]
 
-                vartype = l['vartype']
-                if (pk.port == CRTPPort.PARAM and l['writable'] is True):
+                vartype = entry['vartype']
+                if (pk.port == CRTPPort.PARAM and entry['writable'] is True):
                     vartype = vartype | (0x10)
 
-                p.data = struct.pack('<BBB', cmd, l['varid'], vartype)
-                for ch in l['vargroup']:
+                p.data = struct.pack('<BBB', cmd, entry['varid'], vartype)
+                for ch in entry['vargroup']:
                     p.data.append(ord(ch))
                 p.data.append(0)
-                for ch in l['varname']:
+                for ch in entry['varname']:
                     p.data.append(ord(ch))
                 p.data.append(0)
                 if (self.doIncompleteLogTOC is False):

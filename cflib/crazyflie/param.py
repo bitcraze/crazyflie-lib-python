@@ -300,7 +300,7 @@ class _ParamUpdater(Thread):
         # we didn't get back due to a disconnect for example.
         try:
             self.wait_lock.release()
-        except:
+        except Exception:
             pass
 
     def request_param_setvalue(self, pk):
@@ -318,7 +318,7 @@ class _ParamUpdater(Thread):
                 self._req_param = -1
                 try:
                     self.wait_lock.release()
-                except:
+                except Exception:
                     pass
 
     def request_param_update(self, var_id):

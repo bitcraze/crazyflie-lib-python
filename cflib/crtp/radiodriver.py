@@ -106,7 +106,7 @@ class _RadioManager():
             if _RadioManager._radios[self._devid].usage_counter == 0:
                 try:
                     _RadioManager._radios[self._devid].radio.close()
-                except:
+                except Exception:
                     pass
                 _RadioManager._radios[self._devid] = None
 

@@ -63,7 +63,7 @@ try:
 
         pyusb_backend = libusb0.get_backend()
     pyusb1 = True
-except:
+except Exception:
     pyusb1 = False
 
 

@@ -42,8 +42,8 @@ For the example to run the following hardware is needed:
  * Multi-ranger deck
 """
 import logging
-import time
 import sys
+import time
 
 import cflib.crtp
 from cflib.crazyflie.log import LogConfig
@@ -82,13 +82,13 @@ if __name__ == '__main__':
         lg_oa.add_variable('range.zrange')
 
         # The max ramp up velocity
-        max_vel = 1.0 # m/s
+        max_vel = 1.0  # m/s
         # The detection radius (front/back/left/right/up)
-        radius = 0.2 # m
+        radius = 0.2  # m
         # The hover height (down)
-        height_sp = 0.2 # m
+        height_sp = 0.2  # m
         # Threashold for switching off the Crazyflie when pushed down
-        landing_height = 0.1 # m
+        landing_height = 0.1  # m
         # Factor for raming up when keeping radius
         factor = max_vel / radius
         # Should we stop flying or not
@@ -104,12 +104,12 @@ if __name__ == '__main__':
                 logconf_name = log_entry[2]
 
                 # Distances are reported in mm, convert into m
-                fw_distance = data["oa.front"] / 1000.0
-                bk_distance = data["oa.back"] / 1000.0
-                r_distance = data["oa.right"] / 1000.0
-                l_distance = data["oa.left"] / 1000.0
-                up_distance = data["oa.up"] / 1000.0
-                down_distance = data["range.zrange"] / 1000.0
+                fw_distance = data['oa.front'] / 1000.0
+                bk_distance = data['oa.back'] / 1000.0
+                r_distance = data['oa.right'] / 1000.0
+                l_distance = data['oa.left'] / 1000.0
+                up_distance = data['oa.up'] / 1000.0
+                down_distance = data['range.zrange'] / 1000.0
 
                 # Calculate the distance inside the radius
                 #   X    <----)
@@ -134,12 +134,13 @@ if __name__ == '__main__':
                 # If we should still be flying send the hover set-points
                 # Note that these are in meters and meters/second
                 if not stop:
-                    cf.commander.send_hover_setpoint(fw_vel, side_vel, 0, height)
+                    cf.commander.send_hover_setpoint(
+                        fw_vel, side_vel, 0, height)
 
                 # If we're pushing the Crazyflie towards the ground it will
                 # shut down if you get close enough
                 if down_distance < landing_height and height < height_sp:
                     stop = True
                     cf.commander.send_stop_setpoint()
-                    print("Demo terminated!")
+                    print('Demo terminated!')
                     sys.exit(1)

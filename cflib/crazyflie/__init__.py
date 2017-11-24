@@ -254,6 +254,11 @@ class Crazyflie():
         self._answer_patterns = {}
         self.disconnected.call(self.link_uri)
 
+    """Check if the communication link is open or not."""
+
+    def is_connected(self):
+        return self.connected_ts is not None
+
     def add_port_callback(self, port, cb):
         """Add a callback to cb on port"""
         self.incoming.add_port_callback(port, cb)

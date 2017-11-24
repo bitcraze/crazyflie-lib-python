@@ -408,12 +408,9 @@ class TestMotionCommander(unittest.TestCase):
             ])
             sleep_mock.assert_called_with(expected_time)
         except AssertionError as e:
-            self._eprint('Failed when testing function ' +
-                         function_under_test.__name__)
+            print('Failed when testing function ' +
+                  function_under_test.__name__)
             raise e
-
-    def _eprint(*args, **kwargs):
-        print(*args, file=sys.stderr, **kwargs)
 
 
 class TestSetpointThread(unittest.TestCase):

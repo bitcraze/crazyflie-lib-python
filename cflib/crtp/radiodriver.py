@@ -55,6 +55,8 @@ __all__ = ['RadioDriver']
 
 logger = logging.getLogger(__name__)
 
+_nr_of_retries = 100
+
 DEFAULT_ADDR_A = [0xe7, 0xe7, 0xe7, 0xe7, 0xe7]
 DEFAULT_ADDR = 0xE7E7E7E7E7
 
@@ -389,8 +391,6 @@ class _RadioDriverThread(threading.Thread):
     Radio link receiver thread used to read data from the
     Crazyradio USB driver. """
 
-    TRIES_BEFORE_DISCON = 100
-
     def __init__(self, radio_manager, inQueue, outQueue,
                  link_quality_callback, link_error_callback, link):
         """ Create the object """
@@ -401,7 +401,7 @@ class _RadioDriverThread(threading.Thread):
         self._sp = False
         self._link_error_callback = link_error_callback
         self._link_quality_callback = link_quality_callback
-        self._retry_before_disconnect = _RadioDriverThread.TRIES_BEFORE_DISCON
+        self._retry_before_disconnect = _nr_of_retries
         self._retries = collections.deque()
         self._retry_sum = 0
 
@@ -497,8 +497,7 @@ class _RadioDriverThread(threading.Thread):
                         self._link_error_callback is not None):
                     self._link_error_callback('Too many packets lost')
                 continue
-            self._retry_before_disconnect = \
-                _RadioDriverThread.TRIES_BEFORE_DISCON
+            self._retry_before_disconnect = _nr_of_retries
 
             data = ackStatus.data
 
@@ -536,3 +535,8 @@ class _RadioDriverThread(threading.Thread):
                         dataOut.append(ord(X))
             else:
                 dataOut.append(0xFF)
+
+
+def set_retries_before_disconnect(nr_of_retries):
+    global _nr_of_retries
+    _nr_of_retries = nr_of_retries

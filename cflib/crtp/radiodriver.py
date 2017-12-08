@@ -389,7 +389,7 @@ class _RadioDriverThread(threading.Thread):
     Radio link receiver thread used to read data from the
     Crazyradio USB driver. """
 
-    TRIES_BEFORE_DISCON = 10
+    TRIES_BEFORE_DISCON = 100
 
     def __init__(self, radio_manager, inQueue, outQueue,
                  link_quality_callback, link_error_callback, link):

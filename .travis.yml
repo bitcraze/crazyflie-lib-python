@@ -9,8 +9,3 @@ matrix:
           env: TOXENV=py27,py34
           install: pip install tox
           script: tox
-        - os: osx
-          sudo: required
-          install: pip install tox
-          env: TOXENV=py27
-          script: tox

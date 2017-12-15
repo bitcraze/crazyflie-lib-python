@@ -53,33 +53,36 @@ else:
 
 class MotionCommander:
     """The motion commander"""
-    HEIGHT = 0.3
     VELOCITY = 0.2
     RATE = 360.0 / 5
 
-    def __init__(self, crazyflie):
+    def __init__(self, crazyflie, default_height=0.3):
         """
         Construct an instance of a MotionCommander
 
         :param crazyflie: a Crazyflie or SyncCrazyflie instance
+        :param default_height: the default height to fly at
         """
         if isinstance(crazyflie, SyncCrazyflie):
             self._cf = crazyflie.cf
         else:
             self._cf = crazyflie
 
+        self.default_height = default_height
+
         self._is_flying = False
         self._thread = None
 
     # Distance based primitives
 
-    def take_off(self, height=HEIGHT, velocity=VELOCITY):
+    def take_off(self, height=None, velocity=VELOCITY):
         """
         Takes off, that is starts the motors, goes straigt up and hovers.
         Do not call this function if you use the with keyword. Take off is
         done automatically when the context is created.
 
-        :param height: the height (meters) to hover
+        :param height: the height (meters) to hover at. None uses the default
+                       height set when constructed.
         :param velocity: the velocity (meters/second) when taking off
         :return:
         """
@@ -94,6 +97,9 @@ class MotionCommander:
 
         self._thread = _SetPointThread(self._cf)
         self._thread.start()
+
+        if height is None:
+            height = self.default_height
 
         self.up(height, velocity)
 
@@ -116,8 +122,8 @@ class MotionCommander:
             self._cf.commander.send_stop_setpoint()
             self._is_flying = False
 
-    def __enter__(self, height=HEIGHT, velocity=VELOCITY):
-        self.take_off(height, velocity)
+    def __enter__(self):
+        self.take_off()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

@@ -99,6 +99,22 @@ class TestMotionCommander(unittest.TestCase):
         ])
         sleep_mock.assert_called_with(0.4 / 0.5)
 
+    def test_that_it_goes_up_to_default_height(
+            self, _SetPointThread_mock, sleep_mock):
+        # Fixture
+        thread_mock = _SetPointThread_mock()
+        sut = MotionCommander(self.cf_mock, default_height=0.4)
+
+        # Test
+        sut.take_off(velocity=0.6)
+
+        # Assert
+        thread_mock.set_vel_setpoint.assert_has_calls([
+            call(0.0, 0.0, 0.6, 0.0),
+            call(0.0, 0.0, 0.0, 0.0)
+        ])
+        sleep_mock.assert_called_with(0.4 / 0.6)
+
     def test_that_the_thread_is_started_on_takeoff(
             self, _SetPointThread_mock, sleep_mock):
         # Fixture
@@ -117,7 +133,6 @@ class TestMotionCommander(unittest.TestCase):
         thread_mock.get_height.return_value = 0.4
 
         self.sut.take_off()
-        thread_mock = _SetPointThread_mock()
         thread_mock.reset_mock()
 
         # Test
@@ -129,6 +144,28 @@ class TestMotionCommander(unittest.TestCase):
             call(0.0, 0.0, 0.0, 0.0)
         ])
         sleep_mock.assert_called_with(0.4 / 0.5)
+
+    def test_that_it_takes_off_and_lands_as_context_manager(
+            self, _SetPointThread_mock, sleep_mock):
+        # Fixture
+        thread_mock = _SetPointThread_mock()
+        thread_mock.reset_mock()
+
+        thread_mock.get_height.return_value = 0.3
+
+        # Test
+        with self.sut:
+            pass
+
+        # Assert
+        thread_mock.set_vel_setpoint.assert_has_calls([
+            call(0.0, 0.0, 0.2, 0.0),
+            call(0.0, 0.0, 0.0, 0.0),
+            call(0.0, 0.0, -0.2, 0.0),
+            call(0.0, 0.0, 0.0, 0.0)
+        ])
+        sleep_mock.assert_called_with(0.3 / 0.2)
+        sleep_mock.assert_called_with(0.3 / 0.2)
 
     def test_that_it_starts_moving_multi_dimensional(
             self, _SetPointThread_mock, sleep_mock):

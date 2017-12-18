@@ -30,9 +30,13 @@ import struct
 class LoPoAnchor():
     LPP_TYPE_POSITION = 1
     LPP_TYPE_REBOOT = 2
+    LPP_TYPE_MODE = 3
 
     REBOOT_TO_BOOTLOADER = 0
     REBOOT_TO_FIRMWARE = 1
+
+    MODE_TWR = 1
+    MODE_TDOA = 2
 
     def __init__(self, crazyflie):
         """
@@ -56,4 +60,12 @@ class LoPoAnchor():
 
     def reboot(self, anchor_id, mode):
         data = struct.pack('<BB', LoPoAnchor.LPP_TYPE_REBOOT, mode)
+        self.crazyflie.loc.send_short_lpp_packet(anchor_id, data)
+
+    def set_mode(self, anchor_id, mode):
+        """
+        Send a packet to set the anchor mode. If the anchor receive the packet,
+        it will change mode and resets.
+        """
+        data = struct.pack('<BB', LoPoAnchor.LPP_TYPE_MODE, mode)
         self.crazyflie.loc.send_short_lpp_packet(anchor_id, data)

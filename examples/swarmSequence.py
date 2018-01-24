@@ -255,7 +255,7 @@ def run_sequence(scf, sequence):
             while time.time() < end_time:
                 cf.commander.send_setpoint(position[1], position[0], 0,
                                            int(position[2] * 1000))
-                time.sleep(0.3)
+                time.sleep(0.1)
         land(cf, sequence[-1])
     except Exception as e:
         print(e)

@@ -34,6 +34,7 @@ import logging
 import time
 
 import cflib.crtp
+from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
 URI = 'radio://0/80/250K'
@@ -46,7 +47,7 @@ if __name__ == '__main__':
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
-    with SyncCrazyflie(URI) as scf:
+    with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
         cf = scf.cf
 
         cf.param.set_value('kalman.resetEstimation', '1')

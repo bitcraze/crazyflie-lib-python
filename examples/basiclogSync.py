@@ -33,6 +33,7 @@ import logging
 import time
 
 import cflib.crtp
+from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
@@ -59,7 +60,8 @@ if __name__ == '__main__':
         lg_stab.add_variable('stabilizer.pitch', 'float')
         lg_stab.add_variable('stabilizer.yaw', 'float')
 
-        with SyncCrazyflie(available[0][0]) as scf:
+        cf = Crazyflie(rw_cache='./cache')
+        with SyncCrazyflie(available[0][0], cf=cf) as scf:
             with SyncLogger(scf, lg_stab) as logger:
                 endTime = time.time() + 10
 

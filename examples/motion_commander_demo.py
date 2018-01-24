@@ -36,6 +36,7 @@ import logging
 import time
 
 import cflib.crtp
+from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
 
@@ -49,7 +50,7 @@ if __name__ == '__main__':
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
-    with SyncCrazyflie(URI) as scf:
+    with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
         # We take off when the commander is created
         with MotionCommander(scf) as mc:
             time.sleep(1)

@@ -42,6 +42,7 @@ import math
 import time
 
 import cflib.crtp
+from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
 
 # Change uris according to your setup
@@ -143,6 +144,7 @@ def run_sequence(scf, params):
 if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
-    with Swarm(uris) as swarm:
+    factory = CachedCfFactory(rw_cache='./cache')
+    with Swarm(uris, factory=factory) as swarm:
         swarm.parallel(reset_estimator)
         swarm.parallel(run_sequence, args_dict=params)

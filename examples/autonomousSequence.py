@@ -35,6 +35,7 @@ and how to send setpoints.
 import time
 
 import cflib.crtp
+from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
@@ -145,7 +146,7 @@ def run_sequence(scf, sequence):
 if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
-    with SyncCrazyflie(uri) as scf:
+    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         reset_estimator(scf)
         # start_position_printing(scf)
         run_sequence(scf, sequence)

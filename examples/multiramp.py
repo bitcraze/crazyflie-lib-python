@@ -44,7 +44,7 @@ class MotorRampExample:
     def __init__(self, link_uri):
         """ Initialize and run the example with the specified link_uri """
 
-        self._cf = Crazyflie()
+        self._cf = Crazyflie(rw_cache='./cache')
 
         self._cf.connected.add_callback(self._connected)
         self._cf.disconnected.add_callback(self._disconnected)

@@ -6,7 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2017 Bitcraze AB
+#  Copyright (C) 2017-2018 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -24,39 +24,146 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Version of the AutonomousSequence.py example connecting to 2 Crazyflies and
-flying them throught a list of setpoints at the same time. This shows how to
-control more than one Crazyflie autonomously.
+Version of the AutonomousSequence.py example connecting to 10 Crazyflies.
+The Crazyflies go straight up, hover a while and land but the code is fairly
+generic and each Crazyflie has its own sequence of setpoints that it files
+to.
+
+The layout of the positions:
+
+    *               *
+
+            ^ Y
+            |
+    *       *       *
+            |
+            +------> X
+
+    *       *       *
+
+
+
+    *               *
+
 """
 import time
 
 import cflib.crtp
 from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
 from cflib.crazyflie.syncLogger import SyncLogger
 
 # Change uris and sequences according to your setup
-URI0 = 'radio://0/70/2M'
-URI1 = 'radio://0/90/2M'
+URI1 = 'radio://0/70/2M/E7E7E7E701'
+URI2 = 'radio://0/70/2M/E7E7E7E702'
+URI3 = 'radio://0/70/2M/E7E7E7E703'
+URI4 = 'radio://0/70/2M/E7E7E7E704'
+URI5 = 'radio://0/70/2M/E7E7E7E705'
+URI6 = 'radio://0/70/2M/E7E7E7E706'
+URI7 = 'radio://0/70/2M/E7E7E7E707'
+URI8 = 'radio://0/70/2M/E7E7E7E708'
+URI9 = 'radio://0/70/2M/E7E7E7E709'
+URI10 = 'radio://0/70/2M/E7E7E7E70A'
 
-uris = {URI0, URI1}
 
-#             x    y    z  YAW
-sequence0 = [(2.5, 2.5, 1.0, 0),
-             (2.5, 2.3, 1.0, 0),
-             (2.0, 2.3, 1.0, 0),
-             (2.0, 2.5, 1.0, 0),
-             (2.0, 2.5, 0.5, 0)]
+z0 = 0.4
+z = 1.0
 
-sequence1 = [(2.0, 2.5, 1.0, 0),
-             (2.0, 2.7, 1.0, 0),
-             (2.5, 2.7, 1.0, 0),
-             (2.5, 2.5, 1.0, 0),
-             (2.5, 2.5, 0.5, 0)]
+x0 = 0.7
+x1 = 0
+x2 = -0.7
+
+y0 = -1.0
+y1 = -0.4
+y2 = 0.4
+y3 = 1.0
+
+#    x   y   z  time
+sequence1 = [
+    (x0, y0, z0, 3.0),
+    (x0, y0, z, 30.0),
+    (x0, y0, z0, 3.0),
+]
+
+sequence2 = [
+    (x0, y1, z0, 3.0),
+    (x0, y1, z, 30.0),
+    (x0, y1, z0, 3.0),
+]
+
+sequence3 = [
+    (x0, y2, z0, 3.0),
+    (x0, y2, z, 30.0),
+    (x0, y2, z0, 3.0),
+]
+
+sequence4 = [
+    (x0, y3, z0, 3.0),
+    (x0, y3, z, 30.0),
+    (x0, y3, z0, 3.0),
+]
+
+sequence5 = [
+    (x1, y1, z0, 3.0),
+    (x1, y1, z, 30.0),
+    (x1, y1, z0, 3.0),
+]
+
+sequence6 = [
+    (x1, y2, z0, 3.0),
+    (x1, y2, z, 30.0),
+    (x1, y2, z0, 3.0),
+]
+
+sequence7 = [
+    (x2, y0, z0, 3.0),
+    (x2, y0, z, 30.0),
+    (x2, y0, z0, 3.0),
+]
+
+sequence8 = [
+    (x2, y1, z0, 3.0),
+    (x2, y1, z, 30.0),
+    (x2, y1, z0, 3.0),
+]
+
+sequence9 = [
+    (x2, y2, z0, 3.0),
+    (x2, y2, z, 30.0),
+    (x2, y2, z0, 3.0),
+]
+
+sequence10 = [
+    (x2, y3, z0, 3.0),
+    (x2, y3, z, 30.0),
+    (x2, y3, z0, 3.0),
+]
 
 seq_args = {
-    URI0: [sequence0],
     URI1: [sequence1],
+    URI2: [sequence2],
+    URI3: [sequence3],
+    URI4: [sequence4],
+    URI5: [sequence5],
+    URI6: [sequence6],
+    URI7: [sequence7],
+    URI8: [sequence8],
+    URI9: [sequence9],
+    URI10: [sequence10],
+}
+
+uris = {
+    URI1,
+    URI2,
+    URI3,
+    URI4,
+    URI5,
+    URI6,
+    URI7,
+    URI8,
+    URI9,
+    URI10
 }
 
 
@@ -101,6 +208,12 @@ def wait_for_position_estimator(scf):
                 break
 
 
+def wait_for_param_download(scf):
+    while not scf.cf.param.is_updated:
+        time.sleep(1.0)
+    print('Parameters downloaded for', scf.cf.link_uri)
+
+
 def reset_estimator(scf):
     cf = scf.cf
     cf.param.set_value('kalman.resetEstimation', '1')
@@ -110,36 +223,19 @@ def reset_estimator(scf):
     wait_for_position_estimator(cf)
 
 
-def position_callback(timestamp, data, logconf):
-    x = data['kalman.stateX']
-    y = data['kalman.stateY']
-    z = data['kalman.stateZ']
-    print('pos: ({}, {}, {})'.format(x, y, z))
+def take_off(cf, position):
+    steps = 10
+    for i in range(10):
+        z = i * position[2] / steps
+        cf.commander.send_setpoint(position[1], position[0], 0,
+                                   int(z * 1000))
+        time.sleep(0.3)
 
 
-def start_position_printing(scf):
-    log_conf = LogConfig(name='Position', period_in_ms=500)
-    log_conf.add_variable('kalman.stateX', 'float')
-    log_conf.add_variable('kalman.stateY', 'float')
-    log_conf.add_variable('kalman.stateZ', 'float')
-
-    scf.cf.log.add_config(log_conf)
-    log_conf.data_received_cb.add_callback(position_callback)
-    log_conf.start()
-
-
-def run_sequence(scf, sequence):
-    cf = scf.cf
-
-    cf.param.set_value('flightmode.posSet', '1')
-
-    for position in sequence:
-        print('Setting position {}'.format(position))
-        for i in range(50):
-            cf.commander.send_setpoint(position[1], position[0],
-                                       position[3],
-                                       int(position[2] * 1000))
-            time.sleep(0.1)
+def land(cf, position):
+    cf.commander.send_setpoint(position[1], position[0], 0,
+                               int(0.2 * 1000))
+    time.sleep(1.5)
 
     cf.commander.send_setpoint(0, 0, 0, 0)
     # Make sure that the last packet leaves before the link is closed
@@ -147,10 +243,41 @@ def run_sequence(scf, sequence):
     time.sleep(0.1)
 
 
+def run_sequence(scf, sequence):
+    try:
+        cf = scf.cf
+        cf.param.set_value('flightmode.posSet', '1')
+
+        take_off(cf, sequence[0])
+        for position in sequence:
+            print('Setting position {}'.format(position))
+            end_time = time.time() + position[3]
+            while time.time() < end_time:
+                cf.commander.send_setpoint(position[1], position[0], 0,
+                                           int(position[2] * 1000))
+                time.sleep(0.3)
+        land(cf, sequence[-1])
+    except Exception as e:
+        print(e)
+
+
 if __name__ == '__main__':
+    # logging.basicConfig(level=logging.DEBUG)
     cflib.crtp.init_drivers(enable_debug_driver=False)
 
-    with Swarm(uris) as swarm:
-        swarm.parallel(reset_estimator)
-        # swarm.parallel(start_position_printing)
+    factory = CachedCfFactory(rw_cache='./cache')
+    with Swarm(uris, factory=factory) as swarm:
+        # If the copters are started in their correct positions this is
+        # probably not needed. The Kalman filter will have time to converge
+        # any way since it takes a while to start them all up and connect. We
+        # keep the code here to illustrate how to do it.
+        # swarm.parallel(reset_estimator)
+
+        # The current values of all parameters are downloaded as a part of the
+        # connections sequence. Since we have 10 copters this is clogging up
+        # communication and we have to wait for it to finish before we start
+        # flying.
+        print('Waiting for parameters to be downloaded...')
+        swarm.parallel(wait_for_param_download)
+
         swarm.parallel(run_sequence, args_dict=seq_args)

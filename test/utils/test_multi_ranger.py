@@ -24,16 +24,16 @@
 import sys
 import unittest
 
-import math
-from cflib.utils.multi_ranger import MultiRanger
-from cflib.crazyflie import Crazyflie, Log
+from cflib.crazyflie import Crazyflie
+from cflib.crazyflie import Log
 from cflib.crazyflie.log import LogConfig
 from cflib.utils.callbacks import Caller
+from cflib.utils.multi_ranger import MultiRanger
 
 if sys.version_info < (3, 3):
-    from mock import MagicMock, ANY, call, patch
+    from mock import MagicMock, call, patch
 else:
-    from unittest.mock import MagicMock, ANY, call, patch
+    from unittest.mock import MagicMock, call, patch
 
 
 class MultiRangerTest(unittest.TestCase):
@@ -142,7 +142,7 @@ class MultiRangerTest(unittest.TestCase):
         with patch('cflib.utils.multi_ranger.LogConfig',
                    return_value=self.log_config_mock):
 
-            with MultiRanger(self.cf_mock) as sut:
+            with MultiRanger(self.cf_mock):
                 pass
 
             # Assert
@@ -193,7 +193,6 @@ class MultiRangerTest(unittest.TestCase):
         self.log_data[self.RIGHT] = self.OUT_OF_RANGE
         self._validate_distance_from_getter(None, 'right')
 
-
     # Helpers ################################################################
 
     def _validate_distance_from_getter(self, expected, getter_name):
@@ -213,5 +212,3 @@ class MultiRangerTest(unittest.TestCase):
 
             # Assert
             self.assertEqual(expected, actual)
-
-

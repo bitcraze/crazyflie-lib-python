@@ -22,6 +22,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
 
 class MultiRanger:
@@ -30,24 +31,30 @@ class MultiRanger:
     LEFT = 'oa.left'
     RIGHT = 'oa.right'
     UP = 'oa.up'
+    DOWN = 'range.zrange'
 
-    def __init__(self, cf):
-        self._cf = cf
-        self._log_config = self._create_log_config()
+    def __init__(self, crazyflie, rate_ms=100, zranger=False):
+        if isinstance(crazyflie, SyncCrazyflie):
+            self._cf = crazyflie.cf
+        else:
+            self._cf = crazyflie
+        self._log_config = self._create_log_config(rate_ms)
 
         self._up_distance = None
         self._front_distance = None
         self._back_distance = None
         self._left_distance = None
         self._right_distance = None
+        self._down_distance = None
 
-    def _create_log_config(self):
-        log_config = LogConfig('multiranger', 100)
+    def _create_log_config(self, rate_ms):
+        log_config = LogConfig('multiranger', rate_ms)
         log_config.add_variable(self.FRONT)
         log_config.add_variable(self.BACK)
         log_config.add_variable(self.LEFT)
         log_config.add_variable(self.RIGHT)
         log_config.add_variable(self.UP)
+        log_config.add_variable(self.DOWN)
 
         log_config.data_received_cb.add_callback(self._data_received)
 
@@ -69,6 +76,9 @@ class MultiRanger:
         self._back_distance = self._convert_log_to_distance(data[self.BACK])
         self._left_distance = self._convert_log_to_distance(data[self.LEFT])
         self._right_distance = self._convert_log_to_distance(data[self.RIGHT])
+        if self.DOWN in data:
+            self._down_distance = self._convert_log_to_distance(data[self.DOWN]
+                                                                )
 
     def stop(self):
         self._log_config.delete()
@@ -92,6 +102,10 @@ class MultiRanger:
     @property
     def back(self):
         return self._back_distance
+
+    @property
+    def down(self):
+        return self._down_distance
 
     def __enter__(self):
         self.start()

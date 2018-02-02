@@ -226,18 +226,29 @@ def reset_estimator(scf):
 
 
 def take_off(cf, position):
-    steps = 10
-    for i in range(10):
-        z = i * position[2] / steps
-        cf.commander.send_setpoint(position[1], position[0], 0,
-                                   int(z * 1000))
-        time.sleep(0.3)
+    take_off_time = 1.0
+    sleep_time = 0.1
+    steps = int(take_off_time / sleep_time)
+    vz = position[2] / take_off_time
+
+    print(vz)
+
+    for i in range(steps):
+        cf.commander.send_velocity_world_setpoint(0, 0, vz, 0)
+        time.sleep(sleep_time)
 
 
 def land(cf, position):
-    cf.commander.send_setpoint(position[1], position[0], 0,
-                               int(0.2 * 1000))
-    time.sleep(1.5)
+    landing_time = 1.0
+    sleep_time = 0.1
+    steps = int(landing_time / sleep_time)
+    vz = -position[2] / landing_time
+
+    print(vz)
+
+    for i in range(steps):
+        cf.commander.send_velocity_world_setpoint(0, 0, vz, 0)
+        time.sleep(sleep_time)
 
     cf.commander.send_setpoint(0, 0, 0, 0)
     # Make sure that the last packet leaves before the link is closed

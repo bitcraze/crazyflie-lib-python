@@ -39,6 +39,7 @@ TYPE_STOP = 0
 TYPE_VELOCITY_WORLD = 1
 TYPE_ZDISTANCE = 2
 TYPE_HOVER = 5
+TYPE_POSITION = 7
 
 
 class Commander():
@@ -126,4 +127,18 @@ class Commander():
         pk.port = CRTPPort.COMMANDER_GENERIC
         pk.data = struct.pack('<Bffff', TYPE_HOVER,
                               vx, vy, yawrate, zdistance)
+        self._cf.send_packet(pk)
+
+    def send_position_setpoint(self, x, y, z, yaw):
+        """
+        Control mode where the position is sent as absolute x,y,z coordinate in
+        meter and the yaw is the absolute orientation.
+
+        x and y are in m/s
+        yaw is in degrees/s
+        """
+        pk = CRTPPacket()
+        pk.port = CRTPPort.COMMANDER_GENERIC
+        pk.data = struct.pack('<Bffff', TYPE_POSITION,
+                              x, y, z, yaw)
         self._cf.send_packet(pk)

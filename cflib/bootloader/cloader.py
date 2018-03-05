@@ -110,15 +110,18 @@ class Cloader:
         if pk:
             new_address = (0xb1,) + struct.unpack('<BBBB', pk.data[2:6][::-1])
 
-            pk = CRTPPacket()
-            pk.set_header(0xFF, 0xFF)
-            pk.data = (target_id, 0xF0, 0x00)
-            self.link.send_packet(pk)
+            # The reset packet arrival cannot be checked.
+            # Send it more than one time to increase the chances it makes it.
+            for _ in range(10):
+                pk = CRTPPacket()
+                pk.set_header(0xFF, 0xFF)
+                pk.data = (target_id, 0xF0, 0x00)
+                self.link.send_packet(pk)
 
             addr = int(binascii.hexlify(
                 struct.pack('B' * 5, *new_address)), 16)
 
-            time.sleep(0.2)
+            time.sleep(1)
             self.link.close()
             time.sleep(0.2)
             self.link = cflib.crtp.get_link_driver(

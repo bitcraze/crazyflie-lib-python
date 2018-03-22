@@ -26,11 +26,11 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
 
 class MultiRanger:
-    FRONT = 'oa.front'
-    BACK = 'oa.back'
-    LEFT = 'oa.left'
-    RIGHT = 'oa.right'
-    UP = 'oa.up'
+    FRONT = 'range.front'
+    BACK = 'range.back'
+    LEFT = 'range.left'
+    RIGHT = 'range.right'
+    UP = 'range.up'
     DOWN = 'range.zrange'
 
     def __init__(self, crazyflie, rate_ms=100, zranger=False):

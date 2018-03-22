@@ -39,7 +39,7 @@ For the example to run the following hardware is needed:
  * Crazyflie 2.0
  * Crazyradio PA
  * Flow deck
- * Multi-ranger deck
+ * Multiranger deck
 """
 import logging
 import sys
@@ -49,7 +49,7 @@ import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
-from cflib.utils.multi_ranger import MultiRanger
+from cflib.utils.multiranger import Multiranger
 
 URI = 'radio://0/80/2M'
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     cf = Crazyflie(rw_cache='./cache')
     with SyncCrazyflie(URI, cf=cf) as scf:
         with MotionCommander(scf) as motion_commander:
-            with MultiRanger(scf) as multi_ranger:
+            with Multiranger(scf) as multiranger:
                 keep_flying = True
 
                 while keep_flying:
@@ -84,17 +84,17 @@ if __name__ == '__main__':
                     velocity_x = 0.0
                     velocity_y = 0.0
 
-                    if is_close(multi_ranger.front):
+                    if is_close(multiranger.front):
                         velocity_x -= VELOCITY
-                    if is_close(multi_ranger.back):
+                    if is_close(multiranger.back):
                         velocity_x += VELOCITY
 
-                    if is_close(multi_ranger.left):
+                    if is_close(multiranger.left):
                         velocity_y -= VELOCITY
-                    if is_close(multi_ranger.right):
+                    if is_close(multiranger.right):
                         velocity_y += VELOCITY
 
-                    if is_close(multi_ranger.up):
+                    if is_close(multiranger.up):
                         keep_flying = False
 
                     motion_commander.start_linear_motion(

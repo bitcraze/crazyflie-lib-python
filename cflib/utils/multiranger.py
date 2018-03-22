@@ -25,7 +25,7 @@ from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
 
-class MultiRanger:
+class Multiranger:
     FRONT = 'range.front'
     BACK = 'range.back'
     LEFT = 'range.left'

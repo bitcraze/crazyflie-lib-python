@@ -24,8 +24,12 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Simple example that connects to the first Crazyflie found, looks for
-EEPROM memories and lists its contents.
+This example connects to the first Crazyflie that it finds and writes to the
+one wire memory.
+
+Note: this example will not work with the BLE version of the nRF51 firmware
+(flashed on production units).
+See https://github.com/bitcraze/crazyflie-clients-python/issues/166
 """
 import logging
 import sys
@@ -40,11 +44,7 @@ from cflib.crazyflie.mem import OWElement
 logging.basicConfig(level=logging.ERROR)
 
 
-class EEPROMExample:
-    """
-    Simple example listing the EEPROMs found and lists its contents.
-    """
-
+class WriteOwExample:
     def __init__(self, link_uri):
         """ Initialize and run the example with the specified link_uri """
 
@@ -136,6 +136,7 @@ if __name__ == '__main__':
     print('This example will not work with the BLE version of the nRF51'
           ' firmware (flashed on production units). See https://github.com'
           '/bitcraze/crazyflie-clients-python/issues/166')
+
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=False)
     # Scan for Crazyflies and use the first one found
@@ -146,7 +147,7 @@ if __name__ == '__main__':
         print(i[0])
 
     if len(available) > 0:
-        le = EEPROMExample(available[0][0])
+        le = WriteOwExample(available[0][0])
     else:
         print('No Crazyflies found, cannot run example')
 

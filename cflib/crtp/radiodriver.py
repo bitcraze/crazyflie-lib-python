@@ -56,6 +56,7 @@ __all__ = ['RadioDriver']
 logger = logging.getLogger(__name__)
 
 _nr_of_retries = 100
+_nr_of_arc_retries = 3
 
 DEFAULT_ADDR_A = [0xe7, 0xe7, 0xe7, 0xe7, 0xe7]
 DEFAULT_ADDR = 0xE7E7E7E7E7
@@ -193,7 +194,7 @@ class RadioDriver(CRTPDriver):
 
         with self._radio_manager as cradio:
             if cradio.version >= 0.4:
-                cradio.set_arc(10)
+                cradio.set_arc(_nr_of_arc_retries)
             else:
                 logger.warning('Radio version <0.4 will be obsoleted soon!')
 
@@ -540,3 +541,7 @@ class _RadioDriverThread(threading.Thread):
 def set_retries_before_disconnect(nr_of_retries):
     global _nr_of_retries
     _nr_of_retries = nr_of_retries
+
+def set_retries(nr_of_arc_retries):
+    global _nr_of_arc_retries
+    _nr_of_arc_retries = nr_of_arc_retries

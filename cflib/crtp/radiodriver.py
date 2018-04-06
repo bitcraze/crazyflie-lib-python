@@ -542,6 +542,7 @@ def set_retries_before_disconnect(nr_of_retries):
     global _nr_of_retries
     _nr_of_retries = nr_of_retries
 
+
 def set_retries(nr_of_arc_retries):
     global _nr_of_arc_retries
     _nr_of_arc_retries = nr_of_arc_retries

@@ -79,6 +79,7 @@ class OWExample:
 
     def _data_updated(self, mem):
         print('Updated id={}'.format(mem.id))
+        print('\tAddr      : {}'.format(mem.addr))
         print('\tType      : {}'.format(mem.type))
         print('\tSize      : {}'.format(mem.size))
         print('\tValid     : {}'.format(mem.valid))

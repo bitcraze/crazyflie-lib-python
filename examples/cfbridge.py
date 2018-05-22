@@ -8,6 +8,7 @@ poll the receivers for bidirectional communication.
 
 @author: Dennis Shtatnov (densht@gmail.com)
 
+
 Based off example code from https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/read-eeprom.py
 """
 
@@ -96,11 +97,11 @@ class RadioBridge:
 			#print >>sys.stderr, '\nwaiting to receive message'
 
 			# Only receive what can be sent in one message
-			data, address = self._sock.recvfrom(256) #received from QGC
+			data, address = self._sock.recvfrom(256) #received from Ground Control Station
 
 
 			for i in range(0, len(data), 30):
-				self._forward(data[i:(i+30)]) #sending from QGC to CF
+				self._forward(data[i:(i+30)]) #sending from Ground Control Station to crazyflie
 	
 
 

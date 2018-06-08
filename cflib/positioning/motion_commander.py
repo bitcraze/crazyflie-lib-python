@@ -49,7 +49,11 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncLogger import SyncLogger
 
-from queue import Queue, Empty, LifoQueue
+if sys.version_info < (3,):
+    from Queue import Queue, Empty, LifoQueue
+else:
+    from queue import Queue, Empty, LifoQueue
+
 
 class MotionCommander(SyncCrazyflie):
     """The motion commander"""
@@ -71,9 +75,9 @@ class MotionCommander(SyncCrazyflie):
         self._is_flying = False
         self._motion_thread = None
         self._logging_thread = _LoggingThread(log_file=log_file,
-                                      scf=self,
-                                      log_vars=log_vars, 
-                                        period_in_ms=period_in_ms)
+                                              scf=self,
+                                              log_vars=log_vars,
+                                              period_in_ms=period_in_ms)
     # Distance based primitives
 
     def take_off(self, height=None, velocity=VELOCITY):
@@ -488,6 +492,7 @@ class _SetPointThread(Thread):
         now = time.time()
         return self._z_base + self._z_velocity * (now - self._z_base_time)
 
+
 class _LoggingThread(Thread):
 
     def __init__(self, log_file, scf, log_vars, period_in_ms=10):
@@ -502,7 +507,7 @@ class _LoggingThread(Thread):
         self.terminate = False
 
     def run(self):
-    """
+        """
         Places log variables in queue and prints them to file until terminated
 
         :return:
@@ -510,7 +515,7 @@ class _LoggingThread(Thread):
         self.sync_logger.connect()
         for log_entry in self.sync_logger:
             if self.terminate == True:
-               return
+                return
             current_log_values = log_entry[1]
             self.queue.put(current_log_values)
             self.log_fp.write(str(current_log_values) + '\n')
@@ -525,4 +530,3 @@ class _LoggingThread(Thread):
         self.join()
         self.sync_logger.disconnect()
         self.log_fp.close()
-

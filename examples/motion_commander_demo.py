@@ -56,61 +56,61 @@ if __name__ == '__main__':
 
     with MotionCommander(URI, log_file=log_file, log_vars=log_vars) as mc:
         # We take off when the commander is created
-            time.sleep(1)
+        time.sleep(1)
 
-            # There is a set of functions that move a specific distance
-            # We can move in all directions
-            mc.forward(0.8)
-            mc.back(0.8)
-            time.sleep(1)
+        # There is a set of functions that move a specific distance
+        # We can move in all directions
+        mc.forward(0.8)
+        mc.back(0.8)
+        time.sleep(1)
 
-            mc.up(0.5)
-            mc.down(0.5)
-            time.sleep(1)
+        mc.up(0.5)
+        mc.down(0.5)
+        time.sleep(1)
 
-            # We can also set the velocity
-            mc.right(0.5, velocity=0.8)
-            time.sleep(1)
-            mc.left(0.5, velocity=0.4)
-            time.sleep(1)
+        # We can also set the velocity
+        mc.right(0.5, velocity=0.8)
+        time.sleep(1)
+        mc.left(0.5, velocity=0.4)
+        time.sleep(1)
 
-            # We can do circles or parts of circles
-            mc.circle_right(0.5, velocity=0.5, angle_degrees=180)
+        # We can do circles or parts of circles
+        mc.circle_right(0.5, velocity=0.5, angle_degrees=180)
 
-            # Or turn
-            mc.turn_left(90)
-            time.sleep(1)
+        # Or turn
+        mc.turn_left(90)
+        time.sleep(1)
 
-            # We can move along a line in 3D space
-            mc.move_distance(-1, 0.0, 0.5, velocity=0.6)
-            time.sleep(1)
+        # We can move along a line in 3D space
+        mc.move_distance(-1, 0.0, 0.5, velocity=0.6)
+        time.sleep(1)
 
-            # There is also a set of functions that start a motion. The
-            # Crazyflie will keep on going until it gets a new command.
+        # There is also a set of functions that start a motion. The
+        # Crazyflie will keep on going until it gets a new command.
 
-            mc.start_left(velocity=0.5)
-            # The motion is started and we can do other stuff, printing for
-            # instance
-            for _ in range(5):
-                print('Doing other work')
-                time.sleep(0.2)
+        mc.start_left(velocity=0.5)
+        # The motion is started and we can do other stuff, printing for
+        # instance
+        for _ in range(5):
+            print('Doing other work')
+            time.sleep(0.2)
 
-            # And we can stop
-            mc.stop()
+        # And we can stop
+        mc.stop()
 
-            # We can determine how much the crazyflie drifts in a specific
-            # direction over the span of one second
-            max_drift = mc['kalman.stateX']
-            min_drift = max_drift
-            for _ in range(100):
-                x = mc['kalman.stateX']
-                if x > max_drift:
-                    max_drift = x
-                elif x < min_drift:
-                    min_drift = x
-                time.sleep(0.01)
-            print('The crazyflie drifted over: ' 
-                  + str(max_drift - min_drift)
-                  + ' meters in the x direction')
+        # We can determine how much the crazyflie drifts in a specific
+        # direction over the span of one second
+        max_drift = mc['kalman.stateX']
+        min_drift = max_drift
+        for _ in range(100):
+            x = mc['kalman.stateX']
+            if x > max_drift:
+                max_drift = x
+            elif x < min_drift:
+                min_drift = x
+            time.sleep(0.01)
+        print('The crazyflie drifted over: '
+              + str(max_drift - min_drift)
+              + ' meters in the x direction')
 
-            # We land when the MotionCommander goes out of scope
+        # We land when the MotionCommander goes out of scope

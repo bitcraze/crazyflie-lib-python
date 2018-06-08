@@ -61,7 +61,7 @@ class MotionCommander(SyncCrazyflie):
     RATE = 360.0 / 5
 
     def __init__(self, link_uri, cf=None, default_height=0.3,
-                 log_file='crazyflie_data.csv', log_vars=None, period_in_ms=10):
+                 log_file='crazyflie_data.csv', log_vars=[], period_in_ms=10):
         """
         Construct an instance of a MotionCommander
 

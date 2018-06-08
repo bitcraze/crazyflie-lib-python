@@ -27,7 +27,8 @@
 This script shows the basic use of the MotionCommander class.
 
 Simple example that connects to the crazyflie at `URI` and runs a
-sequence. This script requires some kind of location system, it has been
+sequence. Real-time logging variables are available, and are also printed to a
+designated file. This script requires some kind of location system, it has been
 tested with (and designed for) the flow deck.
 
 Change the URI variable to your Crazyflie configuration.
@@ -40,19 +41,21 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
 
-URI = 'radio://0/70/2M'
+URI = 'radio://0/80/250K'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-
 if __name__ == '__main__':
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=False)
+    # The values that indicate where the crazyflie thinks it is
+    log_vars = ['kalman.stateX', 'kalman.stateY', 'kalman.stateZ']
+    # Where to print logging values
+    log_file = 'crazyflie_data.txt'
 
-    with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
+    with MotionCommander(URI, log_file=log_file, log_vars=log_vars) as mc:
         # We take off when the commander is created
-        with MotionCommander(scf) as mc:
             time.sleep(1)
 
             # There is a set of functions that move a specific distance
@@ -94,5 +97,20 @@ if __name__ == '__main__':
 
             # And we can stop
             mc.stop()
+
+            # We can determine how much the crazyflie drifts in a specific
+            # direction over the span of one second
+            max_drift = mc['kalman.stateX']
+            min_drift = max_drift
+            for _ in range(100):
+                x = mc['kalman.stateX']
+                if x > max_drift:
+                    max_drift = x
+                elif x < min_drift:
+                    min_drift = x
+                time.sleep(0.01)
+            print('The crazyflie drifted over: ' 
+                  + str(max_drift - min_drift)
+                  + ' meters in the x direction')
 
             # We land when the MotionCommander goes out of scope

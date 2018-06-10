@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-#
 #     ||          ____  _ __
 #  +------+      / __ )(_) /_______________ _____  ___
 #  | 0xBC |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
@@ -37,6 +36,9 @@ appropriate by issuing new commands.
 The MotionCommander can be used as context manager using the with keyword. In
 this mode of operation takeoff and landing is executed when the context is
 created/closed.
+
+The MotionCommander can also log pre-defined variables as they become
+available, and print them to a file for later processing. 
 """
 import math
 import sys
@@ -44,35 +46,38 @@ import time
 from threading import Thread
 
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie.syncLogger import SyncLogger
 
 if sys.version_info < (3,):
-    from Queue import Queue, Empty
+    from Queue import Queue, Empty, LifoQueue
 else:
-    from queue import Queue, Empty
+    from queue import Queue, Empty, LifoQueue
 
 
-class MotionCommander:
+class MotionCommander(SyncCrazyflie):
     """The motion commander"""
     VELOCITY = 0.2
     RATE = 360.0 / 5
 
-    def __init__(self, crazyflie, default_height=0.3):
+    def __init__(self, link_uri, cf=None, default_height=0.3,
+                 log_file='crazyflie_data.csv', log_vars=[], period_in_ms=10):
         """
         Construct an instance of a MotionCommander
 
         :param crazyflie: a Crazyflie or SyncCrazyflie instance
         :param default_height: the default height to fly at
         """
-        if isinstance(crazyflie, SyncCrazyflie):
-            self._cf = crazyflie.cf
-        else:
-            self._cf = crazyflie
+        SyncCrazyflie.__init__(self, link_uri, cf)
 
         self.default_height = default_height
 
         self._is_flying = False
-        self._thread = None
-
+        self._motion_thread = None
+        self._logging_thread = _LoggingThread(log_file=log_file,
+                                              scf=self,
+                                              log_vars=log_vars,
+                                              period_in_ms=period_in_ms)
     # Distance based primitives
 
     def take_off(self, height=None, velocity=VELOCITY):
@@ -89,14 +94,14 @@ class MotionCommander:
         if self._is_flying:
             raise Exception('Already flying')
 
-        if not self._cf.is_connected():
+        if not self.cf.is_connected():
             raise Exception('Crazyflie is not connected')
 
         self._is_flying = True
         self._reset_position_estimator()
 
-        self._thread = _SetPointThread(self._cf)
-        self._thread.start()
+        self._motion_thread = _SetPointThread(self.cf)
+        self._motion_thread.start()
 
         if height is None:
             height = self.default_height
@@ -114,20 +119,27 @@ class MotionCommander:
         :return:
         """
         if self._is_flying:
-            self.down(self._thread.get_height(), velocity)
+            self.down(self._motion_thread.get_height(), velocity)
 
-            self._thread.stop()
-            self._thread = None
+            self._motion_thread.stop()
+            self._motion_thread = None
 
-            self._cf.commander.send_stop_setpoint()
+            self.cf.commander.send_stop_setpoint()
             self._is_flying = False
 
     def __enter__(self):
+        super().__enter__()
+        self._logging_thread.start()
         self.take_off()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.land()
+        self._logging_thread.stop()
+        super().__exit__(exc_type, exc_val, exc_tb)
+
+    def __getitem__(self, key):
+        return self._logging_thread.queue.get()[key]
 
     def left(self, distance_m, velocity=VELOCITY):
         """
@@ -403,13 +415,13 @@ class MotionCommander:
     def _set_vel_setpoint(self, velocity_x, velocity_y, velocity_z, rate_yaw):
         if not self._is_flying:
             raise Exception('Can not move on the ground. Take off first!')
-        self._thread.set_vel_setpoint(
+        self._motion_thread.set_vel_setpoint(
             velocity_x, velocity_y, velocity_z, rate_yaw)
 
     def _reset_position_estimator(self):
-        self._cf.param.set_value('kalman.resetEstimation', '1')
+        self.cf.param.set_value('kalman.resetEstimation', '1')
         time.sleep(0.1)
-        self._cf.param.set_value('kalman.resetEstimation', '0')
+        self.cf.param.set_value('kalman.resetEstimation', '0')
         time.sleep(2)
 
 
@@ -423,7 +435,7 @@ class _SetPointThread(Thread):
         self.update_period = update_period
 
         self._queue = Queue()
-        self._cf = cf
+        self.cf = cf
 
         self._hover_setpoint = [0.0, 0.0, 0.0, 0.0]
 
@@ -464,7 +476,7 @@ class _SetPointThread(Thread):
                 pass
 
             self._update_z_in_setpoint()
-            self._cf.commander.send_hover_setpoint(*self._hover_setpoint)
+            self.cf.commander.send_hover_setpoint(*self._hover_setpoint)
 
     def _new_setpoint(self, velocity_x, velocity_y, velocity_z, rate_yaw):
         self._z_base = self._current_z()
@@ -479,3 +491,42 @@ class _SetPointThread(Thread):
     def _current_z(self):
         now = time.time()
         return self._z_base + self._z_velocity * (now - self._z_base_time)
+
+
+class _LoggingThread(Thread):
+
+    def __init__(self, log_file, scf, log_vars, period_in_ms=10):
+        Thread.__init__(self)
+        self.log_config = LogConfig('GenericLogConfig', period_in_ms)
+        for var in log_vars:
+            self.log_config.add_variable(var)
+        self.queue = LifoQueue()
+        self.log_fp = open(log_file, 'w+')
+        self.scf = scf
+        self.sync_logger = SyncLogger(self.scf, self.log_config)
+        self.terminate = False
+
+    def run(self):
+        """
+        Places log variables in queue and prints them to file until terminated
+
+        :return:
+        """
+        self.sync_logger.connect()
+        for log_entry in self.sync_logger:
+            if self.terminate == True:
+                return
+            current_log_values = log_entry[1]
+            self.queue.put(current_log_values)
+            self.log_fp.write(str(current_log_values) + '\n')
+
+    def stop(self):
+        """
+        Stop the thread and wait for it to terminate
+
+        :return:
+        """
+        self.terminate = True
+        self.join()
+        self.sync_logger.disconnect()
+        self.log_fp.close()

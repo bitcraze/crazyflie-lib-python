@@ -661,7 +661,6 @@ class Memory():
 
     def __init__(self, crazyflie=None):
         """Instantiate class and connect callbacks"""
-        self.mems = []
         # Called when new memories have been added
         self.mem_added_cb = Caller()
         # Called when new data has been read
@@ -672,18 +671,20 @@ class Memory():
         self.cf = crazyflie
         self.cf.add_port_callback(CRTPPort.MEM, self._new_packet_cb)
         self.cf.disconnected.add_callback(self._disconnected)
+        self._write_requests_lock = Lock()
 
+        self._clear_state()
+
+    def _clear_state(self):
+        self.mems = []
         self._refresh_callback = None
         self._fetch_id = 0
         self.nbr_of_mems = 0
         self._ow_mem_fetch_index = 0
         self._elem_data = ()
         self._read_requests = {}
-        self._read_requests_lock = Lock()
         self._write_requests = {}
-        self._write_requests_lock = Lock()
         self._ow_mems_left_to_update = []
-
         self._getting_count = False
 
     def _mem_update_done(self, mem):
@@ -786,12 +787,7 @@ class Memory():
 
     def _disconnected(self, uri):
         """The link to the Crazyflie has been broken. Reset state"""
-        for m in self.mems:
-            try:
-                m.disconnect()
-            except Exception as e:
-                logger.info(
-                    'Error when resetting after disconnect: {}'.format(e))
+        self._clear_state()
 
     def _new_packet_cb(self, packet):
         """Callback for newly arrived packets for the memory port"""

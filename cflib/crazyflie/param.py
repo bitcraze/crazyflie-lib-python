@@ -63,13 +63,9 @@ TOC_CHANNEL = 0
 READ_CHANNEL = 1
 WRITE_CHANNEL = 2
 
-# TOC access command
-TOC_RESET = 0
-TOC_GETNEXT = 1
-TOC_GETCRC32 = 2
-
-
 # One element entry in the TOC
+
+
 class ParamTocElement:
     """An element in the Log TOC."""
 
@@ -88,10 +84,11 @@ class ParamTocElement:
              0x06: ('float', '<f'),
              0x07: ('double', '<d')}
 
-    def __init__(self, data=None):
+    def __init__(self, ident=0, data=None):
         """TocElement creator. Data is the binary payload of the element."""
+        self.ident = ident
         if (data):
-            strs = struct.unpack('s' * len(data[2:]), data[2:])
+            strs = struct.unpack('s' * len(data[1:]), data[1:])
             if sys.version_info < (3,):
                 strs = ('{}' * len(strs)).format(*strs).split('\0')
             else:
@@ -102,12 +99,7 @@ class ParamTocElement:
             self.group = strs[0]
             self.name = strs[1]
 
-            if type(data[0]) == str:
-                self.ident = ord(data[0])
-            else:
-                self.ident = data[0]
-
-            metadata = data[1]
+            metadata = data[0]
             if type(metadata) == str:
                 metadata = ord(metadata)
 
@@ -133,12 +125,14 @@ class Param():
         self.toc = Toc()
 
         self.cf = crazyflie
+        self._useV2 = False
         self.param_update_callbacks = {}
         self.group_update_callbacks = {}
         self.all_update_callback = Caller()
         self.param_updater = None
 
-        self.param_updater = _ParamUpdater(self.cf, self._param_updated)
+        self.param_updater = _ParamUpdater(
+            self.cf, self._useV2, self._param_updated)
         self.param_updater.start()
 
         self.cf.disconnected.add_callback(self._disconnected)
@@ -169,10 +163,16 @@ class Param():
 
     def _param_updated(self, pk):
         """Callback with data for an updated parameter"""
-        var_id = pk.data[0]
+        if self._useV2:
+            var_id = struct.unpack('<H', pk.data[:2])[0]
+        else:
+            var_id = pk.data[0]
         element = self.toc.get_element_by_id(var_id)
         if element:
-            s = struct.unpack(element.pytype, pk.data[1:])[0]
+            if self._useV2:
+                s = struct.unpack(element.pytype, pk.data[2:])[0]
+            else:
+                s = struct.unpack(element.pytype, pk.data[2:])[0]
             s = s.__str__()
             complete_name = '%s.%s' % (element.group, element.name)
 
@@ -233,6 +233,7 @@ class Param():
         """
         Initiate a refresh of the parameter TOC.
         """
+        self._useV2 = self.cf.platform.get_protocol_version() >= 4
         toc_fetcher = TocFetcher(self.cf, ParamTocElement,
                                  CRTPPort.PARAM, self.toc,
                                  refresh_done_callback, toc_cache)
@@ -271,7 +272,10 @@ class Param():
             varid = element.ident
             pk = CRTPPacket()
             pk.set_header(CRTPPort.PARAM, WRITE_CHANNEL)
-            pk.data = struct.pack('<B', varid)
+            if self._useV2:
+                pk.data = struct.pack('<H', varid)
+            else:
+                pk.data = struct.pack('<B', varid)
             pk.data += struct.pack(element.pytype, eval(value))
             self.param_updater.request_param_setvalue(pk)
 
@@ -280,12 +284,13 @@ class _ParamUpdater(Thread):
     """This thread will update params through a queue to make sure that we
     get back values"""
 
-    def __init__(self, cf, updated_callback):
+    def __init__(self, cf, useV2, updated_callback):
         """Initialize the thread"""
         Thread.__init__(self)
         self.setDaemon(True)
         self.wait_lock = Lock()
         self.cf = cf
+        self._useV2 = useV2
         self.updated_callback = updated_callback
         self.request_queue = Queue()
         self.cf.add_port_callback(CRTPPort.PARAM, self._new_packet_cb)
@@ -311,7 +316,12 @@ class _ParamUpdater(Thread):
     def _new_packet_cb(self, pk):
         """Callback for newly arrived packets"""
         if pk.channel == READ_CHANNEL or pk.channel == WRITE_CHANNEL:
-            var_id = pk.data[0]
+            if self._useV2:
+                var_id = struct.unpack('<H', pk.data[:2])[0]
+                if pk.channel == READ_CHANNEL:
+                    pk.data = pk.data[:2] + pk.data[3:]
+            else:
+                var_id = pk.data[0]
             if (pk.channel != TOC_CHANNEL and self._req_param == var_id and
                     pk is not None):
                 self.updated_callback(pk)
@@ -323,9 +333,13 @@ class _ParamUpdater(Thread):
 
     def request_param_update(self, var_id):
         """Place a param update request on the queue"""
+        self._useV2 = self.cf.platform.get_protocol_version() >= 4
         pk = CRTPPacket()
         pk.set_header(CRTPPort.PARAM, READ_CHANNEL)
-        pk.data = struct.pack('<B', var_id)
+        if self._useV2:
+            pk.data = struct.pack('<H', var_id)
+        else:
+            pk.data = struct.pack('<B', var_id)
         logger.debug('Requesting request to update param [%d]', var_id)
         self.request_queue.put(pk)
 
@@ -334,7 +348,13 @@ class _ParamUpdater(Thread):
             pk = self.request_queue.get()  # Wait for request update
             self.wait_lock.acquire()
             if self.cf.link:
-                self._req_param = pk.data[0]
-                self.cf.send_packet(pk, expected_reply=(tuple(pk.data[0:2])))
+                if self._useV2:
+                    self._req_param = struct.unpack('<H', pk.data[:2])[0]
+                    self.cf.send_packet(
+                        pk, expected_reply=(tuple(pk.data[:2])))
+                else:
+                    self._req_param = pk.data[0]
+                    self.cf.send_packet(
+                        pk, expected_reply=(tuple(pk.data[:1])))
             else:
                 self.wait_lock.release()

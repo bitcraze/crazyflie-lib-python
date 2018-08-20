@@ -79,8 +79,10 @@ CHAN_SETTINGS = 1
 CHAN_LOGDATA = 2
 
 # Commands used when accessing the Table of Contents
-CMD_TOC_ELEMENT = 0
-CMD_TOC_INFO = 1
+CMD_TOC_ELEMENT = 0  # original version: up to 255 entries
+CMD_TOC_INFO = 1    # original version: up to 255 entries
+CMD_GET_ITEM_V2 = 2  # version 2: up to 16k entries
+CMD_GET_INFO_V2 = 3  # version 2: up to 16k entries
 
 # Commands used when accessing the Log configurations
 CMD_CREATE_BLOCK = 0
@@ -89,6 +91,8 @@ CMD_DELETE_BLOCK = 2
 CMD_START_LOGGING = 3
 CMD_STOP_LOGGING = 4
 CMD_RESET_LOGGING = 5
+CMD_CREATE_BLOCK_V2 = 6
+CMD_APPEND_BLOCK_V2 = 7
 
 # Possible states when receiving TOC
 IDLE = 'IDLE'
@@ -150,8 +154,11 @@ class LogConfig(object):
         self.added_cb = Caller()
         self.err_no = 0
 
+        # These 3 variables are set by the log subsystem when the bock is added
         self.id = 0
         self.cf = None
+        self.useV2 = False
+
         self.period = int(period_in_ms / 10)
         self.period_in_ms = period_in_ms
         self._added = False
@@ -214,7 +221,10 @@ class LogConfig(object):
         """Save the log configuration in the Crazyflie"""
         pk = CRTPPacket()
         pk.set_header(5, CHAN_SETTINGS)
-        pk.data = (CMD_CREATE_BLOCK, self.id)
+        if self.useV2:
+            pk.data = (CMD_CREATE_BLOCK_V2, self.id)
+        else:
+            pk.data = (CMD_CREATE_BLOCK, self.id)
         for var in self.variables:
             if (var.is_toc_variable() is False):  # Memory location
                 logger.debug('Logging to raw memory %d, 0x%04X',
@@ -228,9 +238,18 @@ class LogConfig(object):
                              self.cf.log.toc.get_element_id(
                                  var.name), var.get_storage_and_fetch_byte())
                 pk.data.append(var.get_storage_and_fetch_byte())
-                pk.data.append(self.cf.log.toc.get_element_id(var.name))
+                if self.useV2:
+                    ident = self.cf.log.toc.get_element_id(var.name)
+                    pk.data.append(ident & 0x0ff)
+                    pk.data.append((ident >> 8) & 0x0ff)
+                else:
+                    pk.data.append(self.cf.log.toc.get_element_id(var.name))
         logger.debug('Adding log block id {}'.format(self.id))
-        self.cf.send_packet(pk, expected_reply=(CMD_CREATE_BLOCK, self.id))
+        if self.useV2:
+            self.cf.send_packet(pk, expected_reply=(
+                CMD_CREATE_BLOCK_V2, self.id))
+        else:
+            self.cf.send_packet(pk, expected_reply=(CMD_CREATE_BLOCK, self.id))
 
     def start(self):
         """Start the logging for this entry"""
@@ -337,21 +356,21 @@ class LogTocElement:
             raise KeyError(
                 'Type [%d] not found in LogTocElement.types!' % ident)
 
-    def __init__(self, data=None):
+    def __init__(self, ident=0, data=None):
         """TocElement creator. Data is the binary payload of the element."""
 
+        self.ident = ident
+
         if (data):
-            naming = data[2:]
+            naming = data[1:]
             zt = bytearray((0, ))
             self.group = naming[:naming.find(zt)].decode('ISO-8859-1')
             self.name = naming[naming.find(zt) + 1:-1].decode('ISO-8859-1')
 
-            self.ident = data[0]
+            self.ctype = LogTocElement.get_cstring_from_id(data[0])
+            self.pytype = LogTocElement.get_unpack_string_from_id(data[0])
 
-            self.ctype = LogTocElement.get_cstring_from_id(data[1])
-            self.pytype = LogTocElement.get_unpack_string_from_id(data[1])
-
-            self.access = data[1] & 0x10
+            self.access = data[0] & 0x10
 
 
 class Log():
@@ -385,6 +404,8 @@ class Log():
         self._toc_cache = None
 
         self._config_id_counter = 1
+
+        self._useV2 = False
 
     def add_config(self, logconf):
         """Add a log configuration to the logging framework.
@@ -436,6 +457,7 @@ class Log():
             logconf.valid = True
             logconf.cf = self.cf
             logconf.id = self._config_id_counter
+            logconf.useV2 = self._useV2
             self._config_id_counter = (self._config_id_counter + 1) % 255
             self.log_blocks.append(logconf)
             self.block_added_cb.call(logconf)
@@ -447,6 +469,8 @@ class Log():
 
     def refresh_toc(self, refresh_done_callback, toc_cache):
         """Start refreshing the table of loggale variables"""
+
+        self._useV2 = self.cf.platform.get_protocol_version() >= 4
 
         self._toc_cache = toc_cache
         self._refresh_callback = refresh_done_callback
@@ -473,7 +497,7 @@ class Log():
             id = payload[0]
             error_status = payload[1]
             block = self._find_block(id)
-            if (cmd == CMD_CREATE_BLOCK):
+            if cmd == CMD_CREATE_BLOCK or cmd == CMD_CREATE_BLOCK_V2:
                 if (block is not None):
                     if error_status == 0 or error_status == errno.EEXIST:
                         if not block.added:

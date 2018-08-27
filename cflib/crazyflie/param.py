@@ -172,7 +172,7 @@ class Param():
             if self._useV2:
                 s = struct.unpack(element.pytype, pk.data[2:])[0]
             else:
-                s = struct.unpack(element.pytype, pk.data[2:])[0]
+                s = struct.unpack(element.pytype, pk.data[1:])[0]
             s = s.__str__()
             complete_name = '%s.%s' % (element.group, element.name)
 

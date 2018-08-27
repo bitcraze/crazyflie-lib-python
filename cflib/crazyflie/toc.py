@@ -189,7 +189,10 @@ class TocFetcher:
 
             if ident != self.requested_index:
                 return
-            self.toc.add_element(self.element_class(ident, payload[2:]))
+            if self._useV2:
+                self.toc.add_element(self.element_class(ident, payload[2:]))
+            else:
+                self.toc.add_element(self.element_class(ident, payload[1:]))
             logger.debug('Added element [%s]', ident)
             if (self.requested_index < (self.nbr_of_items - 1)):
                 logger.debug('[%d]: More variables, requesting index %d',

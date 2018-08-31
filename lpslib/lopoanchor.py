@@ -36,7 +36,8 @@ class LoPoAnchor():
     REBOOT_TO_FIRMWARE = 1
 
     MODE_TWR = 1
-    MODE_TDOA = 2
+    MODE_TDOA = 2  # TDoA 2
+    MODE_TDOA3 = 3
 
     def __init__(self, crazyflie):
         """

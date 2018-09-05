@@ -155,7 +155,9 @@ class Crazyflie():
         """Start the connection setup by refreshing the TOCs"""
         logger.info('We are connected[%s], request connection setup',
                     self.link_uri)
-        self.platform.fetch_platform_informations()
+        self.platform.fetch_platform_informations(self._platform_info_fetched)
+    
+    def _platform_info_fetched(self):
         self.log.refresh_toc(self._log_toc_updated_cb, self._toc_cache)
 
     def _param_toc_updated_cb(self):

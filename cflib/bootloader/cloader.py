@@ -362,6 +362,12 @@ class Cloader:
         # print "Write page", flashPage
         # print "Writing page [%d] and [%d] forward" % (flashPage, nPage)
         pk = None
+
+        # Flushing downlink ...
+        pk = self.link.receive_packet(0)
+        while pk is not None:
+            pk = self.link.receive_packet(0)
+
         retry_counter = 5
         # print "Flasing to 0x{:X}".format(addr)
         while ((not pk or pk.header != 0xFF or

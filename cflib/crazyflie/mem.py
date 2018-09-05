@@ -588,7 +588,7 @@ class LocoMemory2(MemoryElement):
     def update_active_id_list(self, update_active_ids_finished_cb):
         """Request an update of the active id list"""
         if not self._update_active_ids_finished_cb:
-            self.update_active_ids_finished_cb = update_active_ids_finished_cb
+            self._update_active_ids_finished_cb = update_active_ids_finished_cb
             self.active_anchor_ids = []
 
             self.active_ids_valid = False
@@ -634,9 +634,9 @@ class LocoMemory2(MemoryElement):
             self.active_anchor_ids.append(data[1 + i])
         self.active_ids_valid = True
 
-        if self.update_active_ids_finished_cb:
-            self.update_active_ids_finished_cb(self)
-            self.update_active_ids_finished_cb = None
+        if self._update_active_ids_finished_cb:
+            self._update_active_ids_finished_cb(self)
+            self._update_active_ids_finished_cb = None
 
     def _handle_anchor_data(self, id, data):
         anchor = AnchorData2()

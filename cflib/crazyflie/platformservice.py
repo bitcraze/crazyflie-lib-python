@@ -28,7 +28,6 @@
 Used for sending control setpoints to the Crazyflie
 """
 import logging
-from threading import Semaphore
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
@@ -70,13 +69,16 @@ class PlatformService():
         # to be received before using it.
         self._has_protocol_version = False
         self._protocolVersion = -1
-        self._protocolVersionSemaphore = Semaphore(1)
+        self._callback = None
 
-    def fetch_platform_informations(self):
+    def fetch_platform_informations(self, callback):
         """
         Fetch platform info from the firmware
-        Should be called just before calling the "connected" callback
+        Should be called at the earliest in the connection sequence
         """
+
+        self._protocolVersion = -1
+        self._callback = callback
 
         self._request_protocol_version()
 
@@ -93,16 +95,10 @@ class PlatformService():
     def get_protocol_version(self):
         """
         Return version of the CRTP protocol
-        The version is requested at startup, this function will block until the
-        version is returned by the Crazyflie
         """
-        self._protocolVersionSemaphore.acquire()
-        version = self._protocolVersion
-        self._protocolVersionSemaphore.release()
-        return version
+        return self._protocolVersion
 
     def _request_protocol_version(self):
-        self._protocolVersionSemaphore.acquire()
         # Sending a sink request to detect if the connected Crazyflie
         # supports protocol versioning
         pk = CRTPPacket()
@@ -121,14 +117,14 @@ class PlatformService():
                 self._cf.send_packet(pk)
             else:
                 self._protocolVersion = -1
-                self._protocolVersionSemaphore.release()
                 logger.info('Procotol version: {}'.format(
                     self.get_protocol_version()))
+                self._callback()
 
     def _platform_callback(self, pk):
         if pk.channel == VERSION_COMMAND and \
                 pk.data[0] == VERSION_GET_PROTOCOL:
             self._protocolVersion = pk.data[1]
-            self._protocolVersionSemaphore.release()
             logger.info('Procotol version: {}'.format(
                 self.get_protocol_version()))
+            self._callback()

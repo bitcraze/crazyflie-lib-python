@@ -177,6 +177,6 @@ if __name__ == '__main__':
         activate_high_level_commander(cf)
         # activate_mellinger_controller(cf)
         duration = upload_trajectory(cf, trajectory_id, figure8)
-        print("The sequence is {:.1f} seconds long".format(duration))
+        print('The sequence is {:.1f} seconds long'.format(duration))
         reset_estimator(cf)
         run_sequence(cf, trajectory_id, duration)

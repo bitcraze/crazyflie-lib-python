@@ -41,12 +41,13 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 
 # URI to the Crazyflie to connect to
-uri = 'radio://0/53/2M'
-# uri = 'radio://0/80/2M'
+uri = 'radio://0/80/2M'
 
 # The trajectory to fly
 # See https://github.com/whoenig/uav_trajectories for a tool to generate
 # trajectories
+
+# Duration,x^0,x^1,x^2,x^3,x^4,x^5,x^6,x^7,y^0,y^1,y^2,y^3,y^4,y^5,y^6,y^7,z^0,z^1,z^2,z^3,z^4,z^5,z^6,z^7,yaw^0,yaw^1,yaw^2,yaw^3,yaw^4,yaw^5,yaw^6,yaw^7
 figure8 = [
     [1.050000, 0.000000, -0.000000, 0.000000, -0.000000, 0.830443, -0.276140, -0.384219, 0.180493, -0.000000, 0.000000, -0.000000, 0.000000, -1.356107, 0.688430, 0.587426, -0.329106, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000],  # noqa
     [0.710000, 0.396058, 0.918033, 0.128965, -0.773546, 0.339704, 0.034310, -0.026417, -0.030049, -0.445604, -0.684403, 0.888433, 1.493630, -1.361618, -0.139316, 0.158875, 0.095799, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000, 0.000000],  # noqa
@@ -137,6 +138,7 @@ def activate_mellinger_controller(cf):
 def upload_trajectory(cf, trajectory_id, trajectory):
     trajectory_mem = cf.mem.get_mems(MemoryElement.TYPE_TRAJ)[0]
 
+    total_duration = 0
     for row in trajectory:
         duration = row[0]
         x = Poly4D.Poly(row[1:9])
@@ -144,19 +146,22 @@ def upload_trajectory(cf, trajectory_id, trajectory):
         z = Poly4D.Poly(row[17:25])
         yaw = Poly4D.Poly(row[25:33])
         trajectory_mem.poly4Ds.append(Poly4D(duration, x, y, z, yaw))
+        total_duration += duration
 
     Uploader().upload(trajectory_mem)
     cf.high_level_commander.define_trajectory(trajectory_id, 0,
                                               len(trajectory_mem.poly4Ds))
+    return total_duration
 
 
-def run_sequence(cf, trajectory_id):
+def run_sequence(cf, trajectory_id, duration):
     commander = cf.high_level_commander
 
     commander.takeoff(1.0, 2.0)
     time.sleep(3.0)
-    commander.start_trajectory(1, 1.0, True)
-    time.sleep(10)
+    relative = True
+    commander.start_trajectory(trajectory_id, 1.0, relative)
+    time.sleep(duration)
     commander.land(0.0, 2.0)
     time.sleep(2)
     commander.stop()
@@ -171,6 +176,7 @@ if __name__ == '__main__':
 
         activate_high_level_commander(cf)
         # activate_mellinger_controller(cf)
-        upload_trajectory(cf, trajectory_id, figure8)
+        duration = upload_trajectory(cf, trajectory_id, figure8)
+        print("The sequence is {:.1f} seconds long".format(duration))
         reset_estimator(cf)
-        run_sequence(cf, trajectory_id)
+        run_sequence(cf, trajectory_id, duration)

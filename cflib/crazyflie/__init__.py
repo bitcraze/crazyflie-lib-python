@@ -50,6 +50,7 @@ from .mem import Memory
 from .param import Param
 from .platformservice import PlatformService
 from .toccache import TocCache
+from cflib.crazyflie.high_level_commander import HighLevelCommander
 from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
@@ -108,6 +109,7 @@ class Crazyflie():
         self.incoming.start()
 
         self.commander = Commander(self)
+        self.high_level_commander = HighLevelCommander(self)
         self.loc = Localization(self)
         self.extpos = Extpos(self)
         self.log = Log(self)

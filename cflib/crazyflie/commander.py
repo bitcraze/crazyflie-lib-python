@@ -134,8 +134,8 @@ class Commander():
         Control mode where the position is sent as absolute x,y,z coordinate in
         meter and the yaw is the absolute orientation.
 
-        x and y are in m/s
-        yaw is in degrees/s
+        x and y are in m
+        yaw is in degrees
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC

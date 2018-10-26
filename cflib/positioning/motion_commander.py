@@ -26,6 +26,9 @@ The MotionCommander is used to make it easy to write scripts that moves the
 Crazyflie around. Some sort of positioning support is required, for instance
 the Flow deck.
 
+The motion commander uses velocity setpoints and does not have a notion of
+absolute position, the error in position will accumulate over time.
+
 The API contains a set of primitives that are easy to understand and use, such
 as "go forward" or "turn around".
 

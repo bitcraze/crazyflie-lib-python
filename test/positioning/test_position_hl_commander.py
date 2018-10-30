@@ -25,8 +25,8 @@ import math
 import sys
 import unittest
 
-from cflib.crazyflie import HighLevelCommander
 from cflib.crazyflie import Crazyflie
+from cflib.crazyflie import HighLevelCommander
 from cflib.crazyflie import Param
 from cflib.positioning.position_hl_commander import PositionHlCommander
 
@@ -51,14 +51,44 @@ class TestPositionHlCommander(unittest.TestCase):
     def test_that_the_estimator_is_reset_on_take_off(
             self, sleep_mock):
         # Fixture
+        sut = PositionHlCommander(self.cf_mock, 1.0, 2.0, 3.0)
+
+        # Test
+        sut.take_off()
+
+        # Assert
+        self.param_mock.set_value.assert_has_calls([
+            call('kalman.initialX', '{:.2f}'.format(1.0)),
+            call('kalman.initialY', '{:.2f}'.format(2.0)),
+            call('kalman.initialZ', '{:.2f}'.format(3.0)),
+
+            call('kalman.resetEstimation', '1'),
+            call('kalman.resetEstimation', '0')
+        ])
+
+    def test_that_the_hi_level_commander_is_activated_on_take_off(
+            self, sleep_mock):
+        # Fixture
 
         # Test
         self.sut.take_off()
 
         # Assert
         self.param_mock.set_value.assert_has_calls([
-            call('kalman.resetEstimation', '1'),
-            call('kalman.resetEstimation', '0')
+            call('commander.enHighLevel', '1')
+        ])
+
+    def test_that_controller_is_selected_on_take_off(
+            self, sleep_mock):
+        # Fixture
+        self.sut.set_controller(PositionHlCommander.CONTROLLER_MELLINGER)
+
+        # Test
+        self.sut.take_off()
+
+        # Assert
+        self.param_mock.set_value.assert_has_calls([
+            call('stabilizer.controller', '2')
         ])
 
     def test_that_take_off_raises_exception_if_not_connected(

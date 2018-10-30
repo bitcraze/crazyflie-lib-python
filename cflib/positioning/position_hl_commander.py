@@ -35,16 +35,9 @@ In this mode of operation takeoff and landing is executed when the context is
 created/closed.
 """
 import math
-import sys
 import time
-from threading import Thread
 
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-
-if sys.version_info < (3,):
-    from Queue import Queue, Empty
-else:
-    from queue import Queue, Empty
 
 
 class PositionHlCommander:
@@ -266,6 +259,9 @@ class PositionHlCommander:
         """
         self._default_height = height
 
+    def set_controller(self, controller):
+        self._controller = controller
+
     def get_position(self):
         """
         Get the current position
@@ -274,6 +270,10 @@ class PositionHlCommander:
         return self._x, self._y, self._z
 
     def _reset_position_estimator(self):
+        self._cf.param.set_value('kalman.initialX', '{:.2f}'.format(self._x))
+        self._cf.param.set_value('kalman.initialY', '{:.2f}'.format(self._y))
+        self._cf.param.set_value('kalman.initialZ', '{:.2f}'.format(self._z))
+
         self._cf.param.set_value('kalman.resetEstimation', '1')
         time.sleep(0.1)
         self._cf.param.set_value('kalman.resetEstimation', '0')

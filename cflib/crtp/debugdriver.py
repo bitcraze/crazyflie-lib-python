@@ -359,7 +359,7 @@ class DebugDriver(CRTPDriver):
                 FakeMemory(type=1, size=112, addr=0x1234567890ABCDEE,
                            data=[0x00 for a in range(112)]))
 
-        if (re.search('^debug://.*/6\Z', uri)):
+        if (re.search('^debug://.*/6$', uri)):
             logger.info('------------->Erasing memories on connect')
             for m in self._fake_mems:
                 m.erase()

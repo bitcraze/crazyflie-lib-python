@@ -316,18 +316,18 @@ class DebugDriver(CRTPDriver):
         self._packet_handler._random_answer_delay = False
         self._packet_handler._random_toc_crcs = False
 
-        if (re.search('^debug://.*/1\Z', uri)):
+        if (re.search('^debug://.*/1$', uri)):
             self._packet_handler.inhibitAnswers = True
-        if (re.search('^debug://.*/110\Z', uri)):
+        if (re.search('^debug://.*/110$', uri)):
             self._packet_handler.bootloader = True
-        if (re.search('^debug://.*/2\Z', uri)):
+        if (re.search('^debug://.*/2$', uri)):
             self._packet_handler.doIncompleteLogTOC = True
-        if (re.search('^debug://.*/3\Z', uri)):
+        if (re.search('^debug://.*/3$', uri)):
             self._packet_handler._random_answer_delay = True
-        if (re.search('^debug://.*/4\Z', uri)):
+        if (re.search('^debug://.*/4$', uri)):
             self._packet_handler._random_answer_delay = True
             self._packet_handler._random_toc_crcs = True
-        if (re.search('^debug://.*/5\Z', uri)):
+        if (re.search('^debug://.*/5$', uri)):
             self._packet_handler._random_toc_crcs = True
 
         if len(self._fake_mems) == 0:

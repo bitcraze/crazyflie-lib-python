@@ -177,7 +177,7 @@ class Bootloader:
                         file_to_flash['start_page'] = file_to_flash[
                             'target'].start_page
                         files_to_flash += (file_to_flash,)
-            except KeyError as e:
+            except KeyError:
                 print('Could not find a file for {} in {}'.format(
                     current_target, filename))
                 return False

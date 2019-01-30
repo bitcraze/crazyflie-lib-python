@@ -25,7 +25,7 @@
 #  MA  02110-1301, USA.
 """
 Simple example that connects to the crazyflie at `URI` and writes to
-the LED memory so that individual leds in the LED-ring can be set, 
+the LED memory so that individual leds in the LED-ring can be set,
 it has been tested with (and designed for) the LED-ring deck.
 
 Change the URI variable to your Crazyflie configuration.
@@ -35,8 +35,8 @@ import time
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.mem import MemoryElement
+from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
 URI = 'radio://0/80/250K'
 
@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
         # Set virtual mem effect effect
         cf.param.set_value('ring.effect', '13')
-        
+
         # Get LED memory and write to it
         mem = cf.mem.get_mems(MemoryElement.TYPE_DRIVER_LED)
         if len(mem) > 0:

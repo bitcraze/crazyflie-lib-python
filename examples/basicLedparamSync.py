@@ -25,7 +25,7 @@
 #  MA  02110-1301, USA.
 """
 Simple example that connects to the crazyflie at `URI` and writes to
-parameters that control the LED-ring, 
+parameters that control the LED-ring,
 it has been tested with (and designed for) the LED-ring deck.
 
 Change the URI variable to your Crazyflie configuration.
@@ -72,5 +72,3 @@ if __name__ == '__main__':
         time.sleep(1)
         cf.param.set_value('ring.fadeColor', '0xA00000')
         time.sleep(1)
-
-

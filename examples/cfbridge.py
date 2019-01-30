@@ -76,13 +76,12 @@ class RadioBridge:
 
     def _server(self):
         while True:
-            print >>sys.stderr, '\nwaiting to receive message'
+            print('\nwaiting to receive message')
 
             # Only receive what can be sent in one message
             data, address = self._sock.recvfrom(256)
 
-            print >>sys.stderr, 'received %s bytes from %s' % (
-                len(data), address)
+            print('received %s bytes from %s' % (len(data), address))
 
             for i in range(0, len(data), 30):
                 self._forward(data[i:(i+30)])

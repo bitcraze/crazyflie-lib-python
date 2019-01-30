@@ -167,7 +167,7 @@ class CfUsb:
                     pass
                 else:
                     raise IOError('Crazyflie disconnected')
-            except AttributeError as e:
+            except AttributeError:
                 # pyusb < 1.0 doesn't implement getting the underlying error
                 # number and it seems as if it's not possible to detect
                 # if the cable is disconnected. So this detection is not

@@ -30,6 +30,8 @@ Simple example that connects to the crazyflie at `URI` and runs a
 sequence. This script requires some kind of location system, it has been
 tested with (and designed for) the flow deck.
 
+The MotionCommander uses velocity setpoints.
+
 Change the URI variable to your Crazyflie configuration.
 """
 import logging

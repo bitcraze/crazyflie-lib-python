@@ -2,9 +2,8 @@
 # Demo that makes two Crazyflie take off 30cm above the first controller found
 # Using the controller trigger it is then possible to 'grab' the closest
 # Crazyflie and to make it move.
-
-import sys
 import math
+import sys
 import time
 
 import openvr
@@ -19,9 +18,9 @@ from cflib.crazyflie.syncLogger import SyncLogger
 uri0 = 'radio://0/80/2M'
 uri1 = 'radio://0/80/2M/E7E7E7E701'
 
-print("Openning")
+print('Opening')
 vr = openvr.init(openvr.VRApplication_Other)
-print("Oppened")
+print('Opened')
 
 # Find first controller or tracker
 controllerId = None
@@ -36,7 +35,7 @@ for i in range(openvr.k_unMaxTrackedDeviceCount):
             break
 
 if controllerId is None:
-    print("Cannot find controller or tracker, exiting")
+    print('Cannot find controller or tracker, exiting')
     sys.exit(1)
 
 
@@ -152,7 +151,7 @@ def run_sequence(scf0, scf1):
         pose = controller_pose.mDeviceToAbsoluteTracking
 
         if not grabbed and trigger:
-            print("Grab started")
+            print('Grab started')
             grab_controller_start = [-1*pose[2][3], -1*pose[0][3], pose[1][3]]
 
             dist0 = vector_norm(vector_substract(grab_controller_start,
@@ -168,7 +167,7 @@ def run_sequence(scf0, scf1):
             grab_setpoint_start = setpoints[closest]
 
         if grabbed and not trigger:
-            print("Grab ended")
+            print('Grab ended')
 
         grabbed = trigger
 

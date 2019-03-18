@@ -116,8 +116,6 @@ def vector_add(v0, v1):
 def run_sequence(scf):
     cf = scf.cf
 
-    cf.param.set_value('flightmode.posSet', '1')
-
     poses = vr.getDeviceToAbsoluteTrackingPose(
         openvr.TrackingUniverseStanding, 0, openvr.k_unMaxTrackedDeviceCount)
     controller_pose = poses[controllerId]
@@ -155,11 +153,10 @@ def run_sequence(scf):
                                   vector_substract(curr,
                                                    grab_controller_start))
 
-        # setpoint = [-1*pose[2][3], -1*pose[0][3], pose[1][3] + 0.3]
-
-        cf.commander.send_setpoint(setpoint[1], setpoint[0],
-                                   0,
-                                   int(setpoint[2] * 1000))
+        cf.commander.send_position_setpoint(setpoint[0],
+                                            setpoint[1],
+                                            setpoint[2],
+                                            0)
         time.sleep(0.02)
 
     cf.commander.send_setpoint
@@ -174,7 +171,6 @@ if __name__ == '__main__':
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         reset_estimator(scf)
-        # start_position_printing(scf)
         run_sequence(scf)
 
     openvr.shutdown()

@@ -123,9 +123,6 @@ def run_sequence(scf0, scf1):
     cf0 = scf0.cf
     cf1 = scf1.cf
 
-    cf0.param.set_value('flightmode.posSet', '1')
-    cf1.param.set_value('flightmode.posSet', '1')
-
     poses = vr.getDeviceToAbsoluteTrackingPose(
         openvr.TrackingUniverseStanding, 0, openvr.k_unMaxTrackedDeviceCount)
     controller_pose = poses[controllerId]
@@ -177,14 +174,15 @@ def run_sequence(scf0, scf1):
                 grab_setpoint_start, vector_substract(curr,
                                                       grab_controller_start))
 
-        # setpoint = [-1*pose[2][3], -1*pose[0][3], pose[1][3] + 0.3]
+        cf0.commander.send_position_setpoint(setpoints[0][0],
+                                             setpoints[0][1],
+                                             setpoints[0][2],
+                                             0)
+        cf1.commander.send_position_setpoint(setpoints[1][0],
+                                             setpoints[1][1],
+                                             setpoints[1][2],
+                                             0)
 
-        cf0.commander.send_setpoint(setpoints[0][1], setpoints[0][0],
-                                    0,
-                                    int(setpoints[0][2] * 1000))
-        cf1.commander.send_setpoint(setpoints[1][1], setpoints[1][0],
-                                    0,
-                                    int(setpoints[1][2] * 1000))
         time.sleep(0.02)
 
     cf0.commander.send_setpoint(0, 0, 0, 0)

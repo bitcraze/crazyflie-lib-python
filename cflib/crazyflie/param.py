@@ -276,7 +276,13 @@ class Param():
                 pk.data = struct.pack('<H', varid)
             else:
                 pk.data = struct.pack('<B', varid)
-            pk.data += struct.pack(element.pytype, eval(value))
+
+            try:
+                value_nr = eval(value)
+            except TypeError:
+                value_nr = value
+
+            pk.data += struct.pack(element.pytype, value_nr)
             self.param_updater.request_param_setvalue(pk)
 
 

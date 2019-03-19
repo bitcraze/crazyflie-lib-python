@@ -4,12 +4,12 @@
 # and to make it move.
 # If the Crazyflie has a ledring attached, the touchpad of the controller can
 # be used to change the color of the led-ring LEDs
-
+import colorsys
+import math
 import sys
 import time
+
 import openvr
-import math
-import colorsys
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie

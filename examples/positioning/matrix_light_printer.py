@@ -34,11 +34,12 @@ system such as the Lighthouse.
 """
 import time
 
+import matplotlib.pyplot as plt
+
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.position_hl_commander import PositionHlCommander
-import matplotlib.pyplot as plt
 
 # URI to the Crazyflie to connect to
 uri = 'radio://0/80'

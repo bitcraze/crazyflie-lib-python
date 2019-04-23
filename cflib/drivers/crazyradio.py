@@ -67,7 +67,7 @@ except Exception:
     pyusb1 = False
 
 
-def _find_devices():
+def _find_devices(serial=None):
     """
     Returns a list of CrazyRadio devices currently connected to the computer
     """
@@ -76,6 +76,8 @@ def _find_devices():
     if pyusb1:
         for d in usb.core.find(idVendor=0x1915, idProduct=0x7777, find_all=1,
                                backend=pyusb_backend):
+            if serial is not None and serial == d.serial_number:
+                return d
             ret.append(d)
     else:
         busses = usb.busses()
@@ -83,9 +85,15 @@ def _find_devices():
             for device in bus.devices:
                 if device.idVendor == CRADIO_VID:
                     if device.idProduct == CRADIO_PID:
+                        if serial == device.serial_number:
+                            return device
                         ret += [device, ]
 
     return ret
+
+
+def get_serials():
+    return tuple(map(lambda d: d.serial_number, _find_devices()))
 
 
 class _radio_ack:
@@ -107,7 +115,7 @@ class Crazyradio:
     P_M6DBM = 2
     P_0DBM = 3
 
-    def __init__(self, device=None, devid=0):
+    def __init__(self, device=None, devid=0, serial=None):
         """ Create object and scan for USB dongle if no device is supplied """
 
         self.current_channel = None
@@ -116,9 +124,15 @@ class Crazyradio:
 
         if device is None:
             try:
-                device = _find_devices()[devid]
+                if serial is None:
+                    device = _find_devices()[devid]
+                else:
+                    device = _find_devices(serial)
             except Exception:
-                raise Exception('Cannot find a Crazyradio Dongle')
+                if serial is None:
+                    raise Exception('Cannot find a Crazyradio Dongle')
+                else:
+                    raise Exception('Cannot find Crazyradio {}'.format(serial))
 
         self.dev = device
 

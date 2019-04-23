@@ -39,6 +39,7 @@ import struct
 import sys
 import threading
 
+import cflib.drivers.crazyradio as crazyradio
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
@@ -157,14 +158,24 @@ class RadioDriver(CRTPDriver):
             raise WrongUriType('Not a radio URI')
 
         # Open the USB dongle
-        if not re.search('^radio://([0-9]+)((/([0-9]+))'
+        if not re.search('^radio://([0-9a-fA-F]+)((/([0-9]+))'
                          '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?$', uri):
             raise WrongUriType('Wrong radio URI format!')
 
-        uri_data = re.search('^radio://([0-9]+)((/([0-9]+))'
+        uri_data = re.search('^radio://([0-9a-fA-F]+)((/([0-9]+))'
                              '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?$', uri)
 
         self.uri = uri
+
+        if len(uri_data.group(1)) < 10 and uri_data.group(1).isdigit():
+            devid = int(uri_data.group(1))
+        else:
+            try:
+                devid = crazyradio.get_serials().index(
+                    uri_data.group(1).upper())
+            except ValueError:
+                raise Exception('Cannot find radio with serial {}'.format(
+                    uri_data.group(1)))
 
         channel = 2
         if uri_data.group(4):
@@ -185,7 +196,7 @@ class RadioDriver(CRTPDriver):
             address = new_addr
 
         if self._radio_manager is None:
-            self._radio_manager = _RadioManager(int(uri_data.group(1)),
+            self._radio_manager = _RadioManager(devid,
                                                 channel,
                                                 datarate,
                                                 address)

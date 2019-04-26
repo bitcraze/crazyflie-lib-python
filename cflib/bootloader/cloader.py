@@ -106,7 +106,7 @@ class Cloader:
                 try:
                     data = struct.unpack('<BB', pk.data[0:2])
                     got_answer = data == (target_id, 0xFF)
-                except struct.error as e:
+                except struct.error:
                     # Failed unpacking, retry
                     pass
 

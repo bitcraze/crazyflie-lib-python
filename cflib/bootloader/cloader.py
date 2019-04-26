@@ -99,15 +99,18 @@ class Cloader:
         pk.data = (target_id, 0xFF)
         self.link.send_packet(pk)
 
-        pk = self.link.receive_packet(1)
-
-        while ((not pk or pk.header != 0xFF or
-                struct.unpack('<BB', pk.data[0:2]) != (target_id, 0xFF)
-                ) and retry_counter >= 0):
+        got_answer = False
+        while(not got_answer and retry_counter >= 0):
             pk = self.link.receive_packet(1)
-            retry_counter -= 1
+            if pk and pk.header == 0xFF:
+                try:
+                    data = struct.unpack('<BB', pk.data[0:2])
+                    got_answer = data == (target_id, 0xFF)
+                except struct.error as e:
+                    # Failed unpacking, retry
+                    pass
 
-        if pk:
+        if got_answer:
             new_address = (0xb1,) + struct.unpack('<BBBB', pk.data[2:6][::-1])
 
             # The reset packet arrival cannot be checked.

@@ -6,4 +6,4 @@ dist/*
 .venv*
 .tox*
 venv*
-!/examples/cache/*.json
+**/cache/*.json

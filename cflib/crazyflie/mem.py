@@ -513,7 +513,7 @@ class LocoMemory(MemoryElement):
 
     def _request_page(self, page):
         addr = LocoMemory.MEM_LOCO_ANCHOR_BASE + \
-               LocoMemory.MEM_LOCO_ANCHOR_PAGE_SIZE * page
+            LocoMemory.MEM_LOCO_ANCHOR_PAGE_SIZE * page
         self.mem_handler.read(self, addr, LocoMemory.MEM_LOCO_PAGE_LEN)
 
 
@@ -662,7 +662,7 @@ class LocoMemory2(MemoryElement):
 
     def _request_page(self, page):
         addr = LocoMemory2.ADR_ANCHOR_BASE + \
-               LocoMemory2.ANCHOR_PAGE_SIZE * page
+            LocoMemory2.ANCHOR_PAGE_SIZE * page
         self.mem_handler.read(self, addr, LocoMemory2.PAGE_LEN)
 
 
@@ -1132,7 +1132,7 @@ class Memory():
         self._write_requests_lock.acquire()
         if flush_queue:
             self._write_requests[memory.id] = self._write_requests[
-                                                  memory.id][:1]
+                memory.id][:1]
         self._write_requests[memory.id].insert(len(self._write_requests), wreq)
         if len(self._write_requests[memory.id]) == 1:
             wreq.start()

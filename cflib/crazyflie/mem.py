@@ -75,6 +75,7 @@ class MemoryElement(object):
     TYPE_TRAJ = 0x12
     TYPE_LOCO2 = 0x13
     TYPE_LH = 0x14
+    TYPE_MEMORY_TESTER = 0x15
 
     def __init__(self, id, type, size, mem_handler):
         """Initialize the element with default values"""
@@ -100,6 +101,8 @@ class MemoryElement(object):
             return 'Loco Positioning 2'
         if t == MemoryElement.TYPE_LH:
             return 'Lighthouse positioning'
+        if t == MemoryElement.TYPE_MEMORY_TESTER:
+            return 'Memory tester'
         return 'Unknown'
 
     def new_data(self, mem, addr, data):
@@ -510,7 +513,7 @@ class LocoMemory(MemoryElement):
 
     def _request_page(self, page):
         addr = LocoMemory.MEM_LOCO_ANCHOR_BASE + \
-            LocoMemory.MEM_LOCO_ANCHOR_PAGE_SIZE * page
+               LocoMemory.MEM_LOCO_ANCHOR_PAGE_SIZE * page
         self.mem_handler.read(self, addr, LocoMemory.MEM_LOCO_PAGE_LEN)
 
 
@@ -659,7 +662,7 @@ class LocoMemory2(MemoryElement):
 
     def _request_page(self, page):
         addr = LocoMemory2.ADR_ANCHOR_BASE + \
-            LocoMemory2.ANCHOR_PAGE_SIZE * page
+               LocoMemory2.ANCHOR_PAGE_SIZE * page
         self.mem_handler.read(self, addr, LocoMemory2.PAGE_LEN)
 
 
@@ -819,6 +822,81 @@ class LighthouseMemory(MemoryElement):
     def dump(self):
         for data in self.geometry_data:
             data.dump()
+
+
+class MemoryTester(MemoryElement):
+    """
+    Memory interface for testing the memory sub system, end to end.
+
+    Usage
+    1. To verify reading:
+      * Call read_data()
+      * Wait for the callback to be called
+      * Verify that readValidationSucess is True
+
+    2. To verify writing:
+      * Set the parameter 'memTst.resetW' in the CF
+      * call write_data()
+      * Wait for the callback
+      * Read the log var 'memTst.errCntW' from the CF and validate that it
+        is 0
+    """
+
+    def __init__(self, id, type, size, mem_handler):
+        """Initialize Memory tester"""
+        super(MemoryTester, self).__init__(id=id, type=type, size=size,
+                                           mem_handler=mem_handler)
+
+        self._update_finished_cb = None
+        self._write_finished_cb = None
+
+        self.readValidationSucess = True
+
+    def new_data(self, mem, start_address, data):
+        """Callback for when new memory data has been fetched"""
+        if mem.id == self.id:
+            for i in range(len(data)):
+                actualValue = struct.unpack('<B', data[i:i + 1])[0]
+                expectedValue = (start_address + i) & 0xff
+
+                if (actualValue != expectedValue):
+                    address = start_address + i
+                    self.readValidationSucess = False
+                    logger.error(
+                        'Error in data - expected: {}, actual: {}, address:{}',
+                        expectedValue, actualValue, address)
+
+                if self._update_finished_cb:
+                    self._update_finished_cb(self)
+                    self._update_finished_cb = None
+
+    def read_data(self, start_address, size, update_finished_cb):
+        """Request an update of the memory content"""
+        if not self._update_finished_cb:
+            self._update_finished_cb = update_finished_cb
+            logger.debug('Reading memory {}'.format(self.id))
+            self.mem_handler.read(self, start_address, size)
+
+    def write_data(self, start_address, size, write_finished_cb):
+        """Write data to the Crazyflie"""
+        self._write_finished_cb = write_finished_cb
+        data = bytearray()
+
+        for i in range(size):
+            value = (start_address + i) & 0xff
+            data += struct.pack('<B', value)
+
+        self.mem_handler.write(self, start_address, data, flush_queue=True)
+
+    def write_done(self, mem, addr):
+        if self._write_finished_cb and mem.id == self.id:
+            logger.debug('Write of data finished')
+            self._write_finished_cb(self, addr)
+            self._write_finished_cb = None
+
+    def disconnect(self):
+        self._update_finished_cb = None
+        self._write_finished_cb = None
 
 
 class _ReadRequest:
@@ -1054,7 +1132,7 @@ class Memory():
         self._write_requests_lock.acquire()
         if flush_queue:
             self._write_requests[memory.id] = self._write_requests[
-                memory.id][:1]
+                                                  memory.id][:1]
         self._write_requests[memory.id].insert(len(self._write_requests), wreq)
         if len(self._write_requests[memory.id]) == 1:
             wreq.start()
@@ -1197,6 +1275,12 @@ class Memory():
                     elif mem_type == MemoryElement.TYPE_LH:
                         mem = LighthouseMemory(id=mem_id, type=mem_type,
                                                size=mem_size, mem_handler=self)
+                        logger.debug(mem)
+                        self.mem_read_cb.add_callback(mem.new_data)
+                        self.mem_write_cb.add_callback(mem.write_done)
+                    elif mem_type == MemoryElement.TYPE_MEMORY_TESTER:
+                        mem = MemoryTester(id=mem_id, type=mem_type,
+                                           size=mem_size, mem_handler=self)
                         logger.debug(mem)
                         self.mem_read_cb.add_callback(mem.new_data)
                         self.mem_write_cb.add_callback(mem.write_done)

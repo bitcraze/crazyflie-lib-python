@@ -153,47 +153,8 @@ class RadioDriver(CRTPDriver):
         an error message.
         """
 
-        # check if the URI is a radio URI
-        if not re.search('^radio://', uri):
-            raise WrongUriType('Not a radio URI')
-
-        # Open the USB dongle
-        if not re.search('^radio://([0-9a-fA-F]+)((/([0-9]+))'
-                         '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?$', uri):
-            raise WrongUriType('Wrong radio URI format!')
-
-        uri_data = re.search('^radio://([0-9a-fA-F]+)((/([0-9]+))'
-                             '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?$', uri)
-
+        devid, channel, datarate, address = self.parse_uri(uri)
         self.uri = uri
-
-        if len(uri_data.group(1)) < 10 and uri_data.group(1).isdigit():
-            devid = int(uri_data.group(1))
-        else:
-            try:
-                devid = crazyradio.get_serials().index(
-                    uri_data.group(1).upper())
-            except ValueError:
-                raise Exception('Cannot find radio with serial {}'.format(
-                    uri_data.group(1)))
-
-        channel = 2
-        if uri_data.group(4):
-            channel = int(uri_data.group(4))
-
-        datarate = Crazyradio.DR_2MPS
-        if uri_data.group(7) == '250K':
-            datarate = Crazyradio.DR_250KPS
-        if uri_data.group(7) == '1M':
-            datarate = Crazyradio.DR_1MPS
-        if uri_data.group(7) == '2M':
-            datarate = Crazyradio.DR_2MPS
-
-        address = DEFAULT_ADDR_A
-        if uri_data.group(9):
-            addr = str(uri_data.group(9))
-            new_addr = struct.unpack('<BBBBB', binascii.unhexlify(addr))
-            address = new_addr
 
         if self._radio_manager is None:
             self._radio_manager = _RadioManager(devid,
@@ -224,6 +185,50 @@ class RadioDriver(CRTPDriver):
         self._thread.start()
 
         self.link_error_callback = link_error_callback
+
+    @staticmethod
+    def parse_uri(uri):
+        # check if the URI is a radio URI
+        if not re.search('^radio://', uri):
+            raise WrongUriType('Not a radio URI')
+
+        # Open the USB dongle
+        if not re.search('^radio://([0-9a-fA-F]+)((/([0-9]+))'
+                         '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?$', uri):
+            raise WrongUriType('Wrong radio URI format!')
+
+        uri_data = re.search('^radio://([0-9a-fA-F]+)((/([0-9]+))'
+                             '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?$', uri)
+
+        if len(uri_data.group(1)) < 10 and uri_data.group(1).isdigit():
+            devid = int(uri_data.group(1))
+        else:
+            try:
+                devid = crazyradio.get_serials().index(
+                    uri_data.group(1).upper())
+            except ValueError:
+                raise Exception('Cannot find radio with serial {}'.format(
+                    uri_data.group(1)))
+
+        channel = 2
+        if uri_data.group(4):
+            channel = int(uri_data.group(4))
+
+        datarate = Crazyradio.DR_2MPS
+        if uri_data.group(7) == '250K':
+            datarate = Crazyradio.DR_250KPS
+        if uri_data.group(7) == '1M':
+            datarate = Crazyradio.DR_1MPS
+        if uri_data.group(7) == '2M':
+            datarate = Crazyradio.DR_2MPS
+
+        address = DEFAULT_ADDR_A
+        if uri_data.group(9):
+            addr = str(uri_data.group(9))
+            new_addr = struct.unpack('<BBBBB', binascii.unhexlify(addr))
+            address = new_addr
+
+        return devid, channel, datarate, address
 
     def receive_packet(self, time=0):
         """

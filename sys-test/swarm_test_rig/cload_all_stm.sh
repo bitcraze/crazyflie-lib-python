@@ -10,3 +10,5 @@ python3 -m cfloader flash $file stm32-fw -w radio://0/42/2M/E7E7E74205
 python3 -m cfloader flash $file stm32-fw -w radio://0/42/2M/E7E7E74206
 python3 -m cfloader flash $file stm32-fw -w radio://0/42/2M/E7E7E74207
 python3 -m cfloader flash $file stm32-fw -w radio://0/42/2M/E7E7E74208
+python3 -m cfloader flash $file stm32-fw -w radio://0/42/2M/E7E7E74209
+python3 -m cfloader flash $file stm32-fw -w radio://0/42/2M/E7E7E7420A

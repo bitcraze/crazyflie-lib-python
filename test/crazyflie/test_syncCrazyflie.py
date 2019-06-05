@@ -91,6 +91,7 @@ class SyncCrazyflieTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(expected, actual)
+        self._assertAllCallbacksAreRemoved()
 
     def test_open_link_of_already_open_link_raises_exception(self):
         # Fixture
@@ -111,6 +112,7 @@ class SyncCrazyflieTest(unittest.TestCase):
         # Assert
         self.cf_mock.close_link.assert_called_once_with()
         self.assertFalse(self.sut.is_link_open())
+        self._assertAllCallbacksAreRemoved()
 
     def test_close_link_that_is_not_open(self):
         # Fixture
@@ -132,6 +134,7 @@ class SyncCrazyflieTest(unittest.TestCase):
 
         # Assert
         self.assertFalse(self.sut.is_link_open())
+        self._assertAllCallbacksAreRemoved()
 
     def test_open_close_with_context_mangement(self):
         # Fixture
@@ -142,3 +145,9 @@ class SyncCrazyflieTest(unittest.TestCase):
 
         # Assert
         self.cf_mock.close_link.assert_called_once_with()
+        self._assertAllCallbacksAreRemoved()
+
+    def _assertAllCallbacksAreRemoved(self):
+        self.assertEqual(0, len(self.cf_mock.connected.callbacks))
+        self.assertEqual(0, len(self.cf_mock.connection_failed.callbacks))
+        self.assertEqual(0, len(self.cf_mock.disconnected.callbacks))

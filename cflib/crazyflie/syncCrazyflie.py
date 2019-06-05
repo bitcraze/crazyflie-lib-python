@@ -50,18 +50,17 @@ class SyncCrazyflie:
         self._is_link_open = False
         self._error_message = None
 
-        self.cf.connected.add_callback(self._connected)
-        self.cf.connection_failed.add_callback(self._connection_failed)
-        self.cf.disconnected.add_callback(self._disconnected)
-
     def open_link(self):
         if (self.is_link_open()):
             raise Exception('Link already open')
+
+        self._add_callbacks()
 
         print('Connecting to %s' % self._link_uri)
         self.cf.open_link(self._link_uri)
         self._connect_event.wait()
         if not self._is_link_open:
+            self._remove_callbacks()
             raise Exception(self._error_message)
 
     def __enter__(self):
@@ -70,6 +69,7 @@ class SyncCrazyflie:
 
     def close_link(self):
         self.cf.close_link()
+        self._remove_callbacks()
         self._is_link_open = False
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -94,4 +94,21 @@ class SyncCrazyflie:
         self._connect_event.set()
 
     def _disconnected(self, link_uri):
+        self._remove_callbacks()
         self._is_link_open = False
+
+    def _add_callbacks(self):
+        self.cf.connected.add_callback(self._connected)
+        self.cf.connection_failed.add_callback(self._connection_failed)
+        self.cf.disconnected.add_callback(self._disconnected)
+
+    def _remove_callbacks(self):
+        def remove_callback(container, callback):
+            try:
+                container.remove_callback(callback)
+            except ValueError:
+                pass
+
+        remove_callback(self.cf.connected, self._connected)
+        remove_callback(self.cf.connection_failed, self._connection_failed)
+        remove_callback(self.cf.disconnected, self._disconnected)

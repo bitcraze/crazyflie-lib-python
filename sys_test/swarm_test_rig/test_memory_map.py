@@ -60,6 +60,20 @@ class TestMemoryMapping(unittest.TestCase):
         with Swarm(uris, factory=factory) as swarm:
             swarm.parallel_safe(self.assert_memory_mapping)
 
+    def test_memory_mapping_with_reuse_of_cf_object(self):
+        # Fixture
+        uri = self.test_rig_support.all_uris[0]
+        self.test_rig_support.restart_devices([uri])
+        cf = Crazyflie(rw_cache='./cache')
+
+        # Test and Assert
+        for connections in range(10):
+            with SyncCrazyflie(uri, cf=cf) as scf:
+                for mem_ops in range(5):
+                    self.assert_memory_mapping(scf)
+
+    # Utils
+
     def assert_memory_mapping(self, scf):
         mems = scf.cf.mem.get_mems(MemoryElement.TYPE_MEMORY_TESTER)
         count = len(mems)

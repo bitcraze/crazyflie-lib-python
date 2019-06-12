@@ -88,9 +88,20 @@ class TestConnection(unittest.TestCase):
 
     def test_that_all_devices_are_restarted(self):
         # Fixture
+        uris = self.test_rig_support.all_uris
+
         # Test
         # Assert
-        self.test_rig_support.restart_devices(self.test_rig_support.all_uris)
+        self.test_rig_support.restart_devices(uris)
+
+    def test_that_all_devices_are_restarted_multiple_times(self):
+        # Fixture
+        uris = self.test_rig_support.all_uris
+
+        # Test
+        # Assert
+        for i in range(10):
+            self.test_rig_support.restart_devices(uris)
 
     def test_that_the_same_cf_object_can_be_connected_multiple_times(self):
         # Fixture

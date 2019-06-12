@@ -43,7 +43,7 @@ class RigSupport:
         ]
 
     def restart_devices(self, uris):
-        def send_packets(uris, value):
+        def send_packets(uris, value, description):
             for uri in uris:
                 devid, channel, datarate, address = RadioDriver.parse_uri(uri)
                 radio.set_channel(channel)
@@ -52,17 +52,16 @@ class RigSupport:
 
                 received_packet = False
                 for i in range(10):
-                    # TODO krri Seems to work better with a pause here,
-                    #      investigate why
-                    time.sleep(0.2)
                     result = radio.send_packet((0xf3, 0xfe, value))
                     if result.ack is True:
                         received_packet = True
+                        # if i > 0:
+                        #     print('Lost packets', i, uri)
                         break
-                    time.sleep(0.1)
 
                 if not received_packet:
-                    raise Exception('Failed to restart device')
+                    raise Exception('Failed to turn device {}, for {}'.
+                                    format(description, uri))
 
         print('Restarting devices')
 
@@ -70,8 +69,9 @@ class RigSupport:
         BOOTLOADER_CMD_SYSON = 0x03
 
         radio = Crazyradio()
-        send_packets(uris, BOOTLOADER_CMD_SYSOFF)
-        time.sleep(0.1)
-        send_packets(uris, BOOTLOADER_CMD_SYSON)
+        send_packets(uris, BOOTLOADER_CMD_SYSOFF, 'off')
+        send_packets(uris, BOOTLOADER_CMD_SYSON, 'on')
+
+        # Wait for devices to boot
+        time.sleep(8)
         radio.close()
-        time.sleep(5)

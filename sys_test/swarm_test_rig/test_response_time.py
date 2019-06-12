@@ -141,4 +141,4 @@ class TestResponseTime(unittest.TestCase):
         pass
 
     def _link_error_cb(self, errmsg):
-        self.fail()
+        self.fail(errmsg)

@@ -127,8 +127,6 @@ def start_position_printing(scf):
 def run_sequence(scf, sequence):
     cf = scf.cf
 
-    cf.param.set_value('flightmode.posSet', '1')
-
     for position in sequence:
         print('Setting position {}'.format(position))
         for i in range(50):

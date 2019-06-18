@@ -246,11 +246,11 @@ def land(cf, position):
 
     print(vz)
 
-    for i in range(steps):
+    for _ in range(steps):
         cf.commander.send_velocity_world_setpoint(0, 0, vz, 0)
         time.sleep(sleep_time)
 
-    cf.commander.send_setpoint(0, 0, 0, 0)
+    cf.commander.send_stop_setpoint()
     # Make sure that the last packet leaves before the link is closed
     # since the message queue is not flushed before closing
     time.sleep(0.1)
@@ -259,15 +259,15 @@ def land(cf, position):
 def run_sequence(scf, sequence):
     try:
         cf = scf.cf
-        cf.param.set_value('flightmode.posSet', '1')
 
         take_off(cf, sequence[0])
         for position in sequence:
             print('Setting position {}'.format(position))
             end_time = time.time() + position[3]
             while time.time() < end_time:
-                cf.commander.send_setpoint(position[1], position[0], 0,
-                                           int(position[2] * 1000))
+                cf.commander.send_position_setpoint(position[0],
+                                                    position[1],
+                                                    position[2], 0)
                 time.sleep(0.1)
         land(cf, sequence[-1])
     except Exception as e:

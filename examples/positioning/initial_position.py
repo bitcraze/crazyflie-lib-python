@@ -119,8 +119,6 @@ def reset_estimator(scf):
 def run_sequence(scf, sequence, base_x, base_y, base_z, yaw):
     cf = scf.cf
 
-    cf.param.set_value('flightmode.posSet', '1')
-
     for position in sequence:
         print('Setting position {}'.format(position))
 

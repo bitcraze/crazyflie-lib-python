@@ -23,7 +23,8 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Simple example of a synchronized swarm choreography using the High level commander.
+Simple example of a synchronized swarm choreography using the High level
+commander.
 
 The swarm takes off and flies a synchronous choreography before landing.
 The take-of is relative to the start position but the Goto are absolute.
@@ -33,7 +34,10 @@ This example is intended to work with any absolute positioning system.
 It aims at documenting how to use the High Level Commander together with
 the Swarm class to achieve synchronous sequences.
 """
+import threading
 import time
+from collections import namedtuple
+from queue import Queue
 
 import cflib.crtp
 from cflib.crazyflie.log import LogConfig
@@ -41,19 +45,17 @@ from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
 from cflib.crazyflie.syncLogger import SyncLogger
 
-from collections import namedtuple
-import threading
-from queue import Queue
-
 # Time for one step in second
 STEP_TIME = 1
 
 # Possible commands, all times are in seconds
 Takeoff = namedtuple('Takeoff', ['height', 'time'])
-Land = namedtuple("Land", ['time'])
+Land = namedtuple('Land', ['time'])
 Goto = namedtuple('Goto', ['x', 'y', 'z', 'time'])
-Ring = namedtuple('Ring', ['r', 'g', 'b', 'intensity', 'time'])   # RGB [0-255], Intensity [0.0-1.0]
-Quit = namedtuple('Quit', []) # Reserved for the control loop, do not use in sequence
+# RGB [0-255], Intensity [0.0-1.0]
+Ring = namedtuple('Ring', ['r', 'g', 'b', 'intensity', 'time'])
+# Reserved for the control loop, do not use in sequence
+Quit = namedtuple('Quit', [])
 
 uris = [
     'radio://0/10/2M/E7E7E7E701',  # cf_id 0, startup position [-0.5, -0.5]
@@ -64,40 +66,41 @@ uris = [
 
 sequence = [
     # Step, CF_id,  action
-    ( 0,    0,      Takeoff(0.5, 2)),
-    ( 0,    2,      Takeoff(0.5, 2)),
+    (0,    0,      Takeoff(0.5, 2)),
+    (0,    2,      Takeoff(0.5, 2)),
 
-    ( 1,    1,      Takeoff(1.0, 2)),
-    
-    ( 2,    0,      Goto(-0.5,  -0.5,   0.5, 1)),
-    ( 2,    2,      Goto(0.5,  0.5,   0.5, 1)),
-    
-    ( 3,    1,      Goto(0,  0,   1, 1)),
-    
-    ( 4,    0,      Ring(255, 255, 255, 0.2, 0)),
-    ( 4,    1,      Ring(255, 0, 0, 0.2, 0)),
-    ( 4,    2,      Ring(255, 255, 255, 0.2, 0)),
-    
-    ( 5,    0,      Goto(0.5, -0.5, 0.5, 2)),
-    ( 5,    2,      Goto(-0.5, 0.5, 0.5, 2)),
+    (1,    1,      Takeoff(1.0, 2)),
 
-    ( 7,    0,      Goto(0.5, 0.5, 0.5, 2)),
-    ( 7,    2,      Goto(-0.5, -0.5, 0.5, 2)),
+    (2,    0,      Goto(-0.5,  -0.5,   0.5, 1)),
+    (2,    2,      Goto(0.5,  0.5,   0.5, 1)),
 
-    ( 9,    0,      Goto(-0.5, 0.5, 0.5, 2)),
-    ( 9,    2,      Goto(0.5, -0.5, 0.5, 2)),
+    (3,    1,      Goto(0,  0,   1, 1)),
 
-    ( 11,   0,      Goto(-0.5, -0.5, 0.5, 2)),
-    ( 11,   2,      Goto(0.5, 0.5, 0.5, 2)),
+    (4,    0,      Ring(255, 255, 255, 0.2, 0)),
+    (4,    1,      Ring(255, 0, 0, 0.2, 0)),
+    (4,    2,      Ring(255, 255, 255, 0.2, 0)),
 
-    ( 13,    0,      Land(2)),
-    ( 13,    1,      Land(2)),
-    ( 13,    2,      Land(2)),
-    
-    ( 15,    0,      Ring(0,0,0,0, 5)),
-    ( 15,    1,      Ring(0,0,0,0, 5)),
-    ( 15,    2,      Ring(0,0,0,0, 5)),
+    (5,    0,      Goto(0.5, -0.5, 0.5, 2)),
+    (5,    2,      Goto(-0.5, 0.5, 0.5, 2)),
+
+    (7,    0,      Goto(0.5, 0.5, 0.5, 2)),
+    (7,    2,      Goto(-0.5, -0.5, 0.5, 2)),
+
+    (9,    0,      Goto(-0.5, 0.5, 0.5, 2)),
+    (9,    2,      Goto(0.5, -0.5, 0.5, 2)),
+
+    (11,   0,      Goto(-0.5, -0.5, 0.5, 2)),
+    (11,   2,      Goto(0.5, 0.5, 0.5, 2)),
+
+    (13,    0,      Land(2)),
+    (13,    1,      Land(2)),
+    (13,    2,      Land(2)),
+
+    (15,    0,      Ring(0, 0, 0, 0, 5)),
+    (15,    1,      Ring(0, 0, 0, 0, 5)),
+    (15,    2,      Ring(0, 0, 0, 0, 5)),
 ]
+
 
 def wait_for_position_estimator(scf):
     print('Waiting for estimator to find position...')
@@ -180,7 +183,7 @@ def crazyflie_control(scf):
     commander = scf.cf.high_level_commander
 
     # Set fade to color effect and reset to Led-ring OFF
-    set_ring_color(cf, 0,0,0, 0, 0)
+    set_ring_color(cf, 0, 0, 0, 0, 0)
     cf.param.set_value('ring.effect', '14')
 
     while True:
@@ -195,11 +198,12 @@ def crazyflie_control(scf):
             commander.go_to(command.x, command.y, command.z, 0, command.time)
         elif type(command) is Ring:
             set_ring_color(cf, command.r, command.g, command.b,
-                          command.intensity, command.time)
+                           command.intensity, command.time)
             pass
         else:
-            print("Warning! unknown command {} for uri {}".format(command,
+            print('Warning! unknown command {} for uri {}'.format(command,
                                                                   cf.uri))
+
 
 def control_thread():
     pointer = 0
@@ -207,36 +211,37 @@ def control_thread():
     stop = False
 
     while not stop:
-        print("Step {}:".format(step))
+        print('Step {}:'.format(step))
         while sequence[pointer][0] <= step:
             cf_id = sequence[pointer][1]
             command = sequence[pointer][2]
 
-            print(" - Running: {} on {}".format(command, cf_id))
+            print(' - Running: {} on {}'.format(command, cf_id))
             controlQueues[cf_id].put(command)
             pointer += 1
 
             if pointer >= len(sequence):
-                print("Reaching the end of the sequence, stopping!")
+                print('Reaching the end of the sequence, stopping!')
                 stop = True
                 break
 
         step += 1
         time.sleep(STEP_TIME)
-    
+
     for ctrl in controlQueues:
         ctrl.put(Quit())
 
+
 if __name__ == '__main__':
     controlQueues = [Queue() for _ in range(len(uris))]
-        
+
     cflib.crtp.init_drivers(enable_debug_driver=False)
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
         swarm.parallel_safe(activate_high_level_commander)
         swarm.parallel_safe(reset_estimator)
 
-        print("Starting sequence!")
+        print('Starting sequence!')
 
         threading.Thread(target=control_thread).start()
 

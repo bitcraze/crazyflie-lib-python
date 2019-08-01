@@ -5,8 +5,10 @@ matrix:
           services: docker
           script: docker run --rm -v ${PWD}:/module bitcraze/builder ./tools/build/build 
         - os: linux
+          sudo: false
           language: python
-          python: 2.7
-          env: TOXENV=py27,py36
-          install: pip install tox
+          python:
+            - "2.7"
+            - "3.4"
+          install: pip install tox-travis
           script: tox

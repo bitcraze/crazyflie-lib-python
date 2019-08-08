@@ -3,10 +3,12 @@
   subs:
     - {page_id: install_from_source}
     - {page_id: usd_permissions}
+- title: User guides
+  subs:
+    - {page_id: python_api}
 - title: Development
   subs:
     - {page_id: testing}
-
-
+    - {page_id: matlab}
 
 

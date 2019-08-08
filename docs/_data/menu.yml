@@ -1,7 +1,11 @@
 - page_id: home
 - title: Install Instructions
   subs:
-    - {page_id: dummy}
+    - {page_id: install_from_source}
+    - {page_id: usd_permissions}
+- title: Development
+  subs:
+    - {page_id: testing}
 
 
 

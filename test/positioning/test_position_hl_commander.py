@@ -192,6 +192,18 @@ class TestPositionHlCommander(unittest.TestCase):
             1.0, 2.0, 3.0, 0.0, duration)
         sleep_mock.assert_called_with(duration)
 
+    def test_that_it_does_not_send_goto_to_same_position(
+            self, sleep_mock):
+        # Fixture
+        self.sut.take_off()
+        inital_pos = self.sut.get_position()
+
+        # Test
+        self.sut.go_to(inital_pos[0], inital_pos[1], inital_pos[2])
+
+        # Assert
+        self.commander_mock.go_to.assert_not_called()
+
     def test_that_it_moves_distance(
             self, sleep_mock):
         # Fixture

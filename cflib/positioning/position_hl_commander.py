@@ -234,13 +234,14 @@ class PositionHlCommander:
         dz = z - self._z
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
 
-        duration_s = distance / self._velocity(velocity)
-        self._hl_commander.go_to(x, y, z, 0, duration_s)
-        time.sleep(duration_s)
+        if distance > 0.0:
+            duration_s = distance / self._velocity(velocity)
+            self._hl_commander.go_to(x, y, z, 0, duration_s)
+            time.sleep(duration_s)
 
-        self._x = x
-        self._y = y
-        self._z = z
+            self._x = x
+            self._y = y
+            self._z = z
 
     def set_default_velocity(self, velocity):
         """

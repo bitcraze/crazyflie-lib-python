@@ -30,8 +30,6 @@ This code uses Bezier curves of degree 7, that is with 8 control points.
 See https://en.wikipedia.org/wiki/B%C3%A9zier_curve
 
 All coordinates are (x, y, z, yaw)
-
-Limitations: all Segments must use the same scale
 """
 import math
 
@@ -58,6 +56,10 @@ class Node:
         second segment, that is the four first control points of the Bezier
         curve after the node. The control points for the Bezier curve before
         the node are calculated from the existing control points.
+        The control points are for scale = 1, that is if the Bezier curve
+        after the node has scale = 1 it will have exactly these handles. If the
+        curve after the node has a different scale the handles will be moved
+        accordingly when the Segment is created.
 
         q0 is required, the other points are optional.
         if q1 is missing it will be set to generate no velocity in q0.
@@ -121,6 +123,13 @@ class Node:
     def get_tail_points(self):
         return self._control_points[1]
 
+    def draw_unscaled_controlpoints(self, visualizer):
+        color = (0.8, 0.8, 0.8)
+        for p in self._control_points[0]:
+            visualizer.marker(p[0:3], color=color)
+        for p in self._control_points[1]:
+            visualizer.marker(p[0:3], color=color)
+
     def print(self):
         print('Node ---')
         print('Tail:')
@@ -134,20 +143,22 @@ class Node:
 class Segment:
     """
     A Segment represents a Bezier curve of degree 7. It uses two Nodes to
-    define the shape.
+    define the shape. The scaling of the segment will move the handles compared
+    to the Node to maintain continuous position, velocity, acceleration and
+    jerk through the Node.
     A Segment can generate a polynomial that is compatible with the High Level
     Commander, either in python to be sent to the Crazyflie, or as C code to be
     used in firmware.
     A Segment can also be rendered in Vispy.
-
-    Note: all segments must use the same scale
     """
 
     def __init__(self, head_node, tail_node, scale):
         self._scale = scale
 
-        self._points = np.concatenate(
+        unscaled_points = np.concatenate(
             [head_node.get_head_points(), tail_node.get_tail_points()])
+
+        self._points = self._scale_control_points(unscaled_points, self._scale)
 
         polys = self._convert_to_polys()
         self._polys = self._stretch_polys(polys, self._scale)
@@ -283,6 +294,26 @@ class Segment:
 
         return result
 
+    def _scale_control_points(self, unscaled_points, scale):
+        s = scale
+        l_s = 1 - s
+        p = unscaled_points
+
+        result = [None] * 8
+
+        result[0] = p[0]
+        result[1] = l_s * p[0] + s * p[1]
+        result[2] = l_s ** 2 * p[0] + 2 * l_s * s * p[1] + s ** 2 * p[2]
+        result[3] = l_s ** 3 * p[0] + 3 * l_s ** 2 * s * p[
+            1] + 3 * l_s * s ** 2 * p[2] + s ** 3 * p[3]
+        result[4] = l_s ** 3 * p[7] + 3 * l_s ** 2 * s * p[
+            6] + 3 * l_s * s ** 2 * p[5] + s ** 3 * p[4]
+        result[5] = l_s ** 2 * p[7] + 2 * l_s * s * p[6] + s ** 2 * p[5]
+        result[6] = l_s * p[7] + s * p[6]
+        result[7] = p[7]
+
+        return result
+
 
 class Visualizer:
     def __init__(self):
@@ -346,7 +377,7 @@ segments.append(Segment(n7, n0, segment_time))
 # When setting q2 we can also control acceleration and get more action.
 # Yaw also adds to the fun.
 
-d2 = 0.4
+d2 = 0.3
 dyaw = 3
 f = -1.0
 
@@ -378,7 +409,7 @@ for s in segments:
 # Enable this if you have Vispy installed and want a visualization of the
 # trajectory
 if False:
-    # Import here to avoid problems for users that does not have Vispy
+    # Import here to avoid problems for users that do not have Vispy
     from vispy import scene
     from vispy.scene import XYZAxis, LinePlot, TurntableCamera, Markers
 
@@ -387,4 +418,8 @@ if False:
         s.draw_trajectory(visualizer)
         # s.draw_vel(visualizer)
         # s.draw_control_points(visualizer)
+
+    for n in [n0, n1, n2, n3, n5, n6, n7, n8, n9, n10]:
+        n.draw_unscaled_controlpoints(visualizer)
+
     visualizer.run()

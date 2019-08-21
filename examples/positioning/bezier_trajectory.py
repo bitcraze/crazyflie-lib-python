@@ -377,9 +377,9 @@ segments.append(Segment(n7, n0, segment_time))
 # When setting q2 we can also control acceleration and get more action.
 # Yaw also adds to the fun.
 
-d2 = 0.3
-dyaw = 3
-f = -1.0
+d2 = 0.2
+dyaw = 2
+f = -0.3
 
 n8 = Node(
     (1, 0, z, yaw),

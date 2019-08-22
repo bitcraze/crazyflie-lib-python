@@ -12,7 +12,7 @@ If you are interested in more details look in the PyDoc in the code or:
 
 -   Communication protocol for
     [logging](https://www.bitcraze.io/docs/crazyflie-firmware/master/ctrp_log/) or
-    [parameters](https://www.bitcraze.io/docs/crazyflie-firmware/master/ctrp_param/)
+    [parameters](https://www.bitcraze.io/docs/crazyflie-firmware/master/ctrp_parameters/)
 
 Structure of the library
 ========================

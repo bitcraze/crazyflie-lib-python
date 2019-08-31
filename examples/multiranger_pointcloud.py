@@ -123,7 +123,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cf.commander.send_hover_setpoint(
             self.hover['x'], self.hover['y'], self.hover['yaw'],
             self.hover['height'])
-        
 
     def updateHover(self, k, v):
         if (k != 'height'):

@@ -79,7 +79,7 @@ if len(sys.argv) > 1:
     URI = sys.argv[1]
 
 # Enable plotting of Crazyflie
-PLOT_CF = True
+PLOT_CF = False
 # Enable plotting of down sensor
 PLOT_SENSOR_DOWN = False
 # Set the sensor threashold (in mm)

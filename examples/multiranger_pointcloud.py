@@ -69,7 +69,8 @@ try:
 except ImportError:
     pass
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
+
 logging.basicConfig(level=logging.INFO)
 
 URI = 'radio://0/80/2M'
@@ -78,7 +79,7 @@ if len(sys.argv) > 1:
     URI = sys.argv[1]
 
 # Enable plotting of Crazyflie
-PLOT_CF = False
+PLOT_CF = True
 # Enable plotting of down sensor
 PLOT_SENSOR_DOWN = False
 # Set the sensor threashold (in mm)
@@ -87,10 +88,10 @@ SENSOR_TH = 2000
 SPEED_FACTOR = 0.3
 
 
-class MainWindow(QtGui.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, URI):
-        QtGui.QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
 
         self.resize(700, 500)
         self.setWindowTitle('Multi-ranger point cloud')
@@ -122,6 +123,7 @@ class MainWindow(QtGui.QMainWindow):
         self.cf.commander.send_hover_setpoint(
             self.hover['x'], self.hover['y'], self.hover['yaw'],
             self.hover['height'])
+        
 
     def updateHover(self, k, v):
         if (k != 'height'):
@@ -358,7 +360,7 @@ class Canvas(scene.SceneCanvas):
 
 
 if __name__ == '__main__':
-    appQt = QtGui.QApplication(sys.argv)
+    appQt = QtWidgets.QApplication(sys.argv)
     win = MainWindow(URI)
     win.show()
     appQt.exec_()

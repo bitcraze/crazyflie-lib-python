@@ -69,7 +69,8 @@ try:
 except ImportError:
     pass
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtWidgets
+
 logging.basicConfig(level=logging.INFO)
 
 URI = 'radio://0/80/2M'
@@ -87,10 +88,10 @@ SENSOR_TH = 2000
 SPEED_FACTOR = 0.3
 
 
-class MainWindow(QtGui.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, URI):
-        QtGui.QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
 
         self.resize(700, 500)
         self.setWindowTitle('Multi-ranger point cloud')
@@ -358,7 +359,7 @@ class Canvas(scene.SceneCanvas):
 
 
 if __name__ == '__main__':
-    appQt = QtGui.QApplication(sys.argv)
+    appQt = QtWidgets.QApplication(sys.argv)
     win = MainWindow(URI)
     win.show()
     appQt.exec_()

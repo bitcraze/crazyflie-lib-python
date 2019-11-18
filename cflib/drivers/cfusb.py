@@ -65,7 +65,8 @@ def _find_devices():
     if pyusb1:
         for d in usb.core.find(idVendor=USB_VID, idProduct=USB_PID, find_all=1,
                                backend=pyusb_backend):
-            ret.append(d)
+            if d.manufacturer == 'Bitcraze AB':
+                ret.append(d)
     else:
         busses = usb.busses()
         for bus in busses:

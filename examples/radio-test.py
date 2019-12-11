@@ -8,8 +8,11 @@
     It finally sets the Crazyflie channel back to default, plots link
     quality data, and offers good channel suggestion.
 
-    Better used when the Crazyflie2-nrf-firmware is compiled with bluetooth
-    disabled.
+    This script should be used on a Crazyflie with bluetooth disabled and RSSI
+    ack packet enabled to get RSSI feedback. To configure the Crazyflie in this mode
+    build the crazyflie2-nrf-firmware with ```make BLE=0 CONFIG=-DRSSI_ACK_PACKET```.
+    See https://github.com/bitcraze/crazyflie-lib-python/issues/131 for more
+    informations.
 '''
 import argparse
 

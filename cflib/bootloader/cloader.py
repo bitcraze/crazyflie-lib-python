@@ -381,7 +381,14 @@ class Cloader:
             pk.data = struct.pack('<BBHHH', addr, 0x18, page_buffer,
                                   target_page, page_count)
             self.link.send_packet(pk)
-            pk = self.link.receive_packet(1)
+
+            # Timeout for writing to flash is raised from 1s (used elsewhere
+            # in this module) to 2.5s because it may take more than a second
+            # to erase a page on the STM32F405.
+            #
+            # See https://github.com/bitcraze/crazyflie-lib-python/issues/98
+            # for more details.
+            pk = self.link.receive_packet(2.5)
             retry_counter -= 1
 
         if retry_counter < 0:

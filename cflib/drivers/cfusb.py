@@ -121,10 +121,9 @@ class CfUsb:
         if (pyusb1 is False):
             if self.handle:
                 self.handle.releaseInterface()
-                self.handle.reset()
         else:
             if self.dev:
-                self.dev.reset()
+                usb.util.dispose_resources(self.dev)
 
         self.handle = None
         self.dev = None

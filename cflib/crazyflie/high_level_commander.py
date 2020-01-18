@@ -7,7 +7,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2018 Bitcraze AB
+#  Copyright (C) 2018-2020 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -42,12 +42,12 @@ class HighLevelCommander():
     """
 
     COMMAND_SET_GROUP_MASK = 0
-    COMMAND_TAKEOFF = 1
-    COMMAND_LAND = 2
     COMMAND_STOP = 3
     COMMAND_GO_TO = 4
     COMMAND_START_TRAJECTORY = 5
     COMMAND_DEFINE_TRAJECTORY = 6
+    COMMAND_TAKEOFF_2 = 7
+    COMMAND_LAND_2 = 8
 
     ALL_GROUPS = 0
 
@@ -70,7 +70,8 @@ class HighLevelCommander():
                                       self.COMMAND_SET_GROUP_MASK,
                                       group_mask))
 
-    def takeoff(self, absolute_height_m, duration_s, group_mask=ALL_GROUPS):
+    def takeoff(self, absolute_height_m, duration_s, group_mask=ALL_GROUPS,
+                yaw=0.0):
         """
         vertical takeoff from current x-y position to given height
 
@@ -78,14 +79,24 @@ class HighLevelCommander():
         :param duration_s: time it should take until target height is
                            reached (s)
         :param group_mask: mask for which CFs this should apply to
+        :param yaw: yaw (rad). Use current yaw if set to None.
         """
-        self._send_packet(struct.pack('<BBff',
-                                      self.COMMAND_TAKEOFF,
+        target_yaw = yaw
+        useCurrentYaw = False
+        if yaw is None:
+            target_yaw = 0.0
+            useCurrentYaw = True
+
+        self._send_packet(struct.pack('<BBff?f',
+                                      self.COMMAND_TAKEOFF_2,
                                       group_mask,
                                       absolute_height_m,
+                                      target_yaw,
+                                      useCurrentYaw,
                                       duration_s))
 
-    def land(self, absolute_height_m, duration_s, group_mask=ALL_GROUPS):
+    def land(self, absolute_height_m, duration_s, group_mask=ALL_GROUPS,
+             yaw=0.0):
         """
         vertical land from current x-y position to given height
 
@@ -93,11 +104,20 @@ class HighLevelCommander():
         :param duration_s: time it should take until target height is
                            reached (s)
         :param group_mask: mask for which CFs this should apply to
+        :param yaw: yaw (rad). Use current yaw if set to None.
         """
-        self._send_packet(struct.pack('<BBff',
-                                      self.COMMAND_LAND,
+        target_yaw = yaw
+        useCurrentYaw = False
+        if yaw is None:
+            target_yaw = 0.0
+            useCurrentYaw = True
+
+        self._send_packet(struct.pack('<BBff?f',
+                                      self.COMMAND_LAND_2,
                                       group_mask,
                                       absolute_height_m,
+                                      target_yaw,
+                                      useCurrentYaw,
                                       duration_s))
 
     def stop(self, group_mask=ALL_GROUPS):

@@ -307,6 +307,8 @@ class Crazyradio:
 
         return ackIn
 
+    def get_serial(self):
+        return usb.util.get_string(self.dev, self.dev.iSerialNumber)
 
 # Private utility functions
 def _send_vendor_setup(handle, request, value, index, data):

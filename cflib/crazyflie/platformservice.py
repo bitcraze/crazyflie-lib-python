@@ -91,6 +91,20 @@ class PlatformService():
         pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
         pk.data = (0, enabled)
         self._cf.send_packet(pk)
+        
+    def set_connection_id(self):
+        """
+        Send a 5byte connection (Crazyradio) id to qualify for MIC certification in Japan.
+        """        
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
+        try:
+            serial = tuple(bytes.fromhex(self._cf.link.get_serial()))
+        except Exception:
+            serial = (0,0,0,0,0)
+            
+        pk.data = (1,) + serial
+        self._cf.send_packet(pk)
 
     def get_protocol_version(self):
         """

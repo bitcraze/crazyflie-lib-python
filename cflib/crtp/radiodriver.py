@@ -344,9 +344,8 @@ class RadioDriver(CRTPDriver):
             except Exception:
                 return []
 
-        with self._radio_manager as cradio:
-            # FIXME: implements serial number in the Crazyradio driver!
-            serial = 'N/A'
+        with self._radio_manager as cradio:           
+            serial = cradio.get_serial()
 
             logger.info('v%s dongle with serial %s found', cradio.version,
                         serial)
@@ -400,6 +399,11 @@ class RadioDriver(CRTPDriver):
 
     def get_name(self):
         return 'radio'
+    
+    def get_serial(self):
+        with self._radio_manager as cradio:           
+            serial = cradio.get_serial()
+        return serial 
 
 
 # Transmit/receive radio thread

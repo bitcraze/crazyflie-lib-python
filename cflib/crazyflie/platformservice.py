@@ -24,6 +24,7 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
+from _ast import Try
 """
 Used for sending control setpoints to the Crazyflie
 """
@@ -98,12 +99,14 @@ class PlatformService():
         """        
         pk = CRTPPacket()
         pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
+        print(tuple(bytes.fromhex(self._cf.link.get_serial())))
         try:
             serial = tuple(bytes.fromhex(self._cf.link.get_serial()))
         except Exception:
-            serial = (0,0,0,0,0)
+            serial = (0xBC,0,0,0,0)
             
         pk.data = (1,) + serial
+        print(pk.data)
         self._cf.send_packet(pk)
 
     def get_protocol_version(self):

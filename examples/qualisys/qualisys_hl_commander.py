@@ -109,7 +109,7 @@ class QtmWrapper(Thread):
         print(self.qtm_6DoF_labels)
 
         await self.connection.stream_frames(
-            components=['6deuler'],
+            components=['6D'],
             on_packet=self._on_packet)
 
     async def _discover(self):
@@ -117,7 +117,7 @@ class QtmWrapper(Thread):
             return qtm_instance
 
     def _on_packet(self, packet):
-        header, bodies = packet.get_6d_euler()
+        header, bodies = packet.get_6d()
 
         if bodies is None:
             return
@@ -131,18 +131,19 @@ class QtmWrapper(Thread):
             y = temp_cf_pos[0][1] / 1000
             z = temp_cf_pos[0][2] / 1000
 
-            # Note: This is roll/pitch/yaw with Qualisys standard settings
-            # which is different from Crazyflie standard. Roll/pich/yaw is
-            # not applied in the same order in the two systems.
-            roll = math.radians(temp_cf_pos[1][0])
-            pitch = math.radians(temp_cf_pos[1][1])
-            yaw = math.radians(temp_cf_pos[1][2])
+            r = temp_cf_pos[1].matrix
+            rot = [
+                [r[0], r[3], r[6]],
+                [r[1], r[4], r[7]],
+                [r[2], r[5], r[8]],
+            ]
 
             if self.on_pose:
+                # Make sure we got a position
                 if math.isnan(x):
                     return
 
-                self.on_pose([x, y, z, roll, pitch, yaw])
+                self.on_pose([x, y, z, rot])
 
     async def _close(self):
         await self.connection.stream_frames_stop()
@@ -206,17 +207,48 @@ def wait_for_position_estimator(scf):
                 break
 
 
+def _sqrt(a):
+    """
+    There might be rounding errors making 'a' slightly negative.
+    Make sure we don't throw an exception.
+    """
+    if a < 0.0:
+        return 0.0
+    return math.sqrt(a)
+
+
+def send_extpose_rot_matrix(cf, x, y, z, rot):
+    """
+    Send the current Crazyflie X, Y, Z position and attitude as a (3x3)
+    rotaton matrix. This is going to be forwarded to the Crazyflie's
+    position estimator.
+    """
+    qw = _sqrt(1 + rot[0][0] + rot[1][1] + rot[2][2]) / 2
+    qx = _sqrt(1 + rot[0][0] - rot[1][1] - rot[2][2]) / 2
+    qy = _sqrt(1 - rot[0][0] + rot[1][1] - rot[2][2]) / 2
+    qz = _sqrt(1 - rot[0][0] - rot[1][1] + rot[2][2]) / 2
+
+    # Normalize the quaternion
+    ql = math.sqrt(qx ** 2 + qy ** 2 + qz ** 2 + qw ** 2)
+
+    cf.extpos.send_extpose(x, y, z, qx / ql, qy / ql, qz / ql, qw / ql)
+
+
 def reset_estimator(cf):
     cf.param.set_value('kalman.resetEstimation', '1')
     time.sleep(0.1)
     cf.param.set_value('kalman.resetEstimation', '0')
 
-    time.sleep(1)
-    # wait_for_position_estimator(cf)
+    # time.sleep(1)
+    wait_for_position_estimator(cf)
 
 
 def activate_kalman_estimator(cf):
     cf.param.set_value('stabilizer.estimator', '2')
+
+    # Set the std deviation for the quaternion data pushed into the
+    # kalman filter. The default value seems to be a bit too low.
+    cf.param.set_value('locSrv.extQuatStdDev', 0.06)
 
 
 def activate_high_level_commander(cf):
@@ -268,12 +300,11 @@ with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
     cf = scf.cf
     trajectory_id = 1
 
-    activate_kalman_estimator(cf)
-
     # Set up a callback to handle data from QTM
-    qtm_wrapper.on_pose = lambda pose: cf.extpos.send_extpos(
-        pose[0], pose[1], pose[2])
+    qtm_wrapper.on_pose = lambda pose: send_extpose_rot_matrix(
+        cf, pose[0], pose[1], pose[2], pose[3])
 
+    activate_kalman_estimator(cf)
     activate_high_level_commander(cf)
     activate_mellinger_controller(cf)
     duration = upload_trajectory(cf, trajectory_id, figure8)

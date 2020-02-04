@@ -5,7 +5,7 @@ import subprocess
 
 try:
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    root = _path.normpath(_path.join(script_dir, '../../sys-test'))
+    root = _path.normpath(_path.join(script_dir, '../../sys_test'))
 
     print('**** Running sys tests ****')
     subprocess.check_call(['python3', '-m', 'unittest', 'discover', root])

@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='cflib',
-    version='0.1.8',
+    version='0.1.9',
     packages=find_packages(exclude=['examples', 'tests']),
 
     description='Crazyflie python driver',

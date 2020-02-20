@@ -6,7 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2016 Bitcraze AB
+#  Copyright (C) 2016-2020 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -36,8 +36,10 @@ from cflib.utils.callbacks import Caller
 
 if sys.version_info < (3, 3):
     from mock import MagicMock
+    from mock import call
 else:
     from unittest.mock import MagicMock
+    from unittest.mock import call
 
 
 class SyncLoggerTest(unittest.TestCase):
@@ -52,7 +54,12 @@ class SyncLoggerTest(unittest.TestCase):
         self.log_config_mock = MagicMock(spec=LogConfig)
         self.log_config_mock.data_received_cb = Caller()
 
+        self.log_config_mock2 = MagicMock(spec=LogConfig)
+        self.log_config_mock2.data_received_cb = Caller()
+
         self.sut = SyncLogger(self.cf_mock, self.log_config_mock)
+        self.sut_multi = SyncLogger(
+            self.cf_mock, [self.log_config_mock, self.log_config_mock2])
 
     def test_that_log_configuration_is_added_on_connect(self):
         # Fixture
@@ -63,6 +70,18 @@ class SyncLoggerTest(unittest.TestCase):
         # Assert
         self.log_mock.add_config.assert_called_once_with(self.log_config_mock)
 
+    def test_that_multiple_log_configurations_are_added_on_connect(self):
+        # Fixture
+
+        # Test
+        self.sut_multi.connect()
+
+        # Assert
+        self.log_mock.add_config.assert_has_calls([
+            call(self.log_config_mock),
+            call(self.log_config_mock2)
+        ])
+
     def test_that_logging_is_started_on_connect(self):
         # Fixture
 
@@ -71,6 +90,16 @@ class SyncLoggerTest(unittest.TestCase):
 
         # Assert
         self.log_config_mock.start.assert_called_once_with()
+
+    def test_that_logging_is_started_on_connect_for_multiple_log_confs(self):
+        # Fixture
+
+        # Test
+        self.sut_multi.connect()
+
+        # Assert
+        self.log_config_mock.start.assert_called_once_with()
+        self.log_config_mock2.start.assert_called_once_with()
 
     def test_connection_status_after_connect(self):
         # Fixture
@@ -104,6 +133,20 @@ class SyncLoggerTest(unittest.TestCase):
         # Assert
         self.log_config_mock.stop.assert_called_once_with()
         self.log_config_mock.delete.assert_called_once_with()
+
+    def test_that_multiple_log_configs_are_stopped_on_disconnect(self):
+        # Fixture
+        self.sut_multi.connect()
+
+        # Test
+        self.sut_multi.disconnect()
+
+        # Assert
+        self.log_config_mock.stop.assert_called_once_with()
+        self.log_config_mock.delete.assert_called_once_with()
+
+        self.log_config_mock2.stop.assert_called_once_with()
+        self.log_config_mock2.delete.assert_called_once_with()
 
     def test_that_data_is_received(self):
         # Fixture

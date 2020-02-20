@@ -62,6 +62,9 @@ if __name__ == '__main__':
 
         cf = Crazyflie(rw_cache='./cache')
         with SyncCrazyflie(available[0][0], cf=cf) as scf:
+            # Note: it is possible to add more than one log config using an
+            # array.
+            # with SyncLogger(scf, [lg_stab, other_conf]) as logger:
             with SyncLogger(scf, lg_stab) as logger:
                 endTime = time.time() + 10
 

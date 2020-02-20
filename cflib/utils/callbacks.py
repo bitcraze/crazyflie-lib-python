@@ -50,5 +50,6 @@ class Caller():
 
     def call(self, *args):
         """ Call the callbacks registered with the arguments args """
-        for cb in self.callbacks:
+        copy_of_callbacks = list(self.callbacks)
+        for cb in copy_of_callbacks:
             cb(*args)

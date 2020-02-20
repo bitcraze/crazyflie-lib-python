@@ -86,8 +86,6 @@ class SyncLogger:
 
             self._cf.disconnected.remove_callback(self._disconnected)
 
-            self._queue.empty()
-
             self._is_connected = False
 
     def is_connected(self):
@@ -106,6 +104,7 @@ class SyncLogger:
         data = self._queue.get()
 
         if data == self.DISCONNECT_EVENT:
+            self._queue.empty()
             raise StopIteration
 
         return data
@@ -116,10 +115,11 @@ class SyncLogger:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.disconnect()
+        self._queue.empty()
 
     def _log_callback(self, ts, data, logblock):
         self._queue.put((ts, data, logblock))
 
     def _disconnected(self, link_uri):
-        self._queue.put(self.DISCONNECT_EVENT)
         self.disconnect()
+        self._queue.put(self.DISCONNECT_EVENT)

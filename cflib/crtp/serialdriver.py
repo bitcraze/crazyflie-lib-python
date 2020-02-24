@@ -48,6 +48,20 @@ try:
 except ImportError:
     found_serial = False
 
+DEBUG_PACKET_OUTPUT = True
+if DEBUG_PACKET_OUTPUT:
+    import pandas as pd
+    import numpy as np
+    from os.path import expanduser
+    from enum import Enum
+
+    LOG_SIZE = 50000
+
+    class Direction(Enum):
+        EMPTY = 0
+        IN = 1
+        OUT = 2
+
 __author__ = 'Bitcraze AB'
 __all__ = ['SerialDriver']
 
@@ -109,6 +123,7 @@ class SerialDriver(CRTPDriver):
         self._receive_thread.start()
         self._send_thread = _SerialSendThread(
             self.ser, self.out_queue, linkQualityCallback, linkErrorCallback)
+
         self._send_thread.start()
 
     def send_packet(self, pk):
@@ -146,6 +161,19 @@ class SerialDriver(CRTPDriver):
     def close(self):
         self._receive_thread.stop()
         self._send_thread.stop()
+
+        if DEBUG_PACKET_OUTPUT:
+            receive_log = self._receive_thread.get_log()
+            send_log = self._send_thread.get_log()
+            full_log = pd.DataFrame(np.append(receive_log, send_log, axis=0),
+                                    columns=['timestamp', 'direction', 'port',
+                                             'channel', 'data'])
+            full_log = full_log.sort_values(
+                by=['timestamp']).reset_index(drop=True)
+            full_log.to_csv(
+                expanduser('~/') + 'serial_log_' +
+                str(pd.Timestamp.now().round('s')).replace(' ', '_') + '.csv')
+
         try:
             self._receive_thread.join()
             self._send_thread.join()
@@ -165,9 +193,21 @@ class _SerialReceiveThread(threading.Thread):
         self._stop = False
         self.link_error_callback = link_error_callback
 
+        if DEBUG_PACKET_OUTPUT:
+            empty_row = np.array([pd.NaT, Direction.EMPTY, np.nan, np.nan,
+                                  bytearray(31)])
+            self.packet_log = np.array([empty_row]*LOG_SIZE)
+            self.log_index = 0
+
     def stop(self):
         """ Stop the thread """
         self._stop = True
+
+    def get_log(self):
+        if DEBUG_PACKET_OUTPUT:
+            return self.packet_log[:self.log_index]
+        else:
+            return None
 
     def run(self):
         """ Run the receiver thread """
@@ -179,6 +219,9 @@ class _SerialReceiveThread(threading.Thread):
                 r = self.ser.read_until(READ_END)[-2:]
                 if len(r) != 2:
                     continue
+
+                if DEBUG_PACKET_OUTPUT:
+                    timestamp = pd.Timestamp.now()
 
                 if r[0] != START_BYTE1 or r[1] != START_BYTE2:
                     continue
@@ -207,6 +250,12 @@ class _SerialReceiveThread(threading.Thread):
                 pk = CRTPPacket(received[2], received[3:expected])
                 self.in_queue.put(pk)
 
+                if DEBUG_PACKET_OUTPUT and self.log_index < LOG_SIZE:
+                    row = [timestamp, Direction.IN, pk.port, pk.channel,
+                           pk.data]
+                    self.packet_log[self.log_index] = row
+                    self.log_index += 1
+
             except Exception as e:
                 import traceback
                 if self.link_error_callback:
@@ -226,15 +275,27 @@ class _SerialSendThread(threading.Thread):
         self._stop = False
         self.link_error_callback = link_error_callback
 
+        if DEBUG_PACKET_OUTPUT:
+            empty_row = np.array([pd.NaT, Direction.EMPTY, np.nan, np.nan,
+                                  bytearray(31)])
+            self.packet_log = np.array([empty_row] * LOG_SIZE)
+            self.log_index = 0
+
     def stop(self):
         """ Stop the thread """
         self._stop = True
 
+    def get_log(self):
+        if DEBUG_PACKET_OUTPUT:
+            return self.packet_log[:self.log_index]
+        else:
+            return None
+
     def run(self):
         """ Run the sender thread """
         out_data = bytearray(MTU + 6)
-        out_data[0:3] = bytearray(
-            [START_BYTE1, START_BYTE2, SYSLINK_RADIO_RAW])
+        out_data[0:3] = bytearray([START_BYTE1, START_BYTE2,
+                                   SYSLINK_RADIO_RAW])
 
         empty_packet = CRTPPacket(header=0xFF)
         empty_packet_data_length = 0
@@ -242,6 +303,7 @@ class _SerialSendThread(threading.Thread):
         empty_packet_data[0:5] = bytearray(
             [START_BYTE1, START_BYTE2, SYSLINK_RADIO_RAW, 0x01,
              empty_packet.header])
+
         empty_packet_data[5:7] = compute_cksum(empty_packet_data[2:5])
 
         while not self._stop:
@@ -257,11 +319,17 @@ class _SerialSendThread(threading.Thread):
                 out_data[end_of_payload:end_of_payload +
                          2] = compute_cksum(out_data[2:end_of_payload])
 
+                if DEBUG_PACKET_OUTPUT:
+                    timestamp = pd.Timestamp.now()
+
                 written = self.ser.write(out_data[0:end_of_payload + 2])
 
             except queue.Empty:
                 pk = empty_packet
                 len_data = empty_packet_data_length
+
+                if DEBUG_PACKET_OUTPUT:
+                    timestamp = pd.Timestamp.now()
                 written = self.ser.write(empty_packet_data)
 
             if written != len_data + 7:
@@ -271,3 +339,9 @@ class _SerialSendThread(threading.Thread):
                         'packet to Crazyflie'.format(
                             written, len_data + 7)
                     )
+            else:
+                if DEBUG_PACKET_OUTPUT and self.log_index < LOG_SIZE:
+                    row = [timestamp, Direction.OUT, pk.port, pk.channel,
+                           pk.data]
+                    self.packet_log[self.log_index] = row
+                    self.log_index += 1

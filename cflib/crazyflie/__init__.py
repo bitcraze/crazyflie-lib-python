@@ -106,7 +106,8 @@ class Crazyflie():
 
         self.incoming = _IncomingPacketHandler(self)
         self.incoming.setDaemon(True)
-        self.incoming.start()
+        if self.link:
+            self.incoming.start()
 
         self.commander = Commander(self)
         self.high_level_commander = HighLevelCommander(self)
@@ -228,6 +229,8 @@ class Crazyflie():
                 logger.warning(message)
                 self.connection_failed.call(link_uri, message)
             else:
+                if not self.incoming.isAlive():
+                    self.incoming.start()
                 # Add a callback so we can check that any data is coming
                 # back from the copter
                 self.packet_received.add_callback(

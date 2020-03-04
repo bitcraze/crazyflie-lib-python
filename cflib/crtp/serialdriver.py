@@ -45,6 +45,7 @@ else:
 found_serial = True
 try:
     import serial
+    import serial.tools.list_ports as list_ports
 except ImportError:
     found_serial = False
 
@@ -86,9 +87,15 @@ class SerialDriver(CRTPDriver):
             raise WrongUriType('Not a serial URI')
 
         # Check if it is a valid serial URI
-        uriRe = re.search('^serial://pi$', uri)
-        if not uriRe:
+        uri_data = re.search('^serial://([a-zA-Z0-9]+)$', uri)
+        if not uri_data:
             raise Exception('Invalid serial URI')
+
+        devices = [x.device for x in list_ports.comports()
+                   if x.name == uri_data.group(1)]
+        if not len(devices) == 1:
+            raise Exception('Could not identify device')
+        device = devices[0]
 
         if not found_serial:
             raise Exception('PySerial package is missing')
@@ -101,7 +108,7 @@ class SerialDriver(CRTPDriver):
         self.in_queue = queue.Queue()
         self.out_queue = queue.Queue(1)
 
-        self.ser = serial.Serial('/dev/ttyAMA0', 512000, timeout=1)
+        self.ser = serial.Serial(device, 512000, timeout=1)
 
         # Launch the comm thread
         self._receive_thread = _SerialReceiveThread(
@@ -139,7 +146,8 @@ class SerialDriver(CRTPDriver):
 
     def scan_interface(self, address):
         if found_serial:
-            return [['serial://pi', ''], ]
+            devices_names = [x.name for x in list_ports.comports()]
+            return [('serial://' + x, '') for x in devices_names]
         else:
             return []
 

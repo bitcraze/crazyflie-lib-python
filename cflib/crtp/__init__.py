@@ -29,6 +29,7 @@ import logging
 
 from .debugdriver import DebugDriver
 from .exceptions import WrongUriType
+from .prrtdriver import PrrtDriver
 from .radiodriver import RadioDriver
 from .serialdriver import SerialDriver
 from .udpdriver import UdpDriver
@@ -40,7 +41,8 @@ __all__ = []
 logger = logging.getLogger(__name__)
 
 
-DRIVERS = [RadioDriver, SerialDriver, UdpDriver, DebugDriver, UsbDriver]
+DRIVERS = [RadioDriver, SerialDriver, UdpDriver,
+           DebugDriver, UsbDriver, PrrtDriver]
 CLASSES = []
 
 

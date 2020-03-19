@@ -1,6 +1,6 @@
 ---
 title: The Crazyflie Python API
-page_id: python_api 
+page_id: python_api
 ---
 
 In order to easily use and control the Crazyflie there\'s an library
@@ -11,8 +11,8 @@ the API that it implements.
 If you are interested in more details look in the PyDoc in the code or:
 
 -   Communication protocol for
-    [logging](https://www.bitcraze.io/docs/crazyflie-firmware/master/ctrp_log/) or
-    [parameters](https://www.bitcraze.io/docs/crazyflie-firmware/master/ctrp_parameters/)
+    [logging](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/ctrp_log/) or
+    [parameters](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/ctrp_parameters/)
 
 Structure of the library
 ========================
@@ -403,7 +403,7 @@ The logging cannot be started until your are connected to a Crazyflie:
 
     def data_received_callback(timestamp, data, logconf):
         print "[%d][%s]: %s" % (timestamp, logconf.name, data)
-            
+
     def logging_error(logconf, msg):
         print "Error when logging %s" % logconf.name
 ```

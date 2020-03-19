@@ -11,8 +11,8 @@ the API that it implements.
 If you are interested in more details look in the PyDoc in the code or:
 
 -   Communication protocol for
-    [logging](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/ctrp_log/) or
-    [parameters](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/ctrp_parameters/)
+    [logging](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/ctrp_log/) or
+    [parameters](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/ctrp_parameters/)
 
 Structure of the library
 ========================

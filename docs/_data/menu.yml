@@ -1,12 +1,12 @@
 - page_id: home
-- title: Install Instructions
+- title: Installation
   subs:
     - {page_id: install_from_source}
     - {page_id: usd_permissions}
 - title: User guides
   subs:
     - {page_id: python_api}
-- title: Explanation Functionalities
+- title: Functional areas
   subs:
     - {page_id: crazyradio_lib}
 - title: Development

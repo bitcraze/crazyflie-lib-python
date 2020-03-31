@@ -28,22 +28,19 @@
 Gui une the PID controller of the crazyflie
 
 """
-
-import tkinter as tk
 import logging
 import sys
 import time
+
 import matplotlib.pyplot as plt
-import numpy as np
+import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-from cflib.positioning.motion_commander import MotionCommander
 from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
-from cflib.positioning.position_hl_commander import PositionHlCommander
 
 URI = 'radio://0/80/2M/E7E7E7E7E7'
 STANDARD_HEIGHT = 1.2
@@ -58,20 +55,25 @@ elif len(sys.argv) > 2:
 logging.basicConfig(level=logging.ERROR)
 
 
-
 class TunerGUI:
     def __init__(self, master):
         self.master = master
-        self.master.title("PID tuner Crazyflie")
+        self.master.title('PID tuner Crazyflie')
 
-        self.figplot = plt.Figure(figsize=(5,4), dpi=100)
+        self.figplot = plt.Figure(figsize=(5, 4), dpi=100)
         self.ax2 = self.figplot.add_subplot(111)
         self.line2 = FigureCanvasTkAgg(self.figplot, self.master)
         self.line2.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-        self.scale_Kp = tk.Scale(master, label='scale_Kp', from_=0, to=20, length=600,tickinterval=2, resolution=0.1, orient=tk.HORIZONTAL) 
-        self.scale_Ki = tk.Scale(master, label='scale_Ki', from_=0, to=10, length=600,tickinterval=1, resolution=0.1, orient=tk.HORIZONTAL) 
-        self.scale_Kd = tk.Scale(master, label='scale_Kd', from_=0, to=10, length=600,tickinterval=1, resolution=0.1, orient=tk.HORIZONTAL) 
+        self.scale_Kp = tk.Scale(master, label='scale_Kp', from_=0, to=20,
+                                 length=600, tickinterval=2, resolution=0.1,
+                                 orient=tk.HORIZONTAL)
+        self.scale_Ki = tk.Scale(master, label='scale_Ki', from_=0, to=10,
+                                 length=600, tickinterval=1, resolution=0.1,
+                                 orient=tk.HORIZONTAL)
+        self.scale_Kd = tk.Scale(master, label='scale_Kd', from_=0, to=10,
+                                 length=600, tickinterval=1, resolution=0.1,
+                                 orient=tk.HORIZONTAL)
 
         self.scale_Kp.pack()
         self.scale_Ki.pack()
@@ -79,27 +81,27 @@ class TunerGUI:
 
         self.pos_array_prev = []
         self.sp_array_prev = []
-        self.time_array_prev =[]
+        self.time_array_prev = []
 
-    def draw_plot(self,time_array,pos_array,sp_array):
+    def draw_plot(self, time_array, pos_array, sp_array):
 
         self.ax2.clear()
-        self.ax2.plot(self.time_array_prev, self.pos_array_prev, label='pos_z', color='red', alpha=0.5)
+        self.ax2.plot(self.time_array_prev, self.pos_array_prev,
+                      label='pos_z', color='red', alpha=0.5)
 
-        self.ax2.plot(time_array, pos_array, label='pos',color='red')
-        self.ax2.plot(time_array, sp_array, label='sp',color='blue')
-        self.line2.draw() 
-        self.pos_array_prev= pos_array
-        self.sp_array_prev= sp_array
-        self.time_array_prev= time_array
+        self.ax2.plot(time_array, pos_array, label='pos', color='red')
+        self.ax2.plot(time_array, sp_array, label='sp', color='blue')
+        self.line2.draw()
+        self.pos_array_prev = pos_array
+        self.sp_array_prev = sp_array
+        self.time_array_prev = time_array
 
     def clear_plot(self):
         self.ax2.clear()
         self.line2.draw()
-        self.time_array_prev=[]
-        self.pos_array_prev=[]
-        self.sp_array_prev=[]
-
+        self.time_array_prev = []
+        self.pos_array_prev = []
+        self.sp_array_prev = []
 
 
 class TunerControlCF:
@@ -107,29 +109,40 @@ class TunerControlCF:
         self.cf = scf
         self.pid_gui = pid_gui
 
-        self.label = tk.Label(self.pid_gui.master, text="Choose an axis!")
+        self.label = tk.Label(self.pid_gui.master, text='Choose an axis!')
         self.label.pack()
         variable = tk.StringVar(self.pid_gui.master)
-        variable.set("z") 
-        self.dropdown = tk.OptionMenu(self.pid_gui.master, variable, "x", "y", "z",command=self.change_param_callback)
+        variable.set('z')
+        self.dropdown = tk.OptionMenu(
+            self.pid_gui.master, variable, 'x', 'y', 'z',
+            command=self.change_param_callback)
         self.dropdown.pack()
-        self.axis_choice = "z"
+        self.axis_choice = 'z'
 
-        self.button_send =tk.Button(self.pid_gui.master, text='SEND PID GAINS', command=self.send_pid_gains).pack()
-        self.button_step=tk.Button(self.pid_gui.master, text='DO STEP', command=self.do_step).pack()
-        self.button_quit=tk.Button(self.pid_gui.master, text='STOP', command=self.stop_gui).pack()
-        
-        self.cf.param.add_update_callback(group="posCtlPid", name="zKp", cb=self.param_updated_callback_Kp)
-        self.cf.param.add_update_callback(group="posCtlPid", name="zKi", cb=self.param_updated_callback_Ki)
-        self.cf.param.add_update_callback(group="posCtlPid", name="zKd", cb=self.param_updated_callback_Kd)
+        self.button_send = tk.Button(
+            self.pid_gui.master, text='SEND PID GAINS',
+            command=self.send_pid_gains).pack()
+        self.button_step = tk.Button(
+            self.pid_gui.master, text='DO STEP',
+            command=self.do_step).pack()
+        self.button_quit = tk.Button(
+            self.pid_gui.master, text='STOP',
+            command=self.stop_gui).pack()
+
+        self.cf.param.add_update_callback(
+            group='posCtlPid', name='zKp', cb=self.param_updated_callback_Kp)
+        self.cf.param.add_update_callback(
+            group='posCtlPid', name='zKi', cb=self.param_updated_callback_Ki)
+        self.cf.param.add_update_callback(
+            group='posCtlPid', name='zKd', cb=self.param_updated_callback_Kd)
 
         self.current_value_kp = 0
         self.current_value_kd = 0
         self.current_value_ki = 0
 
-        self.cf.param.request_param_update("posCtlPid.zKp")
-        self.cf.param.request_param_update("posCtlPid.zKi")
-        self.cf.param.request_param_update("posCtlPid.zKd")
+        self.cf.param.request_param_update('posCtlPid.zKp')
+        self.cf.param.request_param_update('posCtlPid.zKi')
+        self.cf.param.request_param_update('posCtlPid.zKd')
 
         time.sleep(0.1)
 
@@ -139,8 +152,6 @@ class TunerControlCF:
         self.cf.param.set_value('commander.enHighLevel', '1')
         self.take_off(STANDARD_HEIGHT)
 
-        
-
     def update_scale_info(self):
         print('update info')
         self.pid_gui.scale_Kp.set(self.current_value_kp)
@@ -149,11 +160,17 @@ class TunerControlCF:
 
     # Buttons
     def send_pid_gains(self):
-        print("Sending to the " + self.axis_choice + "position PID controller: Kp: "
-            + str(self.pid_gui.scale_Kp.get()) + ", Ki: " + str(self.pid_gui.scale_Ki.get()) + ", Kd: "+str(self.pid_gui.scale_Ki.get()))
-        cf.param.set_value("posCtlPid."+self.axis_choice +"Kp", self.pid_gui.scale_Kp.get())
-        cf.param.set_value("posCtlPid."+self.axis_choice +"Ki", self.pid_gui.scale_Ki.get())
-        cf.param.set_value("posCtlPid."+self.axis_choice +"Kd", self.pid_gui.scale_Kd.get())
+        print('Sending to the ' + self.axis_choice +
+              'position PID controller: Kp: ' +
+              str(self.pid_gui.scale_Kp.get()) +
+              ', Ki: ' + str(self.pid_gui.scale_Ki.get()) +
+              ', Kd: '+str(self.pid_gui.scale_Ki.get()))
+        cf.param.set_value('posCtlPid.'+self.axis_choice +
+                           'Kp', self.pid_gui.scale_Kp.get())
+        cf.param.set_value('posCtlPid.'+self.axis_choice +
+                           'Ki', self.pid_gui.scale_Ki.get())
+        cf.param.set_value('posCtlPid.'+self.axis_choice +
+                           'Kd', self.pid_gui.scale_Kd.get())
 
         time.sleep(0.1)
 
@@ -162,20 +179,20 @@ class TunerControlCF:
     def do_step(self):
         print('do step')
         log_config = LogConfig(name='Position setpoint', period_in_ms=10)
-        log_config.add_variable("stateEstimate." + self.axis_choice, 'float')
-        log_config.add_variable("ctrltarget." + self.axis_choice, 'float')
+        log_config.add_variable('stateEstimate.' + self.axis_choice, 'float')
+        log_config.add_variable('ctrltarget.' + self.axis_choice, 'float')
 
-        if self.axis_choice is "z":
-            self.commander.go_to(0,0,0.2,0,0.3,relative=True)
-        elif self.axis_choice is "x":
-            self.commander.go_to(0.2,0,0,0,0.3,relative=True)
-        elif self.axis_choice is "y":
-            self.commander.go_to(0,0.2,0,0,0.3,relative=True)
+        if self.axis_choice == 'z':
+            self.commander.go_to(0, 0, 0.2, 0, 0.3, relative=True)
+        elif self.axis_choice == 'x':
+            self.commander.go_to(0.2, 0, 0, 0, 0.3, relative=True)
+        elif self.axis_choice == 'y':
+            self.commander.go_to(0, 0.2, 0, 0, 0.3, relative=True)
         else:
             print('WRONG CHOICE?!?!')
             self.stop_gui()
 
-        current_time=time.time()
+        current_time = time.time()
 
         pos_history = []
         sp_history = []
@@ -184,60 +201,72 @@ class TunerControlCF:
             for log_entry in logger:
                 data = log_entry[1]
 
-                pos_history.append(data["stateEstimate." + self.axis_choice])
-                sp_history.append(data["ctrltarget." + self.axis_choice])
-                time_history.append(time.time()- current_time)
+                pos_history.append(data['stateEstimate.' + self.axis_choice])
+                sp_history.append(data['ctrltarget.' + self.axis_choice])
+                time_history.append(time.time() - current_time)
 
                 if ((time.time() - current_time) > STEP_RESPONSE_TIME):
                     break
-        #print(pos_history)
-        #print(sp_history)
-        self.pid_gui.draw_plot(time_history,pos_history,sp_history)
-        if self.axis_choice is "z":
-            self.commander.go_to(0,0,-0.2,0,0.3,relative=True)
-        elif self.axis_choice is "x":
-            self.commander.go_to(-0.2,0,0,0,0.3,relative=True)
-        elif self.axis_choice is "y":
-            self.commander.go_to(0,-0.2,0,0,0.3,relative=True)
+        # print(pos_history)
+        # print(sp_history)
+        self.pid_gui.draw_plot(time_history, pos_history, sp_history)
+        if self.axis_choice == 'z':
+            self.commander.go_to(0, 0, -0.2, 0, 0.3, relative=True)
+        elif self.axis_choice == 'x':
+            self.commander.go_to(-0.2, 0, 0, 0, 0.3, relative=True)
+        elif self.axis_choice == 'y':
+            self.commander.go_to(0, -0.2, 0, 0, 0.3, relative=True)
         else:
             print('WRONG CHOICE?!?!')
             self.stop_gui()
-        
+
     def stop_gui(self):
         self.pid_gui.master.quit()
         self.land_and_stop()
 
-    #parameter update
-    def change_param_callback(self,value):
+    # parameter update
+    def change_param_callback(self, value):
         #
         print(value)
-        self.cf.param.remove_update_callback("posCtlPid",name=self.axis_choice +"Kp")
-        self.cf.param.remove_update_callback("posCtlPid",name=self.axis_choice +"Ki")
-        self.cf.param.remove_update_callback("posCtlPid",name=self.axis_choice +"Kd")
+        self.cf.param.remove_update_callback(
+            'posCtlPid', name=self.axis_choice + 'Kp')
+        self.cf.param.remove_update_callback(
+            'posCtlPid', name=self.axis_choice + 'Ki')
+        self.cf.param.remove_update_callback(
+            'posCtlPid', name=self.axis_choice + 'Kd')
 
         time.sleep(0.1)
-        self.cf.param.add_update_callback(group="posCtlPid", name=value +"Kp", cb=self.param_updated_callback_Kp)
-        self.cf.param.add_update_callback(group="posCtlPid", name=value +"Ki", cb=self.param_updated_callback_Ki)
-        self.cf.param.add_update_callback(group="posCtlPid", name=value +"Kd", cb=self.param_updated_callback_Kd)
+        self.cf.param.add_update_callback(
+            group='posCtlPid', name=value +
+            'Kp', cb=self.param_updated_callback_Kp)
+        self.cf.param.add_update_callback(
+            group='posCtlPid', name=value +
+            'Ki', cb=self.param_updated_callback_Ki)
+        self.cf.param.add_update_callback(
+            group='posCtlPid', name=value +
+            'Kd', cb=self.param_updated_callback_Kd)
 
-        self.cf.param.request_param_update("posCtlPid."+value+"Kp")
-        self.cf.param.request_param_update("posCtlPid."+value+"Ki")
-        self.cf.param.request_param_update("posCtlPid."+value+"Kd")
+        self.cf.param.request_param_update('posCtlPid.'+value+'Kp')
+        self.cf.param.request_param_update('posCtlPid.'+value+'Ki')
+        self.cf.param.request_param_update('posCtlPid.'+value+'Kd')
         time.sleep(0.1)
 
         self.update_scale_info()
         self.pid_gui.clear_plot()
-        self.axis_choice=value
+        self.axis_choice = value
 
     def param_updated_callback_Kp(self, name, value):
         self.current_value_kp = float(value)
+
     def param_updated_callback_Ki(self, name, value):
         self.current_value_ki = float(value)
+
     def param_updated_callback_Kd(self, name, value):
         self.current_value_kd = float(value)
 
     def take_off(self, height):
         self.commander.takeoff(height, 1.0)
+
     def land_and_stop(self):
         self.commander.land(0.0, 2.0)
         time.sleep(2)
@@ -288,11 +317,11 @@ def wait_for_position_estimator(scf):
 if __name__ == '__main__':
 
     root = tk.Tk()
-    pid_gui= TunerGUI(root)
+    pid_gui = TunerGUI(root)
 
     cflib.crtp.init_drivers(enable_debug_driver=False)
-    cf=Crazyflie(rw_cache='./cache')
+    cf = Crazyflie(rw_cache='./cache')
     with SyncCrazyflie(URI, cf) as scf:
         wait_for_position_estimator(scf)
-        cf_ctrl= TunerControlCF(pid_gui,cf)
+        cf_ctrl = TunerControlCF(pid_gui, cf)
         tk.mainloop()

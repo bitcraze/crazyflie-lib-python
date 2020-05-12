@@ -5,7 +5,7 @@ and Crazyflie 2.0 quadcopters. It is intended to be used by client software to
 communicate with and control a Crazyflie quadcopter. For instance the [cfclient][cfclient] Crazyflie PC client uses the cflib.
 
 See [below](#platform-notes) for platform specific instruction.
-For more info see our [wiki](http://wiki.bitcraze.se/ "Bitcraze Wiki").
+For more info see our [documentation](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/).
 
 
 ## Development

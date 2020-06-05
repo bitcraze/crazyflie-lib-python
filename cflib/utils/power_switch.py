@@ -23,7 +23,6 @@
 This class is used to turn the power of the Crazyflie on and off via
 a Crazyradio.
 """
-import sys
 import time
 
 import cflib.crtp
@@ -31,6 +30,10 @@ from cflib.drivers.crazyradio import Crazyradio
 
 
 class PowerSwitch:
+    BOOTLOADER_CMD_ALLOFF = 0x01
+    BOOTLOADER_CMD_SYSOFF = 0x02
+    BOOTLOADER_CMD_SYSON = 0x03
+
     def __init__(self, uri):
         self.uri = uri
         uri_parts = cflib.crtp.RadioDriver.parse_uri(uri)
@@ -42,17 +45,17 @@ class PowerSwitch:
     def platform_power_down(self):
         """ Power down the platform, both NRF and STM MCUs.
             Same as turning off the platform with the power button."""
-        self._send((0xf3, 0xfe, 0x01))
+        self._send(self.BOOTLOADER_CMD_ALLOFF)
 
     def stm_power_down(self):
         """ Power down the STM MCU, the NRF will still be powered and handle
             basic radio communication. The STM can be restarted again remotely.
             Note: the power to expansion decks is also turned off. """
-        self._send((0xf3, 0xfe, 0x02))
+        self._send(self.BOOTLOADER_CMD_SYSOFF)
 
     def stm_power_up(self):
         """ Power up (boot) the STM MCU and decks."""
-        self._send((0xf3, 0xfe, 0x03))
+        self._send(self.BOOTLOADER_CMD_SYSON)
 
     def stm_power_cycle(self):
         """ Restart the STM MCU by powering it off and on.
@@ -61,7 +64,9 @@ class PowerSwitch:
         time.sleep(1)
         self.stm_power_up()
 
-    def _send(self, packet):
+    def _send(self, cmd):
+        packet = (0xf3, 0xfe, cmd)
+
         cr = Crazyradio(devid=self.devid)
         cr.set_channel(self.channel)
         cr.set_data_rate(self.datarate)
@@ -80,5 +85,5 @@ class PowerSwitch:
         cr.close()
 
         if not success:
-            print('Failed to connect to Crazyflie at', self.uri)
-            sys.exit(-1)
+            raise Exception(
+                'Failed to connect to Crazyflie at {}'.format(self.uri))

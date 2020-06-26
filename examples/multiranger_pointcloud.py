@@ -38,7 +38,7 @@ Crazyflie can then be controlled by using keyboard input:
 There's additional setting for (see constants below):
  * Plotting the downwards sensor
  * Plotting the estimated Crazyflie postition
- * Max threashold for sensors
+ * Max threshold for sensors
  * Speed factor that set's how fast the Crazyflie moves
 
 The demo is ended by either closing the graph window.

@@ -145,7 +145,7 @@ class SyncCrazyflieTest(unittest.TestCase):
         self.assertFalse(self.sut.is_link_open())
         self._assertAllCallbacksAreRemoved()
 
-    def test_open_close_with_context_mangement(self):
+    def test_open_close_with_context_management(self):
         # Fixture
 
         # Test

@@ -180,13 +180,13 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
 
         # Test
         self.sut.go_to(1.0, 2.0, 3.0, 4.0)
 
         # Assert
-        distance = self._distance(inital_pos, (1.0, 2.0, 3.0))
+        distance = self._distance(initial_pos, (1.0, 2.0, 3.0))
         duration = distance / 4.0
         self.commander_mock.go_to.assert_called_with(
             1.0, 2.0, 3.0, 0.0, duration)
@@ -196,10 +196,10 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
 
         # Test
-        self.sut.go_to(inital_pos[0], inital_pos[1], inital_pos[2])
+        self.sut.go_to(initial_pos[0], initial_pos[1], initial_pos[2])
 
         # Assert
         self.commander_mock.go_to.assert_not_called()
@@ -208,7 +208,7 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
 
         # Test
         self.sut.move_distance(1.0, 2.0, 3.0, 4.0)
@@ -217,9 +217,9 @@ class TestPositionHlCommander(unittest.TestCase):
         distance = self._distance((0.0, 0.0, 0.0), (1.0, 2.0, 3.0))
         duration = distance / 4.0
         final_pos = (
-            inital_pos[0] + 1.0,
-            inital_pos[1] + 2.0,
-            inital_pos[2] + 3.0)
+            initial_pos[0] + 1.0,
+            initial_pos[1] + 2.0,
+            initial_pos[2] + 3.0)
         self.commander_mock.go_to.assert_called_with(
             final_pos[0], final_pos[1], final_pos[2], 0.0, duration)
         sleep_mock.assert_called_with(duration)
@@ -228,7 +228,7 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
 
         # Test
         self.sut.forward(1.0, 2.0)
@@ -236,9 +236,9 @@ class TestPositionHlCommander(unittest.TestCase):
         # Assert
         duration = 1.0 / 2.0
         final_pos = (
-            inital_pos[0] + 1.0,
-            inital_pos[1],
-            inital_pos[2])
+            initial_pos[0] + 1.0,
+            initial_pos[1],
+            initial_pos[2])
         self.commander_mock.go_to.assert_called_with(
             final_pos[0], final_pos[1], final_pos[2], 0.0, duration)
         sleep_mock.assert_called_with(duration)
@@ -247,7 +247,7 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
 
         # Test
         self.sut.back(1.0, 2.0)
@@ -255,9 +255,9 @@ class TestPositionHlCommander(unittest.TestCase):
         # Assert
         duration = 1.0 / 2.0
         final_pos = (
-            inital_pos[0] - 1.0,
-            inital_pos[1],
-            inital_pos[2])
+            initial_pos[0] - 1.0,
+            initial_pos[1],
+            initial_pos[2])
         self.commander_mock.go_to.assert_called_with(
             final_pos[0], final_pos[1], final_pos[2], 0.0, duration)
         sleep_mock.assert_called_with(duration)
@@ -266,7 +266,7 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
 
         # Test
         self.sut.left(1.0, 2.0)
@@ -274,9 +274,9 @@ class TestPositionHlCommander(unittest.TestCase):
         # Assert
         duration = 1.0 / 2.0
         final_pos = (
-            inital_pos[0],
-            inital_pos[1] + 1.0,
-            inital_pos[2])
+            initial_pos[0],
+            initial_pos[1] + 1.0,
+            initial_pos[2])
         self.commander_mock.go_to.assert_called_with(
             final_pos[0], final_pos[1], final_pos[2], 0.0, duration)
         sleep_mock.assert_called_with(duration)
@@ -285,7 +285,7 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
 
         # Test
         self.sut.right(1.0, 2.0)
@@ -293,9 +293,9 @@ class TestPositionHlCommander(unittest.TestCase):
         # Assert
         duration = 1.0 / 2.0
         final_pos = (
-            inital_pos[0],
-            inital_pos[1] - 1,
-            inital_pos[2])
+            initial_pos[0],
+            initial_pos[1] - 1,
+            initial_pos[2])
         self.commander_mock.go_to.assert_called_with(
             final_pos[0], final_pos[1], final_pos[2], 0, duration)
         sleep_mock.assert_called_with(duration)
@@ -304,7 +304,7 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
 
         # Test
         self.sut.up(1.0, 2.0)
@@ -312,9 +312,9 @@ class TestPositionHlCommander(unittest.TestCase):
         # Assert
         duration = 1.0 / 2.0
         final_pos = (
-            inital_pos[0],
-            inital_pos[1],
-            inital_pos[2] + 1)
+            initial_pos[0],
+            initial_pos[1],
+            initial_pos[2] + 1)
         self.commander_mock.go_to.assert_called_with(
             final_pos[0], final_pos[1], final_pos[2], 0, duration)
         sleep_mock.assert_called_with(duration)
@@ -323,7 +323,7 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
 
         # Test
         self.sut.down(1.0, 2.0)
@@ -331,9 +331,9 @@ class TestPositionHlCommander(unittest.TestCase):
         # Assert
         duration = 1.0 / 2.0
         final_pos = (
-            inital_pos[0],
-            inital_pos[1],
-            inital_pos[2] - 1)
+            initial_pos[0],
+            initial_pos[1],
+            initial_pos[2] - 1)
         self.commander_mock.go_to.assert_called_with(
             final_pos[0], final_pos[1], final_pos[2], 0, duration)
         sleep_mock.assert_called_with(duration)
@@ -342,14 +342,14 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
         self.sut.set_default_velocity(7)
 
         # Test
         self.sut.go_to(1.0, 2.0, 3.0)
 
         # Assert
-        distance = self._distance(inital_pos, (1.0, 2.0, 3.0))
+        distance = self._distance(initial_pos, (1.0, 2.0, 3.0))
         duration = distance / 7.0
         self.commander_mock.go_to.assert_called_with(
             1.0, 2.0, 3.0, 0.0, duration)
@@ -359,7 +359,7 @@ class TestPositionHlCommander(unittest.TestCase):
             self, sleep_mock):
         # Fixture
         self.sut.take_off()
-        inital_pos = self.sut.get_position()
+        initial_pos = self.sut.get_position()
         self.sut.set_default_velocity(7.0)
         self.sut.set_default_height(5.0)
 
@@ -367,7 +367,7 @@ class TestPositionHlCommander(unittest.TestCase):
         self.sut.go_to(1.0, 2.0)
 
         # Assert
-        distance = self._distance(inital_pos, (1.0, 2.0, 5.0))
+        distance = self._distance(initial_pos, (1.0, 2.0, 5.0))
         duration = distance / 7.0
         self.commander_mock.go_to.assert_called_with(
             1.0, 2.0, 5.0, 0.0, duration)

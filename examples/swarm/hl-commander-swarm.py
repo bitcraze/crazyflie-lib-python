@@ -25,7 +25,7 @@
 Simple example of a swarm using the High level commander.
 
 The swarm takes off and flies a synchronous square shape before landing.
-The trajectories are relative to the starting positions and the Crazyfles can
+The trajectories are relative to the starting positions and the Crazyflies can
 be at any position on the floor when the script is started.
 
 This example is intended to work with any absolute positioning system.

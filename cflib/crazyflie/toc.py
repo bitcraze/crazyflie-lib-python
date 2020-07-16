@@ -25,7 +25,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-A generic TableOfContents module that is used to fetch, store and minipulate
+A generic TableOfContents module that is used to fetch, store and manipulate
 a TOC for logging or parameters.
 """
 import logging

@@ -3,8 +3,8 @@
 Bridge a Crazyflie connected to a Crazyradio to a local MAVLink port
 Requires 'pip install cflib'
 
-As the ESB protocol works using PTX and PRX (Primary Transmitter/Reciever)
-modes. Thus, data is only recieved as a response to a sent packet.
+As the ESB protocol works using PTX and PRX (Primary Transmitter/Receiver)
+modes. Thus, data is only received as a response to a sent packet.
 So, we need to constantly poll the receivers for bidirectional communication.
 
 @author: Dennis Shtatnov (densht@gmail.com)
@@ -91,12 +91,12 @@ class RadioBridge:
         print('Error when logging %s: %s' % (logconf.name, msg))
 
     def _stab_log_data(self, timestamp, data, logconf):
-        """Callback froma the log API when data arrives"""
+        """Callback from a the log API when data arrives"""
         print('[%d][%s]: %s' % (timestamp, logconf.name, data))
 
     def _connection_failed(self, link_uri, msg):
         """Callback when connection initial connection fails (i.e no Crazyflie
-        at the speficied address)"""
+        at the specified address)"""
         print('Connection to %s failed: %s' % (link_uri, msg))
         self.is_connected = False
 

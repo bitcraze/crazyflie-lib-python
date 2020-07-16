@@ -75,7 +75,7 @@ class HighLevelCommander():
         """
         vertical takeoff from current x-y position to given height
 
-        :param absolute_height_m: absolut (m)
+        :param absolute_height_m: absolute (m)
         :param duration_s: time it should take until target height is
                            reached (s)
         :param group_mask: mask for which CFs this should apply to
@@ -100,7 +100,7 @@ class HighLevelCommander():
         """
         vertical land from current x-y position to given height
 
-        :param absolute_height_m: absolut (m)
+        :param absolute_height_m: absolute (m)
         :param duration_s: time it should take until target height is
                            reached (s)
         :param group_mask: mask for which CFs this should apply to

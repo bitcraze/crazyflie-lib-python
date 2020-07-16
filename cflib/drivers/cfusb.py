@@ -143,7 +143,7 @@ class CfUsb:
     # Data transfers
     def send_packet(self, dataOut):
         """ Send a packet and receive the ack from the radio dongle
-            The ack contains information about the packet transmition
+            The ack contains information about the packet transmission
             and a data payload if the ack packet contained any """
         try:
             if (pyusb1 is False):

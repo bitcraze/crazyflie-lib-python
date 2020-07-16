@@ -25,7 +25,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Example scipts that allows a user to "push" the Crazyflie 2.0 around
+Example scripts that allows a user to "push" the Crazyflie 2.0 around
 using your hands while it's hovering.
 
 This examples uses the Flow and Multi-ranger decks to measure distances

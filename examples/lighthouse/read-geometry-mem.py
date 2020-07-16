@@ -48,7 +48,7 @@ class ReadMem:
             if count != 1:
                 raise Exception('Unexpected nr of memories found:', count)
 
-            print('Rquesting data')
+            print('Requesting data')
             mems[0].update(self._data_updated)
 
             while not self.got_data:

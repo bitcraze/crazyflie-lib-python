@@ -215,8 +215,6 @@ class _UsbReceiveThread(threading.Thread):
     Radio link receiver thread used to read data from the
     Crazyradio USB driver. """
 
-    # RETRY_COUNT_BEFORE_DISCONNECT = 10
-
     def __init__(self, cfusb, inQueue, link_quality_callback,
                  link_error_callback):
         """ Create the object """

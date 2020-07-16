@@ -117,7 +117,7 @@ class PlatformService():
                 self._cf.send_packet(pk)
             else:
                 self._protocolVersion = -1
-                logger.info('Procotol version: {}'.format(
+                logger.info('Protocol version: {}'.format(
                     self.get_protocol_version()))
                 self._callback()
 
@@ -125,6 +125,6 @@ class PlatformService():
         if pk.channel == VERSION_COMMAND and \
                 pk.data[0] == VERSION_GET_PROTOCOL:
             self._protocolVersion = pk.data[1]
-            logger.info('Procotol version: {}'.format(
+            logger.info('Protocol  version: {}'.format(
                 self.get_protocol_version()))
             self._callback()

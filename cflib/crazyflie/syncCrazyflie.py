@@ -24,7 +24,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-The syncronous Crazyflie class is a wrapper around the "normal" Crazyflie
+The synchronous Crazyflie class is a wrapper around the "normal" Crazyflie
 class. It handles the asynchronous nature of the Crazyflie API and turns it
 into blocking function. It is useful for simple scripts that performs tasks
 as a sequence of events.

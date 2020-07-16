@@ -13,7 +13,7 @@ For information and installation of the
 * Check to see if you pass style guidelines: `tb verify`
 
 Note: Docker and the toolbelt is an optional way of running tests and reduces the 
-work needed to maintain your python environmet. 
+work needed to maintain your python environment.
 
 ### Native python on Linux, OSX, Windows
  [Tox](http://tox.readthedocs.org/en/latest/) is used for native testing: `pip install tox`

@@ -217,7 +217,7 @@ class _SerialReceiveThread(threading.Thread):
                 if r != expected:
                     continue
 
-                # NOTE: end is (expected - 2) as the lenght of the data +2 for
+                # NOTE: end is (expected - 2) as the length of the data +2 for
                 # the header bytes
                 cksum = compute_cksum(memoryview(received)[:expected])
                 if cksum[0] != received_data_chk[-2] or \

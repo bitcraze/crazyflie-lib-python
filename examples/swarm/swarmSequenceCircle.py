@@ -25,7 +25,7 @@
 #  MA  02110-1301, USA.
 """
 A script to fly 5 Crazyflies in formation. One stays in the center and the
-other four fly aound it in a circle. Mainly intended to be used with the
+other four fly around it in a circle. Mainly intended to be used with the
 Flow deck.
 The starting positions are vital and should be oriented like this
 
@@ -53,7 +53,7 @@ URI3 = 'radio://0/5/2M/E7E7E7E702'
 URI4 = 'radio://0/110/2M/E7E7E7E703'
 
 # d: diameter of circle
-# z: altituce
+# z: altitude
 params0 = {'d': 1.0, 'z': 0.3}
 params1 = {'d': 1.0, 'z': 0.3}
 params2 = {'d': 0.0, 'z': 0.5}

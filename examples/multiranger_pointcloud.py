@@ -37,7 +37,7 @@ Crazyflie can then be controlled by using keyboard input:
 
 There's additional setting for (see constants below):
  * Plotting the downwards sensor
- * Plotting the estimated Crazyflie postition
+ * Plotting the estimated Crazyflie position
  * Max threshold for sensors
  * Speed factor that set's how fast the Crazyflie moves
 
@@ -82,7 +82,7 @@ if len(sys.argv) > 1:
 PLOT_CF = False
 # Enable plotting of down sensor
 PLOT_SENSOR_DOWN = False
-# Set the sensor threashold (in mm)
+# Set the sensor threshold (in mm)
 SENSOR_TH = 2000
 # Set the speed factor for moving and rotating
 SPEED_FACTOR = 0.3

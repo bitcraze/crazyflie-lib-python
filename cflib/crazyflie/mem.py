@@ -199,7 +199,7 @@ class LEDDriverMemory(MemoryElement):
 
 class LEDTimingsDriverMemory(MemoryElement):
     """Memory interface for using the LED-ring mapped memory for setting RGB
-       values over time. To upload and run a show sequence of 
+       values over time. To upload and run a show sequence of
        the LEDs in the ring"""
 
     def __init__(self, id, type, size, mem_handler):

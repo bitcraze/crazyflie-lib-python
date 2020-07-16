@@ -45,7 +45,7 @@ from cflib.crazyflie.syncLogger import SyncLogger
 URI = 'radio://0/30/2M/E7E7E7E702'
 STANDARD_HEIGHT = 0.8
 STEP_RESPONSE_TIME = 3.0
-STEP_SIZE = -0.2 #meters
+STEP_SIZE = -0.2  # meters
 
 if len(sys.argv) > 1:
     URI = sys.argv[1]
@@ -76,8 +76,8 @@ class TunerGUI:
                                  length=1200, tickinterval=3, resolution=0.1,
                                  orient=tk.HORIZONTAL)
         self.scale_vMax = tk.Scale(master, label='vMax', from_=0, to=5,
-                                 length=1200, tickinterval=5, resolution=0.1,
-                                 orient=tk.HORIZONTAL)
+                                   length=1200, tickinterval=5, resolution=0.1,
+                                   orient=tk.HORIZONTAL)
 
         self.scale_Kp.pack()
         self.scale_Ki.pack()
@@ -124,12 +124,13 @@ class TunerControlCF:
         self.dropdown.pack()
         self.axis_choice = 'z'
 
-        self.label = tk.Label(self.pid_gui.master, text='Choose velocity or position!')
+        self.label = tk.Label(self.pid_gui.master,
+                              text='Choose velocity or position!')
         self.label.pack()
         variable_pos = tk.StringVar(self.pid_gui.master)
         variable_pos.set('pos')
         self.dropdown = tk.OptionMenu(
-            self.pid_gui.master, variable_pos, 'pos','vel',
+            self.pid_gui.master, variable_pos, 'pos', 'vel',
             command=self.change_param_unit_callback)
         self.dropdown.pack()
         self.unit_choice = 'pos'
@@ -151,7 +152,8 @@ class TunerControlCF:
         self.cf.param.add_update_callback(
             group='posCtlPid', name='zKd', cb=self.param_updated_callback_Kd)
         self.cf.param.add_update_callback(
-            group='posCtlPid', name='xyVelMax', cb=self.param_updated_callback_vMax)
+            group='posCtlPid', name='xyVelMax',
+            cb=self.param_updated_callback_vMax)
 
         self.current_value_kp = 0
         self.current_value_kd = 0
@@ -178,8 +180,8 @@ class TunerControlCF:
         self.pid_gui.scale_Ki.set(self.current_value_ki)
         self.pid_gui.scale_vMax.set(self.current_value_vmax)
 
-
     # Buttons
+
     def send_pid_gains(self):
         print('Sending to the ' + self.axis_choice +
               'position PID controller: Kp: ' +
@@ -250,8 +252,8 @@ class TunerControlCF:
     def change_param_axis_callback(self, value_axis):
         #
         print(self.unit_choice + 'CtlPid.'+value_axis)
-        
-        groupname=self.unit_choice + 'CtlPid'
+
+        groupname = self.unit_choice + 'CtlPid'
         self.cf.param.remove_update_callback(
             group=groupname, name=self.axis_choice + 'Kp')
         self.cf.param.remove_update_callback(
@@ -282,9 +284,9 @@ class TunerControlCF:
     # parameter update
     def change_param_unit_callback(self, value_unit):
         #
-        print(value_unit + 'CtlPid.'+ self.axis_choice)
-        
-        groupname_old=self.unit_choice + 'CtlPid'
+        print(value_unit + 'CtlPid.' + self.axis_choice)
+
+        groupname_old = self.unit_choice + 'CtlPid'
         self.cf.param.remove_update_callback(
             group=groupname_old, name=self.axis_choice + 'Kp')
         self.cf.param.remove_update_callback(
@@ -293,7 +295,7 @@ class TunerControlCF:
             group=groupname_old, name=self.axis_choice + 'Kd')
 
         time.sleep(0.1)
-        groupname_new=value_unit + 'CtlPid'
+        groupname_new = value_unit + 'CtlPid'
         self.cf.param.add_update_callback(
             group=groupname_new, name=self.axis_choice +
             'Kp', cb=self.param_updated_callback_Kp)
@@ -305,9 +307,12 @@ class TunerControlCF:
             'Kd', cb=self.param_updated_callback_Kd)
 
         print(groupname_new+'.'+self.axis_choice+'Kp')
-        self.cf.param.request_param_update(groupname_new+'.'+self.axis_choice+'Kp')
-        self.cf.param.request_param_update(groupname_new+'.'+self.axis_choice+'Ki')
-        self.cf.param.request_param_update(groupname_new+'.'+self.axis_choice+'Kd')
+        self.cf.param.request_param_update(
+            groupname_new+'.'+self.axis_choice+'Kp')
+        self.cf.param.request_param_update(
+            groupname_new+'.'+self.axis_choice+'Ki')
+        self.cf.param.request_param_update(
+            groupname_new+'.'+self.axis_choice+'Kd')
         time.sleep(0.1)
 
         self.update_scale_info()
@@ -322,7 +327,7 @@ class TunerControlCF:
 
     def param_updated_callback_Kd(self, name, value):
         self.current_value_kd = float(value)
-    
+
     def param_updated_callback_vMax(self, name, value):
         self.current_value_vmax = float(value)
 

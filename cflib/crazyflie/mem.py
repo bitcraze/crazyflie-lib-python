@@ -196,14 +196,17 @@ class LEDDriverMemory(MemoryElement):
         self._update_finished_cb = None
         self._write_finished_cb = None
 
+
 class LEDMemoryDriverMemory(MemoryElement):
     """Memory interface for using the LED-ring mapped memory for setting RGB
        values for all the LEDs in the ring"""
 
     def __init__(self, id, type, size, mem_handler):
         """Initialize with 12 LEDs"""
-        super(LEDMemoryDriverMemory, self).__init__(id=id, type=type, size=size,
-                                              mem_handler=mem_handler)
+        super(LEDMemoryDriverMemory, self).__init__(id=id,
+                                                    type=type,
+                                                    size=size,
+                                                    mem_handler=mem_handler)
         self._update_finished_cb = None
         self._write_finished_cb = None
 
@@ -211,34 +214,39 @@ class LEDMemoryDriverMemory(MemoryElement):
 
     def add(self, time, rgb, leds=0, fade=False, rotate=0):
         self.timings.append({
-            "time": time,
-            "rgb": rgb,
-            "leds": leds,
-            "fade": fade,
-            "rotate": rotate
-        });
+            'time': time,
+            'rgb': rgb,
+            'leds': leds,
+            'fade': fade,
+            'rotate': rotate
+        })
 
     def write_data(self, write_finished_cb):
         if write_finished_cb is not None:
             self._write_finished_cb = write_finished_cb
 
         data = []
-        for timing in self.timings: #[self.start:self.start+6]:
+        for timing in self.timings:
             # In order to fit all the LEDs in one radio packet RGB565 is used
             # to compress the colors. The calculations below converts 3 bytes
             # RGB into 2 bytes RGB565. Then shifts the value of each color to
             # LSB, applies the intensity and shifts them back for correct
             # alignment on 2 bytes.
-            R5 = ((int)((((int(timing["rgb"]["r"]) & 0xFF) * 249 + 1014) >> 11) & 0x1F))
-            G6 = ((int)((((int(timing["rgb"]["g"]) & 0xFF) * 253 + 505) >> 10) & 0x3F))
-            B5 = ((int)((((int(timing["rgb"]["b"]) & 0xFF) * 249 + 1014) >> 11) & 0x1F))
+            R5 = ((int)((((int(timing['rgb']['r']) & 0xFF) * 249 + 1014) >> 11)
+                        & 0x1F))
+            G6 = ((int)((((int(timing['rgb']['g']) & 0xFF) * 253 + 505) >> 10)
+                        & 0x3F))
+            B5 = ((int)((((int(timing['rgb']['b']) & 0xFF) * 249 + 1014) >> 11)
+                        & 0x1F))
             led = (int(R5) << 11) | (int(G6) << 5) | (int(B5) << 0)
-            extra = ((timing["leds"]) & 0x0F ) | ((timing["fade"] << 4) & 0x10) | ((timing["rotate"] << 5) & 0xE0)
-            
-            if (timing["time"] & 0xFF) != 0 or (led >> 8) !=0 or (led & 0xFF) != 0 or extra != 0:
-                data += [timing["time"] & 0xFF, led >> 8, led & 0xFF, extra]
+            extra = ((timing['leds']) & 0x0F) | (
+                (timing['fade'] << 4) & 0x10) | (
+                (timing['rotate'] << 5) & 0xE0)
 
-        data += [0,0,0,0]
+            if (timing['time'] & 0xFF) != 0 or led != 0 or extra != 0:
+                data += [timing['time'] & 0xFF, led >> 8, led & 0xFF, extra]
+
+        data += [0, 0, 0, 0]
         self.mem_handler.write(self, 0x00, bytearray(data), flush_queue=True)
 
     def write_done(self, mem, addr):
@@ -1343,7 +1351,8 @@ class Memory():
                         self.mem_write_cb.add_callback(mem.write_done)
                     elif mem_type == MemoryElement.TYPE_DRIVER_LEDMEM:
                         mem = LEDMemoryDriverMemory(id=mem_id, type=mem_type,
-                                           size=mem_size, mem_handler=self)
+                                                    size=mem_size,
+                                                    mem_handler=self)
                         logger.debug(mem)
                         self.mem_read_cb.add_callback(mem.new_data)
                         self.mem_write_cb.add_callback(mem.write_done)

@@ -52,8 +52,7 @@ if __name__ == '__main__':
         cf = scf.cf
 
         # Get LED memory and write to it
-        mem = cf.mem.get_mems(MemoryElement.TYPE_DRIVER_LEDMEM)
-        print(mem)
+        mem = cf.mem.get_mems(MemoryElement.TYPE_DRIVER_LEDTIMING)
         mem[0].add(25, {'r': 100, 'g': 0, 'b': 0})
         mem[0].add(0, {'r': 0, 'g': 100, 'b': 0}, leds=1)
         mem[0].add(0, {'r': 0, 'g': 100, 'b': 0}, leds=2)

@@ -76,7 +76,7 @@ class MemoryElement(object):
     TYPE_LOCO2 = 0x13
     TYPE_LH = 0x14
     TYPE_MEMORY_TESTER = 0x15
-    TYPE_DRIVER_LEDMEM = 0x17
+    TYPE_DRIVER_LEDTIMING = 0x17
 
     def __init__(self, id, type, size, mem_handler):
         """Initialize the element with default values"""
@@ -92,7 +92,7 @@ class MemoryElement(object):
             return 'I2C'
         if t == MemoryElement.TYPE_1W:
             return '1-wire'
-        if t == MemoryElement.TYPE_DRIVER_LEDMEM:
+        if t == MemoryElement.TYPE_DRIVER_LEDTIMING:
             return 'LED memory driver'
         if t == MemoryElement.TYPE_DRIVER_LED:
             return 'LED driver'
@@ -197,16 +197,16 @@ class LEDDriverMemory(MemoryElement):
         self._write_finished_cb = None
 
 
-class LEDMemoryDriverMemory(MemoryElement):
+class LEDTimingsDriverMemory(MemoryElement):
     """Memory interface for using the LED-ring mapped memory for setting RGB
        values for all the LEDs in the ring"""
 
     def __init__(self, id, type, size, mem_handler):
         """Initialize with 12 LEDs"""
-        super(LEDMemoryDriverMemory, self).__init__(id=id,
-                                                    type=type,
-                                                    size=size,
-                                                    mem_handler=mem_handler)
+        super(LEDTimingsDriverMemory, self).__init__(id=id,
+                                                     type=type,
+                                                     size=size,
+                                                     mem_handler=mem_handler)
         self._update_finished_cb = None
         self._write_finished_cb = None
 
@@ -1349,10 +1349,10 @@ class Memory():
                         logger.debug(mem)
                         self.mem_read_cb.add_callback(mem.new_data)
                         self.mem_write_cb.add_callback(mem.write_done)
-                    elif mem_type == MemoryElement.TYPE_DRIVER_LEDMEM:
-                        mem = LEDMemoryDriverMemory(id=mem_id, type=mem_type,
-                                                    size=mem_size,
-                                                    mem_handler=self)
+                    elif mem_type == MemoryElement.TYPE_DRIVER_LEDTIMING:
+                        mem = LEDTimingsDriverMemory(id=mem_id, type=mem_type,
+                                                     size=mem_size,
+                                                     mem_handler=self)
                         logger.debug(mem)
                         self.mem_read_cb.add_callback(mem.new_data)
                         self.mem_write_cb.add_callback(mem.write_done)

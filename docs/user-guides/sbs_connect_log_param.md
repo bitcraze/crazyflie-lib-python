@@ -1,9 +1,10 @@
 ---
-title: Connecting, logging and parameters
+title: "Step-by-Step: Connecting, logging and parameters"
 page_id: sbs_connect_log_param
+redirect:  /step-by-step/connect_log_param/
 ---
 
-On this step by step guide we will show you how to connect to your crazyflie through the crazyflie python library by a python script. This is the starting point for developing for the crazyflie for off-board enabled flight.
+On this step by step guide we will show you how to connect to your Crazyflie through the Crazyflie python library by a python script. This is the starting point for developing for the Crazyflie for off-board enabled flight.
 
 # Prerequisites
 
@@ -48,7 +49,7 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 ```
 
-* The cflib.crtp module is for scanning for crazyflies instances.
+* The cflib.crtp module is for scanning for Crazyflies instances.
 * The Crazyflie class is used to easily connect/send/receive data
 from a Crazyflie.
 * The synCrazyflie class is a wrapper around the "normal" Crazyflie
@@ -64,7 +65,7 @@ After these imports, start the script with:
 uri = 'radio://0/80/2M/E7E7E7E7E7'
 ```
 
-This is the radio uri of the crazyflie, and currently displaying the default. It should be probably fine but if you do not know what the uri of your crazyfie is you can check that with an usb cable and looking at the config ([here](https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-configuration) are the instructions)
+This is the radio uri of the crazyflie, and currently displaying the default. It should be probably fine but if you do not know what the uri of your Crazyfie is you can check that with an usb cable and looking at the config ([here](https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-configuration) are the instructions)
 
 ## Main
 
@@ -111,12 +112,12 @@ Now I will disconnect :'(
 ```
 
 
-The script connected with your crazyflie, synced and disconnected after a few seconds. You can see that the M3 LED is flashing yellow, which means that the crazyflie is connected to the script, but as soon as it leaves the `simple_connect()` function, the LED turns of. The Crazyflie is no longer connected
+The script connected with your Crazyflie, synced and disconnected after a few seconds. You can see that the M4 LED is flashing yellow, which means that the Crazyflie is connected to the script, but as soon as it leaves the `simple_connect()` function, the LED turns of. The Crazyflie is no longer connected
 
 Not super exciting stuff yet but it is a great start! It is also a good test if everything is correctly configured on your system.
 
 
-If you are getting an error, retrace your steps or check if your code matches the entire code underneath here. Also make sure your crazyflie is on and your crazyradio PA connected to you computer, and that the crazyflie is not connected to anything else (like the cfclient). If everything is peachy, please continue to the next part!
+If you are getting an error, retrace your steps or check if your code matches the entire code underneath here. Also make sure your Crazyflie is on and your crazyradio PA connected to you computer, and that the Crazyflie is not connected to anything else (like the cfclient). If everything is peachy, please continue to the next part!
 
 ```
 import logging
@@ -191,7 +192,7 @@ Now we are going to define the logging configuration. So add `lg_stab` in the `_
 
  ```
 
-Here you will add the logs variables you would like to read out. If you are unsure how your variable is called, this can be checked by connecting to crazyflie to the cfclient and look at the log TOC tab. If the variables don't match, you get a `KeyError` (more on that later.)
+Here you will add the logs variables you would like to read out. If you are unsure how your variable is called, this can be checked by connecting to Crazyflie to the cfclient and look at the log TOC tab. If the variables don't match, you get a `KeyError` (more on that later.)
 
 
 ## Make the logging function
@@ -288,7 +289,7 @@ Here we will explain how this asynchronous logging can be set up in the script.
 
 ## Start a new function
 
-Above `simple_log(..)`, begin a new function:
+Above `def simple_log(..)`, begin a new function:
 
 ```
 def simple_log_async(scf, logconf):
@@ -296,7 +297,7 @@ def simple_log_async(scf, logconf):
     cf.log.add_config(logconf)
 ```
 
-Here you add the logging configuration to to the logging framework of the crazyflie. It will check if the log configuration is part of the TOC, which is a list of all the logging variables defined in the crazyflie. You can test this out by changing one of the `lg_stab` variables to a completely bogus name like `'not.real'`. In this case you would receive the following message:
+Here you add the logging configuration to to the logging framework of the Crazyflie. It will check if the log configuration is part of the TOC, which is a list of all the logging variables defined in the Crazyflie. You can test this out by changing one of the `lg_stab` variables to a completely bogus name like `'not.real'`. In this case you would receive the following message:
 
 `KeyError: 'Variable not.real not in TOC'`
 
@@ -408,9 +409,12 @@ Then add the following to the `def simple_param_async(...)` function:
 ```
     cf.param.add_update_callback(group=groupstr, name=namestr,
                                            cb=param_stab_est_callback)
-```
+    time.sleep(1)
 
-If you would like to test out the script now already, replace `simple_log_async(...)` with `simple_param_async(group,name)` and runt the script. You can see that it will print out the variable name and value:
+```
+The sleep function is to give the script a bit more time to wait for the Crazyflies response and not lose the connection immediatly.
+
+If you would like to test out the script now already, replace `simple_log_async(...)` with `simple_param_async(scf, group, name)` and run the script. You can see that it will print out the variable name and value:
 `The crazyflie has parameter stabilizer.estimator set at number: 1`
 
 
@@ -419,14 +423,13 @@ If you would like to test out the script now already, replace `simple_log_async(
 Now we will set a variable in a parameter. Add the following to the `simple_param_async(...)` function:
 
 ```
-    time.sleep(1)
     cf.param.set_value(full_name,2)
 ```
 
 If you would run the script now you will also get this message:
 `The crazyflie has parameter stabilizer.estimator set at number: 2`
 
-This means that the crazyflie has changed the parameter value to 2, which is another methods it uses for state estimation. This can also be done to change the color on the ledring, or to initiate the highlevel commander. 
+This means that the Crazyflie has changed the parameter value to 2, which is another methods it uses for state estimation. This can also be done to change the color on the ledring, or to initiate the highlevel commander. 
 
 What it can't do is to set a Read Only (RO) parameter, only Read Write (RW) parameters, which can be checked by the parameter TOC in the CFclient. You can check this by changing the parameter name to group `'CPU' ` and name `flash'`. Then you will get the following error:
 
@@ -434,15 +437,77 @@ What it can't do is to set a Read Only (RO) parameter, only Read Write (RW) para
 
 ## Finishing and running the script
 
-It is usually good practice to put the parameter setting back to where it came from, since after disconnecting the crazyflie, the parameter will still be set. Only after physcially restarting the crazyflie the parameter will reset to its default setting as defined in the firmware. 
+It is usually good practice to put the parameter setting back to where it came from, since after disconnecting the Crazyflie, the parameter will still be set. Only after physcially restarting the Crazyflie the parameter will reset to its default setting as defined in the firmware. 
 
 So finish the `simple_param_async(...)` function by adding the next few lines:
 ```
-    time.sleep(1)
     cf.param.set_value(full_name,1)
     time.sleep(1)
 ```
-Make sure the right function is in `__main__`. Run the script with `python3 connect_log_param.py` in a terminal and you should see the following:
+Make sure the right function is in `__main__`. Check if your script corresponds with the code:
+
+```
+import logging
+import time
+
+import cflib.crtp
+from cflib.crazyflie import Crazyflie
+from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.crazyflie.syncLogger import SyncLogger
+
+# URI to the Crazyflie to connect to
+uri = 'radio://0/80/2M/E7E7E7E7E7'
+
+# Only output errors from the logging framework
+logging.basicConfig(level=logging.ERROR)
+
+
+def param_stab_est_callback(name, value):
+    print('The crazyflie has parameter ' + name + ' set at number: ' + value)
+
+
+def simple_param_async(scf, groupstr, namestr):
+    cf = scf.cf
+    full_name = groupstr + '.' + namestr
+
+    cf.param.add_update_callback(group=groupstr, name=namestr,
+                                 cb=param_stab_est_callback)
+    time.sleep(1)
+    cf.param.set_value(full_name, 2)
+    time.sleep(1)
+    cf.param.set_value(full_name, 1)
+    time.sleep(1)
+
+
+def log_stab_callback(timestamp, data, logconf):
+    ...
+def simple_log_async(scf, logconf):
+    ...
+def simple_log(scf, logconf):
+    ...
+def simple_connect():
+    ...
+
+if __name__ == '__main__':
+    # Initialize the low-level drivers (don't list the debug drivers)
+    cflib.crtp.init_drivers(enable_debug_driver=False)
+
+    lg_stab = LogConfig(name='Stabilizer', period_in_ms=10)
+    lg_stab.add_variable('stabilizer.roll', 'float')
+    lg_stab.add_variable('stabilizer.pitch', 'float')
+    lg_stab.add_variable('stabilizer.yaw', 'float')
+
+    group = 'stabilizer'
+    name = 'estimator'
+
+    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        simple_param_async(scf, group, name)
+```
+
+
+
+Run the script with `python3 connect_log_param.py` in a terminal and you should see the following:
 
 ```
 Connecting to radio://0/80/2M/E7E7E7E7E7
@@ -452,6 +517,12 @@ The crazyflie has parameter stabilizer.estimator set at number: 2
 The crazyflie has parameter stabilizer.estimator set at number: 1
 ```
 
-# Finished and What's next?
+You're done! The full code of this tutorial can be found in the example/step-by-step/ folder.
 
-You're done and now you know how to connect to the crazyflie and how to retrieve the parameters and logging variables through a python script. The next step is to make the crazyflie fly by giving it setpoints which is one step closer to making your own application!
+
+# What's next?
+
+
+ Now you know how to connect to the Crazyflie and how to retrieve the parameters and logging variables through a python script. The next step is to make the Crazyflie fly by giving it setpoints which is one step closer to making your own application!
+
+ Go to the [next tutorial](/user-guides/sbs_motion_commander/) about the motion commander.

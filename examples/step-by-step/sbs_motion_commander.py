@@ -53,7 +53,7 @@ def move_box_limit(scf):
         while (1):
             '''if position_estimate[0] > BOX_LIMIT:
                 mc.start_back()
-            elif position_estimate[0] < -BOX_LIMIT
+            elif position_estimate[0] < -BOX_LIMIT:
                 mc.start_forward()
             '''
 
@@ -90,7 +90,7 @@ def take_off_simple(scf):
 
 def log_pos_callback(timestamp, data, logconf):
     print(data)
-    global postion_estimate
+    global position_estimate
     position_estimate[0] = data['stateEstimate.x']
     position_estimate[1] = data['stateEstimate.y']
 

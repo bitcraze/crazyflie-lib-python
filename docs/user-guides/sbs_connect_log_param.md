@@ -27,7 +27,7 @@ This should have been installed if you installed the cfclient already (on a linu
 
 ## Begin the python script
 
-Open up a python script anywhere that is convenient for you. We use Visual Studio code ourselves but you can use the Python editor IDLE3 if you want. 
+Open up a python script anywhere that is convenient for you. We use Visual Studio code ourselves but you can use the Python editor IDLE3 if you want.
 
 * For python editor: select file->new
 * For VS code: select file-> new file
@@ -248,9 +248,9 @@ uri = 'radio://0/80/2M/E7E7E7E7E7'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
-        
+
 def simple_log(scf, logconf):
-    
+
     with SyncLogger(scf, lg_stab) as logger:
 
         for log_entry in logger:
@@ -278,7 +278,7 @@ if __name__ == '__main__':
         # simple_connect()
 
         simple_log(scf, lg_stab)
- 
+
  ```
 
 # Step 2b. Logging (Asynchronous)
@@ -429,7 +429,7 @@ Now we will set a variable in a parameter. Add the following to the `simple_para
 If you would run the script now you will also get this message:
 `The crazyflie has parameter stabilizer.estimator set at number: 2`
 
-This means that the Crazyflie has changed the parameter value to 2, which is another methods it uses for state estimation. This can also be done to change the color on the ledring, or to initiate the highlevel commander. 
+This means that the Crazyflie has changed the parameter value to 2, which is another methods it uses for state estimation. This can also be done to change the color on the ledring, or to initiate the highlevel commander.
 
 What it can't do is to set a Read Only (RO) parameter, only Read Write (RW) parameters, which can be checked by the parameter TOC in the CFclient. You can check this by changing the parameter name to group `'CPU' ` and name `flash'`. Then you will get the following error:
 
@@ -437,7 +437,7 @@ What it can't do is to set a Read Only (RO) parameter, only Read Write (RW) para
 
 ## Finishing and running the script
 
-It is usually good practice to put the parameter setting back to where it came from, since after disconnecting the Crazyflie, the parameter will still be set. Only after physcially restarting the Crazyflie the parameter will reset to its default setting as defined in the firmware. 
+It is usually good practice to put the parameter setting back to where it came from, since after disconnecting the Crazyflie, the parameter will still be set. Only after physcially restarting the Crazyflie the parameter will reset to its default setting as defined in the firmware.
 
 So finish the `simple_param_async(...)` function by adding the next few lines:
 ```
@@ -525,4 +525,4 @@ You're done! The full code of this tutorial can be found in the example/step-by-
 
  Now you know how to connect to the Crazyflie and how to retrieve the parameters and logging variables through a python script. The next step is to make the Crazyflie fly by giving it setpoints which is one step closer to making your own application!
 
- Go to the [next tutorial](/user-guides/sbs_motion_commander/) about the motion commander.
+ Go to the [next tutorial](/docs/user-guides/sbs_motion_commander.md) about the motion commander.

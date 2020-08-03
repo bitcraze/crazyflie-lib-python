@@ -10,7 +10,7 @@ Here we will go through step-by-step how to make your crazyflie move based on a 
 We will assume that you already know this before you start with the tutorial:
 
 * Some basic experience with python
-* Followed the [crazyflie getting started guide](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/) and [the connecting, logging and parameters tutorial](/user-guides/sbs_connect_log_param/). 
+* Followed the [crazyflie getting started guide](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/) and [the connecting, logging and parameters tutorial](/docs/user-guides/sbs_connect_log_param.md).
 
 
 # Get the script started
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
 ```
 
-This probably all looks pretty familiar, except for one thing line, namely: 
+This probably all looks pretty familiar, except for one thing line, namely:
 
 `from cflib.positioning.motion_commander import MotionCommander`
 
@@ -77,7 +77,7 @@ URI = 'radio://0/80/2M/E7E7E7E7E7'
 is_deck_attached = False
 ```
 
-Try to run the script now, and try to see if it is able to detect that the flowdeck (or any other positioning deck), is correctly attached. Also try to remove it to see if it can detect it missing as well. 
+Try to run the script now, and try to see if it is able to detect that the flowdeck (or any other positioning deck), is correctly attached. Also try to remove it to see if it can detect it missing as well.
 
 This is the full script as we are:
 ```
@@ -123,11 +123,11 @@ So now we are going to start up the SyncCrazyflie and start a function in the `_
 
 ```
     with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
-    
+
         if is_deck_attached:
             take_off_simple(scf)
 ```
-See that we are now using `is_deck_attached`? If this is false, the function will not be called and the crazyflie will not take off. 
+See that we are now using `is_deck_attached`? If this is false, the function will not be called and the crazyflie will not take off.
 
 Now make the function `take_off_simple(..)` above `__main__`, which will contain the motion commander instance.
 
@@ -137,9 +137,9 @@ def take_off_simple(scf):
         time.sleep(3)
 ```
 
-If you run the python script, you will see the crazyflie connect and immediately take off. After flying for 3 seconds it will land again. 
+If you run the python script, you will see the crazyflie connect and immediately take off. After flying for 3 seconds it will land again.
 
-The reason for the crazyflie to immediately take off, is that the motion commander if intialized with a take off function that will already start sending position setpoints to the crazyflie. Once the script goes out of the instance, the motion commander instance will close with a land function. 
+The reason for the crazyflie to immediately take off, is that the motion commander if intialized with a take off function that will already start sending position setpoints to the crazyflie. Once the script goes out of the instance, the motion commander instance will close with a land function.
 
 ## Changing the height
 
@@ -152,9 +152,9 @@ Change the  following line in `take_off_simple(...)`:
         time.sleep(3)
 ```
 
-Run the script again. The crazyflie will first take off to 0.3 meters and then goes up for another 0.3 meters. 
+Run the script again. The crazyflie will first take off to 0.3 meters and then goes up for another 0.3 meters.
 
-The same can be achieved by adjusting the default_height of the motion_commander, which is what we will do for now on in this tutorial. Remove the `mc.up(0.3)` and replace the motion commander line with 
+The same can be achieved by adjusting the default_height of the motion_commander, which is what we will do for now on in this tutorial. Remove the `mc.up(0.3)` and replace the motion commander line with
 ```
     with MotionCommander(scf, default_height = DEFAULT_HEIGHT) as mc:
 ```
@@ -221,7 +221,7 @@ def move_linear_simple(scf):
         time.sleep(1)
 ```
 
-If you replace `take_off_simple(scf)` in `__main__` with `move_linear_simple(scf)`, try to run the script. 
+If you replace `take_off_simple(scf)` in `__main__` with `move_linear_simple(scf)`, try to run the script.
 
 You will see the crazyflie take off, fly 0.5 m forward, fly backwards and land again.
 
@@ -310,7 +310,7 @@ Let's integrate some logging to this as well. Add the following log config right
 
         move_linear_simple(scf)
 
-        logconf.stop() 
+        logconf.stop()
 ```
 
 Don't forget to add `from cflib.crazyflie.log import LogConfig` at the imports (we don't need the sync logger since we are going to use the callback). Make the function `log_pos_callback` above param_deck_flow:
@@ -322,7 +322,7 @@ def log_pos_callback(timestamp, data, logconf):
     print(data)
 ```
 
-NOW: Make global variable which is a list called `position_estimate` and fill this in in the logging callback function with the x and y position. The `data` is a dict structure. 
+NOW: Make global variable which is a list called `position_estimate` and fill this in in the logging callback function with the x and y position. The `data` is a dict structure.
 
 Just double check that everything has been implemented correctly and then run the script.  You will see the same behavior as with the previous step but then with the position estimated printed at the same time.
 
@@ -412,7 +412,7 @@ def move_box_limit(scf):
 
 ```
 
-If you would run this (don't forget to replace `move_linear_simple()` in `__main__`), you see the crazyflie take off but it will stay in the air. A keyboard interrupt (ctrl+c) will stop the script and make the crazyflie land again. 
+If you would run this (don't forget to replace `move_linear_simple()` in `__main__`), you see the crazyflie take off but it will stay in the air. A keyboard interrupt (ctrl+c) will stop the script and make the crazyflie land again.
 
 Now we will add some behavior in the while loop:
 
@@ -430,7 +430,7 @@ def move_box_limit(scf):
 
 ```
 
-Add `BOX_LIMIT = 0.5` underneath the definition of the `DEFAULT_HEIGHT = 0.5`. 
+Add `BOX_LIMIT = 0.5` underneath the definition of the `DEFAULT_HEIGHT = 0.5`.
 
 Run the script and you will see that the crazyflie will start moving back and forth until you hit ctrl+c. It changes its command based on the logging input, which is the state estimate x and y position. Once it indicates that it reached the border of the 'virtual' limit, it will change it's direction.
 
@@ -522,7 +522,7 @@ Let's take it up a notch! Replace the content in the while loop with the followi
                 body_y_cmd=max_vel
 
             mc.start_linear_motion(body_x_cmd, body_y_cmd, 0)
-            
+
             time.sleep(0.1)
 ```
 
@@ -565,7 +565,7 @@ def move_box_limit(scf):
             #    mc.start_back()
             #elif position_estimate[0] < -BOX_LIMIT:
             #    mc.start_forward()
-            
+
             if position_estimate[0] > BOX_LIMIT:
                 body_x_cmd = -max_vel
             elif position_estimate[0] < -BOX_LIMIT:
@@ -630,4 +630,4 @@ You're done! The full code of this tutorial can be found in the example/step-by-
 
 # What is next ?
 
-Now you are able to send velocity commands to the Crazyflie and react upon logging and parameters variables, so one step closer to writing your own application with the Crazyflie python library! Check out the motion_commander_demo.py in the example folder of the cflib if you would like to see what the commander can do. 
+Now you are able to send velocity commands to the Crazyflie and react upon logging and parameters variables, so one step closer to writing your own application with the Crazyflie python library! Check out the motion_commander_demo.py in the example folder of the cflib if you would like to see what the commander can do.

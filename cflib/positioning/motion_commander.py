@@ -42,16 +42,12 @@ this mode of operation takeoff and landing is executed when the context is
 created/closed.
 """
 import math
-import sys
 import time
+from queue import Empty
+from queue import Queue
 from threading import Thread
 
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-
-if sys.version_info < (3,):
-    from Queue import Queue, Empty
-else:
-    from queue import Queue, Empty
 
 
 class MotionCommander:

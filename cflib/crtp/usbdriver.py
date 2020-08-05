@@ -30,18 +30,14 @@ Crazyflie USB driver.
 This driver is used to communicate with the Crazyflie using the USB connection.
 """
 import logging
+import queue
 import re
-import sys
 import threading
 
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
 from cflib.drivers.cfusb import CfUsb
-if sys.version_info < (3,):
-    import Queue as queue
-else:
-    import queue
 
 __author__ = 'Bitcraze AB'
 __all__ = ['UsbDriver']

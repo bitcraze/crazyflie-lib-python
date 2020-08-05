@@ -29,18 +29,13 @@ An early serial link driver. This could still be used (after some fixing) to
 run high-speed CRTP with the Crazyflie. The UART can be run at 2Mbit.
 """
 import logging
+import queue
 import re
-import sys
 import threading
 
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
-
-if sys.version_info < (3,):
-    import Queue as queue
-else:
-    import queue
 
 found_serial = True
 try:

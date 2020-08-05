@@ -21,19 +21,16 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-import sys
 import unittest
+from unittest.mock import call
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie import Log
 from cflib.crazyflie.log import LogConfig
 from cflib.utils.callbacks import Caller
 from cflib.utils.multiranger import Multiranger
-
-if sys.version_info < (3, 3):
-    from mock import MagicMock, call, patch
-else:
-    from unittest.mock import MagicMock, call, patch
 
 
 class MultirangerTest(unittest.TestCase):

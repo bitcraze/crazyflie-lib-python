@@ -33,7 +33,7 @@ the parameters that can be written/read.
 """
 import logging
 import struct
-import sys
+from queue import Queue
 from threading import Lock
 from threading import Thread
 
@@ -42,10 +42,6 @@ from .toc import TocFetcher
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
-if sys.version_info < (3,):
-    from Queue import Queue
-else:
-    from queue import Queue
 
 
 __author__ = 'Bitcraze AB'
@@ -89,13 +85,10 @@ class ParamTocElement:
         self.ident = ident
         if (data):
             strs = struct.unpack('s' * len(data[1:]), data[1:])
-            if sys.version_info < (3,):
-                strs = ('{}' * len(strs)).format(*strs).split('\0')
-            else:
-                s = ''
-                for ch in strs:
-                    s += ch.decode('ISO-8859-1')
-                strs = s.split('\x00')
+            s = ''
+            for ch in strs:
+                s += ch.decode('ISO-8859-1')
+            strs = s.split('\x00')
             self.group = strs[0]
             self.name = strs[1]
 

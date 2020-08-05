@@ -28,7 +28,6 @@
 CRTP packet and ports.
 """
 import logging
-import sys
 
 __author__ = 'Bitcraze AB'
 __all__ = ['CRTPPort', 'CRTPPacket']
@@ -121,13 +120,10 @@ class CRTPPacket(object):
         if type(data) == bytearray:
             self._data = data
         elif type(data) == str:
-            if sys.version_info < (3,):
-                self._data = bytearray(data)
-            else:
-                self._data = bytearray(data.encode('ISO-8859-1'))
+            self._data = bytearray(data.encode('ISO-8859-1'))
         elif type(data) == list or type(data) == tuple:
             self._data = bytearray(data)
-        elif sys.version_info >= (3,) and type(data) == bytes:
+        elif type(data) == bytes:
             self._data = bytearray(data)
         else:
             raise Exception('Data must be bytearray, string, list or tuple,'

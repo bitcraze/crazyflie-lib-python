@@ -31,7 +31,6 @@ Enables flash access to the Crazyflie.
 import errno
 import logging
 import struct
-import sys
 from array import array
 from binascii import crc32
 from functools import reduce
@@ -57,10 +56,7 @@ CMD_INFO_DETAILS = 2
 # The max size of a CRTP packet payload
 MAX_LOG_DATA_PACKET_SIZE = 30
 
-if sys.version_info < (3,):
-    EEPROM_TOKEN = '0xBC'
-else:
-    EEPROM_TOKEN = b'0xBC'
+EEPROM_TOKEN = b'0xBC'
 
 logger = logging.getLogger(__name__)
 

@@ -14,8 +14,7 @@ If you are interested in more details look in the PyDoc in the code or:
     [logging](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/crtp_log/) or
     [parameters](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/crtp_parameters/)
 
-Structure of the library
-========================
+## Structure of the library
 
 The library is asynchronous and based on callbacks for events. Functions
 like `open_link` will return immediately, and the callback `connected`
@@ -23,8 +22,7 @@ will be called when the link is opened. The library doesn\'t contain any
 threads or locks that will keep the application running, it\'s up to the
 application that is using the library to do this.
 
-Uniform Resource Identifier (URI)
----------------------------------
+### Uniform Resource Identifier (URI)
 
 All communication links are identified using an URI build up of the
 following: InterfaceType://InterfaceId/InterfaceChannel/InterfaceSpeed
@@ -37,8 +35,7 @@ examples:
     speed 250 Kbit/s: radio://0/10/250K %%
 -   Debug interface, id 0, channel 1: debug://0/1
 
-Variables and logging
----------------------
+### Variables and logging
 
 The library supports setting up logging configurations that are used for
 logging variables from the firmware. Each log configuration contains a
@@ -67,8 +64,7 @@ There\'s a few limitations that needs to be taken into account:
     dependent on what types they are
 -   The minimum period of a for a log configuration is multiples of 10ms
 
-Parameters
-----------
+### Parameters
 
 The library supports reading and writing parameters at run-time to the
 firmware. This is intended to be used for data that is not continuously
@@ -90,8 +86,7 @@ parameters should be used in the following way:
 -   For each write all the callbacks registered for this parameter will
     be called back
 
-Variable and parameter names
-----------------------------
+### Variable and parameter names
 
 All names of parameters and log variables use the same structure:
 `group.name`
@@ -108,11 +103,9 @@ There\'s a limit of 28 chars in total and here are some examples:
 -   imu\_tests.MPU6050
 -   pid\_attitide.pitch\_kd
 
-Utilities
-=========
+## Utilities
 
-Callbacks
----------
+### Callbacks
 
 All callbacks are handled using the `Caller` class that contains the
 following methods:
@@ -128,8 +121,7 @@ following methods:
         """ Call the callbacks registered with the arguments args """
 ```
 
-Debug driver
-------------
+### Debug driver
 
 The library contains a special link driver, named `DebugDriver`. This
 driver will emulate a Crazyflie and is used for testing of the UI and
@@ -147,8 +139,7 @@ random TOC CRC to always trigger TOC downloading or failing during
 connect. The driver also has support for sending back data with random
 delays to trigger random re-sending by the library.
 
-Initiating the link drivers
-===========================
+## Initiating the link drivers
 
 Before the library can be used the link drivers have to he initialized.
 This will search for available drivers and instantiate them.
@@ -158,8 +149,16 @@ This will search for available drivers and instantiate them.
        """ Search for and initialize link drivers. If enable_debug_driver is True then the DebugDriver will also be used."""
 ```
 
-Connection- and link-callbacks
-==============================
+### Serial driver
+
+The serial driver is disabled by default and has to be enabled to
+be used. Enable it in the call to `init_drivers()`
+
+``` {.python}
+    init_drivers(enable_serial_driver=True)
+```
+
+## Connection- and link-callbacks
 
 Operations on the link and connection will return directly and will call
 the following callbacks when events occur:
@@ -193,8 +192,7 @@ To register for callbacks the following is used:
     crazyflie.connected.add_callback(crazyflie_connected)
 ```
 
-Finding a Crazyflie and connecting
-==================================
+## Finding a Crazyflie and connecting
 
 The first thing to do is to find a Crazyflie quadcopter that we can
 connect to. This is done by queuing the library that will scan all the
@@ -222,8 +220,7 @@ Then you can use the following to close the link again:
     crazyflie.close_link()
 ```
 
-Sending control commands
-========================
+## Sending control commands
 
 The control commands are not implemented as parameters, instead they
 have a special API.
@@ -256,8 +253,7 @@ every 2 seconds. Ideally you should be sending one tick every 10 ms, for
 100 commands a second. This has a nice added benefit of allowing for
 very precise control.
 
-Parameters
-==========
+## Parameters
 
 The parameter framework is used to read and set parameters. This
 functionality should be used when:
@@ -307,8 +303,7 @@ Here\'s an example of how to use the calls.
         print "%s has value %d" % (name, value)
 ```
 
-Logging
-=======
+## Logging
 
 The logging framework is used to enable the \"automatic\" sending of
 variable values at specified intervals to the client. This functionality
@@ -408,7 +403,6 @@ The logging cannot be started until your are connected to a Crazyflie:
         print "Error when logging %s" % logconf.name
 ```
 
-Examples
-========
+## Examples
 
 The examples are now placed in the repository in the examples folder.

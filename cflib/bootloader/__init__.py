@@ -334,7 +334,7 @@ class Bootloader:
                                                ctr):
                     if self.progress_cb:
                         self.progress_cb(
-                            'Error during flash operation (code %d)'.format(
+                            'Error during flash operation (code {})'.format(
                                 self._cload.error_code),
                             int(progress))
                     else:
@@ -361,7 +361,7 @@ class Bootloader:
                      (ctr - 1)), ctr):
                 if self.progress_cb:
                     self.progress_cb(
-                        'Error during flash operation (code %d)'.format(
+                        'Error during flash operation (code {})'.format(
                             self._cload.error_code),
                         int(progress))
                 else:

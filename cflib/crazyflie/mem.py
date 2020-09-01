@@ -53,9 +53,6 @@ CMD_INFO_VER = 0
 CMD_INFO_NBR = 1
 CMD_INFO_DETAILS = 2
 
-# The max size of a CRTP packet payload
-MAX_LOG_DATA_PACKET_SIZE = 30
-
 EEPROM_TOKEN = b'0xBC'
 
 logger = logging.getLogger(__name__)

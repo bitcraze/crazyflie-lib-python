@@ -217,14 +217,13 @@ class LogConfig(object):
     added = property(_get_added, _set_added)
     started = property(_get_started, _set_started)
 
-    def create(self):
-        """Save the log configuration in the Crazyflie"""
-        pk = CRTPPacket()
-        pk.set_header(5, CHAN_SETTINGS)
+    def _cmd_create_block(self):
         if self.useV2:
-            pk.data = (CMD_CREATE_BLOCK_V2, self.id)
+            return CMD_CREATE_BLOCK_V2
         else:
-            pk.data = (CMD_CREATE_BLOCK, self.id)
+            return CMD_CREATE_BLOCK
+
+    def _setup_log_elements(self, pk):
         for var in self.variables:
             if (var.is_toc_variable() is False):  # Memory location
                 logger.debug('Logging to raw memory %d, 0x%04X',
@@ -244,12 +243,16 @@ class LogConfig(object):
                     pk.data.append((ident >> 8) & 0x0ff)
                 else:
                     pk.data.append(self.cf.log.toc.get_element_id(var.name))
+
+    def create(self):
+        """Save the log configuration in the Crazyflie"""
+        command = self._cmd_create_block()
+        pk = CRTPPacket()
+        pk.set_header(5, CHAN_SETTINGS)
+        pk.data = (command, self.id)
+        self._setup_log_elements(pk)
         logger.debug('Adding log block id {}'.format(self.id))
-        if self.useV2:
-            self.cf.send_packet(pk, expected_reply=(
-                CMD_CREATE_BLOCK_V2, self.id))
-        else:
-            self.cf.send_packet(pk, expected_reply=(CMD_CREATE_BLOCK, self.id))
+        self.cf.send_packet(pk, expected_reply=(command, self.id))
 
     def start(self):
         """Start the logging for this entry"""

@@ -311,6 +311,10 @@ class Crazyflie():
                          be sent back, otherwise false
 
         """
+
+        if not pk.is_data_size_valid():
+            raise Exception("Data part of packet is too large")
+
         self._send_lock.acquire()
         if self.link is not None:
             if len(expected_reply) > 0 and not resend and \

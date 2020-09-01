@@ -58,6 +58,9 @@ class CRTPPacket(object):
     A packet that can be sent via the CRTP.
     """
 
+    # The max size of a CRTP packet payload
+    MAX_DATA_SIZE = 30
+
     def __init__(self, header=0, data=None):
         """
         Create an empty packet with default values.
@@ -140,6 +143,15 @@ class CRTPPacket(object):
     def __str__(self):
         """Get a string representation of the packet"""
         return '{}:{} {}'.format(self._port, self.channel, self.datat)
+
+    def get_data_size(self):
+        return len(self._data)
+
+    def available_data_size(self):
+        return self.MAX_DATA_SIZE - self.get_data_size()
+
+    def is_data_size_valid(self):
+        return self.available_data_size() >= 0
 
     data = property(_get_data, _set_data)
     datal = property(_get_data_l, _set_data)

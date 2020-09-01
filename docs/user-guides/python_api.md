@@ -22,6 +22,10 @@ will be called when the link is opened. The library doesn\'t contain any
 threads or locks that will keep the application running, it\'s up to the
 application that is using the library to do this.
 
+There are a few synchronous wrappers for selected classes that creates
+a synchronous API by wrapping the asynchronous classes, see the
+[Synchronous API section](#synchronous-api)
+
 ### Uniform Resource Identifier (URI)
 
 All communication links are identified using an URI build up of the
@@ -403,6 +407,124 @@ The logging cannot be started until your are connected to a Crazyflie:
         print "Error when logging %s" % logconf.name
 ```
 
+The values of log varibles are transferred from the Crazyflie using CRTP
+packets, where all varibles belonging to one logging configuration are
+transfered in the same packet. A CRTP packet has a maximum data size of
+30 bytes, which sets an upper limit to the number of variables that
+can be used in one logging configuration. If the desired log variables
+do not fit in one logging configuration, a second cofiguration may
+be added.
+
+``` {.python}
+    crazyflie.log.add_config([logconf1, logconfig2])
+```
+
+## Synchronous API
+
+The synchronous classes are wrappers around the asynchronouse API, where the asynchronous
+calls/callbacks are replaced with blocking calls. The synchronous API does not
+provide the full flexibility of the asynchronous API, but is useful when writing
+small scripts for logging for instance.
+
+The synchronous API uses the python Context manager concept, that is the ```with``` keyword.
+A resource is allocated when entering a ```with``` section and automatically released when
+exiting it, for instance a connection or take off/landing of a Crazyflie.
+
+### SyncCrazyflie
+
+The SyncCrazyflie class wrapps a Crazyflie instance and mainly simplifies connect/disconnect.
+
+Basic usage
+``` {.python}
+    with SyncCrazyflie(uri) as scf:
+        # A Crazyflie instance is created and is now connected. If the connection failes,
+        # an exception is raised.
+
+        # The underlying crazyflie object can be accessed through the cf member
+        scf.cf.param.set_value('kalman.resetEstimation', '1')
+
+        # Do useful stuff
+        # When leaving the "with" section, the connection is automatically closed
+```
+
+If some special properties are required for the underlying Crazyflie object,
+a Crazyflie instance can be passed in to the SyncCrazyflie instance.
+
+``` {.python}
+    my_cf = Crazyflie(rw_cache='./cache')
+    with SyncCrazyflie(uri, cf=my_cf) as scf:
+        # The my_cf is now connected
+        # Do useful stuff
+        # When leaving the "with" section, the connection is automatically closed
+```
+
+### SyncLogger
+
+The SyncLogger class wraps setting up, as well as starting/stopping logging. It works both for Crazyflie
+and SyncCrazyflie instances. To get the log values, iterate the instance.
+
+``` {.python}
+    # Connect to a Crazyflie
+    with SyncCrazyflie(uri) as scf:
+        # Create a log configuration
+        log_conf = LogConfig(name='myConf', period_in_ms=200)
+        log_conf.add_variable('stateEstimateZ.vx', 'int16_t')
+
+        # Start logging
+        with SyncLogger(scf, log_conf) as logger:
+            # Iterate the logger to get the values
+            count = 0
+            for log_entry in logger:
+                print(log_entry)
+                # Do useful stuff
+                count += 1
+                if (count > 10):
+                    # The logging will continue until you exit the loop
+                    break
+            # When leaving this "with" section, the logging is automatically stopped
+        # When leaving this "with" section, the connection is automatically closed
+```
+
+### MotionCommander
+
+The MotionCommander is intended to simplify basic autonomous flight. The Crazyflie takes off
+when entering the "with" section, and lands when exiting. It has functions for basic
+movements that are blocking until the motion is finished.
+
+The MotionCommander is using velocity set points and does not have a global coordinate
+system, all positions are relative. It is mainly intended to be used with a Flow deck.
+
+``` {.python}
+    with SyncCrazyflie(URI) as scf:
+        # We take off when the commander is created
+        with MotionCommander(scf) as mc:
+            # Move one meter forward
+            mc.forward(1)
+            # Move one meter back
+            mc.back(1)
+            # The Crazyflie lands when leaving this "with" section
+        # When leaving this "with" section, the connection is automatically closed
+```
+
+### PositionHlCommander
+
+The PositionHlCommander is intended to simplify basic autonomous flight. The Crazyflie takes off
+when entering the "with" section, and lands when exiting. It has functions for basic
+movements that are blocking until the motion is finished.
+
+The PositionHlCommander uses the high level commander in the Crazyflie and is
+based on a global coordinate system and absolute positoinins. It is inteneded
+to be used with a positioning system such as LPS, the lighthouse or a mocap system.
+
+``` {.python}
+    with SyncCrazyflie(URI) as scf:
+        with PositionHlCommander(scf) as pc:
+            # Go to the coordinate (0, 0, 1)
+            pc.go_to(0.0, 0.0, 1.0)
+            # The Crazyflie lands when leaving this "with" section
+        # When leaving this "with" section, the connection is automatically closed
+```
+
 ## Examples
 
-The examples are now placed in the repository in the examples folder.
+The see the example folder of the repository.

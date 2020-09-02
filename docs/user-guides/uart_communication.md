@@ -5,7 +5,7 @@ page_id: uart_communication
 
 This page describes how to control your Crazyflie via UART, e.g. with a direct connection to a Raspberry Pi or with your computer through an FTDI cable.
 
-# Physical Connection
+## Physical Connection
 
 To control the Crazyflie via UART first establish a physical connection between the Crazyflie and the controlling device. On the Crazyflie use the pins for UART2 which are on the right expansion connector TX2 (pin 1) and RX2 (pin 2).
 
@@ -14,15 +14,15 @@ If you are connecting to a Raspberry Pi look for the UART pins there connect the
 - Crazyflie TX2 -- Raspberry Pi RX
 - Crazyflie RX2 -- Raspberry Pi TX
 
-# Crazyflie Firmware
+## Crazyflie Firmware
 
 Typically the Crazyflie expects control commands from Radio or Bluetooth and also sends its feedback there. To change this to UART, the firmware has to be compiled with the `UART2_LINK=1` flag (e.g. `make UART2_LINK=1`) and flashed to the Crazyflie.
 
-# Controlling Device
+## Controlling Device
 
 On the controlling device the Python library `crazyflie-lib-python` can be used to send commands to the Crazyflie via UART if some additional dependencies are installed and UART is properly set up to be used.
 
-## UART setup Raspberry Pi
+### UART setup Raspberry Pi
 
 A prerequisite for controlling the Crazyflie via UART is that UART is properly set up. The following steps are tested with a Raspberry Pi Zero and a Raspberry Pi 3B+. Depending on what Raspberry Pi version you use some steps might be skipped or be a bit different. Additional information can be found in the [Raspberry Pi UART documentation](https://www.raspberrypi.org/documentation/configuration/uart.md).
 
@@ -40,11 +40,11 @@ A prerequisite for controlling the Crazyflie via UART is that UART is properly s
 
   (You can confirm that the user is listed in the dialout group with `groups` and that the device belongs to the group with `ls -l /dev/ttyAMA0` or `ls -l /dev/ttyS0`.)
 
-## Additional Dependencies
+### Additional Dependencies
 
 The Python library needs `pyserial` as an additional dependency for the UART communication. To install `pyserial` use `pip3 install pyserial`. (You can confirm that pyserial indeed finds your UART port by `python3 -m serial.tools.list_ports -v`.)
 
-# Usage
+## Usage
 
 Once everything is set up you should be able to control the Crazyflie via UART.
 

@@ -296,7 +296,7 @@ class Bootloader:
         ctr = 0  # Buffer counter
         for i in range(0, int((len(image) - 1) / t_data.page_size) + 1):
             if self.terminate_flashing_cb and self.terminate_flashing_cb():
-                raise Exception("Flashing terminated")
+                raise Exception('Flashing terminated')
 
             # Load the buffer
             if ((i + 1) * t_data.page_size) > len(image):

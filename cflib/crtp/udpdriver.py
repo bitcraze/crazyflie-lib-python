@@ -26,18 +26,14 @@
 #  MA  02110-1301, USA.
 """ CRTP UDP Driver. Work either with the UDP server or with an UDP device
 See udpserver.py for the protocol"""
+import queue
 import re
 import struct
-import sys
 from socket import socket
 
 from .crtpdriver import CRTPDriver
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
-if sys.version_info < (3,):
-    import Queue as queue
-else:
-    import queue
 
 __author__ = 'Bitcraze AB'
 __all__ = ['UdpDriver']

@@ -39,7 +39,7 @@ double dashes (no space) before 'build-base' and 'user'.
 
 ### More information (from Mathworks MATLAB documentation)
 
-System reqirements:
+System requirements:
 <http://www.mathworks.com/help/matlab/matlab_external/system-requirements-for-matlab-engine-for-python.html>
 
 Installation:

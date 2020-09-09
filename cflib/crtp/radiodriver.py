@@ -34,9 +34,9 @@ import array
 import binascii
 import collections
 import logging
+import queue
 import re
 import struct
-import sys
 import threading
 
 import cflib.drivers.crazyradio as crazyradio
@@ -44,11 +44,6 @@ from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
 from cflib.drivers.crazyradio import Crazyradio
-
-if sys.version_info < (3,):
-    import Queue as queue
-else:
-    import queue
 
 
 __author__ = 'Bitcraze AB'
@@ -298,11 +293,11 @@ class RadioDriver(CRTPDriver):
 
     def scan_selected(self, links):
         to_scan = ()
-        for l in links:
+        for link in links:
             one_to_scan = {}
             uri_data = re.search('^radio://([0-9]+)((/([0-9]+))'
                                  '(/(250K|1M|2M))?)?$',
-                                 l)
+                                 link)
 
             one_to_scan['channel'] = int(uri_data.group(4))
 

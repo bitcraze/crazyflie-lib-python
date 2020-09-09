@@ -11,11 +11,10 @@ the API that it implements.
 If you are interested in more details look in the PyDoc in the code or:
 
 -   Communication protocol for
-    [logging](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/ctrp_log/) or
-    [parameters](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/ctrp_parameters/)
+    [logging](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/crtp_log/) or
+    [parameters](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/crtp_parameters/)
 
-Structure of the library
-========================
+## Structure of the library
 
 The library is asynchronous and based on callbacks for events. Functions
 like `open_link` will return immediately, and the callback `connected`
@@ -23,8 +22,11 @@ will be called when the link is opened. The library doesn\'t contain any
 threads or locks that will keep the application running, it\'s up to the
 application that is using the library to do this.
 
-Uniform Resource Identifier (URI)
----------------------------------
+There are a few synchronous wrappers for selected classes that creates
+a synchronous API by wrapping the asynchronous classes, see the
+[Synchronous API section](#synchronous-api)
+
+### Uniform Resource Identifier (URI)
 
 All communication links are identified using an URI build up of the
 following: InterfaceType://InterfaceId/InterfaceChannel/InterfaceSpeed
@@ -37,8 +39,7 @@ examples:
     speed 250 Kbit/s: radio://0/10/250K %%
 -   Debug interface, id 0, channel 1: debug://0/1
 
-Variables and logging
----------------------
+### Variables and logging
 
 The library supports setting up logging configurations that are used for
 logging variables from the firmware. Each log configuration contains a
@@ -67,8 +68,7 @@ There\'s a few limitations that needs to be taken into account:
     dependent on what types they are
 -   The minimum period of a for a log configuration is multiples of 10ms
 
-Parameters
-----------
+### Parameters
 
 The library supports reading and writing parameters at run-time to the
 firmware. This is intended to be used for data that is not continuously
@@ -90,8 +90,7 @@ parameters should be used in the following way:
 -   For each write all the callbacks registered for this parameter will
     be called back
 
-Variable and parameter names
-----------------------------
+### Variable and parameter names
 
 All names of parameters and log variables use the same structure:
 `group.name`
@@ -108,11 +107,9 @@ There\'s a limit of 28 chars in total and here are some examples:
 -   imu\_tests.MPU6050
 -   pid\_attitide.pitch\_kd
 
-Utilities
-=========
+## Utilities
 
-Callbacks
----------
+### Callbacks
 
 All callbacks are handled using the `Caller` class that contains the
 following methods:
@@ -128,8 +125,7 @@ following methods:
         """ Call the callbacks registered with the arguments args """
 ```
 
-Debug driver
-------------
+### Debug driver
 
 The library contains a special link driver, named `DebugDriver`. This
 driver will emulate a Crazyflie and is used for testing of the UI and
@@ -147,8 +143,7 @@ random TOC CRC to always trigger TOC downloading or failing during
 connect. The driver also has support for sending back data with random
 delays to trigger random re-sending by the library.
 
-Initiating the link drivers
-===========================
+## Initiating the link drivers
 
 Before the library can be used the link drivers have to he initialized.
 This will search for available drivers and instantiate them.
@@ -158,8 +153,16 @@ This will search for available drivers and instantiate them.
        """ Search for and initialize link drivers. If enable_debug_driver is True then the DebugDriver will also be used."""
 ```
 
-Connection- and link-callbacks
-==============================
+### Serial driver
+
+The serial driver is disabled by default and has to be enabled to
+be used. Enable it in the call to `init_drivers()`
+
+``` {.python}
+    init_drivers(enable_serial_driver=True)
+```
+
+## Connection- and link-callbacks
 
 Operations on the link and connection will return directly and will call
 the following callbacks when events occur:
@@ -193,8 +196,7 @@ To register for callbacks the following is used:
     crazyflie.connected.add_callback(crazyflie_connected)
 ```
 
-Finding a Crazyflie and connecting
-==================================
+## Finding a Crazyflie and connecting
 
 The first thing to do is to find a Crazyflie quadcopter that we can
 connect to. This is done by queuing the library that will scan all the
@@ -222,8 +224,7 @@ Then you can use the following to close the link again:
     crazyflie.close_link()
 ```
 
-Sending control commands
-========================
+## Sending control commands
 
 The control commands are not implemented as parameters, instead they
 have a special API.
@@ -256,8 +257,7 @@ every 2 seconds. Ideally you should be sending one tick every 10 ms, for
 100 commands a second. This has a nice added benefit of allowing for
 very precise control.
 
-Parameters
-==========
+## Parameters
 
 The parameter framework is used to read and set parameters. This
 functionality should be used when:
@@ -307,8 +307,7 @@ Here\'s an example of how to use the calls.
         print "%s has value %d" % (name, value)
 ```
 
-Logging
-=======
+## Logging
 
 The logging framework is used to enable the \"automatic\" sending of
 variable values at specified intervals to the client. This functionality
@@ -408,7 +407,124 @@ The logging cannot be started until your are connected to a Crazyflie:
         print "Error when logging %s" % logconf.name
 ```
 
-Examples
-========
+The values of log varibles are transferred from the Crazyflie using CRTP
+packets, where all varibles belonging to one logging configuration are
+transfered in the same packet. A CRTP packet has a maximum data size of
+30 bytes, which sets an upper limit to the number of variables that
+can be used in one logging configuration. If the desired log variables
+do not fit in one logging configuration, a second cofiguration may
+be added.
 
-The examples are now placed in the repository in the examples folder.
+``` {.python}
+    crazyflie.log.add_config([logconf1, logconfig2])
+```
+
+## Synchronous API
+
+The synchronous classes are wrappers around the asynchronouse API, where the asynchronous
+calls/callbacks are replaced with blocking calls. The synchronous API does not
+provide the full flexibility of the asynchronous API, but is useful when writing
+small scripts for logging for instance.
+
+The synchronous API uses the python Context manager concept, that is the ```with``` keyword.
+A resource is allocated when entering a ```with``` section and automatically released when
+exiting it, for instance a connection or take off/landing of a Crazyflie.
+
+### SyncCrazyflie
+
+The SyncCrazyflie class wrapps a Crazyflie instance and mainly simplifies connect/disconnect.
+
+Basic usage
+``` {.python}
+    with SyncCrazyflie(uri) as scf:
+        # A Crazyflie instance is created and is now connected. If the connection failes,
+        # an exception is raised.
+
+        # The underlying crazyflie object can be accessed through the cf member
+        scf.cf.param.set_value('kalman.resetEstimation', '1')
+
+        # Do useful stuff
+        # When leaving the "with" section, the connection is automatically closed
+```
+
+If some special properties are required for the underlying Crazyflie object,
+a Crazyflie instance can be passed in to the SyncCrazyflie instance.
+
+``` {.python}
+    my_cf = Crazyflie(rw_cache='./cache')
+    with SyncCrazyflie(uri, cf=my_cf) as scf:
+        # The my_cf is now connected
+        # Do useful stuff
+        # When leaving the "with" section, the connection is automatically closed
+```
+
+### SyncLogger
+
+The SyncLogger class wraps setting up, as well as starting/stopping logging. It works both for Crazyflie
+and SyncCrazyflie instances. To get the log values, iterate the instance.
+
+``` {.python}
+    # Connect to a Crazyflie
+    with SyncCrazyflie(uri) as scf:
+        # Create a log configuration
+        log_conf = LogConfig(name='myConf', period_in_ms=200)
+        log_conf.add_variable('stateEstimateZ.vx', 'int16_t')
+
+        # Start logging
+        with SyncLogger(scf, log_conf) as logger:
+            # Iterate the logger to get the values
+            count = 0
+            for log_entry in logger:
+                print(log_entry)
+                # Do useful stuff
+                count += 1
+                if (count > 10):
+                    # The logging will continue until you exit the loop
+                    break
+            # When leaving this "with" section, the logging is automatically stopped
+        # When leaving this "with" section, the connection is automatically closed
+```
+
+### MotionCommander
+
+The MotionCommander is intended to simplify basic autonomous flight. The Crazyflie takes off
+when entering the "with" section, and lands when exiting. It has functions for basic
+movements that are blocking until the motion is finished.
+
+The MotionCommander is using velocity set points and does not have a global coordinate
+system, all positions are relative. It is mainly intended to be used with a Flow deck.
+
+``` {.python}
+    with SyncCrazyflie(URI) as scf:
+        # We take off when the commander is created
+        with MotionCommander(scf) as mc:
+            # Move one meter forward
+            mc.forward(1)
+            # Move one meter back
+            mc.back(1)
+            # The Crazyflie lands when leaving this "with" section
+        # When leaving this "with" section, the connection is automatically closed
+```
+
+### PositionHlCommander
+
+The PositionHlCommander is intended to simplify basic autonomous flight. The Crazyflie takes off
+when entering the "with" section, and lands when exiting. It has functions for basic
+movements that are blocking until the motion is finished.
+
+The PositionHlCommander uses the high level commander in the Crazyflie and is
+based on a global coordinate system and absolute positoinins. It is inteneded
+to be used with a positioning system such as LPS, the lighthouse or a mocap system.
+
+``` {.python}
+    with SyncCrazyflie(URI) as scf:
+        with PositionHlCommander(scf) as pc:
+            # Go to the coordinate (0, 0, 1)
+            pc.go_to(0.0, 0.0, 1.0)
+            # The Crazyflie lands when leaving this "with" section
+        # When leaving this "with" section, the connection is automatically closed
+```
+
+## Examples
+
+The see the example folder of the repository.

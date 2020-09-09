@@ -42,16 +42,12 @@ this mode of operation takeoff and landing is executed when the context is
 created/closed.
 """
 import math
-import sys
 import time
+from queue import Empty
+from queue import Queue
 from threading import Thread
 
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-
-if sys.version_info < (3,):
-    from Queue import Queue, Empty
-else:
-    from queue import Queue, Empty
 
 
 class MotionCommander:
@@ -80,7 +76,7 @@ class MotionCommander:
 
     def take_off(self, height=None, velocity=VELOCITY):
         """
-        Takes off, that is starts the motors, goes straigt up and hovers.
+        Takes off, that is starts the motors, goes straight up and hovers.
         Do not call this function if you use the with keyword. Take off is
         done automatically when the context is created.
 
@@ -197,7 +193,7 @@ class MotionCommander:
         Turn to the left, staying on the spot
 
         :param angle_degrees: How far to turn (degrees)
-        :param rate: The trurning speed (degrees/second)
+        :param rate: The turning speed (degrees/second)
         :return:
         """
         flight_time = angle_degrees / rate
@@ -211,7 +207,7 @@ class MotionCommander:
         Turn to the right, staying on the spot
 
         :param angle_degrees: How far to turn (degrees)
-        :param rate: The trurning speed (degrees/second)
+        :param rate: The turning speed (degrees/second)
         :return:
         """
         flight_time = angle_degrees / rate

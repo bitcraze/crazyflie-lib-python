@@ -31,7 +31,6 @@ Enables flash access to the Crazyflie.
 import errno
 import logging
 import struct
-import sys
 from array import array
 from binascii import crc32
 from functools import reduce
@@ -54,13 +53,7 @@ CMD_INFO_VER = 0
 CMD_INFO_NBR = 1
 CMD_INFO_DETAILS = 2
 
-# The max size of a CRTP packet payload
-MAX_LOG_DATA_PACKET_SIZE = 30
-
-if sys.version_info < (3,):
-    EEPROM_TOKEN = '0xBC'
-else:
-    EEPROM_TOKEN = b'0xBC'
+EEPROM_TOKEN = b'0xBC'
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +69,7 @@ class MemoryElement(object):
     TYPE_LOCO2 = 0x13
     TYPE_LH = 0x14
     TYPE_MEMORY_TESTER = 0x15
+    TYPE_DRIVER_LEDTIMING = 0x17
 
     def __init__(self, id, type, size, mem_handler):
         """Initialize the element with default values"""
@@ -91,6 +85,8 @@ class MemoryElement(object):
             return 'I2C'
         if t == MemoryElement.TYPE_1W:
             return '1-wire'
+        if t == MemoryElement.TYPE_DRIVER_LEDTIMING:
+            return 'LED memory driver'
         if t == MemoryElement.TYPE_DRIVER_LED:
             return 'LED driver'
         if t == MemoryElement.TYPE_LOCO:
@@ -186,6 +182,68 @@ class LEDDriverMemory(MemoryElement):
     def write_done(self, mem, addr):
         if self._write_finished_cb and mem.id == self.id:
             logger.debug('Write to LED driver done')
+            self._write_finished_cb(self, addr)
+            self._write_finished_cb = None
+
+    def disconnect(self):
+        self._update_finished_cb = None
+        self._write_finished_cb = None
+
+
+class LEDTimingsDriverMemory(MemoryElement):
+    """Memory interface for using the LED-ring mapped memory for setting RGB
+       values over time. To upload and run a show sequence of
+       the LEDs in the ring"""
+
+    def __init__(self, id, type, size, mem_handler):
+        super(LEDTimingsDriverMemory, self).__init__(id=id,
+                                                     type=type,
+                                                     size=size,
+                                                     mem_handler=mem_handler)
+        self._update_finished_cb = None
+        self._write_finished_cb = None
+
+        self.timings = []
+
+    def add(self, time, rgb, leds=0, fade=False, rotate=0):
+        self.timings.append({
+            'time': time,
+            'rgb': rgb,
+            'leds': leds,
+            'fade': fade,
+            'rotate': rotate
+        })
+
+    def write_data(self, write_finished_cb):
+        if write_finished_cb is not None:
+            self._write_finished_cb = write_finished_cb
+
+        data = []
+        for timing in self.timings:
+            # In order to fit all the LEDs in one radio packet RGB565 is used
+            # to compress the colors. The calculations below converts 3 bytes
+            # RGB into 2 bytes RGB565. Then shifts the value of each color to
+            # LSB, applies the intensity and shifts them back for correct
+            # alignment on 2 bytes.
+            R5 = ((int)((((int(timing['rgb']['r']) & 0xFF) * 249 + 1014) >> 11)
+                        & 0x1F))
+            G6 = ((int)((((int(timing['rgb']['g']) & 0xFF) * 253 + 505) >> 10)
+                        & 0x3F))
+            B5 = ((int)((((int(timing['rgb']['b']) & 0xFF) * 249 + 1014) >> 11)
+                        & 0x1F))
+            led = (int(R5) << 11) | (int(G6) << 5) | (int(B5) << 0)
+            extra = ((timing['leds']) & 0x0F) | (
+                (timing['fade'] << 4) & 0x10) | (
+                (timing['rotate'] << 5) & 0xE0)
+
+            if (timing['time'] & 0xFF) != 0 or led != 0 or extra != 0:
+                data += [timing['time'] & 0xFF, led >> 8, led & 0xFF, extra]
+
+        data += [0, 0, 0, 0]
+        self.mem_handler.write(self, 0x00, bytearray(data), flush_queue=True)
+
+    def write_done(self, mem, addr):
+        if mem.id == self.id and self._write_finished_cb:
             self._write_finished_cb(self, addr)
             self._write_finished_cb = None
 
@@ -1281,6 +1339,13 @@ class Memory():
                     elif mem_type == MemoryElement.TYPE_MEMORY_TESTER:
                         mem = MemoryTester(id=mem_id, type=mem_type,
                                            size=mem_size, mem_handler=self)
+                        logger.debug(mem)
+                        self.mem_read_cb.add_callback(mem.new_data)
+                        self.mem_write_cb.add_callback(mem.write_done)
+                    elif mem_type == MemoryElement.TYPE_DRIVER_LEDTIMING:
+                        mem = LEDTimingsDriverMemory(id=mem_id, type=mem_type,
+                                                     size=mem_size,
+                                                     mem_handler=self)
                         logger.debug(mem)
                         self.mem_read_cb.add_callback(mem.new_data)
                         self.mem_write_cb.add_callback(mem.write_done)

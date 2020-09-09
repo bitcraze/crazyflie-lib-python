@@ -30,18 +30,14 @@ Crazyflie USB driver.
 This driver is used to communicate with the Crazyflie using the USB connection.
 """
 import logging
+import queue
 import re
-import sys
 import threading
 
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
 from cflib.drivers.cfusb import CfUsb
-if sys.version_info < (3,):
-    import Queue as queue
-else:
-    import queue
 
 __author__ = 'Bitcraze AB'
 __all__ = ['UsbDriver']
@@ -71,7 +67,7 @@ class UsbDriver(CRTPDriver):
 
         The callback for linkQuality can be called at any moment from the
         driver to report back the link quality in percentage. The
-        callback from linkError will be called when a error occues with
+        callback from linkError will be called when a error occurs with
         an error message.
         """
 
@@ -214,8 +210,6 @@ class _UsbReceiveThread(threading.Thread):
     """
     Radio link receiver thread used to read data from the
     Crazyradio USB driver. """
-
-    # RETRYCOUNT_BEFORE_DISCONNECT = 10
 
     def __init__(self, cfusb, inQueue, link_quality_callback,
                  link_error_callback):

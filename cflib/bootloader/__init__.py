@@ -73,6 +73,7 @@ class Bootloader:
         self.in_bootloader_cb = None
         # Target
         self.dev_info_cb = None
+        self.terminate_flashing_cb = None
 
         # self.dev_info_cb.add_callback(self._dev_info)
         # self.in_bootloader_cb.add_callback(self._bootloader_info)
@@ -294,6 +295,9 @@ class Bootloader:
         # For each page
         ctr = 0  # Buffer counter
         for i in range(0, int((len(image) - 1) / t_data.page_size) + 1):
+            if self.terminate_flashing_cb and self.terminate_flashing_cb():
+                raise Exception('Flashing terminated')
+
             # Load the buffer
             if ((i + 1) * t_data.page_size) > len(image):
                 self._cload.upload_buffer(
@@ -334,7 +338,7 @@ class Bootloader:
                                                ctr):
                     if self.progress_cb:
                         self.progress_cb(
-                            'Error during flash operation (code %d)'.format(
+                            'Error during flash operation (code {})'.format(
                                 self._cload.error_code),
                             int(progress))
                     else:
@@ -361,7 +365,7 @@ class Bootloader:
                      (ctr - 1)), ctr):
                 if self.progress_cb:
                     self.progress_cb(
-                        'Error during flash operation (code %d)'.format(
+                        'Error during flash operation (code {})'.format(
                             self._cload.error_code),
                         int(progress))
                 else:

@@ -29,18 +29,13 @@ An early serial link driver. This could still be used (after some fixing) to
 run high-speed CRTP with the Crazyflie. The UART can be run at 2Mbit.
 """
 import logging
+import queue
 import re
-import sys
 import threading
 
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
-
-if sys.version_info < (3,):
-    import Queue as queue
-else:
-    import queue
 
 found_serial = True
 try:
@@ -87,18 +82,18 @@ class SerialDriver(CRTPDriver):
             raise WrongUriType('Not a serial URI')
 
         # Check if it is a valid serial URI
-        uri_data = re.search('^serial://([a-zA-Z0-9]+)$', uri)
+        uri_data = re.search('^serial://([-a-zA-Z0-9/.]+)$', uri)
         if not uri_data:
             raise Exception('Invalid serial URI')
 
-        devices = [x.device for x in list_ports.comports()
-                   if x.name == uri_data.group(1)]
-        if not len(devices) == 1:
-            raise Exception('Could not identify device')
-        device = devices[0]
-
         if not found_serial:
             raise Exception('PySerial package is missing')
+
+        device_name = uri_data.group(1)
+        devices = self.get_devices()
+        if device_name not in devices:
+            raise Exception('Could not identify device')
+        device = devices[device_name]
 
         self.uri = uri
 
@@ -146,7 +141,7 @@ class SerialDriver(CRTPDriver):
 
     def scan_interface(self, address):
         if found_serial:
-            devices_names = [x.name for x in list_ports.comports()]
+            devices_names = self.get_devices().keys()
             return [('serial://' + x, '') for x in devices_names]
         else:
             return []
@@ -160,6 +155,18 @@ class SerialDriver(CRTPDriver):
         except Exception:
             pass
         self.ser.close()
+
+    def get_devices(self):
+        result = {}
+        for port in list_ports.comports():
+            name = port.name
+            # Name is not populated on all systems, fall back on the device
+            if not name:
+                name = port.device
+
+            result[name] = port.device
+
+        return result
 
 
 class _SerialReceiveThread(threading.Thread):
@@ -205,7 +212,7 @@ class _SerialReceiveThread(threading.Thread):
                 if r != expected:
                     continue
 
-                # NOTE: end is (expected - 2) as the lenght of the data +2 for
+                # NOTE: end is (expected - 2) as the length of the data +2 for
                 # the header bytes
                 cksum = compute_cksum(memoryview(received)[:expected])
                 if cksum[0] != received_data_chk[-2] or \

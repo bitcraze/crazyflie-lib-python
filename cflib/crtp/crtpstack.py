@@ -28,7 +28,6 @@
 CRTP packet and ports.
 """
 import logging
-import sys
 
 __author__ = 'Bitcraze AB'
 __all__ = ['CRTPPort', 'CRTPPacket']
@@ -58,6 +57,9 @@ class CRTPPacket(object):
     """
     A packet that can be sent via the CRTP.
     """
+
+    # The max size of a CRTP packet payload
+    MAX_DATA_SIZE = 30
 
     def __init__(self, header=0, data=None):
         """
@@ -121,13 +123,10 @@ class CRTPPacket(object):
         if type(data) == bytearray:
             self._data = data
         elif type(data) == str:
-            if sys.version_info < (3,):
-                self._data = bytearray(data)
-            else:
-                self._data = bytearray(data.encode('ISO-8859-1'))
+            self._data = bytearray(data.encode('ISO-8859-1'))
         elif type(data) == list or type(data) == tuple:
             self._data = bytearray(data)
-        elif sys.version_info >= (3,) and type(data) == bytes:
+        elif type(data) == bytes:
             self._data = bytearray(data)
         else:
             raise Exception('Data must be bytearray, string, list or tuple,'
@@ -144,6 +143,15 @@ class CRTPPacket(object):
     def __str__(self):
         """Get a string representation of the packet"""
         return '{}:{} {}'.format(self._port, self.channel, self.datat)
+
+    def get_data_size(self):
+        return len(self._data)
+
+    def available_data_size(self):
+        return self.MAX_DATA_SIZE - self.get_data_size()
+
+    def is_data_size_valid(self):
+        return self.available_data_size() >= 0
 
     data = property(_get_data, _set_data)
     datal = property(_get_data_l, _set_data)

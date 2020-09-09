@@ -23,9 +23,10 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-import sys
 import unittest
 from test.support.asyncCallbackCaller import AsyncCallbackCaller
+from unittest.mock import call
+from unittest.mock import MagicMock
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import Log
@@ -33,13 +34,6 @@ from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.utils.callbacks import Caller
-
-if sys.version_info < (3, 3):
-    from mock import MagicMock
-    from mock import call
-else:
-    from unittest.mock import MagicMock
-    from unittest.mock import call
 
 
 class SyncLoggerTest(unittest.TestCase):

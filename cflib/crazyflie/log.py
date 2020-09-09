@@ -99,9 +99,6 @@ IDLE = 'IDLE'
 GET_TOC_INF = 'GET_TOC_INFO'
 GET_TOC_ELEMENT = 'GET_TOC_ELEMENT'
 
-# The max size of a CRTP packet payload
-MAX_LOG_DATA_PACKET_SIZE = 30
-
 
 logger = logging.getLogger(__name__)
 
@@ -217,15 +214,22 @@ class LogConfig(object):
     added = property(_get_added, _set_added)
     started = property(_get_started, _set_started)
 
-    def create(self):
-        """Save the log configuration in the Crazyflie"""
-        pk = CRTPPacket()
-        pk.set_header(5, CHAN_SETTINGS)
+    def _cmd_create_block(self):
         if self.useV2:
-            pk.data = (CMD_CREATE_BLOCK_V2, self.id)
+            return CMD_CREATE_BLOCK_V2
         else:
-            pk.data = (CMD_CREATE_BLOCK, self.id)
-        for var in self.variables:
+            return CMD_CREATE_BLOCK
+
+    def _cmd_append_block(self):
+        if self.useV2:
+            return CMD_APPEND_BLOCK_V2
+        else:
+            return CMD_APPEND_BLOCK
+
+    def _setup_log_elements(self, pk, next_to_add):
+        i = next_to_add
+        for i in range(next_to_add, len(self.variables)):
+            var = self.variables[i]
             if (var.is_toc_variable() is False):  # Memory location
                 logger.debug('Logging to raw memory %d, 0x%04X',
                              var.get_storage_and_fetch_byte(), var.address)
@@ -233,23 +237,41 @@ class LogConfig(object):
                                            var.get_storage_and_fetch_byte()))
                 pk.data.append(struct.pack('<I', var.address))
             else:  # Item in TOC
+                element_id = self.cf.log.toc.get_element_id(var.name)
                 logger.debug('Adding %s with id=%d and type=0x%02X',
                              var.name,
-                             self.cf.log.toc.get_element_id(
-                                 var.name), var.get_storage_and_fetch_byte())
+                             element_id,
+                             var.get_storage_and_fetch_byte())
                 pk.data.append(var.get_storage_and_fetch_byte())
                 if self.useV2:
-                    ident = self.cf.log.toc.get_element_id(var.name)
-                    pk.data.append(ident & 0x0ff)
-                    pk.data.append((ident >> 8) & 0x0ff)
+                    size_to_add = 2
+                    if pk.available_data_size() >= size_to_add:
+                        pk.data.append(element_id & 0x0ff)
+                        pk.data.append((element_id >> 8) & 0x0ff)
+                    else:
+                        # Packet is full
+                        return False, i
                 else:
-                    pk.data.append(self.cf.log.toc.get_element_id(var.name))
-        logger.debug('Adding log block id {}'.format(self.id))
-        if self.useV2:
-            self.cf.send_packet(pk, expected_reply=(
-                CMD_CREATE_BLOCK_V2, self.id))
-        else:
-            self.cf.send_packet(pk, expected_reply=(CMD_CREATE_BLOCK, self.id))
+                    pk.data.append(element_id)
+
+        return True, i
+
+    def create(self):
+        """Save the log configuration in the Crazyflie"""
+        command = self._cmd_create_block()
+        next_to_add = 0
+        is_done = False
+        while not is_done:
+            pk = CRTPPacket()
+            pk.set_header(5, CHAN_SETTINGS)
+            pk.data = (command, self.id)
+            is_done, next_to_add = self._setup_log_elements(pk, next_to_add)
+
+            logger.debug('Adding/appending log block id {}'.format(self.id))
+            self.cf.send_packet(pk, expected_reply=(command, self.id))
+
+            # Use append if we have to add more variables
+            command = self._cmd_append_block()
 
     def start(self):
         """Start the logging for this entry"""
@@ -452,7 +474,7 @@ class Log():
                     logconf.valid = False
                     raise KeyError('Variable {} not in TOC'.format(var.name))
 
-        if (size <= MAX_LOG_DATA_PACKET_SIZE and
+        if (size <= CRTPPacket.MAX_DATA_SIZE and
                 (logconf.period > 0 and logconf.period < 0xFF)):
             logconf.valid = True
             logconf.cf = self.cf

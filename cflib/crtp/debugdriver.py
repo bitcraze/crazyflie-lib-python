@@ -36,11 +36,11 @@ generated console output via CRTP.
 """
 import errno
 import logging
+import queue
 import random
 import re
 import string
 import struct
-import sys
 import time
 from datetime import datetime
 from threading import Thread
@@ -51,10 +51,6 @@ from .crtpstack import CRTPPort
 from .exceptions import WrongUriType
 from cflib.crazyflie.log import LogTocElement
 from cflib.crazyflie.param import ParamTocElement
-if sys.version_info < (3,):
-    import Queue as queue
-else:
-    import queue
 
 __author__ = 'Bitcraze AB'
 __all__ = ['DebugDriver']

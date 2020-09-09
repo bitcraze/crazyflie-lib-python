@@ -21,16 +21,11 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-import sys
 import unittest
+from unittest.mock import MagicMock
 
 from cflib.crazyflie.swarm import Swarm
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-
-if sys.version_info < (3, 3):
-    from mock import MagicMock
-else:
-    from unittest.mock import MagicMock
 
 
 class TestSwarm(unittest.TestCase):

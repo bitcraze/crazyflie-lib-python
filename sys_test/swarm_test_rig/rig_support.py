@@ -23,8 +23,7 @@
 #  MA  02110-1301, USA.
 import time
 
-from cflib.crtp import RadioDriver
-from cflib.drivers.crazyradio import Crazyradio
+from cflib.utils.power_switch import PowerSwitch
 
 
 class RigSupport:
@@ -43,35 +42,15 @@ class RigSupport:
         ]
 
     def restart_devices(self, uris):
-        def send_packets(uris, value, description):
-            for uri in uris:
-                devid, channel, datarate, address = RadioDriver.parse_uri(uri)
-                radio.set_channel(channel)
-                radio.set_data_rate(datarate)
-                radio.set_address(address)
-
-                received_packet = False
-                for i in range(10):
-                    result = radio.send_packet((0xf3, 0xfe, value))
-                    if result.ack is True:
-                        received_packet = True
-                        # if i > 0:
-                        #     print('Lost packets', i, uri)
-                        break
-
-                if not received_packet:
-                    raise Exception('Failed to turn device {}, for {}'.
-                                    format(description, uri))
-
         print('Restarting devices')
 
-        BOOTLOADER_CMD_SYSOFF = 0x02
-        BOOTLOADER_CMD_SYSON = 0x03
+        for uri in uris:
+            PowerSwitch(uri).stm_power_down()
 
-        radio = Crazyradio()
-        send_packets(uris, BOOTLOADER_CMD_SYSOFF, 'off')
-        send_packets(uris, BOOTLOADER_CMD_SYSON, 'on')
+        time.sleep(1)
+
+        for uri in uris:
+            PowerSwitch(uri).stm_power_up()
 
         # Wait for devices to boot
         time.sleep(8)
-        radio.close()

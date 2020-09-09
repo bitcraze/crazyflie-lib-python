@@ -22,19 +22,16 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 import math
-import sys
 import unittest
+from unittest.mock import call
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from cflib.crazyflie import Commander
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie import Param
 from cflib.positioning.motion_commander import _SetPointThread
 from cflib.positioning.motion_commander import MotionCommander
-
-if sys.version_info < (3, 3):
-    from mock import MagicMock, patch, call
-else:
-    from unittest.mock import MagicMock, patch, call
 
 
 @patch('time.sleep')

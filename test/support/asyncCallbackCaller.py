@@ -32,8 +32,10 @@ class AsyncCallbackCaller:
         self.delay = delay
         self.args = args
         self.kwargs = kwargs
+        self.call_count = 0
 
     def trigger(self, *args, **kwargs):
+        self.call_count += 1
         Thread(target=self._make_call).start()
 
     def call_and_wait(self):

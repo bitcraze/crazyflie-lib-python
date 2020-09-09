@@ -9,7 +9,7 @@ try:
     script_dir = os.path.dirname(os.path.realpath(__file__))
     root = _path.normpath(_path.join(script_dir, '../..'))
 
-    subprocess.check_call(['python', 'setup.py', 'bdist_wheel'], cwd=root)
+    subprocess.check_call(['python3', 'setup.py', 'bdist_wheel'], cwd=root)
 
     print('Wheel built')
 except subprocess.CalledProcessError as e:

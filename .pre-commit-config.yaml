@@ -1,5 +1,5 @@
 -   repo: git://github.com/pre-commit/pre-commit-hooks
-    sha: 7192665e31cea6ace58a71e086c7248d7e5610c2
+    rev: 7192665e31cea6ace58a71e086c7248d7e5610c2
     hooks:
     -   id: autopep8-wrapper
     -   id: check-added-large-files
@@ -16,6 +16,6 @@
     -   id: flake8
     -   id: requirements-txt-fixer
 -   repo: git://github.com/asottile/reorder_python_imports
-    sha: ab609b9b982729dfc287b4e75963c0c4de254a31
+    rev: ab609b9b982729dfc287b4e75963c0c4de254a31
     hooks:
     -   id: reorder-python-imports

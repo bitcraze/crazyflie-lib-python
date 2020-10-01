@@ -1,0 +1,18 @@
+# Run check and build of the lib using the Bitcraze builder docker image
+
+name: lib
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Check and build
+      run: docker run --rm -v ${PWD}:/module bitcraze/builder ./tools/build/build 

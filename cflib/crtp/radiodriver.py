@@ -33,15 +33,21 @@ USB dongle.
 import array
 import binascii
 import collections
-from enum import Enum
 import logging
 import queue
-from queue import Queue
 import re
 import struct
 import threading
-from threading import Semaphore, Thread
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from enum import Enum
+from queue import Queue
+from threading import Semaphore
+from threading import Thread
+from typing import Any
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Tuple
+from typing import Union
 
 import cflib.drivers.crazyradio as crazyradio
 from .crtpstack import CRTPPacket
@@ -72,7 +78,7 @@ class _RadioCommands(Enum):
 
 class _SharedRadioInstance():
     def __init__(self, instance_id: int,
-                 cmd_queue: "Queue[Tuple[int, _RadioCommands, Any]]",
+                 cmd_queue: 'Queue[Tuple[int, _RadioCommands, Any]]',
                  rsp_queue: Queue,
                  version: float):
         self._instance_id = instance_id
@@ -373,7 +379,8 @@ class RadioDriver(CRTPDriver):
         self.link_error_callback = None
         self.link_quality_callback = None
 
-    def _scan_radio_channels(self, radio: _SharedRadioInstance, start=0, stop=125):
+    def _scan_radio_channels(self, radio: _SharedRadioInstance,
+                             start=0, stop=125):
         """ Scan for Crazyflies between the supplied channels. """
         return list(radio.scan_channels(start, stop, (0xff,)))
 

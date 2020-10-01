@@ -1,6 +1,6 @@
 # Run check and build of the lib using the Bitcraze builder docker image
 
-name: lib
+name: build
 
 on:
   push:

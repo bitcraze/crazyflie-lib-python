@@ -145,6 +145,7 @@ class _SharedRadio(Thread):
     def __init__(self, devid: int):
         Thread.__init__(self)
         self._radio = Crazyradio(devid=devid)
+        self._devid = devid
         self.version = self._radio.version
 
         self._cmd_queue = Queue()  # type: Queue[Tuple[int, _RadioCommands, Any]]  # noqa
@@ -172,7 +173,11 @@ class _SharedRadio(Thread):
 
             if command[1] == _RadioCommands.STOP:
                 with self._lock:
-                    pass
+                    del self._rsp_queues[command[0]]
+                    if len(self._rsp_queues) == 0:
+                        self._radio.close()
+                        _RadioManager.remove(self._devid)
+                        return
             elif command[1] == _RadioCommands.SEND_PACKET:
                 channel, address, datarate, data = command[2]
                 self._radio.set_channel(channel)
@@ -213,6 +218,11 @@ class _RadioManager:
                 _RadioManager._radios[devid] = shared_radio
 
         return shared_radio.open_instance()
+
+    @staticmethod
+    def remove(devid: int):
+        with _RadioManager._lock:
+            _RadioManager._radios[devid] = None
 
 
 class RadioDriver(CRTPDriver):

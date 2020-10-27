@@ -1113,13 +1113,6 @@ class Memory():
 
     def __init__(self, crazyflie=None):
         """Instantiate class and connect callbacks"""
-        # Called when new memories have been added
-        self.mem_added_cb = Caller()
-        # Called when new data has been read
-        self.mem_read_cb = Caller()
-
-        self.mem_write_cb = Caller()
-
         self.cf = crazyflie
         self.cf.add_port_callback(CRTPPort.MEM, self._new_packet_cb)
         self.cf.disconnected.add_callback(self._disconnected)
@@ -1129,6 +1122,12 @@ class Memory():
 
     def _clear_state(self):
         self.mems = []
+        # Called when new memories have been added
+        self.mem_added_cb = Caller()
+        # Called when new data has been read
+        self.mem_read_cb = Caller()
+        self.mem_write_cb = Caller()
+
         self._refresh_callback = None
         self._fetch_id = 0
         self.nbr_of_mems = 0

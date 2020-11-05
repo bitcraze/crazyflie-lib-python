@@ -50,13 +50,15 @@ class TrajectoryMemory(MemoryElement):
         super(TrajectoryMemory, self).__init__(id=id, type=type, size=size,
                                                mem_handler=mem_handler)
         self._write_finished_cb = None
+        self._write_failed_cb = None
 
         # A list of Poly4D objects to write to the Crazyflie
         self.poly4Ds = []
 
-    def write_data(self, write_finished_cb):
+    def write_data(self, write_finished_cb, write_failed_cb=None):
         """Write trajectory data to the Crazyflie"""
         self._write_finished_cb = write_finished_cb
+        self._write_failed_cb = write_failed_cb
         data = bytearray()
 
         for poly4D in self.poly4Ds:
@@ -73,6 +75,14 @@ class TrajectoryMemory(MemoryElement):
             logger.debug('Write trajectory data done')
             self._write_finished_cb(self, addr)
             self._write_finished_cb = None
+            self._write_failed_cb = None
+
+    def write_failed(self, mem, addr):
+        if self._write_failed_cb and mem.id == self.id:
+            logger.debug('Write od trajectory data failed')
+            self._write_failed_cb(self, addr)
+            self._write_finished_cb = None
+            self._write_failed_cb = None
 
     def disconnect(self):
         self._write_finished_cb = None

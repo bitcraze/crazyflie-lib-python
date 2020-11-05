@@ -232,9 +232,12 @@ class Memory():
         self.mems = []
         # Called when new memories have been added
         self.mem_added_cb = Caller()
-        # Called when new data has been read
+
+        # Called to signal completion of read or write
         self.mem_read_cb = Caller()
+        self.mem_read_failed_cb = Caller()
         self.mem_write_cb = Caller()
+        self.mem_write_failed_cb = Caller()
 
         self._refresh_callback = None
         self._fetch_id = 0
@@ -298,7 +301,7 @@ class Memory():
         if flush_queue:
             self._write_requests[memory.id] = self._write_requests[
                 memory.id][:1]
-        self._write_requests[memory.id].insert(len(self._write_requests), wreq)
+        self._write_requests[memory.id].append(wreq)
         if len(self._write_requests[memory.id]) == 1:
             wreq.start()
         self._write_requests_lock.release()
@@ -432,6 +435,7 @@ class Memory():
                                                size=mem_size, mem_handler=self)
                         logger.debug(mem)
                         self.mem_write_cb.add_callback(mem.write_done)
+                        self.mem_write_failed_cb.add_callback(mem.write_failed)
                     elif mem_type == MemoryElement.TYPE_LOCO2:
                         mem = LocoMemory2(id=mem_id, type=mem_type,
                                           size=mem_size, mem_handler=self)
@@ -509,8 +513,15 @@ class Memory():
                             self._write_requests[id][0].start()
                 else:
                     logger.debug(
-                        'Status {}: write resending...'.format(status))
-                    wreq.resend()
+                        'Status {}: write failed.'.format(status))
+                    # Remove from queue
+                    self._write_requests[id].pop(0)
+                    self.mem_write_failed_cb.call(wreq.mem, wreq.addr)
+
+                    # Get a new one to start (if there are any)
+                    if len(self._write_requests[id]) > 0:
+                        self._write_requests[id][0].start()
+
                 self._write_requests_lock.release()
 
         if chan == CHAN_READ:
@@ -530,5 +541,7 @@ class Memory():
                         self._read_requests.pop(id, None)
                         self.mem_read_cb.call(rreq.mem, rreq.addr, rreq.data)
                 else:
-                    logger.debug('Status {}: resending...'.format(status))
-                    rreq.resend()
+                    logger.debug('Status {}: read failed.'.format(status))
+                    self._read_requests.pop(id, None)
+                    self.mem_read_failed_cb.call(
+                        rreq.mem, rreq.addr, rreq.data)

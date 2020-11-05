@@ -30,6 +30,7 @@ This example is intended to work with any positioning system (including LPS).
 It aims at documenting how to set the Crazyflie in position control mode
 and how to send setpoints using the high level commander.
 """
+import sys
 import time
 
 import cflib.crtp
@@ -65,17 +66,27 @@ figure8 = [
 class Uploader:
     def __init__(self):
         self._is_done = False
+        self._sucess = True
 
     def upload(self, trajectory_mem):
         print('Uploading data')
-        trajectory_mem.write_data(self._upload_done)
+        trajectory_mem.write_data(self._upload_done,
+                                  write_failed_cb=self._upload_failed)
 
         while not self._is_done:
             time.sleep(0.2)
 
+        return self._sucess
+
     def _upload_done(self, mem, addr):
         print('Data uploaded')
         self._is_done = True
+        self._sucess = True
+
+    def _upload_failed(self, mem, addr):
+        print('Data upload failed')
+        self._is_done = True
+        self._sucess = False
 
 
 def wait_for_position_estimator(scf):
@@ -148,7 +159,10 @@ def upload_trajectory(cf, trajectory_id, trajectory):
         trajectory_mem.poly4Ds.append(Poly4D(duration, x, y, z, yaw))
         total_duration += duration
 
-    Uploader().upload(trajectory_mem)
+    upload_result = Uploader().upload(trajectory_mem)
+    if not upload_result:
+        print('Upload failed, aborting!')
+        sys.exit(1)
     cf.high_level_commander.define_trajectory(trajectory_id, 0,
                                               len(trajectory_mem.poly4Ds))
     return total_duration
@@ -175,8 +189,8 @@ if __name__ == '__main__':
         trajectory_id = 1
 
         activate_high_level_commander(cf)
-        # activate_mellinger_controller(cf)
+        activate_mellinger_controller(cf)
         duration = upload_trajectory(cf, trajectory_id, figure8)
         print('The sequence is {:.1f} seconds long'.format(duration))
-        reset_estimator(cf)
-        run_sequence(cf, trajectory_id, duration)
+        # reset_estimator(cf)
+        # run_sequence(cf, trajectory_id, duration)

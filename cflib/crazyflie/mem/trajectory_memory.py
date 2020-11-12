@@ -78,9 +78,10 @@ class TrajectoryMemory(MemoryElement):
             self._write_failed_cb = None
 
     def write_failed(self, mem, addr):
-        if self._write_failed_cb and mem.id == self.id:
-            logger.debug('Write od trajectory data failed')
-            self._write_failed_cb(self, addr)
+        if mem.id == self.id:
+            if self._write_failed_cb:
+                logger.debug('Write of trajectory data failed')
+                self._write_failed_cb(self, addr)
             self._write_finished_cb = None
             self._write_failed_cb = None
 

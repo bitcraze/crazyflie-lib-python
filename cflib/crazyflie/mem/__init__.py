@@ -36,6 +36,7 @@ from threading import Lock
 from .i2c_element import I2CElement
 from .led_driver_memory import LEDDriverMemory
 from .led_timings_driver_memory import LEDTimingsDriverMemory
+from .lighthouse_memory import LighthouseBsCalibration
 from .lighthouse_memory import LighthouseBsGeometry
 from .lighthouse_memory import LighthouseMemory
 from .loco_memory import LocoMemory
@@ -50,7 +51,8 @@ from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
-__all__ = ['Memory', 'Poly4D', 'MemoryElement', 'LighthouseBsGeometry']
+__all__ = ['Memory', 'Poly4D', 'MemoryElement',
+           'LighthouseBsGeometry', 'LighthouseBsCalibration']
 
 # Channels used for the logging port
 CHAN_INFO = 0
@@ -446,7 +448,10 @@ class Memory():
                                                size=mem_size, mem_handler=self)
                         logger.debug(mem)
                         self.mem_read_cb.add_callback(mem.new_data)
+                        self.mem_read_failed_cb.add_callback(
+                            mem.new_data_failed)
                         self.mem_write_cb.add_callback(mem.write_done)
+                        self.mem_write_failed_cb.add_callback(mem.write_failed)
                     elif mem_type == MemoryElement.TYPE_MEMORY_TESTER:
                         mem = MemoryTester(id=mem_id, type=mem_type,
                                            size=mem_size, mem_handler=self)

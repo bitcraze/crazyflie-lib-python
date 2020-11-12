@@ -54,14 +54,27 @@ class ReadMem:
             while not self.got_data:
                 time.sleep(1)
 
+            self.got_data = False
+            mems[0].read_calib_data(0, self._calib_data_updated)
+
+            while not self.got_data:
+                time.sleep(1)
+
     def _data_updated(self, mem):
         mem.dump()
         self.got_data = True
 
+    def _calib_data_updated(self, mem,  calib_data):
+        calib_data.dump()
+        self.got_data = True
+
+    def _calib_data_update_failed(self, mem):
+        raise Exception
+
 
 if __name__ == '__main__':
     # URI to the Crazyflie to connect to
-    uri = 'radio://0/80/2M'
+    uri = 'radio://0/80/2M/'
 
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=False)

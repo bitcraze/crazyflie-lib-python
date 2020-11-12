@@ -50,14 +50,33 @@ class ReadMem:
 
             lh_mem = mems[0]
             print('Requesting data')
+            print('-- Geo 0')
+            self.got_data = False
             lh_mem.read_geo_data(0, self._geo_data_updated,
                                  update_failed_cb=self._update_failed)
 
             while not self.got_data:
                 time.sleep(1)
 
+            print('-- Geo 1')
+            self.got_data = False
+            lh_mem.read_geo_data(1, self._geo_data_updated,
+                                 update_failed_cb=self._update_failed)
+
+            while not self.got_data:
+                time.sleep(1)
+
+            print('-- Calibration 0')
             self.got_data = False
             lh_mem.read_calib_data(0, self._calib_data_updated,
+                                   update_failed_cb=self._update_failed)
+
+            while not self.got_data:
+                time.sleep(1)
+
+            print('-- Calibration 1')
+            self.got_data = False
+            lh_mem.read_calib_data(1, self._calib_data_updated,
                                    update_failed_cb=self._update_failed)
 
             while not self.got_data:
@@ -72,7 +91,7 @@ class ReadMem:
         self.got_data = True
 
     def _update_failed(self, mem):
-        raise Exception("Read failed")
+        raise Exception('Read failed')
 
 
 if __name__ == '__main__':

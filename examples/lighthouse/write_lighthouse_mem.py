@@ -105,6 +105,7 @@ if __name__ == '__main__':
         [7.0, 8.0, 9.0],
         [10.0, 11.0, 12.0],
     ]
+    bs1geo.valid = True
 
     bs2geo = LighthouseBsGeometry()
     bs2geo.origin = [21.0, 22.0, 23.0]
@@ -113,6 +114,7 @@ if __name__ == '__main__':
         [27.0, 28.0, 29.0],
         [30.0, 31.0, 32.0],
     ]
+    bs2geo.valid = True
 
     bs1calib = LighthouseBsCalibration()
     bs1calib.sweeps[0].phase = 1.0
@@ -129,7 +131,7 @@ if __name__ == '__main__':
     bs1calib.sweeps[1].gibphase = 5.1
     bs1calib.sweeps[1].ogeemag = 6.1
     bs1calib.sweeps[1].ogeephase = 7.1
-    bs1calib.is_valid = True
+    bs1calib.valid = True
 
     bs2calib = LighthouseBsCalibration()
     bs2calib.sweeps[0].phase = 1.5
@@ -146,6 +148,6 @@ if __name__ == '__main__':
     bs2calib.sweeps[1].gibphase = 5.51
     bs2calib.sweeps[1].ogeemag = 6.51
     bs2calib.sweeps[1].ogeephase = 7.51
-    bs2calib.is_valid = True
+    bs2calib.valid = True
 
     WriteMem(uri, bs1geo, bs2geo, bs1calib, bs2calib)

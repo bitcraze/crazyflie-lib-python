@@ -31,8 +31,9 @@ class LighthouseBsGeometry:
     """Container for geometry data of one Lighthouse base station"""
 
     SIZE_FLOAT = 4
+    SIZE_BOOL = 1
     SIZE_VECTOR = 3 * SIZE_FLOAT
-    SIZE_GEOMETRY = (1 + 3) * SIZE_VECTOR
+    SIZE_GEOMETRY = (1 + 3) * SIZE_VECTOR + SIZE_BOOL
 
     def __init__(self):
         self.origin = [0.0, 0.0, 0.0]
@@ -41,6 +42,7 @@ class LighthouseBsGeometry:
             [0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0],
         ]
+        self.valid = False
 
     def set_from_mem_data(self, data):
         self.origin = self._read_vector(
@@ -50,12 +52,14 @@ class LighthouseBsGeometry:
             self._read_vector(data[2 * self.SIZE_VECTOR:3 * self.SIZE_VECTOR]),
             self._read_vector(data[3 * self.SIZE_VECTOR:4 * self.SIZE_VECTOR]),
         ]
+        self.valid = struct.unpack('<?', data[4 * self.SIZE_VECTOR:])[0]
 
     def add_mem_data(self, data):
         self._add_vector(data, self.origin)
         self._add_vector(data, self.rotation_matrix[0])
         self._add_vector(data, self.rotation_matrix[1])
         self._add_vector(data, self.rotation_matrix[2])
+        data += struct.pack('<?', self.valid)
 
     def _add_vector(self, data, vector):
         data += struct.pack('<fff', vector[0], vector[1], vector[2])
@@ -66,7 +70,8 @@ class LighthouseBsGeometry:
 
     def dump(self):
         print('origin:', self.origin)
-        print('rotation matrix: ', self.rotation_matrix)
+        print('rotation matrix:', self.rotation_matrix)
+        print('valid:', self.valid)
 
 
 class LighthouseCalibrationSweep:
@@ -102,14 +107,14 @@ class LighthouseBsCalibration:
     def __init__(self):
         self.sweeps = [LighthouseCalibrationSweep(),
                        LighthouseCalibrationSweep()]
-        self.is_valid = True
+        self.valid = True
 
     def set_from_mem_data(self, data):
         self.sweeps[0] = self._unpack_sweep_calibration(
             data[0:self.SIZE_SWEEP])
         self.sweeps[1] = self._unpack_sweep_calibration(
             data[self.SIZE_SWEEP:self.SIZE_SWEEP * 2])
-        self.is_valid = struct.unpack('<?', data[self.SIZE_SWEEP * 2:])[0]
+        self.valid = struct.unpack('<?', data[self.SIZE_SWEEP * 2:])[0]
 
     def _unpack_sweep_calibration(self, data):
         result = LighthouseCalibrationSweep()
@@ -127,7 +132,7 @@ class LighthouseBsCalibration:
     def add_mem_data(self, data):
         self._pack_sweep_calib(data, self.sweeps[0])
         self._pack_sweep_calib(data, self.sweeps[1])
-        data += struct.pack('<?', self.is_valid)
+        data += struct.pack('<?', self.valid)
 
     def _pack_sweep_calib(self, data, sweep_calib):
         data += struct.pack('<fffffff',
@@ -142,7 +147,7 @@ class LighthouseBsCalibration:
     def dump(self):
         self.sweeps[0].dump()
         self.sweeps[1].dump()
-        print('is_valid: {}'.format(self.is_valid))
+        print('valid: {}'.format(self.valid))
 
 
 class LighthouseMemory(MemoryElement):

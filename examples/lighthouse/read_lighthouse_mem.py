@@ -22,8 +22,8 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Example of how to read the Lighthouse base station geometry memory from a
-Crazyflie
+Example of how to read the Lighthouse base station geometry and
+calibration memory from a Crazyflie
 """
 import logging
 import time
@@ -48,33 +48,36 @@ class ReadMem:
             if count != 1:
                 raise Exception('Unexpected nr of memories found:', count)
 
+            lh_mem = mems[0]
             print('Requesting data')
-            mems[0].update(self._data_updated)
+            lh_mem.read_geo_data(0, self._geo_data_updated,
+                                 update_failed_cb=self._update_failed)
 
             while not self.got_data:
                 time.sleep(1)
 
             self.got_data = False
-            mems[0].read_calib_data(0, self._calib_data_updated)
+            lh_mem.read_calib_data(0, self._calib_data_updated,
+                                   update_failed_cb=self._update_failed)
 
             while not self.got_data:
                 time.sleep(1)
 
-    def _data_updated(self, mem):
-        mem.dump()
+    def _geo_data_updated(self, mem, geo_data):
+        geo_data.dump()
         self.got_data = True
 
     def _calib_data_updated(self, mem,  calib_data):
         calib_data.dump()
         self.got_data = True
 
-    def _calib_data_update_failed(self, mem):
-        raise Exception
+    def _update_failed(self, mem):
+        raise Exception("Read failed")
 
 
 if __name__ == '__main__':
     # URI to the Crazyflie to connect to
-    uri = 'radio://0/80/2M/'
+    uri = 'radio://0/80'
 
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=False)

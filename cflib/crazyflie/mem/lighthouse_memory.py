@@ -164,67 +164,67 @@ class LighthouseMemory(MemoryElement):
         self._clear_update_cb()
         self._clear_write_cb()
 
-        # Geometry data for two base stations
-        self.geometry_data = [
-            LighthouseBsGeometry(),
-            LighthouseBsGeometry(),
-        ]
-
     def new_data(self, mem, addr, data):
         """Callback for when new memory data has been fetched"""
         if mem.id == self.id:
-            if addr == 0:
-                self.geometry_data[0].set_from_mem_data(
-                    data[0:LighthouseBsGeometry.SIZE_GEOMETRY])
-                self.geometry_data[1].set_from_mem_data(
-                    data[LighthouseBsGeometry.SIZE_GEOMETRY:
-                         LighthouseBsGeometry.SIZE_GEOMETRY * 2])
+            if addr < self.CALIB_START_ADDR:
+                geo_data = LighthouseBsGeometry()
+                geo_data.set_from_mem_data(data)
 
                 if self._update_finished_cb:
-                    self._update_finished_cb(self)
-                self._clear_update_cb()
-
-            if addr >= self.CALIB_START_ADDR:
+                    self._update_finished_cb(self, geo_data)
+            else:
                 calibration_data = LighthouseBsCalibration()
                 calibration_data.set_from_mem_data(data)
 
                 if self._update_finished_cb:
                     self._update_finished_cb(self, calibration_data)
-                self._clear_update_cb()
+
+            self._clear_update_cb()
 
     def new_data_failed(self, mem, addr, data):
+        """Callback when a read failed"""
         if mem.id == self.id:
             if self._update_failed_cb:
                 logger.debug('Update of data failed')
                 self._update_failed_cb(self)
             self._clear_update_cb()
 
-    def update(self, update_finished_cb, update_failed_cb=None):
-        """Request an update of the memory content"""
+    def read_geo_data(self, bs_id, update_finished_cb,
+                      update_failed_cb=None):
+        """Request a read of geometry data for one base station"""
         if self._update_finished_cb:
             raise Exception('Read operation already ongoing')
         self._update_finished_cb = update_finished_cb
         self._update_failed_cb = update_failed_cb
-        logger.debug('Updating content of memory {}'.format(self.id))
-        self.mem_handler.read(self, 0, self.SIZE_GEOMETRY_ALL)
+        self.mem_handler.read(self, self.GEO_START_ADDR + bs_id *
+                              self.PAGE_SIZE,
+                              LighthouseBsGeometry.SIZE_GEOMETRY)
 
-    def read_calib_data(self, basestation, update_finished_cb,
+    def read_calib_data(self, bs_id, update_finished_cb,
                         update_failed_cb=None):
+        """Request a read of calibration data for one base station"""
         if self._update_finished_cb:
             raise Exception('Read operation already ongoing')
         self._update_finished_cb = update_finished_cb
         self._update_failed_cb = update_failed_cb
-        self.mem_handler.read(self, self.CALIB_START_ADDR + basestation *
+        self.mem_handler.read(self, self.CALIB_START_ADDR + bs_id *
                               self.PAGE_SIZE,
                               LighthouseBsCalibration.SIZE_CALIBRATION)
 
-    def write_geo_data(self, write_finished_cb, write_failed_cb=None):
-        """Write geometry data to the Crazyflie"""
+    def write_geo_data(self, bs_id, geo_data, write_finished_cb,
+                       write_failed_cb=None):
+        """Write geometry data for one base station to the Crazyflie"""
+        if self._write_finished_cb:
+            raise Exception('Write operation already ongoing.')
+        data = bytearray()
+        geo_data.add_mem_data(data)
         self._write_finished_cb = write_finished_cb
         self._write_failed_cb = write_failed_cb
-        self._write_data_list(self.GEO_START_ADDR, self.geometry_data)
+        geo_addr = self.GEO_START_ADDR + bs_id * self.PAGE_SIZE
+        self.mem_handler.write(self, geo_addr, data, flush_queue=True)
 
-    def write_calib_data(self, calibration_data, bs_id, write_finished_cb,
+    def write_calib_data(self, bs_id, calibration_data, write_finished_cb,
                          write_failed_cb=None):
         """Write calibration data for one basestation to the Crazyflie"""
         if self._write_finished_cb:
@@ -243,14 +243,10 @@ class LighthouseMemory(MemoryElement):
         self.mem_handler.write(self, addr, data, flush_queue=True)
 
     def write_done(self, mem, addr):
-        if self._write_finished_cb and mem.id == self.id:
-            if addr == 0:
-                logger.debug('Write of geometry data done')
-            if addr is self.CALIB_START_ADDR:
-                logger.debug('Write of calibration data done')
-            self._write_finished_cb(self, addr)
-            self._write_finished_cb = None
-            self._write_failed_cb = None
+        if mem.id == self.id:
+            if self._write_finished_cb:
+                self._write_finished_cb(self, addr)
+            self._clear_write_cb()
 
     def write_failed(self, mem, addr):
         if mem.id == self.id:
@@ -270,7 +266,3 @@ class LighthouseMemory(MemoryElement):
     def _clear_write_cb(self):
         self._write_finished_cb = None
         self._write_failed_cb = None
-
-    def dump(self):
-        for data in self.geometry_data:
-            data.dump()

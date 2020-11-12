@@ -22,8 +22,8 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Example of how to write to the Lighthouse base station geometry memory in a
-Crazyflie
+Example of how to write to the Lighthouse base station geometry
+and calibration memory in a Crazyflie
 """
 import logging
 import time
@@ -50,26 +50,33 @@ class WriteMem:
             if count != 1:
                 raise Exception('Unexpected nr of memories found:', count)
 
-            mems[0].geometry_data = [bs1geo, bs2geo]
-            mems[0].calibration_data = [bs1calib, bs2calib]
+            lh_mem = mems[0]
 
             print('Writing data')
-            mems[0].write_geo_data(self._data_written)
+            lh_mem.write_geo_data(0, bs1geo, self._data_written,
+                                  write_failed_cb=self._data_failed)
 
             while not self.data_written:
                 time.sleep(1)
 
             self.data_written = False
-            mems[0].write_calib_data(
-                bs1calib, 0, self._data_written,
+            lh_mem.write_geo_data(1, bs2geo, self._data_written,
+                                  write_failed_cb=self._data_failed)
+
+            while not self.data_written:
+                time.sleep(1)
+
+            self.data_written = False
+            lh_mem.write_calib_data(
+                0, bs1calib, self._data_written,
                 write_failed_cb=self._data_failed)
 
             while not self.data_written:
                 time.sleep(1)
 
             self.data_written = False
-            mems[0].write_calib_data(
-                bs2calib, 1, self._data_written,
+            lh_mem.write_calib_data(
+                1, bs2calib, self._data_written,
                 write_failed_cb=self._data_failed)
 
             while not self.data_written:
@@ -80,13 +87,13 @@ class WriteMem:
         print('Data written')
 
     def _data_failed(self, mem, addr):
-        print('Data failed')
+        print('Write failed')
         raise Exception()
 
 
 if __name__ == '__main__':
     # URI to the Crazyflie to connect to
-    uri = 'radio://0/80/2M/'
+    uri = 'radio://0/80'
 
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=False)

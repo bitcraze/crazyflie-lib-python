@@ -115,12 +115,12 @@ class LighthouseBsCalibration:
         result = LighthouseCalibrationSweep()
 
         (result.phase,
-        result.tilt,
-        result.curve,
-        result.gibmag,
-        result.gibphase,
-        result.ogeemag,
-        result.ogeephase) = struct.unpack('<fffffff', data)
+         result.tilt,
+         result.curve,
+         result.gibmag,
+         result.gibphase,
+         result.ogeemag,
+         result.ogeephase) = struct.unpack('<fffffff', data)
 
         return result
 

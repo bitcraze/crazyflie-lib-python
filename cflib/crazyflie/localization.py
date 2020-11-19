@@ -101,6 +101,12 @@ class Localization():
                 anchor_id, distance = struct.unpack('<Bf', raw_data[:5])
                 decoded_data[anchor_id] = distance
                 raw_data = raw_data[5:]
+        if pk_type == self.LH_PERSIST_DATA:
+            save_lh_success = data[0]
+            if save_lh_success is not True:
+                logger.error('Basestation info has not been written' +
+                             ' to persistent memory')
+                return
 
         pk = LocalizationPacket(pk_type, data, decoded_data)
         self.receivedLocationPacket.call(pk)

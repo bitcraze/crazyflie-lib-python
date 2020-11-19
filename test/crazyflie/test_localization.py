@@ -23,16 +23,14 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
+import struct
 import unittest
 from unittest.mock import MagicMock
 
-import struct
-
-from cflib.crtp.crtpstack import CRTPPacket
-from cflib.crtp.crtpstack import CRTPPort
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.localization import Localization
+from cflib.crtp.crtpstack import CRTPPacket
+from cflib.crtp.crtpstack import CRTPPort
 
 
 class LocalizationTest(unittest.TestCase):
@@ -42,13 +40,14 @@ class LocalizationTest(unittest.TestCase):
         self.sut = Localization(crazyflie=self.cf_mock)
 
     def test_that_checks_if_data_package_is_correctly_decoded(self):
-        
+
         # fixture
         geo_bs_list = [0, 2, 4, 6, 8, 10, 12, 14]
         calib_bs_list = [1, 3, 5, 7, 9, 11, 13, 15]
 
         # test
-        actual = self.sut.send_lh_persit_data_packet(geo_bs_list, calib_bs_list)
+        actual = self.sut.send_lh_persit_data_packet(
+            geo_bs_list, calib_bs_list)
 
         # assert
         data_check = 2863289685
@@ -56,15 +55,9 @@ class LocalizationTest(unittest.TestCase):
         expected.port = CRTPPort.LOCALIZATION
         expected.channel = self.sut.GENERIC_CH
         expected.data = struct.pack('<I', data_check)
-        
+
         actual_object = self.cf_mock.send_packet.call_args
         actual = actual_object[0][0]
         self.assertEqual(expected.port, actual.port)
         self.assertEqual(expected.channel, actual.channel)
         self.assertEqual(expected.data, actual.data)
-
-
-
-
-
-

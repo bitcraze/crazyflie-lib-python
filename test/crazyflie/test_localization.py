@@ -39,7 +39,7 @@ class LocalizationTest(unittest.TestCase):
         self.cf_mock = MagicMock(spec=Crazyflie)
         self.sut = Localization(crazyflie=self.cf_mock)
 
-    def test_that_checks_if_data_package_is_correctly_decoded(self):
+    def test_that_lighthouse_persist_data_is_correctly_encoded(self):
 
         # fixture
         geo_bs_list = [0, 2, 4, 6, 8, 10, 12, 14]
@@ -54,7 +54,8 @@ class LocalizationTest(unittest.TestCase):
         expected = CRTPPacket()
         expected.port = CRTPPort.LOCALIZATION
         expected.channel = self.sut.GENERIC_CH
-        expected.data = struct.pack('<I', data_check)
+        expected.data = struct.pack(
+            '<BI', Localization.LH_PERSIST_DATA, data_check)
 
         actual_object = self.cf_mock.send_packet.call_args
         actual = actual_object[0][0]

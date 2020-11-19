@@ -183,7 +183,8 @@ class Localization():
         pk = CRTPPacket()
         pk.port = CRTPPort.LOCALIZATION
         pk.channel = self.GENERIC_CH
-        pk.data = struct.pack('<HH', mask_geo, mask_calib)
+        pk.data = struct.pack(
+            '<BHH', self.LH_PERSIST_DATA, mask_geo, mask_calib)
         self._cf.send_packet(pk)
 
         return pk.data

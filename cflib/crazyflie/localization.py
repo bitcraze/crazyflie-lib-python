@@ -34,7 +34,6 @@ import struct
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
-
 from cflib.utils.fp16 import fp16_to_float
 
 __author__ = 'Bitcraze AB'
@@ -69,7 +68,6 @@ class Localization():
     EXT_POSE_PACKED = 9
     LH_ANGLE_STREAM = 10
     LH_PERSIST_DATA = 11
-
 
     def __init__(self, crazyflie=None):
         """
@@ -116,7 +114,7 @@ class Localization():
     def _decode_lh_angle(self, data):
         decoded_data = {}
 
-        raw_data = struct.unpack("<Bfhhhfhhh", data)
+        raw_data = struct.unpack('<Bfhhhfhhh', data)
 
         decoded_data['basestation'] = raw_data[0]
         decoded_data['x'] = [0, 0, 0, 0]

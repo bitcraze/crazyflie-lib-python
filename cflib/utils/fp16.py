@@ -24,7 +24,6 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-
 import struct
 
 
@@ -53,4 +52,4 @@ def fp16_to_float(float16):
     e = e + (127 - 15)
     f = f << 13
     result = int((s << 31) | (e << 23) | f)
-    return struct.unpack("f", struct.pack("I", result))[0]
+    return struct.unpack('f', struct.pack('I', result))[0]

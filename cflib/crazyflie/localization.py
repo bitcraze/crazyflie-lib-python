@@ -65,6 +65,7 @@ class Localization():
     COMM_GNSS_PROPRIETARY = 7
     EXT_POSE = 8
     EXT_POSE_PACKED = 9
+    LH_PERSIST_DATA = 11
 
     def __init__(self, crazyflie=None):
         """
@@ -142,3 +143,22 @@ class Localization():
         pk.channel = self.GENERIC_CH
         pk.data = struct.pack('<BB', self.LPS_SHORT_LPP_PACKET, dest_id) + data
         self._cf.send_packet(pk)
+
+    def send_lh_persit_data_packet(self, geo_list, calib_list):
+        """
+        Send geometry and calibration data to persistent memory subsystem
+        """
+        mask_geo = 0
+        mask_calib = 0
+        for bs in geo_list:
+            mask_geo += 1 << bs
+        for bs in calib_list:
+            mask_calib += 1 << bs
+
+        pk = CRTPPacket()
+        pk.port = CRTPPort.LOCALIZATION
+        pk.channel = self.GENERIC_CH
+        pk.data = struct.pack('<HH', mask_geo, mask_calib)
+        self._cf.send_packet(pk)
+
+        return pk.data

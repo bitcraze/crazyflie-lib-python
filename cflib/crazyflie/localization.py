@@ -35,6 +35,8 @@ from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
 
+from cflib.utils.fp16 import fp16_to_float
+
 __author__ = 'Bitcraze AB'
 __all__ = ['Localization', 'LocalizationPacket']
 
@@ -65,6 +67,7 @@ class Localization():
     COMM_GNSS_PROPRIETARY = 7
     EXT_POSE = 8
     EXT_POSE_PACKED = 9
+    LH_ANGLE_STREAM = 10
 
     def __init__(self, crazyflie=None):
         """
@@ -100,9 +103,30 @@ class Localization():
                 anchor_id, distance = struct.unpack('<Bf', raw_data[:5])
                 decoded_data[anchor_id] = distance
                 raw_data = raw_data[5:]
+        elif pk_type == self.LH_ANGLE_STREAM:
+            decoded_data = self._decode_lh_angle(data)
 
         pk = LocalizationPacket(pk_type, data, decoded_data)
         self.receivedLocationPacket.call(pk)
+
+    def _decode_lh_angle(self, data):
+        decoded_data = {}
+
+        raw_data = struct.unpack("<Bfhhhfhhh", data)
+
+        decoded_data['basestation'] = raw_data[0]
+        decoded_data['x'] = [0, 0, 0, 0]
+        decoded_data['x'][0] = raw_data[1]
+        decoded_data['x'][1] = raw_data[1] - fp16_to_float(raw_data[2])
+        decoded_data['x'][2] = raw_data[1] - fp16_to_float(raw_data[3])
+        decoded_data['x'][3] = raw_data[1] - fp16_to_float(raw_data[4])
+        decoded_data['y'] = [0, 0, 0, 0]
+        decoded_data['y'][0] = raw_data[5]
+        decoded_data['y'][1] = raw_data[5] - fp16_to_float(raw_data[6])
+        decoded_data['y'][2] = raw_data[5] - fp16_to_float(raw_data[7])
+        decoded_data['y'][3] = raw_data[5] - fp16_to_float(raw_data[8])
+
+        return decoded_data
 
     def send_extpos(self, pos):
         """

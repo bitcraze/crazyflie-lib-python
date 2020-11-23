@@ -46,7 +46,7 @@ class LocalizationTest(unittest.TestCase):
         calib_bs_list = [1, 3, 5, 7, 9, 11, 13, 15]
 
         # test
-        actual = self.sut.send_lh_persit_data_packet(
+        actual = self.sut.send_lh_persist_data_packet(
             geo_bs_list, calib_bs_list)
 
         # assert
@@ -62,3 +62,33 @@ class LocalizationTest(unittest.TestCase):
         self.assertEqual(expected.port, actual.port)
         self.assertEqual(expected.channel, actual.channel)
         self.assertEqual(expected.data, actual.data)
+
+    def test_that_checks_if_list_of_bs_is_valid(self):
+
+        # fixture
+        max_bs_nr = 16
+        geo_bs_list_good = [0, max_bs_nr-1]
+        geo_bs_list_bad = [0, max_bs_nr]
+        calib_bs_list_good = [0, max_bs_nr-1]
+        calib_bs_list_bad = [0, max_bs_nr]
+
+        # tests and results
+        try:
+            self.sut.send_lh_persist_data_packet(
+                geo_bs_list_bad, calib_bs_list_good)
+        except Exception as e:
+            actual = e.args[0]
+            expected = 'Geometry BS list is not valid'
+            self.assertEqual(expected, actual)
+        else:
+            self.fail('Expect exception')
+
+        try:
+            self.sut.send_lh_persist_data_packet(
+                geo_bs_list_good, calib_bs_list_bad)
+        except Exception as e:
+            actual = e.args[0]
+            expected = 'Calibration BS list is not valid'
+            self.assertEqual(expected, actual)
+        else:
+            self.fail('Expect exception')

@@ -169,10 +169,19 @@ class Localization():
         pk.data = struct.pack('<BB', self.LPS_SHORT_LPP_PACKET, dest_id) + data
         self._cf.send_packet(pk)
 
-    def send_lh_persit_data_packet(self, geo_list, calib_list):
+    def send_lh_persist_data_packet(self, geo_list, calib_list):
         """
         Send geometry and calibration data to persistent memory subsystem
         """
+
+        geo_list.sort()
+        calib_list.sort()
+        max_bs_nr = 16
+        if geo_list[-1] > max_bs_nr-1:
+            raise Exception('Geometry BS list is not valid')
+        if calib_list[-1] > max_bs_nr-1:
+            raise Exception('Calibration BS list is not valid')
+
         mask_geo = 0
         mask_calib = 0
         for bs in geo_list:

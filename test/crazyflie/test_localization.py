@@ -69,8 +69,10 @@ class LocalizationTest(unittest.TestCase):
         max_bs_nr = 16
         geo_bs_list_good = [0, max_bs_nr-1]
         geo_bs_list_bad = [0, max_bs_nr]
+        geo_bs_list_empty = []
         calib_bs_list_good = [0, max_bs_nr-1]
         calib_bs_list_bad = [0, max_bs_nr]
+        calib_bs_list_empty = []
 
         # tests and results
         try:
@@ -85,7 +87,27 @@ class LocalizationTest(unittest.TestCase):
 
         try:
             self.sut.send_lh_persist_data_packet(
+                geo_bs_list_empty, calib_bs_list_good)
+        except Exception as e:
+            actual = e.args[0]
+            expected = 'Geometry BS list is not valid'
+            self.assertEqual(expected, actual)
+        else:
+            self.fail('Expect exception')
+
+        try:
+            self.sut.send_lh_persist_data_packet(
                 geo_bs_list_good, calib_bs_list_bad)
+        except Exception as e:
+            actual = e.args[0]
+            expected = 'Calibration BS list is not valid'
+            self.assertEqual(expected, actual)
+        else:
+            self.fail('Expect exception')
+
+        try:
+            self.sut.send_lh_persist_data_packet(
+                geo_bs_list_good, calib_bs_list_empty)
         except Exception as e:
             actual = e.args[0]
             expected = 'Calibration BS list is not valid'

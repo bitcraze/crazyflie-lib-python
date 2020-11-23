@@ -177,9 +177,9 @@ class Localization():
         geo_list.sort()
         calib_list.sort()
         max_bs_nr = 16
-        if geo_list[-1] > max_bs_nr-1:
+        if len(geo_list) == 0 or geo_list[-1] > max_bs_nr-1:
             raise Exception('Geometry BS list is not valid')
-        if calib_list[-1] > max_bs_nr-1:
+        if len(calib_list) == 0 or calib_list[-1] > max_bs_nr-1:
             raise Exception('Calibration BS list is not valid')
 
         mask_geo = 0

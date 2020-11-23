@@ -63,21 +63,26 @@ class LocalizationTest(unittest.TestCase):
         self.assertEqual(expected.channel, actual.channel)
         self.assertEqual(expected.data, actual.data)
 
-    def test_that_checks_if_list_of_bs_is_valid(self):
+    def test_that_lighthouse_persist_accepts_empty_lists(self):
 
         # fixture
-        max_bs_nr = 16
-        geo_bs_list_good = [0, max_bs_nr-1]
-        geo_bs_list_bad = [0, max_bs_nr]
-        geo_bs_list_empty = []
-        calib_bs_list_good = [0, max_bs_nr-1]
-        calib_bs_list_bad = [0, max_bs_nr]
-        calib_bs_list_empty = []
 
         # tests and results
+        self.sut.send_lh_persist_data_packet([], [])
+
+        # Assert
+        # The test should not raise an exception, so if we get here all is
+        # good
+
+    def test_that_lighthouse_persist_raises_for_geo_list_bs_too_high(self):
+        # fixture
+        max_bs_nr = 15
+        invalid_list = [max_bs_nr + 1]
+
+        # test
+        # assert
         try:
-            self.sut.send_lh_persist_data_packet(
-                geo_bs_list_bad, calib_bs_list_good)
+            self.sut.send_lh_persist_data_packet(invalid_list, [])
         except Exception as e:
             actual = e.args[0]
             expected = 'Geometry BS list is not valid'
@@ -85,19 +90,15 @@ class LocalizationTest(unittest.TestCase):
         else:
             self.fail('Expect exception')
 
-        try:
-            self.sut.send_lh_persist_data_packet(
-                geo_bs_list_empty, calib_bs_list_good)
-        except Exception as e:
-            actual = e.args[0]
-            expected = 'Geometry BS list is not valid'
-            self.assertEqual(expected, actual)
-        else:
-            self.fail('Expect exception')
+    def test_that_lighthouse_persist_raises_for_calib_list_bs_too_high(self):
+        # fixture
+        max_bs_nr = 15
+        invalid_list = [max_bs_nr + 1]
 
+        # test
+        # assert
         try:
-            self.sut.send_lh_persist_data_packet(
-                geo_bs_list_good, calib_bs_list_bad)
+            self.sut.send_lh_persist_data_packet([], invalid_list)
         except Exception as e:
             actual = e.args[0]
             expected = 'Calibration BS list is not valid'
@@ -105,9 +106,29 @@ class LocalizationTest(unittest.TestCase):
         else:
             self.fail('Expect exception')
 
+    def test_that_lighthouse_persist_raises_for_geo_list_bs_negative(self):
+        # fixture
+        invalid_list = [-1]
+
+        # test
+        # assert
         try:
-            self.sut.send_lh_persist_data_packet(
-                geo_bs_list_good, calib_bs_list_empty)
+            self.sut.send_lh_persist_data_packet(invalid_list, [])
+        except Exception as e:
+            actual = e.args[0]
+            expected = 'Geometry BS list is not valid'
+            self.assertEqual(expected, actual)
+        else:
+            self.fail('Expect exception')
+
+    def test_that_lighthouse_persist_raises_for_calib_list_bs_negative(self):
+        # fixture
+        invalid_list = [-1]
+
+        # test
+        # assert
+        try:
+            self.sut.send_lh_persist_data_packet([], invalid_list)
         except Exception as e:
             actual = e.args[0]
             expected = 'Calibration BS list is not valid'

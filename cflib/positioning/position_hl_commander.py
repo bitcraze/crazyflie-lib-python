@@ -73,11 +73,17 @@ class PositionHlCommander:
         self._default_height = default_height
         self._controller = controller
 
+        self._activate_controller()
+        self._activate_high_level_commander()
+        self._hl_commander = self._cf.high_level_commander
+
         self._x = x
         self._y = y
         self._z = z
 
         self._is_flying = False
+
+        self._init_time = time.time()
 
     def take_off(self, height=DEFAULT, velocity=DEFAULT):
         """
@@ -96,11 +102,13 @@ class PositionHlCommander:
         if not self._cf.is_connected():
             raise Exception('Crazyflie is not connected')
 
+        # Wait a bit to let the HL commander record the current position
+        now = time.time()
+        hold_back = self._init_time + 1.0 - now
+        if (hold_back > 0.0):
+            time.sleep(hold_back)
+
         self._is_flying = True
-        self._reset_position_estimator()
-        self._activate_controller()
-        self._activate_high_level_commander()
-        self._hl_commander = self._cf.high_level_commander
 
         height = self._height(height)
 
@@ -260,25 +268,12 @@ class PositionHlCommander:
         """
         self._default_height = height
 
-    def set_controller(self, controller):
-        self._controller = controller
-
     def get_position(self):
         """
         Get the current position
         :return: (x, y, z)
         """
         return self._x, self._y, self._z
-
-    def _reset_position_estimator(self):
-        self._cf.param.set_value('kalman.initialX', '{:.2f}'.format(self._x))
-        self._cf.param.set_value('kalman.initialY', '{:.2f}'.format(self._y))
-        self._cf.param.set_value('kalman.initialZ', '{:.2f}'.format(self._z))
-
-        self._cf.param.set_value('kalman.resetEstimation', '1')
-        time.sleep(0.1)
-        self._cf.param.set_value('kalman.resetEstimation', '0')
-        time.sleep(2)
 
     def _activate_high_level_commander(self):
         self._cf.param.set_value('commander.enHighLevel', '1')

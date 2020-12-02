@@ -180,16 +180,19 @@ class Swarm:
             thread.join()
 
         if reporter.is_error_reported():
+            first_error = reporter.errors[0]
             raise Exception('One or more threads raised an exception when '
-                            'executing parallel task')
+                            'executing parallel task') from first_error
 
     def _thread_function_wrapper(self, *args):
+        reporter = None
         try:
             func = args[0]
             reporter = args[1]
             func(*args[2:])
-        except Exception:
-            reporter.report_error()
+        except Exception as e:
+            if reporter:
+                reporter.report_error(e)
 
     def _process_args_dict(self, scf, uri, args_dict):
         args = [scf]
@@ -200,12 +203,17 @@ class Swarm:
         return args
 
     class Reporter:
-
         def __init__(self):
             self.error_reported = False
+            self._errors = []
 
-        def report_error(self):
+        @property
+        def errors(self):
+            return self._errors
+
+        def report_error(self, e):
             self.error_reported = True
+            self._errors.append(e)
 
         def is_error_reported(self):
             return self.error_reported

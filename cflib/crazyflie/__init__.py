@@ -49,6 +49,7 @@ from .log import Log
 from .mem import Memory
 from .param import Param
 from .platformservice import PlatformService
+from .appchannel import Appchannel
 from .toccache import TocCache
 from cflib.crazyflie.high_level_commander import HighLevelCommander
 from cflib.utils.callbacks import Caller
@@ -118,6 +119,7 @@ class Crazyflie():
         self.param = Param(self)
         self.mem = Memory(self)
         self.platform = PlatformService(self)
+        self.appchannel = Appchannel(self)
 
         self.link_uri = ''
 

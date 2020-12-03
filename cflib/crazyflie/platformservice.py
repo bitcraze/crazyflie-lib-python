@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 PLATFORM_COMMAND = 0
 VERSION_COMMAND = 1
+APP_CHANNEL = 2
 
 PLATFORM_SET_CONT_WAVE = 0
 

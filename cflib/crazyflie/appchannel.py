@@ -24,12 +24,12 @@
 """
 Data channel to communicate with an application running in the Crazyflie
 """
-from cflib.utils.callbacks import Caller
 import logging
 
+import cflib.crazyflie.platformservice
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
-import cflib.crazyflie.platformservice
+from cflib.utils.callbacks import Caller
 # from . import Crazyflie
 
 __author__ = 'Bitcraze AB'

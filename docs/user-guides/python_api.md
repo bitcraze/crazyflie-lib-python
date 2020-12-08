@@ -224,9 +224,9 @@ Then you can use the following to close the link again:
     crazyflie.close_link()
 ```
 
-## Sending control commands
+## Sending control setpoints
 
-The control commands are not implemented as parameters, instead they
+The control setpoints are not implemented as parameters, instead they
 have a special API.
 
 ``` {.python}
@@ -250,12 +250,22 @@ To send a new control set-point use the following:
 ```
 
 Thrust is an integer value ranging from 10001 (next to no power) to
-60000 (full power). Sending a command makes it apply for 500 ms, after
-which the firmware will cut out the power. With this in mind, you need
-to try and maintain a thrust level, with a tick being sent at least once
-every 2 seconds. Ideally you should be sending one tick every 10 ms, for
-100 commands a second. This has a nice added benefit of allowing for
-very precise control.
+60000 (full power). It corresponds to the mean thrust that will be
+appied to the motors. There is a battery compensation algorythm
+applied to make the thrust mostly independent of battery voltage.
+Roll/pitch are in degree and yarate in degree/seconds.
+
+This command will set the attitude controller setpoint for the next
+500ms. After 500ms without net setpoint, the Crazyflie will apply a
+setpoint with the same thrust but with roll/pitch/yawrate = 0, this
+will make the Crazyflie stop accelerate. After 2secons without new
+setpoint the Crazyflie will cut power to the motors.
+
+Note that this command implements a motor lock mechanism that is
+intended to avoid flyaway when connecting a gamepad. You must send
+one command with thrust = 0 in order to unlock the command. This
+unlock procedure needs to be repeated if the watchdog describe above
+kicks-in.
 
 ## Parameters
 

@@ -62,10 +62,9 @@ following way:
 
 There\'s a few limitations that needs to be taken into account:
 
--   Each packet is limited to 32bytes, which means that the data that is
-    logged and the packet that is sent to set it up cannot be larger
-    than this. It limits the logging to about 14 variables, but this is
-    dependent on what types they are
+-   The maximum byte lenght for a log packet is of 26 bytes. This for
+    for example allows to log 6 floats and one uint16_t (6*4 + 2 bytes)
+    in a single packet.
 -   The minimum period of a for a log configuration is multiples of 10ms
 
 ### Parameters

@@ -192,7 +192,7 @@ def take_off_simple(scf):
         time.sleep(3)
         mc.stop()
 
-def param_deck_flow(name, value):
+def param_deck_flow(name, value_str):
     ...
 
 if __name__ == '__main__':
@@ -275,7 +275,7 @@ def move_linear_simple(scf):
 def take_off_simple(scf):
     ...
 
-def param_deck_flow(name, value):
+def param_deck_flow(name, value_str):
    ...
 
 
@@ -370,7 +370,7 @@ def log_pos_callback(timestamp, data, logconf):
     position_estimate[1] = data['stateEstimate.y']
 
 
-def param_deck_flow(name, value):
+def param_deck_flow(name, value_str):
     ...
 
 if __name__ == '__main__':
@@ -481,7 +481,7 @@ def take_off_simple(scf):
 def log_pos_callback(timestamp, data, logconf):
     ...
 
-def param_deck_flow(name, value):
+def param_deck_flow(name, value_str):
     ...
 
 if __name__ == '__main__':
@@ -595,7 +595,7 @@ def log_pos_callback(timestamp, data, logconf):
     position_estimate[1] = data['stateEstimate.y']
 
 
-def param_deck_flow(name, value):
+def param_deck_flow(name, value_str):
     value = int(value_str)
     print(value)
     global is_deck_attached

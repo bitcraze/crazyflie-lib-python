@@ -76,7 +76,7 @@ class PowerSwitch:
         success = False
         for i in range(50):
             res = cr.send_packet(packet)
-            if res and  res.ack:
+            if res and res.ack:
                 success = True
                 break
 

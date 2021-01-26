@@ -155,7 +155,7 @@ class Crazyradio:
             logger.warning('You should update to Crazyradio firmware V0.4+')
 
         # Reset the dongle to power up settings
-        if platform.system() == "Linux":
+        if platform.system() == 'Linux':
             self.handle.reset()
         self.set_data_rate(self.DR_2MPS)
         self.set_channel(2)

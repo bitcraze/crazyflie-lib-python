@@ -42,7 +42,7 @@ class RadioBridge:
         self._cf = Crazyflie()
 
         # Connect some callbacks from the Crazyflie API
-        self._cf.connected.add_callback(self._connected)
+        self._cf.link_established.add_callback(self._connected)
         self._cf.disconnected.add_callback(self._disconnected)
         self._cf.connection_failed.add_callback(self._connection_failed)
         self._cf.connection_lost.add_callback(self._connection_lost)

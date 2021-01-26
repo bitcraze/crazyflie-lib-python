@@ -41,6 +41,7 @@ from threading import Thread
 from threading import Timer
 
 import cflib.crtp
+from .appchannel import Appchannel
 from .commander import Commander
 from .console import Console
 from .extpos import Extpos
@@ -49,7 +50,6 @@ from .log import Log
 from .mem import Memory
 from .param import Param
 from .platformservice import PlatformService
-from .appchannel import Appchannel
 from .toccache import TocCache
 from cflib.crazyflie.high_level_commander import HighLevelCommander
 from cflib.utils.callbacks import Caller
@@ -231,7 +231,7 @@ class Crazyflie():
                 logger.warning(message)
                 self.connection_failed.call(link_uri, message)
             else:
-                if not self.incoming.isAlive():
+                if not self.incoming.is_alive():
                     self.incoming.start()
                 # Add a callback so we can check that any data is coming
                 # back from the copter

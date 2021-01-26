@@ -58,9 +58,10 @@ We want to know if the deck is correctly attached before flying, therefore we wi
 
 Above `__main__`, start a parameter callback function:
 ```
-def param_deck_flow(name, value):
-    global is_deck_attached
+def param_deck_flow(name, value_str):
+    value = int(value_str)
     print(value)
+    global is_deck_attached
     if value:
         is_deck_attached = True
         print('Deck is attached!')
@@ -69,7 +70,7 @@ def param_deck_flow(name, value):
         print('Deck is NOT attached!')
 ```
 
-The `is_deck_attached` is a global variable which should be defined under `URI`
+The `is_deck_attached` is a global variable which should be defined under `URI`. Note that the value type that the `param_deck_flow()` is a string type, so you will need to convert it to a number first before you can do any operations with it. 
 
 ```
 ...
@@ -95,9 +96,10 @@ is_deck_attached = False
 
 logging.basicConfig(level=logging.ERROR)
 
-def param_deck_flow(name, value):
-    global is_deck_attached
+def param_deck_flow(name, value_str):
+    value = int(value_str)
     print(value)
+    global is_deck_attached
     if value:
         is_deck_attached = True
         print('Deck is attached!')
@@ -190,7 +192,7 @@ def take_off_simple(scf):
         time.sleep(3)
         mc.stop()
 
-def param_deck_flow(name, value):
+def param_deck_flow(name, value_str):
     ...
 
 if __name__ == '__main__':
@@ -273,7 +275,7 @@ def move_linear_simple(scf):
 def take_off_simple(scf):
     ...
 
-def param_deck_flow(name, value):
+def param_deck_flow(name, value_str):
    ...
 
 
@@ -368,7 +370,7 @@ def log_pos_callback(timestamp, data, logconf):
     position_estimate[1] = data['stateEstimate.y']
 
 
-def param_deck_flow(name, value):
+def param_deck_flow(name, value_str):
     ...
 
 if __name__ == '__main__':
@@ -479,7 +481,7 @@ def take_off_simple(scf):
 def log_pos_callback(timestamp, data, logconf):
     ...
 
-def param_deck_flow(name, value):
+def param_deck_flow(name, value_str):
     ...
 
 if __name__ == '__main__':
@@ -593,9 +595,10 @@ def log_pos_callback(timestamp, data, logconf):
     position_estimate[1] = data['stateEstimate.y']
 
 
-def param_deck_flow(name, value):
-    global is_deck_attached
+def param_deck_flow(name, value_str):
+    value = int(value_str)
     print(value)
+    global is_deck_attached
     if value:
         is_deck_attached = True
         print('Deck is attached!')

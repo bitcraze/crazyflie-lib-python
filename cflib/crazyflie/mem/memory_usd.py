@@ -40,9 +40,6 @@ class MemoryUsd(MemoryElement):
 
     def new_data(self, mem, start_address, data):
         """Callback for when new memory data has been fetched"""
-        print('\naaa')
-        print(data)
-        print(start_address)
         if mem.id == self.id:
             for i in range(len(data)):
                 actualValue = struct.unpack('<B', data[i:i + 1])[0]
@@ -61,6 +58,8 @@ class MemoryUsd(MemoryElement):
                     self._update_finished_cb = None
 
             print('Reading memory data {}'.format(data))
+            with open('log.bin', 'wb') as the_file:
+                the_file.write(data)
 
     def read_data(self, start_address, size, update_finished_cb):
         """Request an update of the memory content"""

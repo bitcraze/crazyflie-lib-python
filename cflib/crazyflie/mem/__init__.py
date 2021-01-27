@@ -66,6 +66,7 @@ CMD_INFO_NBR = 1
 CMD_INFO_DETAILS = 2
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 class _ReadRequest:

@@ -49,6 +49,7 @@ class Flasher(object):
 
         # Initialize variables
         self.connected = False
+        self.refreshed = False
 
     # Public methods
 
@@ -88,7 +89,20 @@ class Flasher(object):
             raise NotConnected()
         return self._cf.mem.get_mems(MemoryElement.TYPE_MEMORY_USD)
 
+    def refresh_memories(self):
+        """
+        Search and return list of 1-wire memories.
+        """
+        if not self.connected:
+            raise NotConnected()
+        return self._cf.mem.refresh(self._refresh)
+
+
     # Callbacks
+
+    def _refresh(self):
+        print('refreshed')
+        self.refreshed = True
 
     def _connected(self, link_uri):
         print('Connected to %s' % link_uri)
@@ -115,7 +129,7 @@ def choose(items, title_text, question_text):
 
     for i, item in enumerate(items, start=1):
         print('%d) %s' % (i, item))
-    print('%d) Abort' % (i + 1))
+        print('%d) Abort' % (i + 1))
 
     selected = input(question_text)
     try:
@@ -147,7 +161,10 @@ def scan():
     return choose(interfaces, 'Crazyflies found:', 'Select interface: ')
 
 def r_cb():
-    pass
+    print("meadaddsadfdsfggdhrfyjdryjryjryjfujxdr")
+
+def r_cc():
+    print("refreshed")
 
 if __name__ == '__main__':
     radio_uri = scan()
@@ -178,18 +195,22 @@ if __name__ == '__main__':
         abort()
 
     # Search for memories
-    mems = flasher.search_memories()
-    if not mems:
-        print('No memories found.')
-        abort()
-    mem = choose(mems, 'Available memories:', 'Select memory: ')
-    if mem is None:
-        print('Aborting.')
-        abort()
-    
-    #mem.read_data(0, 13, r_cb)
+    stop = False
 
-    #while(1):
-    #    pass
+    while stop == False:
+        flasher.refresh_memories()
+        while flasher.refreshed ==  False:
+            pass
+        flasher.refreshed =  False
+        mems = flasher.search_memories()
+
+        mem = choose(mems, 'Available memories:', 'Select memory: ')
+        if mem is None:
+            stop = True
+            print('Aborting.')
+            abort()
+        else:
+            mem.read_data(0, mem.size, r_cb)
+            
 
     flasher.disconnect()

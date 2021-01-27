@@ -36,35 +36,18 @@ class MemoryUsd(MemoryElement):
         self._update_finished_cb = None
         self._write_finished_cb = None
 
-        self.readValidationSucess = True
+        self._data = None
 
     def new_data(self, mem, start_address, data):
         """Callback for when new memory data has been fetched"""
         if mem.id == self.id:
-            for i in range(len(data)):
-                actualValue = struct.unpack('<B', data[i:i + 1])[0]
-                expectedValue = (start_address + i) & 0xff
-                
-                if (actualValue != expectedValue):
-                    address = start_address + i
-                    self.readValidationSucess = False
-                    logger.error(
-                        'Error in data - expected: {}, actual: {}, address:{}',
-                        expectedValue, actualValue, address)
-
-                print('Reading a-val {}'.format(actualValue))
-                if self._update_finished_cb:
-                    self._update_finished_cb(self)
-                    self._update_finished_cb = None
-
-            print('Reading memory data {}'.format(data))
-            with open('log.bin', 'wb') as the_file:
-                the_file.write(data)
+            logger.info('Recived uSD data')
+            #print('Reading memory data {}'.format(data))
+            self._data = data
 
     def read_data(self, start_address, size, update_finished_cb):
         """Request an update of the memory content"""
         if not self._update_finished_cb:
-            print('aab\n')
             self._update_finished_cb = update_finished_cb
             logger.debug('Reading memory {}'.format(self.id))
             self.mem_handler.read(self, start_address, size)

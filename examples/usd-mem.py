@@ -160,11 +160,8 @@ def scan():
         return None
     return choose(interfaces, 'Crazyflies found:', 'Select interface: ')
 
-def r_cb():
-    print("meadaddsadfdsfggdhrfyjdryjryjryjfujxdr")
-
-def r_cc():
-    print("refreshed")
+def r_cb(a):
+    print("new data recived")
 
 if __name__ == '__main__':
     radio_uri = scan()
@@ -211,6 +208,12 @@ if __name__ == '__main__':
             abort()
         else:
             mem.read_data(0, mem.size, r_cb)
+            while mem._data is None:
+                pass
+            with open('log.bin', 'wb') as the_file:
+                the_file.write(mem._data)
+            mem._data = None
+            print("finished")
             
 
     flasher.disconnect()

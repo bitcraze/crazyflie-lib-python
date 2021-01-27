@@ -207,13 +207,16 @@ if __name__ == '__main__':
             print('Aborting.')
             abort()
         else:
-            mem.read_data(0, mem.size, r_cb)
-            while mem._data is None:
-                pass
-            with open('log.bin', 'wb') as the_file:
-                the_file.write(mem._data)
-            mem._data = None
-            print("finished")
+            if not mem.size == 0:
+                mem.read_data(0, mem.size, r_cb)
+                while mem._data is None:
+                    pass
+                with open('log.bin', 'wb') as the_file:
+                    the_file.write(mem._data)
+                mem._data = None
+                print("finished")
+            else:
+                print("uSD empty")
             
 
     flasher.disconnect()

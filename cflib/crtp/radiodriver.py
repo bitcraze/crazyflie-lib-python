@@ -148,6 +148,8 @@ class _SharedRadio(Thread):
         self._devid = devid
         self.version = self._radio.version
 
+        self.name = "Shared Radio"
+
         self._cmd_queue = Queue()  # type: Queue[Tuple[int, _RadioCommands, Any]]  # noqa
         self._rsp_queues = {}  # type: Dict[int, Queue[Any]]
         self._next_instance_id = 0
@@ -162,10 +164,14 @@ class _SharedRadio(Thread):
             instance_id = self._next_instance_id
             self._rsp_queues[instance_id] = rsp_queue
             self._next_instance_id += 1
+
+            if self._radio is None:
+                self._radio = Crazyradio(devid=self._devid)
+
         return _SharedRadioInstance(instance_id,
                                     self._cmd_queue,
                                     rsp_queue,
-                                    self._radio.version)
+                                    self.version)
 
     def run(self):
         while True:
@@ -176,8 +182,7 @@ class _SharedRadio(Thread):
                     del self._rsp_queues[command[0]]
                     if len(self._rsp_queues) == 0:
                         self._radio.close()
-                        _RadioManager.remove(self._devid)
-                        return
+                        self._radio = None
             elif command[1] == _RadioCommands.SEND_PACKET:
                 channel, address, datarate, data = command[2]
                 self._radio.set_channel(channel)
@@ -217,7 +222,7 @@ class _RadioManager:
                 shared_radio = _SharedRadio(devid)
                 _RadioManager._radios[devid] = shared_radio
 
-        return shared_radio.open_instance()
+            return shared_radio.open_instance()
 
     @staticmethod
     def remove(devid: int):

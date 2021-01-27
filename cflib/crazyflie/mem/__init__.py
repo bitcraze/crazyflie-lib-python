@@ -127,6 +127,8 @@ class _ReadRequest:
 
         if self._bytes_left > 0:
             self._request_new_chunk()
+            if self.mem.type == MemoryElement.TYPE_MEMORY_USD:
+                logger.info("{} out of {} bytes".format(len(self.data), self.mem.size))
             return False
         else:
             return True

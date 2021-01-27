@@ -30,13 +30,13 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
 
 # Only output errors from the logging framework
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 class NotConnected(RuntimeError):
     pass
 
 
-class Flasher(object):
+class USDRetriver(object):
     """
     A class that can flash the DS28E05 EEPROM via CRTP.
     """
@@ -173,24 +173,16 @@ if __name__ == '__main__':
         print('None found.')
         sys.exit(1)
 
-    # Show info about bug 166
-    print('\n###\n'
-          'Please make sure that your NRF firmware is compiled without\n'
-          'BLE support for this to work.\n'
-          'See '
-          'https://github.com/bitcraze/crazyflie-clients-python/issues/166\n'
-          '###\n')
-
-    # Initialize flasher
-    flasher = Flasher(radio_uri)
+    # Initialize usdRetriver
+    usdRetriver = USDRetriver(radio_uri)
 
     def abort():
-        flasher.disconnect()
+        usdRetriver.disconnect()
         sys.exit(1)
 
     # Connect to Crazyflie
-    flasher.connect()
-    connected = flasher.wait_for_connection()
+    usdRetriver.connect()
+    connected = usdRetriver.wait_for_connection()
     if not connected:
         print('Connection failed.')
         abort()
@@ -199,11 +191,11 @@ if __name__ == '__main__':
     stop = False
 
     while stop == False:
-        flasher.refresh_memories()
-        while flasher.refreshed ==  False:
+        usdRetriver.refresh_memories()
+        while usdRetriver.refreshed ==  False:
             pass
-        flasher.refreshed =  False
-        mems = flasher.search_memories()
+        usdRetriver.refreshed =  False
+        mems = usdRetriver.search_memories()
 
         mem = choose(mems, 'Available memories:', 'Select memory: ')
         if mem is None:
@@ -223,4 +215,4 @@ if __name__ == '__main__':
                 print("uSD empty")
             
 
-    flasher.disconnect()
+    usdRetriver.disconnect()

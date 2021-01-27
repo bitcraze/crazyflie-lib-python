@@ -22,11 +22,15 @@ import datetime
 import os
 import sys
 import time
+import logging
+
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
 
+# Only output errors from the logging framework
+logging.basicConfig(level=logging.DEBUG)
 
 class NotConnected(RuntimeError):
     pass

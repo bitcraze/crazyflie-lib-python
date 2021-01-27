@@ -464,7 +464,6 @@ class Memory():
                                            size=mem_size, mem_handler=self)
                         logger.debug(mem)
                         self.mem_read_cb.add_callback(mem.new_data)
-                        self.mem_write_cb.add_callback(mem.write_done)
                     elif mem_type == MemoryElement.TYPE_DRIVER_LEDTIMING:
                         mem = LEDTimingsDriverMemory(id=mem_id, type=mem_type,
                                                      size=mem_size,

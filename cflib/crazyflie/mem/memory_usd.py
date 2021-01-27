@@ -34,7 +34,6 @@ class MemoryUsd(MemoryElement):
                                            mem_handler=mem_handler)
 
         self._update_finished_cb = None
-        self._write_finished_cb = None
 
         self._data = None
 
@@ -51,24 +50,6 @@ class MemoryUsd(MemoryElement):
             self._update_finished_cb = update_finished_cb
             logger.debug('Reading memory {}'.format(self.id))
             self.mem_handler.read(self, start_address, size)
-
-    def write_data(self, start_address, size, write_finished_cb):
-        """Write data to the Crazyflie"""
-        self._write_finished_cb = write_finished_cb
-        data = bytearray()
-
-        for i in range(size):
-            value = (start_address + i) & 0xff
-            data += struct.pack('<B', value)
-
-        self.mem_handler.write(self, start_address, data, flush_queue=True)
-
-    def write_done(self, mem, addr):
-        if self._write_finished_cb and mem.id == self.id:
-            logger.debug('Write of data finished')
-            self._write_finished_cb(self, addr)
-            self._write_finished_cb = None
-
+            
     def disconnect(self):
         self._update_finished_cb = None
-        self._write_finished_cb = None

@@ -206,28 +206,28 @@ class _SharedRadio(Thread):
                 self._rsp_queues[command[0]].put(resp)
 
 
-class _RadioManager:
+class RadioManager:
     _radios = []  # type: List[Union[_SharedRadio, None]]
     _lock = Semaphore(1)
 
     @staticmethod
     def open(devid: int) -> _SharedRadioInstance:
-        with _RadioManager._lock:
-            if len(_RadioManager._radios) <= devid:
-                padding = [None] * (devid - len(_RadioManager._radios) + 1)
-                _RadioManager._radios.extend(padding)
+        with RadioManager._lock:
+            if len(RadioManager._radios) <= devid:
+                padding = [None] * (devid - len(RadioManager._radios) + 1)
+                RadioManager._radios.extend(padding)
 
-            shared_radio = _RadioManager._radios[devid]
+            shared_radio = RadioManager._radios[devid]
             if not shared_radio:
                 shared_radio = _SharedRadio(devid)
-                _RadioManager._radios[devid] = shared_radio
+                RadioManager._radios[devid] = shared_radio
 
             return shared_radio.open_instance()
 
     @staticmethod
     def remove(devid: int):
-        with _RadioManager._lock:
-            _RadioManager._radios[devid] = None
+        with RadioManager._lock:
+            RadioManager._radios[devid] = None
 
 
 class RadioDriver(CRTPDriver):
@@ -260,7 +260,7 @@ class RadioDriver(CRTPDriver):
         self.uri = uri
 
         if self._radio is None:
-            self._radio = _RadioManager.open(devid)
+            self._radio = RadioManager.open(devid)
             self._radio.set_channel(channel)
             self._radio.set_data_rate(datarate)
             self._radio.set_address(address)
@@ -442,7 +442,7 @@ class RadioDriver(CRTPDriver):
 
         if self._radio is None:
             try:
-                self._radio = _RadioManager.open(0)
+                self._radio = RadioManager.open(0)
             except Exception as e:
                 print(e)
                 return []
@@ -489,7 +489,7 @@ class RadioDriver(CRTPDriver):
 
     def get_status(self):
         try:
-            radio = _RadioManager.open(0)
+            radio = RadioManager.open(0)
 
             ver = radio.version
 

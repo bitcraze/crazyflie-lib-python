@@ -26,7 +26,7 @@ a Crazyradio.
 import time
 
 import cflib.crtp
-from cflib.drivers.crazyradio import Crazyradio
+from cflib.crtp.radiodriver import RadioManager
 
 
 class PowerSwitch:
@@ -65,9 +65,9 @@ class PowerSwitch:
         self.stm_power_up()
 
     def _send(self, cmd):
-        packet = (0xf3, 0xfe, cmd)
+        packet = [0xf3, 0xfe, cmd]
 
-        cr = Crazyradio(devid=self.devid)
+        cr = RadioManager.open(devid=self.devid)
         cr.set_channel(self.channel)
         cr.set_data_rate(self.datarate)
         cr.set_address(self.address)

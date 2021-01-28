@@ -156,6 +156,8 @@ class _SharedRadio(Thread):
 
         self._lock = Semaphore(1)
 
+        self.setDaemon(True)
+
         self.start()
 
     def open_instance(self) -> _SharedRadioInstance:

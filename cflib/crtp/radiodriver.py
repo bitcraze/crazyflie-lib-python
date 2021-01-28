@@ -148,7 +148,7 @@ class _SharedRadio(Thread):
         self._devid = devid
         self.version = self._radio.version
 
-        self.name = "Shared Radio"
+        self.name = 'Shared Radio'
 
         self._cmd_queue = Queue()  # type: Queue[Tuple[int, _RadioCommands, Any]]  # noqa
         self._rsp_queues = {}  # type: Dict[int, Queue[Any]]

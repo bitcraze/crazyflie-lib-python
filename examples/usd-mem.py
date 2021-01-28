@@ -204,13 +204,17 @@ if __name__ == '__main__':
             abort()
         else:
             if not mem.size == 0:
+                start = time.time()
                 mem.read_data(0, mem.size, r_cb)
                 while mem._data is None:
+                    input()
                     pass
                 with open('log.bin', 'wb') as the_file:
                     the_file.write(mem._data)
                 mem._data = None
                 print("finished")
+                end = time.time()
+                print(end - start)
             else:
                 print("uSD empty")
             

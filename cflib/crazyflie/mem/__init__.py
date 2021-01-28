@@ -33,6 +33,8 @@ import logging
 import struct
 from threading import Lock
 
+import time
+
 from .i2c_element import I2CElement
 from .led_driver_memory import LEDDriverMemory
 from .led_timings_driver_memory import LEDTimingsDriverMemory
@@ -66,6 +68,9 @@ CMD_INFO_NBR = 1
 CMD_INFO_DETAILS = 2
 
 logger = logging.getLogger(__name__)
+
+tt_start = time.time()
+tt_end = time.time()
 
 
 class _ReadRequest:
@@ -114,12 +119,17 @@ class _ReadRequest:
 
     def add_data(self, addr, data):
         """Callback when data is received from the Crazyflie"""
+        global tt_start
+        global tt_end
+
         data_len = len(data)
         if not addr == self._current_addr:
             logger.warning(
                 'Address did not match when adding data to read request!')
             return
 
+        if(self._current_addr == 0):
+            tt_start = time.time()
         # Add the data and calculate the next address to fetch
         self.data += data
         self._bytes_left -= data_len
@@ -129,8 +139,12 @@ class _ReadRequest:
             self._request_new_chunk()
             if self.mem.type == MemoryElement.TYPE_MEMORY_USD:
                 logger.info("{} out of {} bytes".format(len(self.data), self.mem.size))
+                
             return False
         else:
+            tt_end = time.time()
+            print("t_time:")
+            print(tt_end - tt_start)
             return True
 
 

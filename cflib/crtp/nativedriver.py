@@ -29,10 +29,8 @@ Crazyflie driver using the nativelink implementation.
 
 This driver is used to communicate over the radio or USB.
 """
-import logging
-import queue
-import re
 import threading
+import logging
 
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
@@ -77,6 +75,11 @@ class NativeDriver(CRTPDriver):
         """
 
         self._connection = nativelink.Connection(uri)
+
+        if link_quality_callback is not None:
+            self._last_connection_stats = self._connection.statistics
+            self._link_quality_callback = link_quality_callback
+            self._recompute_link_quality()
 
     def send_packet(self, pk):
         """Send a CRTP packet"""
@@ -148,3 +151,15 @@ class NativeDriver(CRTPDriver):
     def close(self):
         """Close the link"""
         self._connection = None
+
+    def _recompute_link_quality(self):
+        stats = self._connection.statistics
+        sent_count = stats.sent_count - self._last_connection_stats.sent_count
+        ack_count = stats.ack_count - self._last_connection_stats.ack_count
+        if sent_count > 0:
+            link_quality = ack_count / sent_count * 100.0
+        else:
+            link_quality = 0
+        self._last_connection_stats = stats
+        self._link_quality_callback(link_quality)
+        threading.Timer(1.0, self._recompute_link_quality).start()

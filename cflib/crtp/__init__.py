@@ -27,6 +27,7 @@
 """Scans and creates communication interfaces."""
 import logging
 
+from .nativedriver import NativeDriver
 from .debugdriver import DebugDriver
 from .exceptions import WrongUriType
 from .prrtdriver import PrrtDriver
@@ -41,7 +42,7 @@ __all__ = []
 logger = logging.getLogger(__name__)
 
 
-DRIVERS = [RadioDriver, SerialDriver, UdpDriver,
+DRIVERS = [NativeDriver, RadioDriver, SerialDriver, UdpDriver,
            DebugDriver, UsbDriver, PrrtDriver]
 CLASSES = []
 

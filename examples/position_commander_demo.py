@@ -47,7 +47,7 @@ def slightly_more_complex_usage():
                 x=0.0, y=0.0, z=0.0,
                 default_velocity=0.3,
                 default_height=0.5,
-                controller=PositionHlCommander.CONTROLLER_MELLINGER) as pc:
+                controller=PositionHlCommander.CONTROLLER_PID) as pc:
             # Go to a coordinate
             pc.go_to(1.0, 1.0, 1.0)
 

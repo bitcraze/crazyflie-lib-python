@@ -7,7 +7,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2011-2013 Bitcraze AB
+#  Copyright (C) 2011-2021 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -25,9 +25,9 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Crazyflie USB driver.
+Crazyflie driver using the nativelink implementation.
 
-This driver is used to communicate with the Crazyflie using the USB connection.
+This driver is used to communicate over the radio or USB.
 """
 import logging
 import queue
@@ -37,7 +37,12 @@ import threading
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
-import nativelink
+
+nativelink_installed = True
+try:
+    import nativelink
+except ImportError:
+    nativelink_installed = False
 
 __author__ = 'Bitcraze AB'
 __all__ = ['NativeDriver']
@@ -46,13 +51,19 @@ logger = logging.getLogger(__name__)
 
 
 class NativeDriver(CRTPDriver):
-    """ Crazyradio link driver """
+    """ NativeLink driver """
+
+    @classmethod
+    def is_available(cls):
+        return nativelink_installed
 
     def __init__(self):
         """Driver constructor. Throw an exception if the driver is unable to
         open the URI
         """
-        self.needs_resending = True
+
+        # nativelink resends packets internally
+        self.needs_resending = False
 
         self._connection = None
 
@@ -72,9 +83,7 @@ class NativeDriver(CRTPDriver):
         nativePk = nativelink.Packet()
         nativePk.port = pk.port
         nativePk.channel = pk.channel
-        nativePk.size = len(pk.data)
         nativePk.payload = bytes(pk.data)
-
         self._connection.send(nativePk)
 
     def receive_packet(self, wait=0):
@@ -84,26 +93,22 @@ class NativeDriver(CRTPDriver):
 
         @return One CRTP packet or None if no packet has been received.
         """
-        forever = False
         if wait < 0:
-            wait = 0.1
-            forever = True
+            timeout = 0
+        elif wait == 0:
+            timeout = 1
+        else:
+            timeout = int(wait*1000)
 
-        while True:
-            nativePk = self._connection.recv(timeout=int(wait*1000))
+        nativePk = self._connection.recv(timeout=timeout)
+        if not nativePk.valid:
+            return None
 
-            if (not nativePk.valid) and forever:
-                continue
-
-            if not nativePk.valid:
-                return None
-
-            pk = CRTPPacket()
-            pk.port = nativePk.port
-            pk.channel = nativePk.channel
-            pk.data = nativePk.payload
-
-            return pk
+        pk = CRTPPacket()
+        pk.port = nativePk.port
+        pk.channel = nativePk.channel
+        pk.data = nativePk.payload
+        return pk
 
 
     def get_status(self):
@@ -123,14 +128,10 @@ class NativeDriver(CRTPDriver):
         Scan interface for available Crazyflie quadcopters and return a list
         with them.
         """
-        scan = nativelink.Connection.scan('')
-        resp = []
-
-        for found in scan:
-            resp.append([found, ''])
-
-        print(resp)
-        return resp
+        uris = nativelink.Connection.scan('')
+        # convert to list of tuples, where the second part is a comment
+        result = [(uri, '') for uri in uris]
+        return result
 
     def enum(self):
         """Enumerate, and return a list, of the available link URI on this
@@ -146,5 +147,4 @@ class NativeDriver(CRTPDriver):
 
     def close(self):
         """Close the link"""
-        self._connection.close()
         self._connection = None

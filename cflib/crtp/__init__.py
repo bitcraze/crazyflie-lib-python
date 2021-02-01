@@ -42,25 +42,24 @@ __all__ = []
 logger = logging.getLogger(__name__)
 
 
-DRIVERS = [NativeDriver, RadioDriver, SerialDriver, UdpDriver,
-           DebugDriver, UsbDriver, PrrtDriver]
 CLASSES = []
 
 
 def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
     """Initialize all the drivers."""
-    for driver in DRIVERS:
-        try:
-            enable = True
-            if driver == DebugDriver:
-                enable = enable_debug_driver
-            elif driver == SerialDriver:
-                enable = enable_serial_driver
 
-            if enable:
-                CLASSES.append(driver)
-        except Exception:  # pylint: disable=W0703
-            continue
+    if NativeDriver.is_available():
+        CLASSES.append(NativeDriver)
+    else:
+        CLASSES.extend([RadioDriver, UsbDriver])
+
+    if enable_debug_driver:
+        CLASSES.append(DebugDriver)
+
+    if enable_serial_driver:
+        CLASSES.append(SerialDriver)
+
+    CLASSES.extend([UdpDriver, PrrtDriver])
 
 
 def scan_interfaces(address=None):

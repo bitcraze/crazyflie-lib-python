@@ -26,7 +26,7 @@ a Crazyradio.
 import time
 
 import cflib.crtp
-from cflib.crtp.radiodriver import RadioManager
+from cflib.crtp.crtpstack import CRTPPacket
 
 
 class PowerSwitch:
@@ -35,12 +35,8 @@ class PowerSwitch:
     BOOTLOADER_CMD_SYSON = 0x03
 
     def __init__(self, uri):
-        self.uri = uri
-        uri_parts = cflib.crtp.RadioDriver.parse_uri(uri)
-        self.devid = uri_parts[0]
-        self.channel = uri_parts[1]
-        self.datarate = uri_parts[2]
-        self.address = uri_parts[3]
+        uri_augmented = uri+"[noSafelink][noAutoPing][noAckFilter]"
+        self.link = cflib.crtp.get_link_driver(uri_augmented)
 
     def platform_power_down(self):
         """ Power down the platform, both NRF and STM MCUs.
@@ -65,25 +61,17 @@ class PowerSwitch:
         self.stm_power_up()
 
     def _send(self, cmd):
-        packet = [0xf3, 0xfe, cmd]
-
-        cr = RadioManager.open(devid=self.devid)
-        cr.set_channel(self.channel)
-        cr.set_data_rate(self.datarate)
-        cr.set_address(self.address)
-        cr.set_arc(3)
-
-        success = False
-        for i in range(50):
-            res = cr.send_packet(packet)
-            if res and res.ack:
-                success = True
+        # make sure receive queue is empty
+        while True:
+            pk = self.link.receive_packet(0)
+            if not pk:
                 break
+        # send command (will be repeated until acked)
+        pk = CRTPPacket(0xFF, [0xfe, cmd])
 
-            time.sleep(0.01)
-
-        cr.close()
-
-        if not success:
-            raise Exception(
-                'Failed to connect to Crazyflie at {}'.format(self.uri))
+        # wait until ack was received
+        while True:
+            self.link.send_packet(pk)
+            pk = self.link.receive_packet(0.1)
+            if pk:
+                break

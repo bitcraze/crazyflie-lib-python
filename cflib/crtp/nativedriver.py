@@ -146,7 +146,10 @@ class NativeDriver(CRTPDriver):
         Scan interface for available Crazyflie quadcopters and return a list
         with them.
         """
-        uris = nativelink.Connection.scan(address)
+        if address:
+            uris = nativelink.Connection.scan(address)
+        else:
+            uris = nativelink.Connection.scan()
         # convert to list of tuples, where the second part is a comment
         result = [(uri, '') for uri in uris]
         return result

@@ -76,10 +76,11 @@ class NativeDriver(CRTPDriver):
 
         self._connection = nativelink.Connection(uri)
 
-        if link_quality_callback is not None:
+        self._link_quality_callback = link_quality_callback
+        self._link_error_callback = link_error_callback
+        if link_quality_callback is not None or link_error_callback is not None:
             self._last_connection_stats = self._connection.statistics
-            self._link_quality_callback = link_quality_callback
-            self._recompute_link_quality()
+            self._recompute_link_quality_timer()
 
     def send_packet(self, pk):
         """Send a CRTP packet"""
@@ -87,7 +88,15 @@ class NativeDriver(CRTPDriver):
         nativePk.port = pk.port
         nativePk.channel = pk.channel
         nativePk.payload = bytes(pk.data)
-        self._connection.send(nativePk)
+        try:
+            self._connection.send(nativePk)
+        except Exception as e:
+            if self._link_error_callback is not None:
+                import traceback
+                self._link_error_callback(
+                    'Error communicating! Perhaps your device has been unplugged?\n'
+                    'Exception:{}\n\n{}'.format(e, traceback.format_exc()))
+
 
     def receive_packet(self, wait=0):
         """Receive a CRTP packet.
@@ -103,17 +112,23 @@ class NativeDriver(CRTPDriver):
         else:
             timeout = int(wait*1000)
 
-        nativePk = self._connection.recv(timeout=timeout)
-        if not nativePk.valid:
-            return None
+        try:
+            nativePk = self._connection.recv(timeout=timeout)
+            if not nativePk.valid:
+                return None
 
-        pk = CRTPPacket()
-        pk.port = nativePk.port
-        pk.channel = nativePk.channel
-        pk.data = nativePk.payload
-        return pk
-
-
+            pk = CRTPPacket()
+            pk.port = nativePk.port
+            pk.channel = nativePk.channel
+            pk.data = nativePk.payload
+            return pk
+        except Exception as e:
+            if self._link_error_callback is not None:
+                import traceback
+                self._link_error_callback(
+                    'Error communicating! Perhaps your device has been unplugged?\n'
+                    'Exception:{}\n\n{}'.format(e, traceback.format_exc()))
+        
     def get_status(self):
         """
         Return a status string from the interface.
@@ -131,7 +146,7 @@ class NativeDriver(CRTPDriver):
         Scan interface for available Crazyflie quadcopters and return a list
         with them.
         """
-        uris = nativelink.Connection.scan('')
+        uris = nativelink.Connection.scan(address)
         # convert to list of tuples, where the second part is a comment
         result = [(uri, '') for uri in uris]
         return result
@@ -152,14 +167,22 @@ class NativeDriver(CRTPDriver):
         """Close the link"""
         self._connection = None
 
-    def _recompute_link_quality(self):
+    def _recompute_link_quality_timer(self):
+        if self._connection is None:
+            return
         stats = self._connection.statistics
         sent_count = stats.sent_count - self._last_connection_stats.sent_count
         ack_count = stats.ack_count - self._last_connection_stats.ack_count
         if sent_count > 0:
-            link_quality = ack_count / sent_count * 100.0
+            link_quality = min(ack_count, sent_count) / sent_count * 100.0
         else:
-            link_quality = 0
+            link_quality = 1
         self._last_connection_stats = stats
-        self._link_quality_callback(link_quality)
-        threading.Timer(1.0, self._recompute_link_quality).start()
+
+        if self._link_quality_callback is not None:
+            self._link_quality_callback(link_quality)
+
+        if sent_count > 10 and ack_count == 0 and self._link_error_callback is not None:
+            self._link_error_callback('Too many packets lost')
+
+        threading.Timer(1.0, self._recompute_link_quality_timer).start()

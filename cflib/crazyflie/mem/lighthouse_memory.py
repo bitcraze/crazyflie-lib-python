@@ -172,31 +172,33 @@ class LighthouseMemory(MemoryElement):
     def new_data(self, mem, addr, data):
         """Callback for when new memory data has been fetched"""
         if mem.id == self.id:
+            tmp_update_finished_cb = self._update_finished_cb
+            self._clear_update_cb()
+
             if addr < self.CALIB_START_ADDR:
                 geo_data = LighthouseBsGeometry()
                 geo_data.set_from_mem_data(data)
 
-                if self._update_finished_cb:
-                    self._update_finished_cb(self, geo_data)
+                if tmp_update_finished_cb:
+                    tmp_update_finished_cb(self, geo_data)
             else:
                 calibration_data = LighthouseBsCalibration()
                 calibration_data.set_from_mem_data(data)
 
-                if self._update_finished_cb:
-                    self._update_finished_cb(self, calibration_data)
-
-            self._clear_update_cb()
+                if tmp_update_finished_cb:
+                    tmp_update_finished_cb(self, calibration_data)
 
     def new_data_failed(self, mem, addr, data):
         """Callback when a read failed"""
         if mem.id == self.id:
-            if self._update_failed_cb:
-                logger.debug('Update of data failed')
-                self._update_failed_cb(self)
+            tmp_update_failed_cb = self._update_failed_cb
             self._clear_update_cb()
 
-    def read_geo_data(self, bs_id, update_finished_cb,
-                      update_failed_cb=None):
+            if tmp_update_failed_cb:
+                logger.debug('Update of data failed')
+                tmp_update_failed_cb(self)
+
+    def read_geo_data(self, bs_id, update_finished_cb, update_failed_cb=None):
         """Request a read of geometry data for one base station"""
         if self._update_finished_cb:
             raise Exception('Read operation already ongoing')
@@ -271,3 +273,41 @@ class LighthouseMemory(MemoryElement):
     def _clear_write_cb(self):
         self._write_finished_cb = None
         self._write_failed_cb = None
+
+
+class LighthouseMemHelper:
+    """Helper to access all geometry data located in crazyflie memory subsystem"""
+
+    NR_OF_CHANNELS = 16
+
+    def __init__(self, cf):
+        self._cf = cf
+        self._result_geos = None
+
+        mems = self._cf.mem.get_mems(MemoryElement.TYPE_LH)
+        count = len(mems)
+        if count != 1:
+            raise Exception('Unexpected nr of memories found:', count)
+
+        self._lh_mem = mems[0]
+
+    def read_all_geos(self, read_done_cb):
+        self._result_geos = {}
+        self._next_geo_get_id = 0
+        self._read_geos_done_cb = read_done_cb
+        self._get_geo(0)
+
+    def _geo_data_updated(self, mem, geo_data):
+        self._result_geos[self._next_geo_get_id] = geo_data
+        self._next_geo_get_id += 1
+        self._get_geo(self._next_geo_get_id)
+
+    def _update_failed(self, mem):
+        self._next_geo_get_id += 1
+        self._get_geo(self._next_geo_get_id)
+
+    def _get_geo(self, channel):
+        if channel < self.NR_OF_CHANNELS:
+            self._lh_mem.read_geo_data(channel, self._geo_data_updated, update_failed_cb=self._update_failed)
+        else:
+            self._read_geos_done_cb(self._result_geos)

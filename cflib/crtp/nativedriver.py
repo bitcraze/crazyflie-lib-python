@@ -160,10 +160,7 @@ class NativeDriver(CRTPDriver):
         Scan interface for available Crazyflie quadcopters and return a list
         with them.
         """
-        uris = nativelink.Connection.scan_selected(uris)
-        # convert to list of tuples, where the second part is a comment
-        result = [(uri, '') for uri in uris]
-        return result
+        return nativelink.Connection.scan_selected(uris)
 
     def enum(self):
         """Enumerate, and return a list, of the available link URI on this

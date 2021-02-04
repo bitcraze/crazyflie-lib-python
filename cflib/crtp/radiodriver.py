@@ -406,7 +406,7 @@ class RadioDriver(CRTPDriver):
         for link in links:
             one_to_scan = {}
             uri_data = re.search('^radio://([0-9]+)((/([0-9]+))'
-                                 '(/(250K|1M|2M))?)?$',
+                                 '(/(250K|1M|2M))?)?',
                                  link)
 
             one_to_scan['channel'] = int(uri_data.group(4))

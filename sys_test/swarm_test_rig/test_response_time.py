@@ -108,7 +108,7 @@ class TestResponseTime(unittest.TestCase):
         while time.time() < time_end:
             for link in links:
                 if link.uri not in response_timestamps:
-                    response = link.receive_packet(time=NO_BLOCKING)
+                    response = link.receive_packet(wait=NO_BLOCKING)
                     if self._is_response_correct_seq_nr(response, seq_nr):
                         response_timestamps[link.uri] = time.time()
 

@@ -59,6 +59,7 @@ class NativeDriver(CRTPDriver):
         """Driver constructor. Throw an exception if the driver is unable to
         open the URI
         """
+        self.uri = ''
 
         # nativelink resends packets internally
         self.needs_resending = False
@@ -75,7 +76,7 @@ class NativeDriver(CRTPDriver):
         """
 
         self._connection = nativelink.Connection(uri)
-
+        self.uri = uri
         self._link_quality_callback = link_quality_callback
         self._link_error_callback = link_error_callback
         if link_quality_callback is not None or link_error_callback is not None:
@@ -154,6 +155,16 @@ class NativeDriver(CRTPDriver):
         result = [(uri, '') for uri in uris]
         return result
 
+    def scan_selected(self, uris):
+        """
+        Scan interface for available Crazyflie quadcopters and return a list
+        with them.
+        """
+        uris = nativelink.Connection.scan_selected(uris)
+        # convert to list of tuples, where the second part is a comment
+        result = [(uri, '') for uri in uris]
+        return result
+
     def enum(self):
         """Enumerate, and return a list, of the available link URI on this
         system
@@ -168,6 +179,7 @@ class NativeDriver(CRTPDriver):
 
     def close(self):
         """Close the link"""
+        self._connection.close()
         self._connection = None
 
     def _recompute_link_quality_timer(self):

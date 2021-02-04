@@ -35,6 +35,7 @@ class PowerSwitch:
     BOOTLOADER_CMD_SYSON = 0x03
 
     def __init__(self, uri):
+        self.uri = uri
         uri_augmented = uri+"[noSafelink][noAutoPing][noAckFilter]"
         self.link = cflib.crtp.get_link_driver(uri_augmented)
 
@@ -61,17 +62,11 @@ class PowerSwitch:
         self.stm_power_up()
 
     def _send(self, cmd):
-        # make sure receive queue is empty
-        while True:
-            pk = self.link.receive_packet(0)
-            if not pk:
-                break
         # send command (will be repeated until acked)
         pk = CRTPPacket(0xFF, [0xfe, cmd])
-
-        # wait until ack was received
-        while True:
-            self.link.send_packet(pk)
-            pk = self.link.receive_packet(0.1)
-            if pk:
-                break
+        self.link.send_packet(pk)
+        # wait up to 1s 
+        pk = self.link.receive_packet(0.1)
+        if pk is None:
+            raise Exception(
+                'Failed to connect to Crazyflie at {}'.format(self.uri))

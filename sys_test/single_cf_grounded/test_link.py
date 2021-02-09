@@ -6,7 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2019 Bitcraze AB
+#  Copyright (C) 2021 Bitcraze AB
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -31,7 +31,7 @@ from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 
 
-class TestConnection(unittest.TestCase):
+class TestLink(unittest.TestCase):
     def setUp(self):
         cflib.crtp.init_drivers(enable_debug_driver=False)
 

@@ -24,5 +24,8 @@ setup(
 
     keywords='driver crazyflie quadcopter',
 
-    install_requires='pyusb>=1.0.0b2',
+    install_requires=[
+        'pyusb>=1.0.0b2',
+        'opencv-python==4.5.1.48'
+    ]
 )

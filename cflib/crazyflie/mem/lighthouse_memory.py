@@ -282,7 +282,14 @@ class LighthouseMemHelper:
 
     def __init__(self, cf):
         self._cf = cf
+
         self._result_geos = None
+        self._next_geo_get_id = None
+        self._read_geos_done_cb = None
+
+        self._geos_to_write = None
+        self._write_done_cb = None
+        self._write_failed_for_one_or_more_geos = False
 
         mems = self._cf.mem.get_mems(MemoryElement.TYPE_LH)
         count = len(mems)
@@ -292,10 +299,37 @@ class LighthouseMemHelper:
         self._lh_mem = mems[0]
 
     def read_all_geos(self, read_done_cb):
+        if self._read_geos_done_cb is not None:
+            raise Exception('Read operation not finished')
+
         self._result_geos = {}
         self._next_geo_get_id = 0
         self._read_geos_done_cb = read_done_cb
         self._get_geo(0)
+
+    def write_geos(self, geometry_dict, write_done_cb):
+        if self._geos_to_write is not None:
+            raise Exception('Write operation not finished')
+
+        self._write_done_cb = write_done_cb
+        # Make a copy of the dictionary
+        self._geos_to_write = dict(geometry_dict)
+        self._write_failed_for_one_or_more_geos = False
+        self._write_next_geo()
+
+    def _write_next_geo(self):
+        if len(self._geos_to_write) > 0:
+            id = list(self._geos_to_write.keys())[0]
+            geo_data = self._geos_to_write.pop(id)
+            self._lh_mem.write_geo_data(id, geo_data, self._geo_data_written, write_failed_cb=self._write_failed)
+        else:
+            tmp_cb = self._write_done_cb
+            is_sucess = not self._write_failed_for_one_or_more_geos
+
+            self._geos_to_write = None
+            self._write_done_cb = None
+
+            tmp_cb(is_sucess)
 
     def _geo_data_updated(self, mem, geo_data):
         self._result_geos[self._next_geo_get_id] = geo_data
@@ -303,6 +337,8 @@ class LighthouseMemHelper:
         self._get_geo(self._next_geo_get_id)
 
     def _update_failed(self, mem):
+        # Update failes if the geo is not available, that is if we try to read a base station id that is
+        # not supported by the firmware. Try to read the next one until we're done.
         self._next_geo_get_id += 1
         self._get_geo(self._next_geo_get_id)
 
@@ -310,4 +346,22 @@ class LighthouseMemHelper:
         if channel < self.NR_OF_CHANNELS:
             self._lh_mem.read_geo_data(channel, self._geo_data_updated, update_failed_cb=self._update_failed)
         else:
-            self._read_geos_done_cb(self._result_geos)
+            tmp_cb = self._read_geos_done_cb
+            tmp_result = self._result_geos
+
+            self._read_geos_done_cb = None
+            self._result_geos = None
+            self._next_geo_get_id = None
+            self._write_failed_for_one_or_more_geos = False
+
+            tmp_cb(tmp_result)
+
+    def _geo_data_written(self, mem, addr):
+        self._write_next_geo()
+
+    def _write_failed(self, mem, addr):
+        # Write failes if we try to write data for a base station that is not supported by the fw.
+        # Try to write the next one until we have tried them all, but record the problem and
+        # report that not all base stations were written.
+        self._write_failed_for_one_or_more_geos = True
+        self._write_next_geo()

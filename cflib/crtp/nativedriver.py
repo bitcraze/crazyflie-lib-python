@@ -107,14 +107,20 @@ class NativeDriver(CRTPDriver):
         @return One CRTP packet or None if no packet has been received.
         """
         if wait < 0:
-            timeout = 0
+            # Since we block in the native lib, break up infinity timeouts into smaller
+            # pieces, so Ctrl+C keeps working as expected
+            timeout = 100
         elif wait == 0:
             timeout = 1
         else:
             timeout = int(wait*1000)
 
         try:
-            nativePk = self._connection.recv(timeout=timeout)
+            while True:
+                nativePk = self._connection.recv(timeout=timeout)
+                if wait>=0:
+                    break
+
             if not nativePk.valid:
                 return None
 

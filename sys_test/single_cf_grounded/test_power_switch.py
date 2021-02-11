@@ -25,20 +25,38 @@ import time
 import unittest
 
 import cflib.crtp
+from cflib.crtp.crtpstack import CRTPPacket
+from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.power_switch import PowerSwitch
 
 
 class TestPowerSwitch(unittest.TestCase):
     def setUp(self):
         cflib.crtp.init_drivers(enable_debug_driver=False)
+        self.uri = "radio://0/80/2M/E7E7E7E7E7"
 
     def test_reboot(self):
-        # ToDO: check that cf is connected
-        s = PowerSwitch("radio://0/80/2M/E7E7E7E7E7")
+        self.assertTrue(self.is_stm_connected())
+        s = PowerSwitch(self.uri)
         s.stm_power_down()
-        # ToDo: check that cf is not connected
+        s.link.close()
+        self.assertFalse(self.is_stm_connected())
+        s = PowerSwitch(self.uri)
         s.stm_power_up()
-        # ToDO: check that cf is connected
+        s.link.close()
+        time.sleep(2)
+        self.assertTrue(self.is_stm_connected())
+
+    def is_stm_connected(self):
+        link = cflib.crtp.get_link_driver(self.uri)
+
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.LINKCTRL, 0)  # Echo channel
+        pk.data = b'test'
+        link.send_packet(pk)
+        pk_ack = link.receive_packet(0.1)
+        link.close()
+        return pk_ack is not None
 
 
 if __name__ == '__main__':

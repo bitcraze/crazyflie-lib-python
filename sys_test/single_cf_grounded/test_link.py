@@ -34,6 +34,8 @@ from cflib.crtp.crtpstack import CRTPPort
 class TestLink(unittest.TestCase):
     def setUp(self):
         cflib.crtp.init_drivers(enable_debug_driver=False)
+        self.radioUri = "radio://0/80/2M/E7E7E7E7E7"
+        self.usbUri = "usb://0"
 
     # def test_scan(self):
     #     start_time = time.time()
@@ -45,29 +47,37 @@ class TestLink(unittest.TestCase):
     #     self.assertIn("usb://0", uris)
     #     self.assertLess(end_time - start_time, 2)
 
-    def test_latency_radio_s4(self):
-        result = self.latency("radio://0/80/2M/E7E7E7E7E7", 4)
-        self.assertLess(result, 8)
-
-    def test_latency_radio_s28(self):
-        result = self.latency("radio://0/80/2M/E7E7E7E7E7", 28)
-        self.assertLess(result, 8)
-
-    # def test_latency_usb(self):
-    #     result = self.latency("usb://0")
+    # def test_latency_radio_s4(self):
+    #     result = self.latency(self.radioUri, 4)
     #     self.assertLess(result, 8)
 
-    def test_bandwidth_radio_s4(self):
-        result = self.bandwidth("radio://0/80/2M/E7E7E7E7E7", 4)
-        self.assertGreater(result, 450)
-
-    def test_bandwidth_radio_s28(self):
-        result = self.bandwidth("radio://0/80/2M/E7E7E7E7E7", 28)
-        self.assertGreater(result, 450)
-
-    # def test_bandwidth_usb(self):
-    #     result = self.bandwidth("usb://0")
+    # def test_latency_radio_s28(self):
+    #     result = self.latency(self.radioUri, 28)
     #     self.assertLess(result, 8)
+
+    def test_latency_usb_s4(self):
+        result = self.latency(self.usbUri, 4, 1000)
+        self.assertLess(result, 1)
+
+    def test_latency_usb_s28(self):
+        result = self.latency(self.usbUri, 28, 1000)
+        self.assertLess(result, 1)
+
+    # def test_bandwidth_radio_s4(self):
+    #     result = self.bandwidth(self.radioUri, 4)
+    #     self.assertGreater(result, 450)
+
+    # def test_bandwidth_radio_s28(self):
+    #     result = self.bandwidth(self.radioUri, 28)
+    #     self.assertGreater(result, 450)
+
+    def test_bandwidth_usb_s4(self):
+        result = self.bandwidth(self.usbUri, 4, 1000)
+        self.assertGreater(result, 1500)
+
+    def test_bandwidth_usb_s28(self):
+        result = self.bandwidth(self.usbUri, 28, 1000)
+        self.assertGreater(result, 1500)
 
     def latency(self, uri, packet_size = 4, count = 500):
         link = cflib.crtp.get_link_driver(uri)

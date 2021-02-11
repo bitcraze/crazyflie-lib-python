@@ -118,7 +118,7 @@ class NativeDriver(CRTPDriver):
         try:
             while True:
                 nativePk = self._connection.recv(timeout=timeout)
-                if wait>=0:
+                if wait>=0 or nativePk.valid:
                     break
 
             if not nativePk.valid:

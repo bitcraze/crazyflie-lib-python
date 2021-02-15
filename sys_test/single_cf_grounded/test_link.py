@@ -30,12 +30,10 @@ import cflib.crtp
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 
+from single_cf_grounded import TestSingleCfGrounded
 
-class TestLink(unittest.TestCase):
-    def setUp(self):
-        cflib.crtp.init_drivers(enable_debug_driver=False)
-        self.radioUri = "radio://0/80/2M/E7E7E7E7E7"
-        self.usbUri = "usb://0"
+
+class TestLink(TestSingleCfGrounded):
 
     # def test_scan(self):
     #     start_time = time.time()

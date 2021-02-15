@@ -25,22 +25,25 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Crazyflie driver using the cfcpplink implementation.
+Crazyflie driver using the cflinkcpp implementation.
 
 This driver is used to communicate over the radio or USB.
 """
 import threading
 import logging
+import os
 
 from .crtpstack import CRTPPacket
-from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
 
-cfcpplink_installed = True
 try:
-    import cfcpplink
+    if os.getenv("USE_CFLINKCPP") is not None:
+        import cflinkcpp
+        use_cflinkcpp = True
+    else:
+        use_cflinkcpp = False
 except ImportError:
-    cfcpplink_installed = False
+    use_cflinkcpp = False
 
 __author__ = 'Bitcraze AB'
 __all__ = ['NativeDriver']
@@ -49,11 +52,11 @@ logger = logging.getLogger(__name__)
 
 
 class NativeDriver(CRTPDriver):
-    """ CfCppLink driver """
+    """ cflinkcpp driver """
 
     @classmethod
     def is_available(cls):
-        return cfcpplink_installed
+        return use_cflinkcpp
 
     def __init__(self):
         """Driver constructor. Throw an exception if the driver is unable to
@@ -61,7 +64,7 @@ class NativeDriver(CRTPDriver):
         """
         self.uri = ''
 
-        # cfcpplink resends packets internally
+        # cflinkcpp resends packets internally
         self.needs_resending = False
 
         self._connection = None
@@ -75,7 +78,7 @@ class NativeDriver(CRTPDriver):
                disconnection)
         """
 
-        self._connection = cfcpplink.Connection(uri)
+        self._connection = cflinkcpp.Connection(uri)
         self.uri = uri
         self._link_quality_callback = link_quality_callback
         self._link_error_callback = link_error_callback
@@ -85,7 +88,7 @@ class NativeDriver(CRTPDriver):
 
     def send_packet(self, pk):
         """Send a CRTP packet"""
-        nativePk = cfcpplink.Packet()
+        nativePk = cflinkcpp.Packet()
         nativePk.port = pk.port
         nativePk.channel = pk.channel
         nativePk.payload = bytes(pk.data)
@@ -146,7 +149,7 @@ class NativeDriver(CRTPDriver):
         """
         Return a human readable name of the interface.
         """
-        "cfcpplink"
+        "cflinkcpp"
 
     def scan_interface(self, address=None):
         """
@@ -154,9 +157,9 @@ class NativeDriver(CRTPDriver):
         with them.
         """
         if address:
-            uris = cfcpplink.Connection.scan(address)
+            uris = cflinkcpp.Connection.scan(address)
         else:
-            uris = cfcpplink.Connection.scan()
+            uris = cflinkcpp.Connection.scan()
         # convert to list of tuples, where the second part is a comment
         result = [(uri, '') for uri in uris]
         return result
@@ -166,7 +169,7 @@ class NativeDriver(CRTPDriver):
         Scan interface for available Crazyflie quadcopters and return a list
         with them.
         """
-        return cfcpplink.Connection.scan_selected(uris)
+        return cflinkcpp.Connection.scan_selected(uris)
 
     def enum(self):
         """Enumerate, and return a list, of the available link URI on this

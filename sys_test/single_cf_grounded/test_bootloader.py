@@ -21,30 +21,31 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
-import time
-import unittest
 
-import cflib.crtp
-from cflib.crtp.crtpstack import CRTPPacket
-from cflib.crtp.crtpstack import CRTPPort
-from cflib.utils.power_switch import PowerSwitch
+import unittest
+import time
 
 from single_cf_grounded import TestSingleCfGrounded
+from cflib.bootloader import Bootloader
+from cflib.bootloader.boottypes import BootVersion, TargetTypes
 
 
-class TestPowerSwitch(TestSingleCfGrounded):
+class TestBootloader(TestSingleCfGrounded):
 
-    def test_reboot(self):
+    def test_boot_to_bootloader(self):
         self.assertTrue(self.is_stm_connected())
-        s = PowerSwitch(self.radioUri)
-        s.stm_power_down()
-        s.link.close()
-        self.assertFalse(self.is_stm_connected())
-        s = PowerSwitch(self.radioUri)
-        s.stm_power_up()
-        s.link.close()
-        time.sleep(2)
+        bl = Bootloader(self.radioUri)
+        started = bl.start_bootloader(warm_boot=True)
+        self.assertTrue(started)
+
+        # t = bl.get_target(TargetTypes.NRF51)
+        # print(t)
+
+        bl.reset_to_firmware()
+        bl.close()
+        time.sleep(1)
         self.assertTrue(self.is_stm_connected())
+        self.assertTrue(BootVersion.is_cf2(bl.protocol_version))
 
 
 if __name__ == '__main__':

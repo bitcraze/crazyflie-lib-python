@@ -251,16 +251,18 @@ class LighthouseMemory(MemoryElement):
 
     def write_done(self, mem, addr):
         if mem.id == self.id:
-            if self._write_finished_cb:
-                self._write_finished_cb(self, addr)
+            tmp_cb = self._write_finished_cb
             self._clear_write_cb()
+            if tmp_cb:
+                tmp_cb(self, addr)
 
     def write_failed(self, mem, addr):
         if mem.id == self.id:
-            if self._write_failed_cb:
-                logger.debug('Write of data failed')
-                self._write_failed_cb(self, addr)
+            tmp_cb = self._write_failed_cb
             self._clear_write_cb()
+            if tmp_cb:
+                logger.debug('Write of data failed')
+                tmp_cb(self, addr)
 
     def disconnect(self):
         self._clear_update_cb()
@@ -352,7 +354,6 @@ class LighthouseMemHelper:
             self._read_geos_done_cb = None
             self._result_geos = None
             self._next_geo_get_id = None
-            self._write_failed_for_one_or_more_geos = False
 
             tmp_cb(tmp_result)
 

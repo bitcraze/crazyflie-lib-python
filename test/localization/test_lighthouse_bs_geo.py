@@ -22,8 +22,8 @@
 import math
 import unittest
 
-from cflib.localization.lighthouse_bs_geo import LighthouseBsGeoEstimator
-from cflib.localization.lighthouse_bs_vector import LighthouseBsVector
+from cflib.localization import LighthouseBsGeoEstimator
+from cflib.localization import LighthouseBsVector
 
 
 class TestLighthouseBsGeoEstimator(unittest.TestCase):

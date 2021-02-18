@@ -38,6 +38,7 @@ from .led_driver_memory import LEDDriverMemory
 from .led_timings_driver_memory import LEDTimingsDriverMemory
 from .lighthouse_memory import LighthouseBsCalibration
 from .lighthouse_memory import LighthouseBsGeometry
+from .lighthouse_memory import LighthouseMemHelper
 from .lighthouse_memory import LighthouseMemory
 from .loco_memory import LocoMemory
 from .loco_memory_2 import LocoMemory2
@@ -52,7 +53,7 @@ from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Memory', 'Poly4D', 'MemoryElement',
-           'LighthouseBsGeometry', 'LighthouseBsCalibration']
+           'LighthouseBsGeometry', 'LighthouseBsCalibration', 'LighthouseMemHelper']
 
 # Channels used for the logging port
 CHAN_INFO = 0

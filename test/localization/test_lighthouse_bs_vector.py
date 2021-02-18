@@ -23,7 +23,7 @@ import unittest
 
 import numpy as np
 
-from cflib.localization.lighthouse_bs_vector import LighthouseBsVector
+from cflib.localization import LighthouseBsVector
 
 
 class TestLighthouseBsVector(unittest.TestCase):

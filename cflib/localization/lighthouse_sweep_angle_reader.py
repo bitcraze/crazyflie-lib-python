@@ -19,7 +19,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 from cflib.localization import LighthouseBsVector
 
 
@@ -59,7 +58,7 @@ class LighthouseSweepAngleReader():
             return
 
         if self._cb:
-            base_station_id = packet.data["basestation"]
+            base_station_id = packet.data['basestation']
             horiz_angles = packet.data['x']
             vert_angles = packet.data['y']
 
@@ -74,6 +73,7 @@ class LighthouseSweepAngleAverageReader():
     """
     Helper class to make it easy read sweep angles for multiple base stations and average the result
     """
+
     def __init__(self, cf, ready_cb):
         self._reader = LighthouseSweepAngleReader(cf, self._data_recevied_cb)
         self._ready_cb = ready_cb

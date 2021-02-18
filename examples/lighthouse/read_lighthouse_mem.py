@@ -26,72 +26,45 @@ Example of how to read the Lighthouse base station geometry and
 calibration memory from a Crazyflie
 """
 import logging
-import time
+from threading import Event
 
 import cflib.crtp  # noqa
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie.mem import MemoryElement
+from cflib.crazyflie.mem import LighthouseMemHelper
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-# Only output errors from the logging framework
 
+# Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
 
 class ReadMem:
     def __init__(self, uri):
-        self.got_data = False
+        self._event = Event()
 
         with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-            mems = scf.cf.mem.get_mems(MemoryElement.TYPE_LH)
+            helper = LighthouseMemHelper(scf.cf)
 
-            count = len(mems)
-            if count != 1:
-                raise Exception('Unexpected nr of memories found:', count)
+            helper.read_all_geos(self._geo_read_ready)
+            self._event.wait()
 
-            lh_mem = mems[0]
-            print('Requesting data')
-            print('-- Geo 0')
-            self.got_data = False
-            lh_mem.read_geo_data(0, self._geo_data_updated,
-                                 update_failed_cb=self._update_failed)
+            self._event.clear()
 
-            while not self.got_data:
-                time.sleep(1)
+            helper.read_all_calibs(self._calib_read_ready)
+            self._event.wait()
 
-            print('-- Geo 1')
-            self.got_data = False
-            lh_mem.read_geo_data(1, self._geo_data_updated,
-                                 update_failed_cb=self._update_failed)
+    def _geo_read_ready(self, geo_data):
+        for id, data in geo_data.items():
+            print('---- Geometry for base station', id + 1)
+            data.dump()
+            print()
+        self._event.set()
 
-            while not self.got_data:
-                time.sleep(1)
-
-            print('-- Calibration 0')
-            self.got_data = False
-            lh_mem.read_calib_data(0, self._calib_data_updated,
-                                   update_failed_cb=self._update_failed)
-
-            while not self.got_data:
-                time.sleep(1)
-
-            print('-- Calibration 1')
-            self.got_data = False
-            lh_mem.read_calib_data(1, self._calib_data_updated,
-                                   update_failed_cb=self._update_failed)
-
-            while not self.got_data:
-                time.sleep(1)
-
-    def _geo_data_updated(self, mem, geo_data):
-        geo_data.dump()
-        self.got_data = True
-
-    def _calib_data_updated(self, mem,  calib_data):
-        calib_data.dump()
-        self.got_data = True
-
-    def _update_failed(self, mem):
-        raise Exception('Read failed')
+    def _calib_read_ready(self, calib_data):
+        for id, data in calib_data.items():
+            print('---- Calibration data for base station', id + 1)
+            data.dump()
+            print()
+        self._event.set()
 
 
 if __name__ == '__main__':

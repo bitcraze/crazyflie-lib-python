@@ -27,7 +27,8 @@ import time
 
 import cflib.crtp
 from cflib.crtp.crtpstack import CRTPPacket
-
+from cflib.crtp.nativedriver import NativeDriver
+from cflib.crtp.radiodriver import RadioManager
 
 class PowerSwitch:
     BOOTLOADER_CMD_ALLOFF = 0x01
@@ -36,8 +37,15 @@ class PowerSwitch:
 
     def __init__(self, uri):
         self.uri = uri
-        uri_augmented = uri+"[noSafelink][noAutoPing][noAckFilter]"
-        self.link = cflib.crtp.get_link_driver(uri_augmented)
+        if NativeDriver.is_available():
+            uri_augmented = uri+"[noSafelink][noAutoPing][noAckFilter]"
+            self.link = cflib.crtp.get_link_driver(uri_augmented)
+        else:
+            uri_parts = cflib.crtp.RadioDriver.parse_uri(uri)
+            self.devid = uri_parts[0]
+            self.channel = uri_parts[1]
+            self.datarate = uri_parts[2]
+            self.address = uri_parts[3]
 
     def platform_power_down(self):
         """ Power down the platform, both NRF and STM MCUs.
@@ -61,12 +69,41 @@ class PowerSwitch:
         time.sleep(1)
         self.stm_power_up()
 
+    def close(self):
+        if NativeDriver.is_available():
+            self.link.close()
+
     def _send(self, cmd):
-        # send command (will be repeated until acked)
-        pk = CRTPPacket(0xFF, [0xfe, cmd])
-        self.link.send_packet(pk)
-        # wait up to 1s 
-        pk = self.link.receive_packet(0.1)
-        if pk is None:
-            raise Exception(
-                'Failed to connect to Crazyflie at {}'.format(self.uri))
+        if not NativeDriver.is_available():
+            packet = [0xf3, 0xfe, cmd]
+
+            cr = RadioManager.open(devid=self.devid)
+            cr.set_channel(self.channel)
+            cr.set_data_rate(self.datarate)
+            cr.set_address(self.address)
+            cr.set_arc(3)
+
+            success = False
+            for i in range(50):
+                res = cr.send_packet(packet)
+                if res and res.ack:
+                    success = True
+                    break
+
+                time.sleep(0.01)
+
+            cr.close()
+
+            if not success:
+                raise Exception(
+                    'Failed to connect to Crazyflie at {}'.format(self.uri))
+        else:
+
+            # send command (will be repeated until acked)
+            pk = CRTPPacket(0xFF, [0xfe, cmd])
+            self.link.send_packet(pk)
+            # wait up to 1s 
+            pk = self.link.receive_packet(0.1)
+            if pk is None:
+                raise Exception(
+                    'Failed to connect to Crazyflie at {}'.format(self.uri))

@@ -38,11 +38,11 @@ class TestPowerSwitch(TestSingleCfGrounded):
         self.assertTrue(self.is_stm_connected())
         s = PowerSwitch(self.radioUri)
         s.stm_power_down()
-        s.link.close()
+        s.close()
         self.assertFalse(self.is_stm_connected())
         s = PowerSwitch(self.radioUri)
         s.stm_power_up()
-        s.link.close()
+        s.close()
         time.sleep(2)
         self.assertTrue(self.is_stm_connected())
 

@@ -17,11 +17,15 @@ python3 -m unittest discover . -v
 A single test file, e.g.:
 
 ```
-python3 test_powerswitch.py
+python3 test_power_switch.py
 ```
 
 A concrete test case, e.g.:
 
 ```
-python3 test_powerswitch.py TestPowerSwitch.test_reboot
+python3 test_power_switch.py TestPowerSwitch.test_reboot
 ```
+
+## Environment Variables
+
+Prepend command with `USE_CFLINKCPP=1` to run with cflinkcpp native link library.

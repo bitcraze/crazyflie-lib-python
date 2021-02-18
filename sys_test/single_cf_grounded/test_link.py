@@ -71,7 +71,7 @@ class TestLink(TestSingleCfGrounded):
 
     def test_bandwidth_usb_s4(self):
         result = self.bandwidth(self.usbUri, 4, 1000)
-        self.assertGreater(result, 1500)
+        self.assertGreater(result, 1000)
 
     def test_bandwidth_usb_s28(self):
         result = self.bandwidth(self.usbUri, 28, 1000)

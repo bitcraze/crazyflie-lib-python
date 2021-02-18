@@ -42,6 +42,13 @@ class TestSingleCfGrounded(unittest.TestCase):
         pk.set_header(CRTPPort.LINKCTRL, 0)  # Echo channel
         pk.data = b'test'
         link.send_packet(pk)
-        pk_ack = link.receive_packet(0.1)
+        for _ in range(10):
+            pk_ack = link.receive_packet(0.1)
+            print(pk_ack)
+            if pk_ack is not None and pk.data == pk_ack.data:
+                link.close()
+                return True
         link.close()
-        return pk_ack is not None
+        return False
+        # print(pk_ack)
+        # return pk_ack is not None

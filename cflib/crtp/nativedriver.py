@@ -37,7 +37,8 @@ from .crtpstack import CRTPPacket
 from cflib.crtp.crtpdriver import CRTPDriver
 
 try:
-    if os.getenv("USE_CFLINKCPP") is not None:
+    env = os.getenv("USE_CFLINKCPP")
+    if env is not None and env != "0":
         import cflinkcpp
         use_cflinkcpp = True
     else:

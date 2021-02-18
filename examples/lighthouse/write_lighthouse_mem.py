@@ -131,6 +131,7 @@ if __name__ == '__main__':
     bs1calib.sweeps[1].gibphase = 5.1
     bs1calib.sweeps[1].ogeemag = 6.1
     bs1calib.sweeps[1].ogeephase = 7.1
+    bs1calib.uid = 1234
     bs1calib.valid = True
 
     bs2calib = LighthouseBsCalibration()
@@ -148,6 +149,7 @@ if __name__ == '__main__':
     bs2calib.sweeps[1].gibphase = 5.51
     bs2calib.sweeps[1].ogeemag = 6.51
     bs2calib.sweeps[1].ogeephase = 7.51
+    bs2calib.uid = 9876
     bs2calib.valid = True
 
     WriteMem(uri, bs1geo, bs2geo, bs1calib, bs2calib)

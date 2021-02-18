@@ -100,13 +100,15 @@ class LighthouseBsCalibration:
     """Container for calibration data of one Lighthouse base station"""
 
     SIZE_FLOAT = 4
+    SIZE_UINT_32 = 4
     SIZE_BOOL = 1
     SIZE_SWEEP = 7 * SIZE_FLOAT
-    SIZE_CALIBRATION = 2 * SIZE_SWEEP + SIZE_BOOL
+    SIZE_CALIBRATION = 2 * SIZE_SWEEP + SIZE_UINT_32 + SIZE_BOOL
 
     def __init__(self):
         self.sweeps = [LighthouseCalibrationSweep(),
                        LighthouseCalibrationSweep()]
+        self.uid = 0
         self.valid = True
 
     def set_from_mem_data(self, data):
@@ -114,7 +116,7 @@ class LighthouseBsCalibration:
             data[0:self.SIZE_SWEEP])
         self.sweeps[1] = self._unpack_sweep_calibration(
             data[self.SIZE_SWEEP:self.SIZE_SWEEP * 2])
-        self.valid = struct.unpack('<?', data[self.SIZE_SWEEP * 2:])[0]
+        self.uid, self.valid = struct.unpack('<L?', data[self.SIZE_SWEEP * 2:])
 
     def _unpack_sweep_calibration(self, data):
         result = LighthouseCalibrationSweep()
@@ -132,7 +134,7 @@ class LighthouseBsCalibration:
     def add_mem_data(self, data):
         self._pack_sweep_calib(data, self.sweeps[0])
         self._pack_sweep_calib(data, self.sweeps[1])
-        data += struct.pack('<?', self.valid)
+        data += struct.pack('<L?', self.uid, self.valid)
 
     def _pack_sweep_calib(self, data, sweep_calib):
         data += struct.pack('<fffffff',
@@ -147,6 +149,7 @@ class LighthouseBsCalibration:
     def dump(self):
         self.sweeps[0].dump()
         self.sweeps[1].dump()
+        print('uid: {:08X}'.format(self.uid))
         print('valid: {}'.format(self.valid))
 
 

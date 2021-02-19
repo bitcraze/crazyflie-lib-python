@@ -178,7 +178,7 @@ def crazyflie_control(scf):
     cf = scf.cf
     control = controlQueues[uris.index(cf.link_uri)]
 
-    activate_mellinger_controller(scf, True)
+    activate_mellinger_controller(scf, False)
 
     commander = scf.cf.high_level_commander
 

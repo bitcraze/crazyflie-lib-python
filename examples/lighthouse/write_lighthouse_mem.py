@@ -26,69 +26,41 @@ Example of how to write to the Lighthouse base station geometry
 and calibration memory in a Crazyflie
 """
 import logging
-import time
+from threading import Event
 
 import cflib.crtp  # noqa
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import LighthouseBsCalibration
 from cflib.crazyflie.mem import LighthouseBsGeometry
-from cflib.crazyflie.mem import MemoryElement
+from cflib.crazyflie.mem import LighthouseMemHelper
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-# Only output errors from the logging framework
 
+# Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
 
 class WriteMem:
-    def __init__(self, uri, bs1geo, bs2geo, bs1calib, bs2calib):
-        self.data_written = False
+    def __init__(self, uri, geo_dict, calib_dict):
+        self._event = Event()
 
         with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-            mems = scf.cf.mem.get_mems(MemoryElement.TYPE_LH)
+            helper = LighthouseMemHelper(scf.cf)
 
-            count = len(mems)
-            if count != 1:
-                raise Exception('Unexpected nr of memories found:', count)
+            helper.write_geos(geo_dict, self._data_written)
+            self._event.wait()
 
-            lh_mem = mems[0]
+            self._event.clear()
 
-            print('Writing data')
-            lh_mem.write_geo_data(0, bs1geo, self._data_written,
-                                  write_failed_cb=self._data_failed)
+            helper.write_calibs(calib_dict, self._data_written)
+            self._event.wait()
 
-            while not self.data_written:
-                time.sleep(1)
+    def _data_written(self, success):
+        if success:
+            print('Data written')
+        else:
+            print('Write failed')
 
-            self.data_written = False
-            lh_mem.write_geo_data(1, bs2geo, self._data_written,
-                                  write_failed_cb=self._data_failed)
-
-            while not self.data_written:
-                time.sleep(1)
-
-            self.data_written = False
-            lh_mem.write_calib_data(
-                0, bs1calib, self._data_written,
-                write_failed_cb=self._data_failed)
-
-            while not self.data_written:
-                time.sleep(1)
-
-            self.data_written = False
-            lh_mem.write_calib_data(
-                1, bs2calib, self._data_written,
-                write_failed_cb=self._data_failed)
-
-            while not self.data_written:
-                time.sleep(1)
-
-    def _data_written(self, mem, addr):
-        self.data_written = True
-        print('Data written')
-
-    def _data_failed(self, mem, addr):
-        print('Write failed')
-        raise Exception()
+        self._event.set()
 
 
 if __name__ == '__main__':
@@ -131,6 +103,7 @@ if __name__ == '__main__':
     bs1calib.sweeps[1].gibphase = 5.1
     bs1calib.sweeps[1].ogeemag = 6.1
     bs1calib.sweeps[1].ogeephase = 7.1
+    bs1calib.uid = 1234
     bs1calib.valid = True
 
     bs2calib = LighthouseBsCalibration()
@@ -148,6 +121,11 @@ if __name__ == '__main__':
     bs2calib.sweeps[1].gibphase = 5.51
     bs2calib.sweeps[1].ogeemag = 6.51
     bs2calib.sweeps[1].ogeephase = 7.51
+    bs2calib.uid = 9876
     bs2calib.valid = True
 
-    WriteMem(uri, bs1geo, bs2geo, bs1calib, bs2calib)
+    # Note: base station ids (channels) are 0-indexed
+    geo_dict = {0: bs1geo, 1: bs2geo}
+    calib_dict = {0: bs1calib, 1: bs2calib}
+
+    WriteMem(uri, geo_dict, calib_dict)

@@ -306,7 +306,7 @@ with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
 
     activate_kalman_estimator(cf)
     activate_high_level_commander(cf)
-    activate_mellinger_controller(cf)
+    # activate_mellinger_controller(cf)
     duration = upload_trajectory(cf, trajectory_id, figure8)
     print('The sequence is {:.1f} seconds long'.format(duration))
     reset_estimator(cf)

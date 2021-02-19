@@ -334,24 +334,24 @@ class RadioDriver(CRTPDriver):
 
         return devid, channel, datarate, address
 
-    def receive_packet(self, time=0):
+    def receive_packet(self, wait=0):
         """
         Receive a packet though the link. This call is blocking but will
         timeout and return None if a timeout is supplied.
         """
-        if time == 0:
+        if wait == 0:
             try:
                 return self.in_queue.get(False)
             except queue.Empty:
                 return None
-        elif time < 0:
+        elif wait < 0:
             try:
                 return self.in_queue.get(True)
             except queue.Empty:
                 return None
         else:
             try:
-                return self.in_queue.get(True, time)
+                return self.in_queue.get(True, wait)
             except queue.Empty:
                 return None
 

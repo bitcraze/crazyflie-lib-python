@@ -224,10 +224,10 @@ class Cloader:
         if self.link:
             self.link.close()
         if uri:
-            self.link = cflib.crtp.get_link_driver(uri + "[noSafelink]")
+            self.link = cflib.crtp.get_link_driver(uri + '[noSafelink]')
         else:
             self.link = cflib.crtp.get_link_driver(
-                self.clink_address + "[noSafelink]")
+                self.clink_address + '[noSafelink]')
 
     def check_link_and_get_info(self, target_id=0xFF):
         """Try to get a connection with the bootloader by requesting info
@@ -297,7 +297,7 @@ class Cloader:
 
         pk = self.link.receive_packet(2)
 
-        if (pk and pk.header == 0xFF and len(pk.data) >=2 and struct.unpack('<BB', pk.data[0:2]) ==
+        if (pk and pk.header == 0xFF and len(pk.data) >= 2 and struct.unpack('<BB', pk.data[0:2]) ==
                 (target_id, 0x12)):
             m = pk.datat[2:]
 

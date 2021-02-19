@@ -29,13 +29,13 @@ Crazyflie driver using the cflinkcpp implementation.
 
 This driver is used to communicate over the radio or USB.
 """
-import threading
 import logging
-import os
+import threading
+
+import cflinkcpp
 
 from .crtpstack import CRTPPacket
 from cflib.crtp.crtpdriver import CRTPDriver
-import cflinkcpp
 
 __author__ = 'Bitcraze AB'
 __all__ = ['CfLinkCppDriver']
@@ -89,7 +89,6 @@ class CfLinkCppDriver(CRTPDriver):
                     'Error communicating! Perhaps your device has been unplugged?\n'
                     'Exception:{}\n\n{}'.format(e, traceback.format_exc()))
 
-
     def receive_packet(self, wait=0):
         """Receive a CRTP packet.
 
@@ -109,7 +108,7 @@ class CfLinkCppDriver(CRTPDriver):
         try:
             while True:
                 nativePk = self._connection.recv(timeout=timeout)
-                if wait>=0 or nativePk.valid:
+                if wait >= 0 or nativePk.valid:
                     break
 
             if not nativePk.valid:
@@ -126,18 +125,18 @@ class CfLinkCppDriver(CRTPDriver):
                 self._link_error_callback(
                     'Error communicating! Perhaps your device has been unplugged?\n'
                     'Exception:{}\n\n{}'.format(e, traceback.format_exc()))
-        
+
     def get_status(self):
         """
         Return a status string from the interface.
         """
-        "okay"
+        'okay'
 
     def get_name(self):
         """
         Return a human readable name of the interface.
         """
-        "cflinkcpp"
+        'cflinkcpp'
 
     def scan_interface(self, address=None):
         """
@@ -169,7 +168,7 @@ class CfLinkCppDriver(CRTPDriver):
         """return the help message on how to form the URI for this driver
         None means no help
         """
-        ""
+        ''
 
     def close(self):
         """Close the link"""

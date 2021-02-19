@@ -26,8 +26,8 @@
 #  MA  02110-1301, USA.
 """Scans and creates communication interfaces."""
 import logging
+import os
 
-from .cflinkcppdriver import CfLinkCppDriver
 from .debugdriver import DebugDriver
 from .exceptions import WrongUriType
 from .prrtdriver import PrrtDriver
@@ -48,7 +48,9 @@ CLASSES = []
 def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
     """Initialize all the drivers."""
 
-    if CfLinkCppDriver.is_available():
+    env = os.getenv("USE_CFLINK")
+    if env is not None and env == "cpp":
+        from .cflinkcppdriver import CfLinkCppDriver
         CLASSES.append(CfLinkCppDriver)
     else:
         CLASSES.extend([RadioDriver, UsbDriver])

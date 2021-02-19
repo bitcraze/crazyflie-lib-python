@@ -27,7 +27,6 @@ import time
 
 import cflib.crtp
 from cflib.crtp.crtpstack import CRTPPacket
-from cflib.crtp.cflinkcppdriver import CfLinkCppDriver
 from cflib.crtp.radiodriver import RadioManager
 
 class PowerSwitch:
@@ -37,10 +36,10 @@ class PowerSwitch:
 
     def __init__(self, uri):
         self.uri = uri
-        if CfLinkCppDriver.is_available():
-            uri_augmented = uri+"[noSafelink][noAutoPing][noAckFilter]"
-            self.link = cflib.crtp.get_link_driver(uri_augmented)
-        else:
+        uri_augmented = uri+"[noSafelink][noAutoPing][noAckFilter]"
+        self.link = cflib.crtp.get_link_driver(uri_augmented)
+        # Switch to legacy mode, if uri options are not available
+        if not self.link:
             uri_parts = cflib.crtp.RadioDriver.parse_uri(uri)
             self.devid = uri_parts[0]
             self.channel = uri_parts[1]
@@ -70,11 +69,11 @@ class PowerSwitch:
         self.stm_power_up()
 
     def close(self):
-        if CfLinkCppDriver.is_available():
+        if self.link:
             self.link.close()
 
     def _send(self, cmd):
-        if not CfLinkCppDriver.is_available():
+        if not self.link:
             packet = [0xf3, 0xfe, cmd]
 
             cr = RadioManager.open(devid=self.devid)

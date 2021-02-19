@@ -28,4 +28,4 @@ python3 test_power_switch.py TestPowerSwitch.test_reboot
 
 ## Environment Variables
 
-Prepend command with `USE_CFLINKCPP=1` to run with cflinkcpp native link library.
+Prepend command with `USE_CFLINK=cpp` to run with cflinkcpp native link library.

@@ -35,16 +35,7 @@ import os
 
 from .crtpstack import CRTPPacket
 from cflib.crtp.crtpdriver import CRTPDriver
-
-try:
-    env = os.getenv("USE_CFLINKCPP")
-    if env is not None and env != "0":
-        import cflinkcpp
-        use_cflinkcpp = True
-    else:
-        use_cflinkcpp = False
-except ImportError:
-    use_cflinkcpp = False
+import cflinkcpp
 
 __author__ = 'Bitcraze AB'
 __all__ = ['CfLinkCppDriver']
@@ -54,10 +45,6 @@ logger = logging.getLogger(__name__)
 
 class CfLinkCppDriver(CRTPDriver):
     """ cflinkcpp driver """
-
-    @classmethod
-    def is_available(cls):
-        return use_cflinkcpp
 
     def __init__(self):
         """Driver constructor. Throw an exception if the driver is unable to

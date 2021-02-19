@@ -27,7 +27,7 @@
 """Scans and creates communication interfaces."""
 import logging
 
-from .nativedriver import NativeDriver
+from .cflinkcppdriver import CfLinkCppDriver
 from .debugdriver import DebugDriver
 from .exceptions import WrongUriType
 from .prrtdriver import PrrtDriver
@@ -48,8 +48,8 @@ CLASSES = []
 def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
     """Initialize all the drivers."""
 
-    if NativeDriver.is_available():
-        CLASSES.append(NativeDriver)
+    if CfLinkCppDriver.is_available():
+        CLASSES.append(CfLinkCppDriver)
     else:
         CLASSES.extend([RadioDriver, UsbDriver])
 

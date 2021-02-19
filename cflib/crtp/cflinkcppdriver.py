@@ -47,12 +47,12 @@ except ImportError:
     use_cflinkcpp = False
 
 __author__ = 'Bitcraze AB'
-__all__ = ['NativeDriver']
+__all__ = ['CfLinkCppDriver']
 
 logger = logging.getLogger(__name__)
 
 
-class NativeDriver(CRTPDriver):
+class CfLinkCppDriver(CRTPDriver):
     """ cflinkcpp driver """
 
     @classmethod

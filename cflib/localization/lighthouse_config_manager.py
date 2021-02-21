@@ -26,6 +26,7 @@ import yaml
 
 from cflib.crazyflie.mem import LighthouseBsCalibration
 from cflib.crazyflie.mem import LighthouseBsGeometry
+from cflib.crazyflie.mem import LighthouseMemHelper
 
 
 class LighthouseConfigFileManager:
@@ -89,3 +90,116 @@ class LighthouseConfigFileManager:
                     result_calibs[id] = LighthouseBsCalibration.from_file_object(calib)
 
             return result_geos, result_calibs
+
+
+class LighthouseConfigWriter:
+    """
+    This class is used to write system config data to the Crazyflie RAM and persis to permanent storage
+    """
+
+    def __init__(self, cf, nr_of_base_stations=16):
+        self._cf = cf
+        self._helper = LighthouseMemHelper(cf)
+        self._data_stored_cb = None
+        self._geos_to_write = None
+        self._geos_to_persist = []
+        self._calibs_to_persist = []
+        self._write_failed_for_one_or_more_objects = False
+        self._nr_of_base_stations = nr_of_base_stations
+
+    def write_and_store_config(self, data_stored_cb, geos=None, calibs=None):
+        """
+        Transfer geometry and calibration data to the Crazyflie and persist to permanent storage.
+        The callback is called when done.
+        If geos or calibs is None, no data will be written for that data type.
+        If geos or calibs is a dictionary, the values for the base stations in the dictionary will
+        transfered to the Crazyflie, data for all other base stations will be invalidated.
+        """
+        if self._data_stored_cb is not None:
+            raise Exception('Write already in prgress')
+        self._data_stored_cb = data_stored_cb
+
+        self._cf.loc.receivedLocationPacket.add_callback(self._received_location_packet)
+
+        self._geos_to_write = self._prepare_geos(geos)
+        self._calibs_to_write = self._prepare_calibs(calibs)
+
+        self._geos_to_persist = []
+        if self._geos_to_write is not None:
+            self._geos_to_persist = list(range(self._nr_of_base_stations))
+
+        self._calibs_to_persist = []
+        if self._calibs_to_write is not None:
+            self._calibs_to_persist = list(range(self._nr_of_base_stations))
+
+        self._write_failed_for_one_or_more_objects = False
+
+        self._next()
+
+    def write_and_store_config_from_file(self, data_stored_cb, file_name):
+        """
+        Read system configuration data from file and write/persist to the Crazyflie.
+        Geometry and calibration data for base stations that are not in the config file will be invalidated.
+        """
+        geos, calibs = LighthouseConfigFileManager.read(file_name)
+        self.write_and_store_config(data_stored_cb, geos=geos, calibs=calibs)
+
+    def _next(self):
+        if self._geos_to_write is not None:
+            self._helper.write_geos(self._geos_to_write, self._upload_done)
+            self._geos_to_write = None
+            return
+
+        if self._calibs_to_write is not None:
+            self._helper.write_calibs(self._calibs_to_write, self._upload_done)
+            self._calibs_to_write = None
+            return
+
+        if len(self._geos_to_persist) > 0 or len(self._calibs_to_persist) > 0:
+            self._cf.loc.send_lh_persist_data_packet(self._geos_to_persist, self._calibs_to_persist)
+            self._geos_to_persist = []
+            self._calibs_to_persist = []
+            return
+
+        tmp_callback = self._data_stored_cb
+        self._data_stored_cb = None
+        if tmp_callback is not None:
+            tmp_callback(not self._write_failed_for_one_or_more_objects)
+
+    def _upload_done(self, sucess):
+        if not sucess:
+            self._write_failed_for_one_or_more_objects = True
+        self._next()
+
+    def _received_location_packet(self, packet):
+        # New geo data has been written and stored in the CF
+        if packet.type == self._cf.loc.LH_PERSIST_DATA:
+            self._next()
+
+    def _prepare_geos(self, geos):
+        result = None
+
+        if geos is not None:
+            result = dict(geos)
+
+            # Pad for base stations without data
+            empty_geo = LighthouseBsGeometry()
+            for id in range(self._nr_of_base_stations):
+                if id not in result:
+                    result[id] = empty_geo
+
+        return result
+
+    def _prepare_calibs(self, calibs):
+        result = None
+
+        if calibs is not None:
+            result = dict(calibs)
+
+            # Pad for base stations without data
+            empty_calib = LighthouseBsCalibration()
+            for id in range(self._nr_of_base_stations):
+                if id not in result:
+                    result[id] = empty_calib
+
+        return result

@@ -164,7 +164,7 @@ class LighthouseBsCalibration:
         self.sweeps = [LighthouseCalibrationSweep(),
                        LighthouseCalibrationSweep()]
         self.uid = 0
-        self.valid = True
+        self.valid = False
 
     def set_from_mem_data(self, data):
         self.sweeps[0] = self._unpack_sweep_calibration(

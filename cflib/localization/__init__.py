@@ -23,6 +23,7 @@
 #  MA  02110-1301, USA.
 from .lighthouse_bs_geo import LighthouseBsGeoEstimator
 from .lighthouse_bs_vector import LighthouseBsVector
+from .lighthouse_config_manager import LighthouseConfigFileManager
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
 
@@ -30,4 +31,5 @@ __all__ = [
     'LighthouseBsGeoEstimator',
     'LighthouseBsVector',
     'LighthouseSweepAngleAverageReader',
-    'LighthouseSweepAngleReader', ]
+    'LighthouseSweepAngleReader',
+    'LighthouseConfigFileManager']

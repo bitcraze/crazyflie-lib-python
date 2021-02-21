@@ -35,6 +35,11 @@ class LighthouseBsGeometry:
     SIZE_VECTOR = 3 * SIZE_FLOAT
     SIZE_GEOMETRY = (1 + 3) * SIZE_VECTOR + SIZE_BOOL
 
+    FILE_ID_ORIGIN = 'origin'
+    FILE_ID_ROTATION = 'rotation'
+
+    yaml_tag = 'LighthouseBsGeometry'
+
     def __init__(self):
         self.origin = [0.0, 0.0, 0.0]
         self.rotation_matrix = [
@@ -68,6 +73,20 @@ class LighthouseBsGeometry:
         x, y, z = struct.unpack('<fff', data)
         return [x, y, z]
 
+    def as_file_object(self):
+        return {
+            self.FILE_ID_ORIGIN: self.origin,
+            self.FILE_ID_ROTATION: self.rotation_matrix
+        }
+
+    @classmethod
+    def from_file_object(cls, file_object):
+        result = cls()
+        result.origin = file_object[cls.FILE_ID_ORIGIN]
+        result.rotation_matrix = file_object[cls.FILE_ID_ROTATION]
+        result.valid = True
+        return result
+
     def dump(self):
         print('origin:', self.origin)
         print('rotation matrix:', self.rotation_matrix)
@@ -75,6 +94,14 @@ class LighthouseBsGeometry:
 
 
 class LighthouseCalibrationSweep:
+    FILE_ID_PHASE = 'phase'
+    FILE_ID_TILT = 'tilt'
+    FILE_ID_CURVE = 'curve'
+    FILE_ID_GIBMAG = 'gibmag'
+    FILE_ID_GIBPHASE = 'gibphase'
+    FILE_ID_OGEEMAG = 'ogeemag'
+    FILE_ID_OGEEPHASE = 'ogeephase'
+
     def __init__(self):
         self.phase = 0.0
         self.tilt = 0.0
@@ -83,6 +110,31 @@ class LighthouseCalibrationSweep:
         self.gibphase = 0.0
         self.ogeemag = 0.0
         self.ogeephase = 0.0
+
+    def as_file_object(self):
+        return {
+            self.FILE_ID_PHASE: self.phase,
+            self.FILE_ID_TILT: self.tilt,
+            self.FILE_ID_CURVE: self.curve,
+            self.FILE_ID_GIBMAG: self.gibmag,
+            self.FILE_ID_GIBPHASE: self.gibphase,
+            self.FILE_ID_OGEEMAG: self.ogeemag,
+            self.FILE_ID_OGEEPHASE: self.ogeephase,
+        }
+
+    @classmethod
+    def from_file_object(cls, file_object):
+        result = cls()
+
+        result.phase = file_object[cls.FILE_ID_PHASE]
+        result.tilt = file_object[cls.FILE_ID_TILT]
+        result.curve = file_object[cls.FILE_ID_CURVE]
+        result.gibmag = file_object[cls.FILE_ID_GIBMAG]
+        result.gibphase = file_object[cls.FILE_ID_GIBPHASE]
+        result.ogeemag = file_object[cls.FILE_ID_OGEEMAG]
+        result.ogeephase = file_object[cls.FILE_ID_OGEEPHASE]
+
+        return result
 
     def dump(self):
         print(('phase: {}, tilt: {}, curve: {}, gibmag: {}, ' +
@@ -104,6 +156,9 @@ class LighthouseBsCalibration:
     SIZE_BOOL = 1
     SIZE_SWEEP = 7 * SIZE_FLOAT
     SIZE_CALIBRATION = 2 * SIZE_SWEEP + SIZE_UINT_32 + SIZE_BOOL
+
+    FILE_ID_SWEEPS = 'sweeps'
+    FILE_ID_UID = 'uid'
 
     def __init__(self):
         self.sweeps = [LighthouseCalibrationSweep(),
@@ -145,6 +200,24 @@ class LighthouseBsCalibration:
                             sweep_calib.gibphase,
                             sweep_calib.ogeemag,
                             sweep_calib.ogeephase)
+
+    def as_file_object(self):
+        return {
+            self.FILE_ID_SWEEPS: [self.sweeps[0].as_file_object(), self.sweeps[1].as_file_object()],
+            self.FILE_ID_UID: self.uid
+        }
+
+    @classmethod
+    def from_file_object(cls, file_object):
+        result = cls()
+
+        sweeps = file_object[cls.FILE_ID_SWEEPS]
+        result.sweeps[0] = LighthouseCalibrationSweep.from_file_object(sweeps[0])
+        result.sweeps[1] = LighthouseCalibrationSweep.from_file_object(sweeps[1])
+        result.uid = file_object[cls.FILE_ID_UID]
+        result.valid = True
+
+        return result
 
     def dump(self):
         self.sweeps[0].dump()

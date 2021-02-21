@@ -1,0 +1,68 @@
+calibs:
+  0:
+    sweeps:
+    - curve: 3.0
+      gibmag: 4.0
+      gibphase: 5.0
+      ogeemag: 6.0
+      ogeephase: 7.0
+      phase: 1.0
+      tilt: 2.0
+    - curve: 3.1
+      gibmag: 4.1
+      gibphase: 5.1
+      ogeemag: 6.1
+      ogeephase: 7.1
+      phase: 1.1
+      tilt: 2.1
+    uid: 1234
+  1:
+    sweeps:
+    - curve: 3.5
+      gibmag: 4.5
+      gibphase: 5.5
+      ogeemag: 6.5
+      ogeephase: 7.5
+      phase: 1.5
+      tilt: 2.5
+    - curve: 3.51
+      gibmag: 4.51
+      gibphase: 5.51
+      ogeemag: 6.51
+      ogeephase: 7.51
+      phase: 1.51
+      tilt: 2.51
+    uid: 9876
+geos:
+  0:
+    origin:
+    - 1.0
+    - 2.0
+    - 3.0
+    rotation:
+    - - 4.0
+      - 5.0
+      - 6.0
+    - - 7.0
+      - 8.0
+      - 9.0
+    - - 10.0
+      - 11.0
+      - 12.0
+  1:
+    origin:
+    - 21.0
+    - 22.0
+    - 23.0
+    rotation:
+    - - 24.0
+      - 25.0
+      - 26.0
+    - - 27.0
+      - 28.0
+      - 29.0
+    - - 30.0
+      - 31.0
+      - 32.0
+type: lighthouse_system_configuration
+version: '1'

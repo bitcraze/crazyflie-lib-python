@@ -22,8 +22,8 @@
 """
 Functionality to manage lighthouse system configuration (geometry and calibration data).
 """
-
 import yaml
+
 from cflib.crazyflie.mem import LighthouseBsCalibration
 from cflib.crazyflie.mem import LighthouseBsGeometry
 
@@ -66,16 +66,16 @@ class LighthouseConfigFileManager:
             data = yaml.safe_load(file)
 
             if LighthouseConfigFileManager.TYPE_ID not in data:
-                raise Exception("Type field missing")
+                raise Exception('Type field missing')
 
             if data[LighthouseConfigFileManager.TYPE_ID] != LighthouseConfigFileManager.TYPE:
-                raise Exception("Unsupported file type")
+                raise Exception('Unsupported file type')
 
             if LighthouseConfigFileManager.VERSION_ID not in data:
-                raise Exception("Version field missing")
+                raise Exception('Version field missing')
 
             if data[LighthouseConfigFileManager.VERSION_ID] != LighthouseConfigFileManager.VERSION:
-                raise Exception("Unsupported file version")
+                raise Exception('Unsupported file version')
 
             result_geos = {}
             result_calibs = {}

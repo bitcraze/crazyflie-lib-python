@@ -19,9 +19,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-from cflib.crazyflie.mem.lighthouse_memory import LighthouseBsGeometry
-from cflib.crazyflie.mem import LighthouseBsCalibration
 import unittest
+
+from cflib.crazyflie.mem import LighthouseBsCalibration
+from cflib.crazyflie.mem.lighthouse_memory import LighthouseBsGeometry
 
 
 class TestLighthouseMemory(unittest.TestCase):

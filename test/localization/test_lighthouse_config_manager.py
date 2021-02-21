@@ -19,11 +19,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import yaml
 import unittest
-from unittest.mock import patch
-from unittest.mock import mock_open
 from unittest.mock import ANY
+from unittest.mock import mock_open
+from unittest.mock import patch
+
+import yaml
 
 from cflib.localization import LighthouseConfigFileManager
 

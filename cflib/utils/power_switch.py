@@ -37,7 +37,7 @@ class PowerSwitch:
 
     def __init__(self, uri):
         self.uri = uri
-        uri_augmented = uri+'[noSafelink][noAutoPing][noAckFilter]'
+        uri_augmented = uri+'?safelink=0&autoping=0&ackfilter=0'
         self.link = cflib.crtp.get_link_driver(uri_augmented)
         # Switch to legacy mode, if uri options are not available
         if not self.link:

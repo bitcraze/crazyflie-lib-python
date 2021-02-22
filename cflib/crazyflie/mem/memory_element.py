@@ -35,6 +35,7 @@ class MemoryElement(object):
     TYPE_LOCO2 = 0x13
     TYPE_LH = 0x14
     TYPE_MEMORY_TESTER = 0x15
+    TYPE_MEMORY_USD = 0x16
     TYPE_DRIVER_LEDTIMING = 0x17
 
     def __init__(self, id, type, size, mem_handler):
@@ -65,6 +66,8 @@ class MemoryElement(object):
             return 'Lighthouse positioning'
         if t == MemoryElement.TYPE_MEMORY_TESTER:
             return 'Memory tester'
+        if t == MemoryElement.TYPE_MEMORY_USD:
+            return 'Memory uSD'
         return 'Unknown'
 
     def new_data(self, mem, addr, data):

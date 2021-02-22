@@ -33,6 +33,8 @@ import logging
 import struct
 from threading import Lock
 
+import time
+
 from .i2c_element import I2CElement
 from .led_driver_memory import LEDDriverMemory
 from .led_timings_driver_memory import LEDTimingsDriverMemory
@@ -44,6 +46,7 @@ from .loco_memory import LocoMemory
 from .loco_memory_2 import LocoMemory2
 from .memory_element import MemoryElement
 from .memory_tester import MemoryTester
+from .memory_usd import MemoryUsd
 from .ow_element import OWElement
 from .trajectory_memory import Poly4D
 from .trajectory_memory import TrajectoryMemory
@@ -66,6 +69,9 @@ CMD_INFO_NBR = 1
 CMD_INFO_DETAILS = 2
 
 logger = logging.getLogger(__name__)
+
+tt_start = time.time()
+tt_end = time.time()
 
 
 class _ReadRequest:
@@ -114,12 +120,17 @@ class _ReadRequest:
 
     def add_data(self, addr, data):
         """Callback when data is received from the Crazyflie"""
+        global tt_start
+        global tt_end
+
         data_len = len(data)
         if not addr == self._current_addr:
             logger.warning(
                 'Address did not match when adding data to read request!')
             return
 
+        if(self._current_addr == 0):
+            tt_start = time.time()
         # Add the data and calculate the next address to fetch
         self.data += data
         self._bytes_left -= data_len
@@ -127,8 +138,14 @@ class _ReadRequest:
 
         if self._bytes_left > 0:
             self._request_new_chunk()
+            if self.mem.type == MemoryElement.TYPE_MEMORY_USD:
+                logger.info("{} out of {} bytes".format(len(self.data), self.mem.size))
+                
             return False
         else:
+            tt_end = time.time()
+            print("t_time:")
+            print(tt_end - tt_start)
             return True
 
 
@@ -459,6 +476,11 @@ class Memory():
                         logger.debug(mem)
                         self.mem_read_cb.add_callback(mem.new_data)
                         self.mem_write_cb.add_callback(mem.write_done)
+                    elif mem_type == MemoryElement.TYPE_MEMORY_USD:
+                        mem = MemoryUsd(id=mem_id, type=mem_type,
+                                           size=mem_size, mem_handler=self)
+                        logger.debug(mem)
+                        self.mem_read_cb.add_callback(mem.new_data)
                     elif mem_type == MemoryElement.TYPE_DRIVER_LEDTIMING:
                         mem = LEDTimingsDriverMemory(id=mem_id, type=mem_type,
                                                      size=mem_size,
@@ -551,6 +573,8 @@ class Memory():
                     'READING: We are still interested in request for '
                     'mem {}'.format(id))
                 rreq = self._read_requests[id]
+                #print(rreq.addr)
+                #print(rreq._bytes_left)
                 if status == 0:
                     if rreq.add_data(addr, payload[5:]):
                         self._read_requests.pop(id, None)

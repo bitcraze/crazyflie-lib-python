@@ -128,7 +128,7 @@ class Cloader:
             self.link.close()
             time.sleep(0.2)
             self.link = cflib.crtp.get_link_driver(
-                'radio://0/0/2M/{:X}[noSafelink]'.format(addr))
+                'radio://0/0/2M/{:X}?safelink=0'.format(addr))
 
             return True
         else:
@@ -224,10 +224,10 @@ class Cloader:
         if self.link:
             self.link.close()
         if uri:
-            self.link = cflib.crtp.get_link_driver(uri + '[noSafelink]')
+            self.link = cflib.crtp.get_link_driver(uri + '?safelink=0')
         else:
             self.link = cflib.crtp.get_link_driver(
-                self.clink_address + '[noSafelink]')
+                self.clink_address + '?safelink=0')
 
     def check_link_and_get_info(self, target_id=0xFF):
         """Try to get a connection with the bootloader by requesting info

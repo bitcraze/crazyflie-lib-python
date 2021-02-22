@@ -26,6 +26,7 @@
 #  MA  02110-1301, USA.
 """Scans and creates communication interfaces."""
 import logging
+import os
 
 from .debugdriver import DebugDriver
 from .exceptions import WrongUriType
@@ -41,25 +42,26 @@ __all__ = []
 logger = logging.getLogger(__name__)
 
 
-DRIVERS = [RadioDriver, SerialDriver, UdpDriver,
-           DebugDriver, UsbDriver, PrrtDriver]
 CLASSES = []
 
 
 def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
     """Initialize all the drivers."""
-    for driver in DRIVERS:
-        try:
-            enable = True
-            if driver == DebugDriver:
-                enable = enable_debug_driver
-            elif driver == SerialDriver:
-                enable = enable_serial_driver
 
-            if enable:
-                CLASSES.append(driver)
-        except Exception:  # pylint: disable=W0703
-            continue
+    env = os.getenv('USE_CFLINK')
+    if env is not None and env == 'cpp':
+        from .cflinkcppdriver import CfLinkCppDriver
+        CLASSES.append(CfLinkCppDriver)
+    else:
+        CLASSES.extend([RadioDriver, UsbDriver])
+
+    if enable_debug_driver:
+        CLASSES.append(DebugDriver)
+
+    if enable_serial_driver:
+        CLASSES.append(SerialDriver)
+
+    CLASSES.extend([UdpDriver, PrrtDriver])
 
 
 def scan_interfaces(address=None):

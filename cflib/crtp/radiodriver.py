@@ -298,11 +298,11 @@ class RadioDriver(CRTPDriver):
 
         # Open the USB dongle
         if not re.search('^radio://([0-9a-fA-F]+)((/([0-9]+))'
-                         '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?$', uri):
+                         '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?(\\?.+)?$', uri):
             raise WrongUriType('Wrong radio URI format!')
 
         uri_data = re.search('^radio://([0-9a-fA-F]+)((/([0-9]+))'
-                             '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?$', uri)
+                             '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?(\\?.+)?$', uri)
 
         if len(uri_data.group(1)) < 10 and uri_data.group(1).isdigit():
             devid = int(uri_data.group(1))
@@ -406,7 +406,7 @@ class RadioDriver(CRTPDriver):
         for link in links:
             one_to_scan = {}
             uri_data = re.search('^radio://([0-9]+)((/([0-9]+))'
-                                 '(/(250K|1M|2M))?)?$',
+                                 '(/(250K|1M|2M))?)?',
                                  link)
 
             one_to_scan['channel'] = int(uri_data.group(4))

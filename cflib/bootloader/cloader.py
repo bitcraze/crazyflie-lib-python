@@ -72,7 +72,7 @@ class Cloader:
 
         self.targets = {}
         self.mapping = None
-        self._available_boot_uri = ('radio://0/110/2M', 'radio://0/0/2M')
+        self._available_boot_uri = ('radio://0/110/2M/E7E7E7E7E7', 'radio://0/0/2M/E7E7E7E7E7')
 
     def close(self):
         """ Close the link """
@@ -80,7 +80,7 @@ class Cloader:
             self.link.close()
 
     def scan_for_bootloader(self):
-        link = cflib.crtp.get_link_driver('radio://0')
+        link = cflib.crtp.get_link_driver('radio://0/80/2M/E7E7E7E7E7')
         ts = time.time()
         res = ()
         while len(res) == 0 and (time.time() - ts) < 10:
@@ -128,7 +128,7 @@ class Cloader:
             self.link.close()
             time.sleep(0.2)
             self.link = cflib.crtp.get_link_driver(
-                'radio://0/0/2M/{:X}'.format(addr))
+                'radio://0/0/2M/{:X}?safelink=0'.format(addr))
 
             return True
         else:
@@ -224,9 +224,10 @@ class Cloader:
         if self.link:
             self.link.close()
         if uri:
-            self.link = cflib.crtp.get_link_driver(uri)
+            self.link = cflib.crtp.get_link_driver(uri + '?safelink=0')
         else:
-            self.link = cflib.crtp.get_link_driver(self.clink_address)
+            self.link = cflib.crtp.get_link_driver(
+                self.clink_address + '?safelink=0')
 
     def check_link_and_get_info(self, target_id=0xFF):
         """Try to get a connection with the bootloader by requesting info
@@ -296,7 +297,7 @@ class Cloader:
 
         pk = self.link.receive_packet(2)
 
-        if (pk and pk.header == 0xFF and struct.unpack('<BB', pk.data[0:2]) ==
+        if (pk and pk.header == 0xFF and len(pk.data) >= 2 and struct.unpack('<BB', pk.data[0:2]) ==
                 (target_id, 0x12)):
             m = pk.datat[2:]
 
@@ -373,7 +374,7 @@ class Cloader:
 
         retry_counter = 5
         # print "Flasing to 0x{:X}".format(addr)
-        while ((not pk or pk.header != 0xFF or
+        while ((not pk or pk.header != 0xFF or len(pk.data) < 2 or
                 struct.unpack('<BB', pk.data[0:2]) != (addr, 0x18)) and
                retry_counter >= 0):
             pk = CRTPPacket()

@@ -25,7 +25,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 """
-Enables flash access to the Crazyflie.
+Enables access to the Crazyflie memory subsystem.
 
 """
 import errno
@@ -33,6 +33,7 @@ import logging
 import struct
 from threading import Lock
 
+from .deck_memory import DeckMemoryManager
 from .i2c_element import I2CElement
 from .led_driver_memory import LEDDriverMemory
 from .led_timings_driver_memory import LEDTimingsDriverMemory
@@ -53,7 +54,8 @@ from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Memory', 'Poly4D', 'MemoryElement',
-           'LighthouseBsGeometry', 'LighthouseBsCalibration', 'LighthouseMemHelper']
+           'LighthouseBsGeometry', 'LighthouseBsCalibration', 'LighthouseMemHelper',
+           'DeckMemoryManager']
 
 # Channels used for the logging port
 CHAN_INFO = 0
@@ -466,6 +468,13 @@ class Memory():
                         logger.debug(mem)
                         self.mem_read_cb.add_callback(mem.new_data)
                         self.mem_write_cb.add_callback(mem.write_done)
+                    elif mem_type == MemoryElement.TYPE_DECK_MEMORY:
+                        mem = DeckMemoryManager(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
+                        logger.debug(mem)
+                        self.mem_read_cb.add_callback(mem._new_data)
+                        self.mem_read_failed_cb.add_callback(mem._new_data_failed)
+                        self.mem_write_cb.add_callback(mem._write_done)
+                        self.mem_write_failed_cb.add_callback(mem._write_failed)
                     else:
                         mem = MemoryElement(id=mem_id, type=mem_type,
                                             size=mem_size, mem_handler=self)

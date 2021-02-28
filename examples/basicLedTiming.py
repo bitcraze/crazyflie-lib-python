@@ -38,7 +38,8 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
-URI = 'radio://0/80/2M/E7E7E7E7E7'
+# URI = 'radio://0/80/2M/E7E7E7E7E7'
+URI = 'radio://0/80/2M/E7E7E7E701'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -67,5 +68,5 @@ if __name__ == '__main__':
         # Set virtual mem effect effect
         cf.param.set_value('ring.effect', '0')
         time.sleep(2)
-        cf.param.set_value('ring.effect', '17')
+        cf.param.set_value('ring.effect', '17') # Effect: sequencer
         time.sleep(2)

@@ -36,7 +36,8 @@ import time
 import cflib.crtp
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
-URI = 'radio://0/80/250K'
+# URI = 'radio://0/80/250K'
+URI = 'radio://0/80/2M/E7E7E7E701'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -55,7 +56,7 @@ if __name__ == '__main__':
         cf.param.set_value('ring.solidRed', '100')
         cf.param.set_value('ring.solidGreen', '0')
         cf.param.set_value('ring.solidBlue', '0')
-        time.sleep(2)
+        time.sleep(1)
 
         # Set black color effect
         cf.param.set_value('ring.effect', '0')

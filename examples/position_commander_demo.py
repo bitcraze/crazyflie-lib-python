@@ -36,6 +36,8 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.position_hl_commander import PositionHlCommander
 
+import time
+
 # URI to the Crazyflie to connect to
 uri = 'radio://0/80/2M/E7E7E7E7E7'
 
@@ -77,6 +79,11 @@ def simple_sequence():
 
 if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
+    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        pc = PositionHlCommander(scf)
+        pc.take_off()
+        time.sleep(1)
+        pc.land()
 
-    simple_sequence()
+    # simple_sequence()
     # slightly_more_complex_usage()

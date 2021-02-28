@@ -37,7 +37,8 @@ import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
-URI = 'radio://0/80/250K'
+# URI = 'radio://0/80/250K'
+URI = 'radio://0/80/2M'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -64,12 +65,19 @@ if __name__ == '__main__':
             time.sleep(0.1)
 
         for _ in range(50):
-            cf.commander.send_hover_setpoint(0.5, 0, 36 * 2, 0.4)
-            time.sleep(0.1)
-
+            # cf.commander.send_hover_setpoint(0.5, 0, 36 * 2, 0.4)
+            cf.commander.send_hover_setpoint(0.5, 0, 0, 0.4) # (vx, vy, yawrate, zdistance); vx, vy, zdistance are in m/s;  yawrate is in degrees/s
+            time.sleep(0.1)  # 0.1 sec/rev  --> total period = 0.1*50 = 5 sec 
+                             # So, the CF will fly in x-direction for the distace = 0.5*5 = 2.5 m
+             
         for _ in range(50):
-            cf.commander.send_hover_setpoint(0.5, 0, -36 * 2, 0.4)
-            time.sleep(0.1)
+            cf.commander.send_hover_setpoint(0, 0, -36 * 2, 0.4)
+            time.sleep(0.1)  # 0.1 sec/rev  --> total period = 0.1*50 = 5 sec 
+                             # So, the CF will rotate about -z for the angle = 36*2*5 = 360 deg
+
+        # for _ in range(50):
+        #     cf.commander.send_hover_setpoint(0.5, 0, -36 * 2, 0.4)
+        #     time.sleep(0.1)
 
         for _ in range(20):
             cf.commander.send_hover_setpoint(0, 0, 0, 0.4)

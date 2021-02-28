@@ -42,8 +42,8 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 
 # URI to the Crazyflie to connect to
-# uri = 'radio://0/80/2M/E7E7E7E702'
-uri = 'radio://0/80/2M'
+uri = 'radio://0/80/2M/E7E7E7E702'
+# uri = 'radio://0/80/2M'
 
 # The trajectory to fly
 # See https://github.com/whoenig/uav_trajectories for a tool to generate
@@ -190,8 +190,8 @@ if __name__ == '__main__':
         trajectory_id = 1
 
         activate_high_level_commander(cf)
-        activate_mellinger_controller(cf)
+        # activate_mellinger_controller(cf)
         duration = upload_trajectory(cf, trajectory_id, figure8)
         print('The sequence is {:.1f} seconds long'.format(duration))
-        reset_estimator(cf)
+        # reset_estimator(cf)
         run_sequence(cf, trajectory_id, duration)

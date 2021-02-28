@@ -45,15 +45,16 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 
 # URI to the Crazyflie to connect to
-uri = 'radio://0/80/2M'
+# uri = 'radio://0/80/2M'
+uri = 'radio://0/80/2M/E7E7E7E702'
 
 # Change the sequence according to your setup
 #             x    y    z
 sequence = [
     (0, 0, 0.7),
-    (-0.7, 0, 0.7),
-    (0, 0, 0.7),
-    (0, 0, 0.2),
+    # (-0.7, 0, 0.7),
+    # (0, 0, 1.5),
+    (0, 0, 0.5),
 ]
 
 
@@ -129,6 +130,7 @@ def run_sequence(scf, sequence, base_x, base_y, base_z, yaw):
         for i in range(50):
             cf.commander.send_position_setpoint(x, y, z, yaw)
             time.sleep(0.1)
+
 
     cf.commander.send_stop_setpoint()
     # Make sure that the last packet leaves before the link is closed

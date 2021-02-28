@@ -38,7 +38,8 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
-URI = 'radio://0/80/250K'
+# URI = 'radio://0/80/250K'
+URI = 'radio://0/80/2M/E7E7E7E701'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -52,7 +53,7 @@ if __name__ == '__main__':
         cf = scf.cf
 
         # Set virtual mem effect effect
-        cf.param.set_value('ring.effect', '13')
+        cf.param.set_value('ring.effect', '13') # Effect: LED tab
 
         # Get LED memory and write to it
         mem = cf.mem.get_mems(MemoryElement.TYPE_DRIVER_LED)

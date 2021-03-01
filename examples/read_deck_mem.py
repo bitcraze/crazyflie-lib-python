@@ -63,7 +63,7 @@ class ReadMem:
                     print('This deck supports FW upgrades')
                     print(
                         f'  The required FW is: hash={deck_mem.required_hash}, '
-                        'length={deck_mem.required_length}, name={deck_mem.name}')
+                        f'length={deck_mem.required_length}, name={deck_mem.name}')
                     print('  is_fw_upgrade_required:', deck_mem.is_fw_upgrade_required)
                     if (deck_mem.is_bootloader_active):
                         print('  In bootloader mode, ready to be flashed')

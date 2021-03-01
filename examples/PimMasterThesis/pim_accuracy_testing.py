@@ -1,6 +1,5 @@
 import time
 import cflib.crtp
-import csv
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
@@ -26,24 +25,25 @@ d_th = 0.2   # Threshold of error between WS sensor and Crazyflie (threshold = 0
 
 position_estimate_1 = [0, 0, 0]
 
+# # Create a csv file section
 
-with open('position_callback_result.csv', mode='w') as csv_file:
-    fieldnames = ['timestamp', 'uri', 'x(m)', 'y(m)', 'z(m)']
-    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-
+# # Create a csv file
+with open('pos_callback.csv', 'w', newline='') as csv_file:
+    field_names = ['timestamp', 'uri', 'x(m)', 'y(m)', 'z(m)']
+    writer = DictWriter(csv_file, fieldnames=field_names)
+    # Write a header of the csv
     writer.writeheader()
     
-
 # # append data into csv 
-
 def append_dict_as_row(file_name, dict_of_elem, field_names):
     # Open file in append mode
     with open(file_name, 'a+', newline='') as write_obj:
         # Create a writer object from csv module
         dict_writer = DictWriter(write_obj, fieldnames=field_names)
-        # Add dictionary as wor in the csv
+        # Add dictionary as row in the csv
         dict_writer.writerow(dict_of_elem)  
 
+        
 # # Positioning Callback Section
 
 def log_pos_callback_1(uri_1, timestamp, data, logconf_1):
@@ -54,8 +54,9 @@ def log_pos_callback_1(uri_1, timestamp, data, logconf_1):
     print("{}: {} is at pos: ({}, {}, {})".format(timestamp, uri_1, position_estimate_1[0], position_estimate_1[1],
                                             position_estimate_1[2]))
     
+    field_names = ['timestamp', 'uri', 'x(m)', 'y(m)', 'z(m)']
     row_dict = {'timestamp': timestamp, 'uri': uri_1, 'x(m)': position_estimate_1[0], 'y(m)': position_estimate_1[1], 'z(m)': position_estimate_1[2]}
-    append_dict_as_row()
+    append_dict_as_row('pos_callback.csv', row_dict, field_names)
 
 
 # # # Crazyflie Motion Section

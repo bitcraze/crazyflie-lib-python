@@ -39,9 +39,16 @@ Note: For systems that support [make](https://www.gnu.org/software/make/manual/h
 create an environment, activate it and install dependencies.
 
 #### Install cflib dependencies
-Install dependencies required by the lib: `pip install -r requirements.txt`
+Install dependencies required by the lib: `pip install -r requirements.txt`. If you are planning on developing on the lib you should also run: `pip install -r requirements-dev.txt`.
 
 To verify the installation, connect the crazyflie and run an example: `python examples/basiclog`
+
+### Pre commit hooks
+If you want some extra help with keeping to the mandated python coding style you can install hooks that verify your style at commit time. This is done by running:
+```
+$ pre-commit install
+```
+This will run the lint checkers defined in `.pre-commit-config-yaml` on your proposed changes and alert you if you need to change anything.
 
 ## Testing
 ### With docker and the toolbelt

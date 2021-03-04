@@ -229,11 +229,11 @@ if __name__ == '__main__':
 
         
         # # Posture 1 (MotionCommander)
-        # move_baduanjin_mc_p1(scf_1, e2)
+        # move_baduanjin_mc_p1(scf_1)
 
         # # Posture 1 (PositioningHlCommander)
         # activate_high_level_commander(scf_1.cf)
-        # move_baduanjin_hl_p1(scf_1, e2)
+        # move_baduanjin_hl_p1(scf_1)
 
 
         # # Posture 3 (MotionCommander)
@@ -241,6 +241,6 @@ if __name__ == '__main__':
 
         # # Posture 3 (PositioningHlCommander)
         # activate_high_level_commander(scf_1.cf)
-        # move_baduanjin_hl_p3(scf_1, e2)
+        # move_baduanjin_hl_p3(scf_1)
         
 

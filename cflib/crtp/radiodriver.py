@@ -328,7 +328,9 @@ class RadioDriver(CRTPDriver):
 
         address = DEFAULT_ADDR_A
         if uri_data.group(9):
-            addr = str(uri_data.group(9))
+            # We make sure to pad the address with zeros if we do not have the
+            # correct length.
+            addr = '{:0>10}'.format(uri_data.group(9))
             new_addr = struct.unpack('<BBBBB', binascii.unhexlify(addr))
             address = new_addr
 
@@ -457,7 +459,8 @@ class RadioDriver(CRTPDriver):
         found = []
 
         if address is not None:
-            addr = '{:X}'.format(address)
+            # We make sure to pad the address with zeroes to get correct length
+            addr = '{:0>10X}'.format(address)
             new_addr = struct.unpack('<BBBBB', binascii.unhexlify(addr))
             self._radio.set_address(new_addr)
 

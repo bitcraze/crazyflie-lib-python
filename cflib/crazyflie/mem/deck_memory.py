@@ -23,6 +23,7 @@ import logging
 import struct
 
 from .memory_element import MemoryElement
+from cflib.utils.callbacks import Syncer
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class DeckMemory:
         self._bit_field = 0
 
     def write(self, address, data, write_complete_cb, write_failed_cb=None):
+        """Write a block of binary data to the deck"""
         if not self.supports_write:
             raise Exception('Deck does not support write operations')
         if not self.is_started:
@@ -58,13 +60,31 @@ class DeckMemory:
 
         self._deck_memory_manager._write(self._base_address, address, data, write_complete_cb, write_failed_cb)
 
+    def write_sync(self, address, data):
+        """Write a block of binary data to the deck, block until done"""
+        syncer = Syncer()
+        self.write(address, data, syncer.success_cb, write_failed_cb=syncer.failure_cb)
+        syncer.wait()
+        return syncer.is_success
+
     def read(self, address, length, read_complete_cb, read_failed_cb=None):
+        """Read a block of data from a deck"""
         if not self.supports_read:
             raise Exception('Deck does not support read operations')
         if not self.is_started:
             raise Exception('Deck not ready')
 
         self._deck_memory_manager._read(self._base_address, address, length, read_complete_cb, read_failed_cb)
+
+    def read_sync(self, address, length):
+        """Read a block of data from a deck, block until done"""
+        syncer = Syncer()
+        self.read(address, length, syncer.success_cb, read_failed_cb=syncer.failure_cb)
+        syncer.wait()
+        if syncer.is_success:
+            return syncer.success_args[1]
+        else:
+            return None
 
     @property
     def is_valid(self):
@@ -238,3 +258,15 @@ class DeckMemoryManager(MemoryElement):
         self._clear_read_cb()
         self._clear_write_cb()
         self.deck_memories = {}
+
+
+class SyncDeckMemoryManager:
+    """A wrapper for the DeckMemoryManager class to make calls synchronous and avoid callbacks"""
+    def __init__(self, deck_memory_manager):
+        self._deck_memory_manager = deck_memory_manager
+
+    def query_decks(self):
+        syncer = Syncer()
+        self._deck_memory_manager.query_decks(syncer.success_cb)
+        syncer.wait()
+        return syncer.success_args[0]

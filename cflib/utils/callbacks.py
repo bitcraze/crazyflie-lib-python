@@ -27,6 +27,7 @@
 """
 Callback objects used in the Crazyflie library
 """
+from threading import Event
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Caller']
@@ -53,3 +54,29 @@ class Caller():
         copy_of_callbacks = list(self.callbacks)
         for cb in copy_of_callbacks:
             cb(*args)
+
+
+class Syncer:
+    """A class to create syncronous behaviour for methods using callbacks"""
+
+    def __init__(self):
+        self._event = Event()
+        self.success_args = None
+        self.failure_args = None
+        self.is_success = False
+
+    def success_cb(self, *args):
+        self.success_args = args
+        self.is_success = True
+        self._event.set()
+
+    def failure_cb(self, *args):
+        self.failure_args = args
+        self.is_success = False
+        self._event.set()
+
+    def wait(self):
+        self._event.wait()
+
+    def clear(self):
+        self._event.clear()

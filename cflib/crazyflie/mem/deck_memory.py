@@ -95,9 +95,10 @@ class DeckMemory:
         return (self._bit_field & self.MASK_BOOTLOADER_ACTIVE) != 0
 
     def _parse(self, data):
-        self._bit_field, self.required_hash, self.required_length, self._base_address, _name = struct.unpack(
-            '<BLLL19s', data)
-        self.name = _name.decode()
+        self._bit_field = struct.unpack('<B', data[0:1])[0]
+        if self.is_valid:
+            self.required_hash, self.required_length, self._base_address, _name = struct.unpack('<LLL19s', data[1:])
+            self.name = _name.split(b'\x00')[0].decode()
 
 
 class DeckMemoryManager(MemoryElement):

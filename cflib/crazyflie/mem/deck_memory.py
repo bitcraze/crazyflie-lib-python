@@ -262,6 +262,7 @@ class DeckMemoryManager(MemoryElement):
 
 class SyncDeckMemoryManager:
     """A wrapper for the DeckMemoryManager class to make calls synchronous and avoid callbacks"""
+
     def __init__(self, deck_memory_manager):
         self._deck_memory_manager = deck_memory_manager
 

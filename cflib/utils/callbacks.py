@@ -27,7 +27,6 @@
 """
 Callback objects used in the Crazyflie library
 """
-
 from threading import Event
 
 __author__ = 'Bitcraze AB'
@@ -59,6 +58,7 @@ class Caller():
 
 class Syncer:
     """A class to create syncronous behaviour for methods using callbacks"""
+
     def __init__(self):
         self._event = Event()
         self.success_args = None

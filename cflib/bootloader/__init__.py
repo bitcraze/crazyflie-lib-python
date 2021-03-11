@@ -74,6 +74,8 @@ class Bootloader:
         self.error_code = 0
         self.protocol_version = 0
 
+        self.warm_booted = False
+
         # Outgoing callbacks for progress and flash termination
         self.progress_cb = None  # type: Optional[Callable[[str, int], None]]
         self.error_cb = None  # type: Optional[Callable[[str], None]]
@@ -86,6 +88,8 @@ class Bootloader:
                               in_boot_cb=None)
 
     def start_bootloader(self, warm_boot=False):
+        self.warm_booted = warm_boot
+
         if warm_boot:
             self._cload.open_bootloader_uri(self.clink)
             started = self._cload.reset_to_bootloader(TargetTypes.NRF51)
@@ -148,7 +152,7 @@ class Bootloader:
         deck_update_msg = 'Deck update skipped.'
         if len(targets) == 0 or len(deck_targets) > 0:
             # only in warm boot
-            if self.clink:
+            if self.warm_booted:
                 if self.progress_cb:
                     self.progress_cb('Restarting firmware to update decks.', int(0))
 
@@ -162,10 +166,8 @@ class Bootloader:
                 if self.progress_cb:
                     self.progress_cb('Deck updated! Restarting firmware.', int(100))
 
-                # Reset the firmware after flashing the decks
+                # Put the crazyflie back in Bootloader mode to exit the function in the same state we entered it
                 self.start_bootloader(warm_boot=True)
-                self.reset_to_firmware()
-                self.close()
 
                 deck_update_msg = 'Deck update complete.'
             else:

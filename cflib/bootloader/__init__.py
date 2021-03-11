@@ -33,17 +33,17 @@ import sys
 import time
 import zipfile
 from collections import namedtuple
-from typing import List, Optional, Callable
+from typing import Callable
+from typing import List
+from typing import Optional
 
 from .boottypes import BootVersion
 from .boottypes import TargetTypes
 from .cloader import Cloader
-
-from cflib.crazyflie.mem import deck_memory
-import cflib.crtp
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.crazyflie.mem import deck_memory
 from cflib.crazyflie.mem import MemoryElement
+from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ __all__ = ['Bootloader']
 
 Target = namedtuple('Target', ['platform', 'target', 'type'])
 FlashArtifact = namedtuple('FlashArtifact', ['content', 'target'])
+
 
 class Bootloader:
     """Bootloader utility for the Crazyflie"""
@@ -139,7 +140,7 @@ class Bootloader:
                 artifacts = [FlashArtifact(content, targets[0])]
             else:
                 raise(Exception('Cannot flash a .bin to more than one target!'))
-        
+
         # Separate artifacts for flash and decks
         flash_artifacts = [a for a in artifacts if a.target.platform == platform]
         deck_artifacts = [a for a in artifacts if a.target.platform == 'deck']
@@ -173,7 +174,7 @@ class Bootloader:
             else:
                 print('Skipping updating deck on coldboot')
                 deck_update_msg = 'Deck update skipped in ColdBoot mode.'
-        
+
         if self.progress_cb:
             self.progress_cb(
                 f'({len(flash_artifacts)}/{len(flash_artifacts)}) Flashing done! {deck_update_msg}',
@@ -184,7 +185,7 @@ class Bootloader:
     def _get_flash_artifacts_from_zip(self, filename):
         if not zipfile.is_zipfile(filename):
             return []
-        
+
         zf = zipfile.ZipFile(filename)
 
         manifest = zf.read('manifest.json').decode('utf8')
@@ -198,7 +199,7 @@ class Bootloader:
             content = zf.read(file)
             target = Target(metadata['platform'], metadata['target'], metadata['type'])
             flash_artifacts.append(FlashArtifact(content, target))
-        
+
         return flash_artifacts
 
     def _flash_flash(self, artifacts: List[FlashArtifact], targets: List[Target]):
@@ -342,7 +343,7 @@ class Bootloader:
             identifier = 'cf2'
 
         return identifier
-    
+
     def _flash_deck(self, artifacts: List[FlashArtifact], targets: List[Target]):
         flash_all_targets = len(targets) == 0
 
@@ -389,11 +390,11 @@ class Bootloader:
                 if not deck.supports_fw_upgrade:
                     print(f'Deck {deck.name} does not support firmware update, skipping!')
                     continue
-                
+
                 if not deck.is_fw_upgrade_required:
                     print(f'Deck {deck.name} firmware up to date, skipping')
                     continue
-                
+
                 if not deck.is_bootloader_active:
                     print(f'Error: Deck {deck.name} bootloader not active, skipping!')
                     continue
@@ -407,4 +408,3 @@ class Bootloader:
                     if self.progress_cb:
                         self.progress_cb(f'Failed to update deck {deck.name}', int(0))
                     raise Exception(f'Failed to update deck {deck.name}')
-

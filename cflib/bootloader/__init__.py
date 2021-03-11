@@ -33,7 +33,7 @@ import sys
 import time
 import zipfile
 from collections import namedtuple
-from typing import List, Union, Callable
+from typing import List, Optional, Callable
 
 from .boottypes import BootVersion
 from .boottypes import TargetTypes
@@ -74,25 +74,16 @@ class Bootloader:
         self.error_code = 0
         self.protocol_version = 0
 
-        # Outgoing callbacks for progress
-        # int
-        self.progress_cb = None  # type: Union[None, Callable]
-        # msg
-        self.error_cb = None  # type: Union[None, Callable]
-        # bool
-        self.in_bootloader_cb = None  # type: Union[None, Callable]
-        # Target
-        self.dev_info_cb = None  # type: Union[None, Callable]
-        self.terminate_flashing_cb = None  # type: Union[None, Callable]
-
-        # self.dev_info_cb.add_callback(self._dev_info)
-        # self.in_bootloader_cb.add_callback(self._bootloader_info)
+        # Outgoing callbacks for progress and flash termination
+        self.progress_cb = None  # type: Optional[Callable[[str, int], None]]
+        self.error_cb = None  # type: Optional[Callable[[str], None]]
+        self.terminate_flashing_cb = None  # type: Optional[Callable[[], bool]]
 
         self._boot_plat = None
 
         self._cload = Cloader(clink,
-                              info_cb=self.dev_info_cb,
-                              in_boot_cb=self.in_bootloader_cb)
+                              info_cb=None,
+                              in_boot_cb=None)
 
     def start_bootloader(self, warm_boot=False):
         if warm_boot:
@@ -134,7 +125,7 @@ class Bootloader:
         # Separate flash targets from decks
         platform = self._get_platform_id()
         flash_targets = [t for t in targets if t.platform == platform]
-        deck_targets = [t for t in targets if t.platform == "deck"]
+        deck_targets = [t for t in targets if t.platform == 'deck']
 
         # Fetch artifacts from source file
         artifacts = self._get_flash_artifacts_from_zip(filename)
@@ -143,11 +134,11 @@ class Bootloader:
                 content = open(filename, 'br').read()
                 artifacts = [FlashArtifact(content, targets[0])]
             else:
-                raise("Cannot flash a .bin to more than one target!")
+                raise(Exception('Cannot flash a .bin to more than one target!'))
         
         # Separate artifacts for flash and decks
         flash_artifacts = [a for a in artifacts if a.target.platform == platform]
-        deck_artifacts = [a for a in artifacts if a.target.platform == "deck"]
+        deck_artifacts = [a for a in artifacts if a.target.platform == 'deck']
 
         # Flash the MCU flash
         if len(targets) == 0 or len(flash_targets) > 0:
@@ -155,6 +146,9 @@ class Bootloader:
 
         # Flash the decks
         if len(targets) == 0 or len(deck_targets) > 0:
+            if self.progress_cb:
+                self.progress_cb('Restarting firmware to update decks.', int(0))
+
             # Reset to firmware mode
             self.reset_to_firmware()
             self.close()
@@ -162,10 +156,20 @@ class Bootloader:
 
             self._flash_deck(deck_artifacts, deck_targets)
 
+            if self.progress_cb:
+                self.progress_cb('Deck updated! Restarting firmware.', int(100))
+
             # Reset the firmware after flashing the decks
             self.start_bootloader(warm_boot=True)
             self.reset_to_firmware()
             self.close()
+        
+        if self.progress_cb:
+            self.progress_cb(
+                '({}/{}) Flashing done!'.format(len(flash_artifacts), len(flash_artifacts)),
+                int(100))
+        else:
+            print('')
 
     def _get_flash_artifacts_from_zip(self, filename):
         if not zipfile.is_zipfile(filename):
@@ -173,11 +177,11 @@ class Bootloader:
         
         zf = zipfile.ZipFile(filename)
 
-        manifest = zf.read("manifest.json").decode("utf8")
+        manifest = zf.read('manifest.json').decode('utf8')
         manifest = json.loads(manifest)
 
         if manifest['version'] != 1:
-            raise Exception("Wrong manifest version")
+            raise Exception('Wrong manifest version')
 
         flash_artifacts = []
         for (file, metadata) in manifest['files'].items():
@@ -189,7 +193,7 @@ class Bootloader:
 
     def _flash_flash(self, artifacts: List[FlashArtifact], targets: List[Target]):
         for (i, artifact) in enumerate(artifacts):
-            self._internal_flash(artifact, i, len(artifacts))
+            self._internal_flash(artifact, i + 1, len(artifacts))
 
     def reset_to_firmware(self):
         if self._cload.protocol_version == BootVersion.CF2_PROTO_VER:
@@ -216,7 +220,7 @@ class Bootloader:
 
         if self.progress_cb:
             self.progress_cb(
-                '({}/{}) Starting...'.format(current_file_number, total_files),
+                'Firmware ({}/{}) Starting...'.format(current_file_number, total_files),
                 int(progress))
         else:
             sys.stdout.write(
@@ -228,9 +232,7 @@ class Bootloader:
         if len(image) > ((t_data.flash_pages - start_page) *
                          t_data.page_size):
             if self.progress_cb:
-                self.progress_cb(
-                    'Error: Not enough space to flash the image file.',
-                    int(progress))
+                self.progress_cb('Error: Not enough space to flash the image file.', int(progress))
             else:
                 print('Error: Not enough space to flash the image file.')
             raise Exception()
@@ -261,7 +263,7 @@ class Bootloader:
 
             if self.progress_cb:
                 progress += factor
-                self.progress_cb('({}/{}) Uploading buffer to {}...'.format(
+                self.progress_cb('Firmware ({}/{}) Uploading buffer to {}...'.format(
                     current_file_number,
                     total_files,
                     TargetTypes.to_string(t_data.id)),
@@ -274,7 +276,7 @@ class Bootloader:
             # Flash when the complete buffers are full
             if ctr >= t_data.buffer_pages:
                 if self.progress_cb:
-                    self.progress_cb('({}/{}) Writing buffer to {}...'.format(
+                    self.progress_cb('Firmware ({}/{}) Writing buffer to {}...'.format(
                         current_file_number,
                         total_files,
                         TargetTypes.to_string(t_data.id)),
@@ -301,7 +303,7 @@ class Bootloader:
 
         if ctr > 0:
             if self.progress_cb:
-                self.progress_cb('({}/{}) Writing buffer to {}...'.format(
+                self.progress_cb('Firmware ({}/{}) Writing buffer to {}...'.format(
                     current_file_number,
                     total_files,
                     TargetTypes.to_string(t_data.id)),
@@ -323,14 +325,6 @@ class Bootloader:
                           ' wrong radio link?' % self._cload.error_code)
                 raise Exception()
 
-        if self.progress_cb:
-            self.progress_cb(
-                '({}/{}) Flashing done!'.format(current_file_number,
-                                                total_files),
-                int(100))
-        else:
-            print('')
-
     def _get_platform_id(self):
         """Get platform identifier used in the zip manifest for curr copter"""
         identifier = 'cf1'
@@ -342,6 +336,9 @@ class Bootloader:
     def _flash_deck(self, artifacts: List[FlashArtifact], targets: List[Target]):
         flash_all_targets = len(targets) == 0
 
+        if self.progress_cb:
+            self.progress_cb('Detecting deck to be updated', int(25))
+
         with SyncCrazyflie(self.clink, cf=Crazyflie()) as scf:
             deck_mems = scf.cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
             deck_mems_count = len(deck_mems)
@@ -352,46 +349,52 @@ class Bootloader:
             decks = mgr.query_decks()
 
             for (deck_index, deck) in decks.items():
+                if self.terminate_flashing_cb and self.terminate_flashing_cb():
+                    raise Exception('Flashing terminated')
+
                 # Check that we want to flash this deck
-                deck_target = [t for t in targets if t == Target("deck", deck.name, "fw")]
+                deck_target = [t for t in targets if t == Target('deck', deck.name, 'fw')]
                 if (not flash_all_targets) and len(deck_target) == 0:
-                    print(f"Skipping {deck.name}")
+                    print(f'Skipping {deck.name}')
                     continue
 
                 # Check that we have an artifact for this deck
-                deck_artifacts = [a for a in artifacts if a.target == Target("deck", deck.name, "fw")]
+                deck_artifacts = [a for a in artifacts if a.target == Target('deck', deck.name, 'fw')]
                 if len(deck_artifacts) == 0:
-                    print(f"Skipping {deck.name}, no artifact for it in the .zip")
+                    print(f'Skipping {deck.name}, no artifact for it in the .zip')
                     continue
                 deck_artifact = deck_artifacts[0]
 
-                print(f"Handling {deck.name}")
+                if self.progress_cb:
+                    self.progress_cb(f'Updating deck {deck.name}', int(50))
+                print(f'Handling {deck.name}')
 
                 # Test and wait for the deck to be started
                 while not deck.is_started:
-                    print("Deck not yet started ...")
+                    print('Deck not yet started ...')
                     time.sleep(500)
                     deck = mgr.query_decks()[deck_index]
 
                 # Run a brunch of sanity checks ...
                 if not deck.supports_fw_upgrade:
-                    print(f"Deck {deck.name} does not support firmware update, skipping!")
+                    print(f'Deck {deck.name} does not support firmware update, skipping!')
                     continue
                 
                 if not deck.is_fw_upgrade_required:
-                    print(f"Deck {deck.name} firmware up to date, skipping")
+                    print(f'Deck {deck.name} firmware up to date, skipping')
                     continue
                 
                 if not deck.is_bootloader_active:
-                    print(f"Error: Deck {deck.name} bootloader not active, skipping!")
+                    print(f'Error: Deck {deck.name} bootloader not active, skipping!')
                     continue
 
                 # ToDo, white the correct file there ...
                 result = deck.write_sync(0, deck_artifact.content)
                 if result:
-                    print("Wrote binary to the deck")
+                    if self.progress_cb:
+                        self.progress_cb(f'Deck {deck.name} updated succesfully!', int(75))
                 else:
-                    print("Failed to write to the deck")
-    
-    def _read_manifest(self, manifest):
-        pass
+                    if self.progress_cb:
+                        self.progress_cb(f'Failed to update deck {deck.name}', int(0))
+                    raise Exception(f'Failed to update deck {deck.name}')
+

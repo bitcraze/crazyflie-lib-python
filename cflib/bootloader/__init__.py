@@ -145,28 +145,36 @@ class Bootloader:
             self._flash_flash(flash_artifacts, flash_targets)
 
         # Flash the decks
+        deck_update_msg = 'Deck update skipped.'
         if len(targets) == 0 or len(deck_targets) > 0:
-            if self.progress_cb:
-                self.progress_cb('Restarting firmware to update decks.', int(0))
+            # only in warm boot
+            if self.clink:
+                if self.progress_cb:
+                    self.progress_cb('Restarting firmware to update decks.', int(0))
 
-            # Reset to firmware mode
-            self.reset_to_firmware()
-            self.close()
-            time.sleep(3)
+                # Reset to firmware mode
+                self.reset_to_firmware()
+                self.close()
+                time.sleep(3)
 
-            self._flash_deck(deck_artifacts, deck_targets)
+                self._flash_deck(deck_artifacts, deck_targets)
 
-            if self.progress_cb:
-                self.progress_cb('Deck updated! Restarting firmware.', int(100))
+                if self.progress_cb:
+                    self.progress_cb('Deck updated! Restarting firmware.', int(100))
 
-            # Reset the firmware after flashing the decks
-            self.start_bootloader(warm_boot=True)
-            self.reset_to_firmware()
-            self.close()
+                # Reset the firmware after flashing the decks
+                self.start_bootloader(warm_boot=True)
+                self.reset_to_firmware()
+                self.close()
+
+                deck_update_msg = 'Deck update complete.'
+            else:
+                print('Skipping updating deck on coldboot')
+                deck_update_msg = 'Deck update skipped in ColdBoot mode.'
         
         if self.progress_cb:
             self.progress_cb(
-                '({}/{}) Flashing done!'.format(len(flash_artifacts), len(flash_artifacts)),
+                f'({len(flash_artifacts)}/{len(flash_artifacts)}) Flashing done! {deck_update_msg}',
                 int(100))
         else:
             print('')

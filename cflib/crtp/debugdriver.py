@@ -452,10 +452,24 @@ class _PacketHandlingThread(Thread):
                     self.handleParam(pk)
                 elif (pk.port == CRTPPort.MEM):
                     self._handle_mem_access(pk)
+                elif (pk.port == CRTPPort.LINKCTRL):
+                    self._handle_link_ctrl(pk)
                 else:
                     logger.warning(
                         'Not handling incoming packets on port [%d]',
                         pk.port)
+
+    def _handle_link_ctrl(self, pk):
+        """ Handle request for protocol version """
+        if pk.channel == 1:  # LINKSERVICE_SOURCE
+            if pk.data[0] == 0:  # Request protocol version
+                p_out = CRTPPacket()
+                p_out.set_header(CRTPPort.LINKCTRL, 1)
+                # Send protcol version 3.
+                # We send a version < 4 because debug driver does not yet
+                # support > 255 TOC entries.
+                p_out.data = (0, 3)
+                self._send_packet(p_out)
 
     def _handle_mem_access(self, pk):
         chan = pk.channel

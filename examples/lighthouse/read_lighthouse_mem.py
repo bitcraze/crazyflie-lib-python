@@ -71,7 +71,7 @@ if __name__ == '__main__':
     # URI to the Crazyflie to connect to
     uri = 'radio://0/80'
 
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    # Initialize the low-level drivers
+    cflib.crtp.init_drivers()
 
     ReadMem(uri)

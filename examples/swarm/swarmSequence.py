@@ -276,7 +276,7 @@ def run_sequence(scf, sequence):
 
 if __name__ == '__main__':
     # logging.basicConfig(level=logging.DEBUG)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    cflib.crtp.init_drivers()
 
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:

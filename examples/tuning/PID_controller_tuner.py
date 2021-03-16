@@ -386,7 +386,7 @@ if __name__ == '__main__':
     root = tk.Tk()
     pid_gui = TunerGUI(root)
 
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    cflib.crtp.init_drivers()
     cf = Crazyflie(rw_cache='./cache')
     with SyncCrazyflie(URI, cf) as scf:
         wait_for_position_estimator(scf)

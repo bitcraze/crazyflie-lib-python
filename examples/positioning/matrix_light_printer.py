@@ -106,7 +106,7 @@ def matrix_print(cf, pc, image_def):
 
 
 if __name__ == '__main__':
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    cflib.crtp.init_drivers()
 
     image_def = ImageDef('monalisa.png')
 

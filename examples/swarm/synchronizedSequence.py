@@ -235,7 +235,7 @@ def control_thread():
 if __name__ == '__main__':
     controlQueues = [Queue() for _ in range(len(uris))]
 
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    cflib.crtp.init_drivers()
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
         swarm.parallel_safe(activate_high_level_commander)

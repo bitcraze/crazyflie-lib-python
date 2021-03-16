@@ -35,7 +35,7 @@ from sys_test.swarm_test_rig.rig_support import RigSupport
 
 class TestLogging(unittest.TestCase):
     def setUp(self):
-        cflib.crtp.init_drivers(enable_debug_driver=False)
+        cflib.crtp.init_drivers()
         self.test_rig_support = RigSupport()
 
     def test_that_requested_logging_is_received_properly_from_one_cf(self):

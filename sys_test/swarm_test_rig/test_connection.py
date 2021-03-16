@@ -34,7 +34,7 @@ from sys_test.swarm_test_rig.rig_support import RigSupport
 
 class TestConnection(unittest.TestCase):
     def setUp(self):
-        cflib.crtp.init_drivers(enable_debug_driver=False)
+        cflib.crtp.init_drivers()
         self.test_rig_support = RigSupport()
 
     def test_that_connection_time_scales_with_more_devices_without_cache(self):

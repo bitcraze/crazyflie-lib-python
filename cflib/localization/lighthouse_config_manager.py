@@ -22,6 +22,8 @@
 """
 Functionality to manage lighthouse system configuration (geometry and calibration data).
 """
+import time
+
 import yaml
 
 from cflib.crazyflie.mem import LighthouseBsCalibration
@@ -144,10 +146,15 @@ class LighthouseConfigWriter:
         self._write_failed_for_one_or_more_objects = False
 
         # Change system type first as this will erase calib and geo data in the CF.
-        # Changing system type may trigger a lengthy operation if the persistant memory write takes a long time.
+        # Changing system type may trigger a lengthy operation (up to 0.5 s) if the persistant memory requires defrag.
         # Setting a param is an asynchronous operataion, and it is not possible to know if the system swich is finished
-        # before we continue. Is it possible that this will cause problems?
+        # before we continue.
         self._cf.param.set_value('lighthouse.systemType', system_type)
+
+        # We add a sleep here to make sure the change of system type is finished. It is dirty but will have to do for
+        # now. A more propper solution would be to add support for Remote Procedure Calls (RPC) with synchronous
+        # function calls.
+        time.sleep(0.8)
 
         self._next()
 

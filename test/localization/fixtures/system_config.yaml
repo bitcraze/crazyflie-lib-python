@@ -64,5 +64,6 @@ geos:
     - - 30.0
       - 31.0
       - 32.0
+systemType: 1
 type: lighthouse_system_configuration
 version: '1'

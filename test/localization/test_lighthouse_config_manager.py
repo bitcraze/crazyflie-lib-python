@@ -98,17 +98,18 @@ class TestLighthouseConfigFileManager(unittest.TestCase):
                 LighthouseConfigFileManager.read('some/name.yaml')
 
     @patch('yaml.safe_load')
-    def test_that_no_data_returns_empty_dictionaries(self, mock_yaml_load):
+    def test_that_no_data_returns_empty_default_data(self, mock_yaml_load):
         # Fixture
         mock_yaml_load.return_value = self.data
 
         # Test
         with patch('builtins.open', new_callable=mock_open()):
-            actual_geos, actual_calibs = LighthouseConfigFileManager.read('some/name.yaml')
+            actual_geos, actual_calibs, actual_system_type = LighthouseConfigFileManager.read('some/name.yaml')
 
         # Assert
         self.assertEqual(0, len(actual_geos))
         self.assertEqual(0, len(actual_calibs))
+        self.assertEqual(LighthouseConfigFileManager.SYSTEM_TYPE_V2, actual_system_type)
 
     @patch('yaml.dump')
     def test_file_end_to_end_write_read(self, mock_yaml_dump):
@@ -120,9 +121,9 @@ class TestLighthouseConfigFileManager(unittest.TestCase):
         file.close()
 
         # Test
-        geos, calibs = LighthouseConfigFileManager.read(fixture_file)
+        geos, calibs, system_type = LighthouseConfigFileManager.read(fixture_file)
         with patch('builtins.open', new_callable=mock_open()):
-            LighthouseConfigFileManager.write('some/name.yaml', geos=geos, calibs=calibs)
+            LighthouseConfigFileManager.write('some/name.yaml', geos=geos, calibs=calibs, system_type=system_type)
 
             # Assert
             mock_yaml_dump.assert_called_with(expected, ANY)

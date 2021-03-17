@@ -22,6 +22,8 @@
 """
 Functionality to manage lighthouse system configuration (geometry and calibration data).
 """
+import time
+
 import yaml
 
 from cflib.crazyflie.mem import LighthouseBsCalibration
@@ -36,9 +38,13 @@ class LighthouseConfigFileManager:
     VERSION = '1'
     GEOS_ID = 'geos'
     CALIBS_ID = 'calibs'
+    SYSTEM_TYPE_ID = 'systemType'
+
+    SYSTEM_TYPE_V1 = 1
+    SYSTEM_TYPE_V2 = 2
 
     @staticmethod
-    def write(file_name, geos={}, calibs={}):
+    def write(file_name, geos={}, calibs={}, system_type=SYSTEM_TYPE_V2):
         file = open(file_name, 'w')
         with file:
             file_geos = {}
@@ -54,6 +60,7 @@ class LighthouseConfigFileManager:
             data = {
                 LighthouseConfigFileManager.TYPE_ID: LighthouseConfigFileManager.TYPE,
                 LighthouseConfigFileManager.VERSION_ID: LighthouseConfigFileManager.VERSION,
+                LighthouseConfigFileManager.SYSTEM_TYPE_ID: system_type,
                 LighthouseConfigFileManager.GEOS_ID: file_geos,
                 LighthouseConfigFileManager.CALIBS_ID: file_calibs
             }
@@ -78,6 +85,10 @@ class LighthouseConfigFileManager:
             if data[LighthouseConfigFileManager.VERSION_ID] != LighthouseConfigFileManager.VERSION:
                 raise Exception('Unsupported file version')
 
+            result_system_type = LighthouseConfigFileManager.SYSTEM_TYPE_V2
+            if LighthouseConfigFileManager.SYSTEM_TYPE_ID in data:
+                result_system_type = data[LighthouseConfigFileManager.SYSTEM_TYPE_ID]
+
             result_geos = {}
             result_calibs = {}
 
@@ -89,7 +100,7 @@ class LighthouseConfigFileManager:
                 for id, calib in data[LighthouseConfigFileManager.CALIBS_ID].items():
                     result_calibs[id] = LighthouseBsCalibration.from_file_object(calib)
 
-            return result_geos, result_calibs
+            return result_geos, result_calibs, result_system_type
 
 
 class LighthouseConfigWriter:
@@ -107,7 +118,8 @@ class LighthouseConfigWriter:
         self._write_failed_for_one_or_more_objects = False
         self._nr_of_base_stations = nr_of_base_stations
 
-    def write_and_store_config(self, data_stored_cb, geos=None, calibs=None):
+    def write_and_store_config(self, data_stored_cb, geos=None, calibs=None,
+                               system_type=LighthouseConfigFileManager.SYSTEM_TYPE_V2):
         """
         Transfer geometry and calibration data to the Crazyflie and persist to permanent storage.
         The callback is called when done.
@@ -134,6 +146,17 @@ class LighthouseConfigWriter:
 
         self._write_failed_for_one_or_more_objects = False
 
+        # Change system type first as this will erase calib and geo data in the CF.
+        # Changing system type may trigger a lengthy operation (up to 0.5 s) if the persistant memory requires defrag.
+        # Setting a param is an asynchronous operataion, and it is not possible to know if the system swich is finished
+        # before we continue.
+        self._cf.param.set_value('lighthouse.systemType', system_type)
+
+        # We add a sleep here to make sure the change of system type is finished. It is dirty but will have to do for
+        # now. A more propper solution would be to add support for Remote Procedure Calls (RPC) with synchronous
+        # function calls.
+        time.sleep(0.8)
+
         self._next()
 
     def write_and_store_config_from_file(self, data_stored_cb, file_name):
@@ -141,8 +164,8 @@ class LighthouseConfigWriter:
         Read system configuration data from file and write/persist to the Crazyflie.
         Geometry and calibration data for base stations that are not in the config file will be invalidated.
         """
-        geos, calibs = LighthouseConfigFileManager.read(file_name)
-        self.write_and_store_config(data_stored_cb, geos=geos, calibs=calibs)
+        geos, calibs, system_type = LighthouseConfigFileManager.read(file_name)
+        self.write_and_store_config(data_stored_cb, geos=geos, calibs=calibs, system_type=system_type)
 
     def _next(self):
         if self._geos_to_write is not None:

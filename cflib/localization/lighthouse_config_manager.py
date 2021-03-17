@@ -118,7 +118,8 @@ class LighthouseConfigWriter:
         self._write_failed_for_one_or_more_objects = False
         self._nr_of_base_stations = nr_of_base_stations
 
-    def write_and_store_config(self, data_stored_cb, geos=None, calibs=None, system_type=2):
+    def write_and_store_config(self, data_stored_cb, geos=None, calibs=None,
+                               system_type=LighthouseConfigFileManager.SYSTEM_TYPE_V2):
         """
         Transfer geometry and calibration data to the Crazyflie and persist to permanent storage.
         The callback is called when done.

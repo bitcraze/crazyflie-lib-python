@@ -34,7 +34,7 @@ class TestResponseTime(unittest.TestCase):
     ECHO = 0
 
     def setUp(self):
-        cflib.crtp.init_drivers(enable_debug_driver=False)
+        cflib.crtp.init_drivers()
         self.test_rig_support = RigSupport()
 
         self.links = []

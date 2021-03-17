@@ -193,7 +193,7 @@ def run_sequence(scf0, scf1):
 
 
 if __name__ == '__main__':
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    cflib.crtp.init_drivers()
 
     with SyncCrazyflie(uri0, cf=Crazyflie(rw_cache='./cache')) as scf0:
         reset_estimator(scf0)

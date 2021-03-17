@@ -28,7 +28,6 @@
 import logging
 import os
 
-from .debugdriver import DebugDriver
 from .exceptions import WrongUriType
 from .prrtdriver import PrrtDriver
 from .radiodriver import RadioDriver
@@ -56,7 +55,7 @@ def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
         CLASSES.extend([RadioDriver, UsbDriver])
 
     if enable_debug_driver:
-        CLASSES.append(DebugDriver)
+        logger.warn('The debug driver is no longer supported!')
 
     if enable_serial_driver:
         CLASSES.append(SerialDriver)

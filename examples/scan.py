@@ -29,7 +29,7 @@ Simple example that scans for available Crazyflies and lists them.
 import cflib.crtp
 
 # Initiate the low level drivers
-cflib.crtp.init_drivers(enable_debug_driver=False)
+cflib.crtp.init_drivers()
 
 print('Scanning interfaces for Crazyflies...')
 available = cflib.crtp.scan_interfaces()

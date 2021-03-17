@@ -137,7 +137,7 @@ def run_sequence(scf, sequence, base_x, base_y, base_z, yaw):
 
 
 if __name__ == '__main__':
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    cflib.crtp.init_drivers()
 
     # Set these to the position and yaw based on how your Crazyflie is placed
     # on the floor

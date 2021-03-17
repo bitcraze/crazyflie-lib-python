@@ -92,8 +92,8 @@ def simple_connect():
 
 
 if __name__ == '__main__':
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    # Initialize the low-level drivers
+    cflib.crtp.init_drivers()
 
     lg_stab = LogConfig(name='Stabilizer', period_in_ms=10)
     lg_stab.add_variable('stabilizer.roll', 'float')

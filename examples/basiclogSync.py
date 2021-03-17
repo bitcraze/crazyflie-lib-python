@@ -43,8 +43,8 @@ logging.basicConfig(level=logging.ERROR)
 
 
 if __name__ == '__main__':
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    # Initialize the low-level drivers
+    cflib.crtp.init_drivers()
     # Scan for Crazyflies and use the first one found
     print('Scanning interfaces for Crazyflies...')
     available = cflib.crtp.scan_interfaces()

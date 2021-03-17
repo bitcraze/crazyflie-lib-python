@@ -72,8 +72,8 @@ This is the radio uri of the crazyflie, and currently displaying the default. It
 Write the following in the script:
 ```
 if __name__ == '__main__':
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    # Initialize the low-level drivers
+    cflib.crtp.init_drivers()
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
 
@@ -137,8 +137,8 @@ def simple_connect():
     print("Now I will disconnect :'(")
 
 if __name__ == '__main__':
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    # Initialize the low-level drivers
+    cflib.crtp.init_drivers()
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
 
@@ -180,7 +180,7 @@ logging.basicConfig(level=logging.ERROR)
 Now we are going to define the logging configuration. So add `lg_stab` in the `__main__` function :
  ```
  ...
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    cflib.crtp.init_drivers()
 
     lg_stab = LogConfig(name='Stabilizer', period_in_ms=10)
     lg_stab.add_variable('stabilizer.roll', 'float')
@@ -265,8 +265,8 @@ def simple_log(scf, logconf):
 ...
 
 if __name__ == '__main__':
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    # Initialize the low-level drivers
+    cflib.crtp.init_drivers()
 
     lg_stab = LogConfig(name='Stabilizer', period_in_ms=10)
     lg_stab.add_variable('stabilizer.roll', 'float')
@@ -362,8 +362,8 @@ def simple_log_async(scf, logconf):
 (...)
 
 if __name__ == '__main__':
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    # Initialize the low-level drivers
+    cflib.crtp.init_drivers()
 
     lg_stab = LogConfig(name='Stabilizer', period_in_ms=10)
     lg_stab.add_variable('stabilizer.roll', 'float')
@@ -490,8 +490,8 @@ def simple_connect():
     ...
 
 if __name__ == '__main__':
-    # Initialize the low-level drivers (don't list the debug drivers)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    # Initialize the low-level drivers
+    cflib.crtp.init_drivers()
 
     lg_stab = LogConfig(name='Stabilizer', period_in_ms=10)
     lg_stab.add_variable('stabilizer.roll', 'float')

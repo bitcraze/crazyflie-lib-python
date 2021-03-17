@@ -123,33 +123,14 @@ following methods:
     call(*args)
         """ Call the callbacks registered with the arguments args """
 ```
-
-### Debug driver
-
-The library contains a special link driver, named `DebugDriver`. This
-driver will emulate a Crazyflie and is used for testing of the UI and
-library. Normally this will be hidden from the user except if explicitly
-enabled in the configuration file. The driver supports the following:
-
--   Connecting a download param and log TOCs
--   Setting up log configurations and sending back fake data
--   Setting and reading parameters
--   Bootloading
-
-There are a number of different URIs that will be returned from the
-driver. These will have different functions, like always returning a
-random TOC CRC to always trigger TOC downloading or failing during
-connect. The driver also has support for sending back data with random
-delays to trigger random re-sending by the library.
-
 ## Initiating the link drivers
 
 Before the library can be used the link drivers have to he initialized.
 This will search for available drivers and instantiate them.
 
 ``` {.python}
-    init_drivers(enable_debug_driver=False)
-       """ Search for and initialize link drivers. If enable_debug_driver is True then the DebugDriver will also be used."""
+    init_drivers()
+       """ Search for and initialize link drivers."""
 ```
 
 ### Serial driver

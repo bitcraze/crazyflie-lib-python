@@ -112,10 +112,10 @@ class RadioBridge:
 
 
 if __name__ == '__main__':
-    # Initialize the low-level drivers (don't list the debug drivers)
+    # Initialize the low-level drivers
     cflib.crtp.radiodriver.set_retries_before_disconnect(1500)
     cflib.crtp.radiodriver.set_retries(3)
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    cflib.crtp.init_drivers()
     # Scan for Crazyflies and use the first one found
     print('Scanning interfaces for Crazyflies...')
     if len(sys.argv) > 2:

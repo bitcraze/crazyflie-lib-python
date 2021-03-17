@@ -291,7 +291,7 @@ def run_sequence(cf, trajectory_id, duration):
     commander.stop()
 
 
-cflib.crtp.init_drivers(enable_debug_driver=False)
+cflib.crtp.init_drivers()
 
 # Connect to QTM
 qtm_wrapper = QtmWrapper(ridgid_body_name)

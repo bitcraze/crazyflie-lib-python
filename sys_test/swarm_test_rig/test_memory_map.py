@@ -37,7 +37,7 @@ from sys_test.swarm_test_rig.rig_support import RigSupport
 
 class TestMemoryMapping(unittest.TestCase):
     def setUp(self):
-        cflib.crtp.init_drivers(enable_debug_driver=False)
+        cflib.crtp.init_drivers()
         self.test_rig_support = RigSupport()
 
     def test_memory_mapping_with_one_cf(self):

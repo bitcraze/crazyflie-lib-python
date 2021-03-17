@@ -30,7 +30,7 @@ from cflib.crtp.crtpstack import CRTPPort
 
 class TestSingleCfGrounded(unittest.TestCase):
     def setUp(self):
-        cflib.crtp.init_drivers(enable_debug_driver=False)
+        cflib.crtp.init_drivers()
         self.radioUri = 'radio://0/80/2M/E7E7E7E7E7'
         self.usbUri = 'usb://0'
 

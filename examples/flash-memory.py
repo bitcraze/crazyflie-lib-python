@@ -135,7 +135,7 @@ def scan():
     """
 
     # Initiate the low level drivers
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    cflib.crtp.init_drivers()
 
     # Scan for Crazyflies
     print('Scanning interfaces for Crazyflies...')

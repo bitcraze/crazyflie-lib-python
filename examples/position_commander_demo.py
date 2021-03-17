@@ -76,7 +76,7 @@ def simple_sequence():
 
 
 if __name__ == '__main__':
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    cflib.crtp.init_drivers()
 
     simple_sequence()
     # slightly_more_complex_usage()

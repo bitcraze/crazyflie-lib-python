@@ -147,14 +147,14 @@ class LighthouseConfigWriter:
 
         if system_type is not None:
             # Change system type first as this will erase calib and geo data in the CF.
-            # Changing system type may trigger a lengthy operation (up to 0.5 s) if the persistant memory requires defrag.
-            # Setting a param is an asynchronous operataion, and it is not possible to know if the system swich is finished
-            # before we continue.
+            # Changing system type may trigger a lengthy operation (up to 0.5 s) if the persistant memory requires
+            # defrag. Setting a param is an asynchronous operataion, and it is not possible to know if the system
+            # swich is finished before we continue.
             self._cf.param.set_value('lighthouse.systemType', system_type)
 
-            # We add a sleep here to make sure the change of system type is finished. It is dirty but will have to do for
-            # now. A more propper solution would be to add support for Remote Procedure Calls (RPC) with synchronous
-            # function calls.
+            # We add a sleep here to make sure the change of system type is finished. It is dirty but will have to
+            # do for now. A more propper solution would be to add support for Remote Procedure Calls (RPC) with
+            # synchronous function calls.
             time.sleep(0.8)
 
         self._next()

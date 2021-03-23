@@ -39,13 +39,16 @@ class PowerSwitch:
         self.uri = uri
         uri_augmented = uri+'?safelink=0&autoping=0&ackfilter=0'
         self.link = cflib.crtp.get_link_driver(uri_augmented)
-        # Switch to legacy mode, if uri options are not available
-        if not self.link:
+        # Switch to legacy mode, if uri options are not available or old Python backend is used
+        if not self.link or self.link.get_name() == 'radio':
             uri_parts = cflib.crtp.RadioDriver.parse_uri(uri)
             self.devid = uri_parts[0]
             self.channel = uri_parts[1]
             self.datarate = uri_parts[2]
             self.address = uri_parts[3]
+            if self.link:
+                self.link.close()
+                self.link = None
 
     def platform_power_down(self):
         """ Power down the platform, both NRF and STM MCUs.

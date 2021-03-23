@@ -101,6 +101,3 @@ You can reload the udev-rules using the following:
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
-
-
-

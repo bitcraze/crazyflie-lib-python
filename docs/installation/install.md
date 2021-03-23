@@ -4,7 +4,7 @@ page_id: install
 ---
 
 ## Development
-### Developing for the cfclient
+### Developing for the cflib
 * [Fork the cflib](https://help.github.com/articles/fork-a-repo/)
 * [Clone the cflib](https://help.github.com/articles/cloning-a-repository/), `git clone git@github.com:YOUR-USERNAME/crazyflie-lib-python.git`
 * [Install the cflib in editable mode](http://pip-python3.readthedocs.org/en/latest/reference/pip_install.html?highlight=editable#editable-installs), `pip install -e path/to/cflib`
@@ -12,7 +12,7 @@ page_id: install
 
 * [Uninstall the cflib if you don't want it any more](http://pip-python3.readthedocs.org/en/latest/reference/pip_uninstall.html), `pip uninstall cflib`
 
-Note: If you are developing for the [cfclient][cfclient] you must use python3. On Ubuntu (16.04, 18.08) use `pip3` instead of `pip`.
+Note: If you are developing for the cflib you must use python3. On Ubuntu (16.04, 18.08) use `pip3` instead of `pip`.
 
 ### Linux, OSX, Windows
 
@@ -102,6 +102,5 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 
-[cfclient]: https://www.github.com/bitcraze/crazyflie-clients-python
 
 

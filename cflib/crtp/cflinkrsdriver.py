@@ -148,7 +148,7 @@ class CfLinkRsDriver(CRTPDriver):
         Scan interface for available Crazyflie quadcopters and return a list
         with them.
         """
-        pass
+        return context.scan_selected(uris)
 
     def enum(self):
         """Enumerate, and return a list, of the available link URI on this

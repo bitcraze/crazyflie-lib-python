@@ -169,6 +169,28 @@ class Localization():
         pk.data = struct.pack('<BB', self.LPS_SHORT_LPP_PACKET, dest_id) + data
         self._cf.send_packet(pk)
 
+    def send_emergency_stop(self):
+        """
+        Send emergency stop
+        """
+
+        pk = CRTPPacket()
+        pk.port = CRTPPort.LOCALIZATION
+        pk.channel = self.GENERIC_CH
+        pk.data = struct.pack('<B', self.EMERGENCY_STOP)
+        self._cf.send_packet(pk)
+
+    def send_emergency_stop_watchdog(self):
+        """
+        Send emergency stop watchdog
+        """
+
+        pk = CRTPPacket()
+        pk.port = CRTPPort.LOCALIZATION
+        pk.channel = self.GENERIC_CH
+        pk.data = struct.pack('<B', self.EMERGENCY_STOP_WATCHDOG)
+        self._cf.send_packet(pk)
+
     def send_lh_persist_data_packet(self, geo_list, calib_list):
         """
         Send geometry and calibration data to persistent memory subsystem

@@ -26,6 +26,9 @@ import time
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
+from cflib.utils import uri_helper
+
+address = uri_helper.address_from_env(default=0xE7E7E7E7E7)
 
 
 class NotConnected(RuntimeError):
@@ -139,7 +142,7 @@ def scan():
 
     # Scan for Crazyflies
     print('Scanning interfaces for Crazyflies...')
-    available = cflib.crtp.scan_interfaces()
+    available = cflib.crtp.scan_interfaces(address)
     interfaces = [uri for uri, _ in available]
 
     if not interfaces:

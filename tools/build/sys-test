@@ -8,7 +8,7 @@ try:
     root = _path.normpath(_path.join(script_dir, '../../sys_test'))
 
     print('**** Running sys tests ****')
-    subprocess.check_call(['python3', '-m', 'unittest', 'discover', root])
+    subprocess.check_call(['python3', '-m', 'unittest', 'discover', root, '-v'])
 
     print('Unit tests pass')
 except subprocess.CalledProcessError as e:

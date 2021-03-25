@@ -17,7 +17,7 @@ We will assume that you already know this before you start with the tutorial:
 
 Since you should have installed cflib in the previous step by step tutorial, you are all ready to got now. Open up an new python script called `motion_flying.py`. First you will start by adding the following import to the script:
 
-```
+```python
 import logging
 import time
 
@@ -47,7 +47,7 @@ This imports the motion commander, which is pretty much a wrapper around the pos
 Since this tutorial won't be a table top tutorial like last time, but an actual flying one, we need to put some securities in place. The flowdeck or any other positioning deck that you are using, should be correctly attached to the crazyflie. If it is not, it will try to fly anyway without a good position estimate and for sure is going to crash.
 
 We want to know if the deck is correctly attached before flying, therefore we will add a callback for the `"deck.bcFlow2"` parameter. Add the following line after the `...SyncCrazyflie(...)` in `__main__`
-```
+```python
     with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
 
         scf.cf.param.add_update_callback(group="deck", name="bcFlow2",
@@ -57,7 +57,7 @@ We want to know if the deck is correctly attached before flying, therefore we wi
 ```
 
 Above `__main__`, start a parameter callback function:
-```
+```python
 def param_deck_flow(name, value_str):
     value = int(value_str)
     print(value)
@@ -72,7 +72,7 @@ def param_deck_flow(name, value_str):
 
 The `is_deck_attached` is a global variable which should be defined under `URI`. Note that the value type that the `param_deck_flow()` is a string type, so you will need to convert it to a number first before you can do any operations with it. 
 
-```
+```python
 ...
 URI = 'radio://0/80/2M/E7E7E7E7E7'
 is_deck_attached = False
@@ -81,7 +81,7 @@ is_deck_attached = False
 Try to run the script now, and try to see if it is able to detect that the flowdeck (or any other positioning deck), is correctly attached. Also try to remove it to see if it can detect it missing as well.
 
 This is the full script as we are:
-```
+```python
 import logging
 import time
 
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
 So now we are going to start up the SyncCrazyflie and start a function in the `__main__` function:
 
-```
+```python
     with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
 
         if is_deck_attached:
@@ -133,7 +133,7 @@ See that we are now using `is_deck_attached`? If this is false, the function wil
 
 Now make the function `take_off_simple(..)` above `__main__`, which will contain the motion commander instance.
 
-```
+```python
 def take_off_simple(scf):
     with MotionCommander(scf) as mc:
         time.sleep(3)
@@ -148,7 +148,7 @@ The reason for the crazyflie to immediately take off, is that the motion command
 Currently the motion commander had 0.3 meters height as default but this can ofcourse be changed.
 
 Change the  following line in `take_off_simple(...)`:
-```
+```python
     with MotionCommander(scf) as mc:
         mc.up(0.3)
         time.sleep(3)
@@ -157,12 +157,12 @@ Change the  following line in `take_off_simple(...)`:
 Run the script again. The crazyflie will first take off to 0.3 meters and then goes up for another 0.3 meters.
 
 The same can be achieved by adjusting the default_height of the motion_commander, which is what we will do for now on in this tutorial. Remove the `mc.up(0.3)` and replace the motion commander line with
-```
+```python
     with MotionCommander(scf, default_height = DEFAULT_HEIGHT) as mc:
 ```
 
 Add the variable underneath `URI`:
-```
+```python
 DEFAULT_HEIGHT = 0.5
 ```
 
@@ -170,7 +170,7 @@ DEFAULT_HEIGHT = 0.5
 Double check if your script is the same as beneath and run it again to check
 
 
-```
+```python
 import logging
 import time
 
@@ -213,7 +213,7 @@ if __name__ == '__main__':
 
 So now we know how to take off, so the second step is to move in a direction! Start a new function above `def take_off_simple(scf)`:
 
-```
+```python
 def move_linear_simple(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
         time.sleep(1)
@@ -229,7 +229,7 @@ You will see the crazyflie take off, fly 0.5 m forward, fly backwards and land a
 
 Now we are going to add a turn into it. Replace the content under motion commander in `move_linear_simple(..)` with the following:
 
-```
+```python
         time.sleep(1)
         mc.forward(0.5)
         time.sleep(1)
@@ -243,7 +243,7 @@ Try to run the script again. Now you can see the crazyflie take off, go forward,
 
 Double check if your code code is still correct:
 
-```
+```python
 import logging
 import time
 
@@ -299,7 +299,7 @@ When the motion commander commands have been executed, the script stops and the 
 Let's integrate some logging to this as well. Add the following log config right into `__main__` under `SyncCrazyflie`
 
 
-```
+```python
     lg_stab = LogConfig(name='Position', period_in_ms=10)
     lg_stab.add_variable('stateEstimate.x', 'float')
     lg_stab.add_variable('stateEstimate.y', 'float')
@@ -319,7 +319,7 @@ Don't forget to add `from cflib.crazyflie.log import LogConfig` at the imports (
 
 
 
-```
+```python
 def log_pos_callback(timestamp, data, logconf):
     print(data)
 ```
@@ -329,7 +329,7 @@ NOW: Make global variable which is a list called `position_estimate` and fill th
 Just double check that everything has been implemented correctly and then run the script.  You will see the same behavior as with the previous step but then with the position estimated printed at the same time.
 
 *You can replace the print function in the callback with a plotter if you would like to try that out, like with the python lib matplotlib :)*
-```
+```python
 import logging
 import time
 
@@ -404,7 +404,7 @@ There is a reason why we put the position_estimate to catch the positions from t
 ## Back and forth with limits
 Lets start with a new function above `move_in_box_limit(scf)`:
 
-```
+```python
 def move_box_limit(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
 
@@ -418,7 +418,7 @@ If you would run this (don't forget to replace `move_linear_simple()` in `__main
 
 Now we will add some behavior in the while loop:
 
-```
+```python
 def move_box_limit(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
         start_forward()
@@ -438,7 +438,7 @@ Run the script and you will see that the crazyflie will start moving back and fo
 
 You probably also noticed that we are using `mc.start_back()` and `mc.start_forward()` instead of the `mc.forward(0.5)` and `mc.back(0.5)` used in the previous steps. The main difference is that the *mc.forward* and *mc.back* are **blocking** functions that won't continue the code until the distance has been reached. The *mc.start_...()* will start the crazyflie in a direction and will not stop until the `mc.stop()` is given, which is given automatically when the motion commander instance is exited. That is why this is nice functions to use in reactive scenarios like these.
 
-```
+```python
 import logging
 import time
 
@@ -508,7 +508,7 @@ if __name__ == '__main__':
 ## Bouncing in a bounding box
 
 Let's take it up a notch! Replace the content in the while loop with the following:
-```
+```python
         body_x_cmd = 0.2;
         body_y_cmd = 0.1;
         max_vel = 0.2;
@@ -534,7 +534,7 @@ This will now start a linear motion into a certain direction, and makes the Craz
 
 
 Check out if your code still matches the full code and run the script!
-```
+```python
 import logging
 import time
 

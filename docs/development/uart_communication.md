@@ -53,7 +53,7 @@ The serial URI has the form `serial://<name>` (e.g. `serial://ttyAMA0`, `serial:
 
 The following script might give an idea on how a first test of the setup might look like.
 
-```{.python}
+```python
 #!/usr/bin/env python3
 
 import logging

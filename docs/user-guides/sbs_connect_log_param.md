@@ -36,14 +36,14 @@ You can call it `connect_log_param.py` (that is what we are using in this tutori
 
 Then you would need to start with the following standard python libraries.
 
-```
+```python
 import logging
 import time
 ```
 
 then you need to import the libraries for cflib:
 
-```
+```python
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
@@ -60,7 +60,7 @@ into blocking function.
 
 After these imports, start the script with:
 
-```
+```python
 # URI to the Crazyflie to connect to
 uri = 'radio://0/80/2M/E7E7E7E7E7'
 ```
@@ -70,7 +70,7 @@ This is the radio uri of the crazyflie, and currently displaying the default. It
 ## Main
 
 Write the following in the script:
-```
+```python
 if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
@@ -86,7 +86,7 @@ The `syncCrazyflie` will create a synchronous Crazyflie instance with the specif
 
 Start a function above the main function (but below the URI) which you call simple connect:
 
-```
+```python
 def simple_connect():
 
     print("Yeah, I'm connected! :D")
@@ -104,7 +104,7 @@ Now run the script in your terminal:
 `python3 connect_log_param.py`
 
 You are supposed to see the following in the terminal:
-```
+```python
 Connecting to radio://0/80/2M/E7E7E7E7E7
 Connected to radio://0/80/2M/E7E7E7E7E7
 Yeah, I'm connected! :D
@@ -119,7 +119,7 @@ Not super exciting stuff yet but it is a great start! It is also a good test if 
 
 If you are getting an error, retrace your steps or check if your code matches the entire code underneath here. Also make sure your Crazyflie is on and your crazyradio PA connected to you computer, and that the Crazyflie is not connected to anything else (like the cfclient). If everything is peachy, please continue to the next part!
 
-```
+```python
 import logging
 import time
 
@@ -157,7 +157,7 @@ Alright, now taking a step up. We will now add to the script means to read out l
 
 Now we need to add several imports on the top of the script connect_log_param.py
 
- ```
+ ```python
  ...
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
@@ -170,7 +170,7 @@ from cflib.crazyflie.syncLogger import SyncLogger
 
 Also add the following underneath URI
 
-```
+```python
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 ```
@@ -178,7 +178,7 @@ logging.basicConfig(level=logging.ERROR)
 ## Add logging config
 
 Now we are going to define the logging configuration. So add `lg_stab` in the `__main__` function :
- ```
+ ```python
  ...
     cflib.crtp.init_drivers()
 
@@ -198,14 +198,14 @@ Here you will add the logs variables you would like to read out. If you are unsu
 ## Make the logging function
 
 Use the same connect_log_param.py script, and add the following function above `simple_connect()` and underneath URI:
- ```
+ ```python
 def simple_log(scf, logconf):
 
  ```
 Notice that now you will need to include the SyncCrazyflie instance (`scf`) and the logging configuration.
 
 Now the logging instances will be inserted by adding the following after you configured the lg_stab:
- ```
+ ```python
     with SyncLogger(scf, lg_stab) as logger:
 
         for log_entry in logger:
@@ -232,7 +232,7 @@ If everything is fine it should continuously print the logging variables, like t
 If you want to continuously receive the messages in the for loop, remove the `break`. You can stop the script with _ctrl+c_
 
 If you are getting errors, check if your script corresponds with the full code:
- ```
+ ```python
 import logging
 import time
 
@@ -291,7 +291,7 @@ Here we will explain how this asynchronous logging can be set up in the script.
 
 Above `def simple_log(..)`, begin a new function:
 
-```
+```python
 def simple_log_async(scf, logconf):
     cf = scf.cf
     cf.log.add_config(logconf)
@@ -304,20 +304,20 @@ Here you add the logging configuration to to the logging framework of the Crazyf
 ## Add a callback function
 
 First we will make the callback function like follows:
-```
+```python
 def log_stab_callback(timestamp, data, logconf):
     print('[%d][%s]: %s' % (timestamp, logconf.name, data))
 ```
 
 This callback will be called once the log variables have received it and prints the contents. The callback function added to the logging framework by adding it to the log config in `simple_log_async(..)`:
 
-```
+```python
     logconf.data_received_cb.add_callback(log_stab_callback)
 ```
 
 Then the log configuration would need to be started manually, and then stopped after a few seconds:
 
-```
+```python
     logconf.start()
     time.sleep(5)
     logconf.stop()
@@ -331,7 +331,7 @@ Make sure to replace the `simple_log(...)` to `simple_log_async(...)` in the `__
 
 If something went wrong, check if your script corresponds to the this:
 
-```
+```python
 import logging
 import time
 
@@ -381,7 +381,7 @@ Next to logging variables, it is possible to read and set parameters settings. T
 
 First add the group parameter name just above `with SyncCrazyflie(...` in `__main__`.
 
-```
+```python
     group = "stabilizer"
     name = "estimator"
 ```
@@ -390,7 +390,7 @@ First add the group parameter name just above `with SyncCrazyflie(...` in `__mai
 
 Start the following function above `def log_stab_callback(...)`:
 
-```
+```python
 def simple_param_async(scf, groupstr, namestr):
     cf = scf.cf
     full_name = groupstr+ "." +namestr
@@ -400,13 +400,13 @@ def simple_param_async(scf, groupstr, namestr):
 
 In a similar way as in the previous section for the Async logging, we are going to make a callback function for the parameters. Add the callback function above `def simple_param_async`:
 
-```
+```python
 def param_stab_est_callback(name, value):
     print('The crazyflie has parameter ' + name + ' set at number: ' + value)
 ```
 
 Then add the following to the `def simple_param_async(...)` function:
-```
+```python
     cf.param.add_update_callback(group=groupstr, name=namestr,
                                            cb=param_stab_est_callback)
     time.sleep(1)
@@ -422,7 +422,7 @@ If you would like to test out the script now already, replace `simple_log_async(
 
 Now we will set a variable in a parameter. Add the following to the `simple_param_async(...)` function:
 
-```
+```python
     cf.param.set_value(full_name,2)
 ```
 
@@ -440,13 +440,13 @@ What it can't do is to set a Read Only (RO) parameter, only Read Write (RW) para
 It is usually good practice to put the parameter setting back to where it came from, since after disconnecting the Crazyflie, the parameter will still be set. Only after physcially restarting the Crazyflie the parameter will reset to its default setting as defined in the firmware.
 
 So finish the `simple_param_async(...)` function by adding the next few lines:
-```
+```python
     cf.param.set_value(full_name,1)
     time.sleep(1)
 ```
 Make sure the right function is in `__main__`. Check if your script corresponds with the code:
 
-```
+```python
 import logging
 import time
 
@@ -509,7 +509,7 @@ if __name__ == '__main__':
 
 Run the script with `python3 connect_log_param.py` in a terminal and you should see the following:
 
-```
+```python
 Connecting to radio://0/80/2M/E7E7E7E7E7
 Connected to radio://0/80/2M/E7E7E7E7E7
 The crazyflie has parameter stabilizer.estimator set at number: 1

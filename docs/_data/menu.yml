@@ -6,7 +6,6 @@
 - title: User guides
   subs:
     - {page_id: python_api}
-    - {page_id: uart_communication}
     - {page_id: sbs_connect_log_param}
     - {page_id: sbs_motion_commander}
 - title: Functional areas
@@ -17,3 +16,4 @@
     - {page_id: testing}
     - {page_id: matlab}
     - {page_id: eeprom}
+    - {page_id: uart_communication}

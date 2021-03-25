@@ -27,7 +27,7 @@ contains data.
 
 This is an example on how to use the lib:
 
-``` {.python}
+``` .python
 import crazyradio
 
 cr = crazyradio.Crazyradio()

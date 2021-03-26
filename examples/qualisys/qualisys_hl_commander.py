@@ -25,10 +25,7 @@ Crazyflie. It uses the high level commander to upload a trajectory to fly a
 figure 8.
 
 Set the uri to the radio settings of the Crazyflie and modify the
-ridgid_body_name to match the name of the Crazyflie in QTM.
-
-Limitations: This script does not support full pose and the Crazyflie
-must be started facing positive X.
+rigid_body_name to match the name of the Crazyflie in QTM.
 """
 import asyncio
 import math
@@ -51,7 +48,10 @@ from cflib.crazyflie.syncLogger import SyncLogger
 uri = 'radio://0/80/2M'
 
 # The name of the rigid body in QTM that represents the Crazyflie
-ridgid_body_name = 'cf'
+rigid_body_name = 'cf'
+
+# True: send position and orientation; False: send position only
+send_full_pose = False
 
 # The trajectory to fly
 # See https://github.com/whoenig/uav_trajectories for a tool to generate
@@ -231,7 +231,10 @@ def send_extpose_rot_matrix(cf, x, y, z, rot):
     # Normalize the quaternion
     ql = math.sqrt(qx ** 2 + qy ** 2 + qz ** 2 + qw ** 2)
 
-    cf.extpos.send_extpose(x, y, z, qx / ql, qy / ql, qz / ql, qw / ql)
+    if send_full_pose:
+        cf.extpos.send_extpose(x, y, z, qx / ql, qy / ql, qz / ql, qw / ql)
+    else:
+        cf.extpos.send_extpos(x, y, z)
 
 
 def reset_estimator(cf):
@@ -291,25 +294,26 @@ def run_sequence(cf, trajectory_id, duration):
     commander.stop()
 
 
-cflib.crtp.init_drivers()
+if __name__ == '__main__':
+    cflib.crtp.init_drivers()
 
-# Connect to QTM
-qtm_wrapper = QtmWrapper(ridgid_body_name)
+    # Connect to QTM
+    qtm_wrapper = QtmWrapper(rigid_body_name)
 
-with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-    cf = scf.cf
-    trajectory_id = 1
+    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        cf = scf.cf
+        trajectory_id = 1
 
-    # Set up a callback to handle data from QTM
-    qtm_wrapper.on_pose = lambda pose: send_extpose_rot_matrix(
-        cf, pose[0], pose[1], pose[2], pose[3])
+        # Set up a callback to handle data from QTM
+        qtm_wrapper.on_pose = lambda pose: send_extpose_rot_matrix(
+            cf, pose[0], pose[1], pose[2], pose[3])
 
-    activate_kalman_estimator(cf)
-    activate_high_level_commander(cf)
-    # activate_mellinger_controller(cf)
-    duration = upload_trajectory(cf, trajectory_id, figure8)
-    print('The sequence is {:.1f} seconds long'.format(duration))
-    reset_estimator(cf)
-    run_sequence(cf, trajectory_id, duration)
+        activate_kalman_estimator(cf)
+        activate_high_level_commander(cf)
+        # activate_mellinger_controller(cf)
+        duration = upload_trajectory(cf, trajectory_id, figure8)
+        print('The sequence is {:.1f} seconds long'.format(duration))
+        reset_estimator(cf)
+        run_sequence(cf, trajectory_id, duration)
 
-qtm_wrapper.close()
+    qtm_wrapper.close()

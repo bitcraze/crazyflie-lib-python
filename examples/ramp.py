@@ -35,7 +35,7 @@ import cflib
 from cflib.crazyflie import Crazyflie
 from cflib.utils import uri_helper
 
-address = uri_helper.address_from_env(default=0xE7E7E7E7E7)
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -107,14 +107,5 @@ class MotorRampExample:
 if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
-    # Scan for Crazyflies and use the first one found
-    print('Scanning interfaces for Crazyflies...')
-    available = cflib.crtp.scan_interfaces(address)
-    print('Crazyflies found:')
-    for i in available:
-        print(i[0])
 
-    if len(available) > 0:
-        le = MotorRampExample(available[0][0])
-    else:
-        print('No Crazyflies found, cannot run example')
+    le = MotorRampExample(uri)

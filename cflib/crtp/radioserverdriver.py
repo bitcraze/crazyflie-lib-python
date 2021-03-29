@@ -30,7 +30,7 @@ Crazyflie driver using the Crazyradio Server.
 This driver uses the zmq network protocol implemented by the CrazyradioServer
 to communicate with the Crazyflie.
 """
-from build.lib.cflib.crtp.exceptions import WrongUriType
+from cflib.crtp.exceptions import WrongUriType
 import logging
 import threading
 import zmq

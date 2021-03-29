@@ -51,6 +51,9 @@ def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
     if env is not None and env == 'cpp':
         from .cflinkcppdriver import CfLinkCppDriver
         CLASSES.append(CfLinkCppDriver)
+    elif env is not None and env == 'zmq':
+        from .radioserverdriver import RadioServerDriver
+        CLASSES.append(RadioServerDriver)
     else:
         CLASSES.extend([RadioDriver, UsbDriver])
 

@@ -24,6 +24,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 import unittest
+from test.support.asyncCallbackCaller import AsyncCallbackCaller
 from unittest.mock import call
 from unittest.mock import MagicMock
 
@@ -33,7 +34,6 @@ from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.utils.callbacks import Caller
-from test.support.asyncCallbackCaller import AsyncCallbackCaller
 
 
 class SyncLoggerTest(unittest.TestCase):

@@ -29,13 +29,14 @@ from unittest.mock import MagicMock
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.utils import uri_helper
 from cflib.utils.callbacks import Caller
 
 
 class SyncCrazyflieTest(unittest.TestCase):
 
     def setUp(self):
-        self.uri = 'radio://0/60/2M'
+        self.uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
         self.cf_mock = MagicMock(spec=Crazyflie)
         self.cf_mock.connected = Caller()

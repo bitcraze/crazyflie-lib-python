@@ -26,6 +26,9 @@ import time
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
+from cflib.utils import uri_helper
+
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 
 class NotConnected(RuntimeError):
@@ -129,30 +132,7 @@ def choose(items, title_text, question_text):
     return items[index - 1]
 
 
-def scan():
-    """
-    Scan for Crazyflie and return its URI.
-    """
-
-    # Initiate the low level drivers
-    cflib.crtp.init_drivers()
-
-    # Scan for Crazyflies
-    print('Scanning interfaces for Crazyflies...')
-    available = cflib.crtp.scan_interfaces()
-    interfaces = [uri for uri, _ in available]
-
-    if not interfaces:
-        return None
-    return choose(interfaces, 'Crazyflies found:', 'Select interface: ')
-
-
 if __name__ == '__main__':
-    radio_uri = scan()
-    if radio_uri is None:
-        print('None found.')
-        sys.exit(1)
-
     # Show info about bug 166
     print('\n###\n'
           'Please make sure that your NRF firmware is compiled without\n'
@@ -161,8 +141,11 @@ if __name__ == '__main__':
           'https://github.com/bitcraze/crazyflie-clients-python/issues/166\n'
           '###\n')
 
+    # Initialize the low-level drivers
+    cflib.crtp.init_drivers()
+
     # Initialize flasher
-    flasher = Flasher(radio_uri)
+    flasher = Flasher(uri)
 
     def abort():
         flasher.disconnect()

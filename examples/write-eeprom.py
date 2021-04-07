@@ -34,6 +34,9 @@ import time
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
+from cflib.utils import uri_helper
+
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -81,8 +84,8 @@ class EEPROMExample:
             elems['pitch_trim'] = 0.0
             elems['roll_trim'] = 0.0
             elems['radio_channel'] = 80
-            elems['radio_speed'] = 0
-            elems['radio_address'] = 0xE7E7E7E7E7
+            elems['radio_speed'] = 2
+            elems['radio_address'] = 0xDEADBEEF
 
             mems[0].write_data(self._data_written)
 
@@ -129,17 +132,8 @@ class EEPROMExample:
 if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
-    # Scan for Crazyflies and use the first one found
-    print('Scanning interfaces for Crazyflies...')
-    available = cflib.crtp.scan_interfaces()
-    print('Crazyflies found:')
-    for i in available:
-        print(i[0])
 
-    if len(available) > 0:
-        le = EEPROMExample(available[0][0])
-    else:
-        print('No Crazyflies found, cannot run example')
+    le = EEPROMExample(uri)
 
     # The Crazyflie lib doesn't contain anything to keep the application alive,
     # so this is where your application should do something. In our case we

@@ -61,6 +61,7 @@ from vispy.scene.cameras import TurntableCamera
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
+from cflib.utils import uri_helper
 
 try:
     from sip import setapi
@@ -73,7 +74,7 @@ from PyQt5 import QtCore, QtWidgets
 
 logging.basicConfig(level=logging.INFO)
 
-URI = 'radio://0/80/2M'
+URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 if len(sys.argv) > 1:
     URI = sys.argv[1]

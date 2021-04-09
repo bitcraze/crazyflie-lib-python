@@ -1,7 +1,5 @@
-import logging
 import time
 import cflib.crtp
-import concurrent.futures
 import queue
 import threading
 import winsound
@@ -9,45 +7,49 @@ import os
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-from cflib.positioning.position_hl_commander import PositionHlCommander
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.crazyflie.log import LogConfig
-from cflib.crazyflie.mem import MemoryElement
+
 
 # URI to the Crazyflie to connect to
 uri_1 = 'radio://0/80/2M/E7E7E7E702'
 uri_2 = 'radio://0/80/2M/E7E7E7E704'
-uri_3 = 'radio://0/80/2M/E7E7E7E705' # always lost connection after few minutes (maybe only few seconds?) 
-
-# Input params for P1 and P3
-print("Please Enter Default Height for movement no.1 or no.3: ")
-DEFAULT_HEIGHT = input()    # initial height level of Crazyflie after taking off (default = 0.7)
-DEFAULT_HEIGHT = float(DEFAULT_HEIGHT)
-print("Please enter the maximum height of hand raising (Absolute Distance): ")
-d_abs = input()      
-d_abs = float(d_abs)       # entire distance from initial to end (i.e. a distance from ground to subject's wrist when he lift his arm up at the maximum height)  
-d_fly = d_abs - DEFAULT_HEIGHT       # flying distance of Crazyflie 
-d_th = 0.3   # Threshold of error between WS sensor and Crazyflie (threshold = 0.1 m = 10 cm)
+uri_3 = 'radio://0/80/2M/E7E7E7E705'
 
 
 # Input params for P2
-print("Please enter Default Height for movement no.2 (h0): ")
+print("Please enter the (default) height of your chest from the ground(m): ")
 DEFAULT_HEIGHT_P2 = input()    # default height level for this movement (P2) i.e. 1.3 m
 DEFAULT_HEIGHT_P2 = float(DEFAULT_HEIGHT_P2)
-h0 = DEFAULT_HEIGHT_P2 - 0.3  # (default take-off height of Crazyflie = 0.3 m)
+p2_h0 = DEFAULT_HEIGHT_P2 - 0.3  # (default take-off height of Crazyflie = 0.3 m)
 
-print("Please enter the maximum length between both legs after widen out(s1, s4): ")
+print("Please enter the maximum length between both legs after widening out(m): ")
 max_leg_length = input()
 max_leg_length = float(max_leg_length)
 s1_4 = max_leg_length/2
 
-print("Please enter the maximum arm length (R_wrist - L_wrist) after stretching out(s2, s5): ")
+print("Please enter the maximum arm length (R_wrist - L_wrist) after stretching out(m): ")
 max_arm_length = input()
 max_arm_length = float(max_arm_length)
 s2_5 = max_arm_length/2
 
-s3_6 = max_leg_length - 0.1
+s3_6 = max_leg_length - 0.1  # 0.1 m = width of your foot
 
+
+# Input params for P3
+print("Please enter (default) height of your hand from the ground(m): ")
+DEFAULT_HEIGHT_P3 = input()   # default height level for this movement (P3) i.e. 0.7 m
+DEFAULT_HEIGHT_P3 = float(DEFAULT_HEIGHT_P3)
+p3_h0 = DEFAULT_HEIGHT_P3 - 0.3  # (default take-off height of Crazyflie = 0.3 m)
+
+print("Please enter the maximum height of your wrist from the ground after raising your hand up(m): ")
+max_hand_raising = input()      
+max_hand_raising = float(max_hand_raising)       
+p3_h1 = max_hand_raising - DEFAULT_HEIGHT_P3  
+
+
+# Threshold of error between WS sensor and Crazyflie (threshold = 0.1 m = 10 cm)
+d_th = 0.2   
 
 
 position_estimate_1 = [0, 0, 0]
@@ -84,58 +86,27 @@ def log_pos_callback_3(uri_3, timestamp, data, logconf_3):
 
 # # # Crazyflie Motion Section
 
-# # Posture 3 (using MotionCommander)
-def move_baduanjin_mc_p3(scf, event2):
-    with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
-
-        print("Target Height: {}".format(DEFAULT_HEIGHT))
-        t_init = time.time()
-
-        ## Delay 6 sec
-        time.sleep(6)
-        t1 = time.time() - t_init
-        print("t1: ", t1)
-
-        ## Go up: d_fly meter/4.5 sec
-        print("Target Height: {}".format(d_abs))
-        mc.move_distance(0, 0, d_fly, velocity=d_fly/4.5)   # the final posistion will be "d_abs = DEFAULT_HEIGHT + d_fly" 
-        t2 = time.time() - t_init
-        print("t2: ", t2)
-        
-        ## Delay 2.5 sec
-        time.sleep(2.5)
-        t3 = time.time() - t_init
-        print("t3: ", t3)
-
-        ## Go down: d_fly meter/4.5 sec
-        print("Target Height: {}".format(DEFAULT_HEIGHT))
-        mc.move_distance(0, 0, -d_fly, velocity=d_fly/4.5)
-        t4 = time.time() - t_init
-        print("t4: ", t4)
-        
-        ## Delay 2.5 sec
-        time.sleep(2.5)
-        t5 = time.time() - t_init
-        print("t5: ", t5)
-
-        ## setting the event for turning off the sound feedback process
-        event2.set()
-
-
 # # Posture 2 (using MotionCommander)
 def move_baduanjin_mc_p2(scf, event2): # default take-off height = 0.3 m
+    
+    ## set the event for turning off the sound feedback process
+    event2.set()
+
     with MotionCommander(scf) as mc:
 
         t_init = time.time()
 
         ## Go up: h0 meter/8 sec 
-        print("Target Height: {}".format(h0))
-        mc.up(h0, velocity=h0/8)
+        print("Target Height: {}".format(p2_h0))
+        mc.up(p2_h0, velocity=p2_h0/8)
         t1 = time.time() - t_init
         print("t1: ", t1)
 
         ## Delay 1 sec
         time.sleep(1)
+
+        ## clear the event for turning on the sound feedback process
+        event2.clear()
 
         ## Go right: s1 meter/4 sec
         print("Target Length (right): {}".format(s1_4))
@@ -191,11 +162,90 @@ def move_baduanjin_mc_p2(scf, event2): # default take-off height = 0.3 m
         t7 = time.time() - t_init
         print("t7: ", t7)
 
-        ## Delay 1 sec
-        time.sleep(1)
+        ## Delay 5 sec
+        time.sleep(5)
 
-        ## setting the event for turning off the sound feedback process
+        ## set the event for turning off the sound feedback process
         event2.set()
+
+        ## Go down: h0 meter/8 sec 
+        mc.down(p2_h0, velocity=p2_h0/8)
+
+
+# # Posture 3 (using MotionCommander)
+def move_baduanjin_mc_p3(scf, event2):
+
+    ## set the event for turning off the sound feedback process
+    event2.set()
+
+    with MotionCommander(scf) as mc:
+
+        t_init = time.time()
+
+        ## Go up: p3_h0 meter/8 sec
+        print("Target Height: {}".format(p3_h0))
+        mc.up(p3_h0, velocity=p3_h0/8)  
+        t1 = time.time() - t_init
+        print("t1: ", t1)
+        
+        ## Delay 2 sec
+        time.sleep(2)
+        t2 = time.time() - t_init
+        print("t2: ", t2)
+
+        ## clear the event for turning on the sound feedback process
+        event2.clear()
+
+        ## Go up: p3_h1 meter/5 sec
+        print("Target Height: {}".format(p3_h1))
+        mc.up(p3_h1, velocity=p3_h1/5)  
+        t3 = time.time() - t_init
+        print("t3: ", t3)
+        
+        ## Delay 3 sec
+        time.sleep(3)
+        t4 = time.time() - t_init
+        print("t4: ", t4)
+
+        ## Go down: p3_h1 meter/4 sec
+        print("Target Height: {}".format(p3_h1))
+        mc.down(p3_h1, velocity=p3_h1/4)  
+        t5 = time.time() - t_init
+        print("t5: ", t5)
+
+        ## Delay 2 sec
+        time.sleep(2)
+        t6 = time.time() - t_init
+        print("t6: ", t6)
+
+
+        ### Move to another side (left side)
+
+        ## Go up: p3_h1 meter/5 sec
+        print("Target Height: {}".format(p3_h1))
+        mc.up(p3_h1, velocity=p3_h1/5)  
+        t7 = time.time() - t_init
+        print("t7: ", t7)
+
+        ## Delay 2 sec
+        time.sleep(2)
+        t8 = time.time() - t_init
+        print("t8: ", t8)
+
+        ## Go down: p3_h1 meter/5 sec
+        print("Target Height: {}".format(p3_h1))
+        mc.down(p3_h1, velocity=p3_h1/5)  
+        t9 = time.time() - t_init
+        print("t9: ", t9)
+
+        ## Delay 5 sec
+        time.sleep(5)
+
+        ## set the event for turning off the sound feedback process
+        event2.set()
+
+        ## Go down: p3_h0 meter/8 sec 
+        mc.down(p3_h0, velocity=p3_h0/8)
 
 
 # # Open Baduanjin Sound
@@ -206,7 +256,18 @@ def open_baduanjin_sound():
 
 # # Feedback Section
 
-def position_state_change(event1, event2):
+def position_state_change_p2(event1, event2):
+    while not event2.is_set():
+        if abs((position_estimate_2[1])-position_estimate_1[1]) > d_th or abs((position_estimate_3[1])-position_estimate_1[1]) > d_th:
+            # print("---Wrist Sensor is outbounded---")
+            event1.set()
+        if abs((position_estimate_2[1])-position_estimate_1[1]) < d_th or abs((position_estimate_3[1])-position_estimate_1[1]) < d_th:
+            event1.clear()
+        
+        else:
+            event1.set()
+
+def position_state_change_p3(event1, event2):
     while not event2.is_set():
         if abs((position_estimate_2[2]+0.2)-position_estimate_1[2]) > d_th or abs((position_estimate_3[2]+0.2)-position_estimate_1[2]) > d_th:
             # print("---Wrist Sensor is outbounded---")
@@ -271,38 +332,47 @@ if __name__ == '__main__':
                 logconf_3.start()
                 time.sleep(3)
 
-                # Starting the Baduanjin sound thread
+                # Declaring Baduanjin sound thread
                 baduanjin_sound_thread = threading.Thread(name='Baduanjin-Sound-Thread', target=open_baduanjin_sound, args=()) 
 
-                # Starting the LED-feedback thread
-                pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change, args=(e1, e2))
-                sound_thread = threading.Thread(name='Sound-Feedback-Thread', target=sound_feedback, args=(e1, e2))
-            
+
+            # # Movement no.2 (MotionCommander)
+                # Declaring feedback threads for movement no.2
+                pos_state_thread_p2 = threading.Thread(name='P2-Position-State-Change-Thread', target=position_state_change_p2, args=(e1, e2))
+                sound_thread_p2 = threading.Thread(name='Sound-Feedback-Thread', target=sound_feedback, args=(e1, e2))
+
+                # Starting threads for movement no.2
                 baduanjin_sound_thread.start()
-                pos_state_thread.start()
-                sound_thread.start()
+                pos_state_thread_p2.start()
+                sound_thread_p2.start()
 
+                # Perform the movement
+                move_baduanjin_mc_p2(scf_1, e2)
                 
-                # # Posture 1 (MotionCommander)
-                move_baduanjin_mc_p1(scf_1, e2)
-
-                # # Posture 1 (PositioningHlCommander)
-                # activate_high_level_commander(scf_1.cf)
-                # move_baduanjin_hl_p1(scf_1, e2)
-
-
-                # # Posture 3 (MotionCommander)
-                # move_baduanjin_mc_p3(scf_1, e2)
-
-                # # Posture 3 (PositioningHlCommander)
-                # activate_high_level_commander(scf_1.cf)
-                # move_baduanjin_hl_p3(scf_1, e2)
-                
-                
+                # Threads join
                 baduanjin_sound_thread.join()
-                pos_state_thread.join()
-                sound_thread.join()
-                     
+                pos_state_thread_p2.join()
+                sound_thread_p2.join()
+
+
+            # # # Movement no.3 (MotionCommander)
+            #     # Declaring feedback threads for movement no.3
+            #     pos_state_thread_p3 = threading.Thread(name='P3-Position-State-Change-Thread', target=position_state_change_p3, args=(e1, e2))
+            #     sound_thread_p3 = threading.Thread(name='Sound-Feedback-Thread', target=sound_feedback, args=(e1, e2))
+            
+            #     # Starting threads for movement no.3
+            #     baduanjin_sound_thread.start()
+            #     pos_state_thread_p3.start()
+            #     sound_thread_p3.start()
+
+            #     # Perform the movement
+            #     move_baduanjin_mc_p3(scf_1, e3)
+
+            #     # Threads join  
+            #     baduanjin_sound_thread.join()
+            #     pos_state_thread_p3.join()
+            #     sound_thread_p3.join()
+                
                 
                 time.sleep(3)
 

@@ -10,18 +10,23 @@ from csv import DictWriter
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E701'
+uri_1 = 'radio://0/80/2M/E7E7E7E702'
 
 
 # Input params
 print("Please Enter Default Height: ")
-DEFAULT_HEIGHT = input()    # initial height level of Crazyflie after taking off (default = 0.7)
+DEFAULT_HEIGHT = input()    # initial height level of Crazyflie after taking off (p1,p3 = 0.7, p2 = 1.2)
 DEFAULT_HEIGHT = float(DEFAULT_HEIGHT)
-print("Please Enter Absolute Distance: ")
+
+print("Please Enter Absolute(Highest) Distance: ")
 d_abs = input()      
 d_abs = float(d_abs)       # entire distance from initial to end (i.e. a distance from ground to subject's wrist when he lift his arm up at the maximum height)  
+
 d_fly = d_abs - DEFAULT_HEIGHT       # flying distance of Crazyflie 
-d_th = 0.2   # Threshold of error between WS sensor and Crazyflie (threshold = 0.1 m = 10 cm)
+
+print("Please Enter Absolute(arm) Distance: ")
+d_arm = input()  
+d_arm = float(d_arm) 
 
 position_estimate_1 = [0, 0, 0]
 
@@ -60,6 +65,12 @@ def log_pos_callback_1(uri_1, timestamp, data, logconf_1):
 
 
 # # # Crazyflie Motion Section
+
+def reset_estimator(scf):
+    cf = scf.cf
+    cf.param.set_value('kalman.resetEstimation', '1')
+    time.sleep(0.1)
+    cf.param.set_value('kalman.resetEstimation', '0')
 
 # # Activate high level commander when using the PositionHlCommander
 def activate_high_level_commander(cf):
@@ -127,7 +138,53 @@ def move_baduanjin_hl_p1(scf):
         print("t3: ", t3)
         time.sleep(1)
 
+# # Posture 2 (using MotionCommander)
+def move_baduanjin_mc_p2(scf):
+    with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
 
+        print("Target Height: {}".format(DEFAULT_HEIGHT))
+        time.sleep(1)
+
+        t_init = time.time()
+        
+        ## Go up and right(cross-hand): 0.1 meter/4 sec
+        print("Target Height: {}".format(d_abs))
+        mc.move_distance(0, -0.1, d_fly, velocity=d_fly/4)  
+        t1 = time.time() - t_init
+        print("t1: ", t1)
+        
+        ## Go right(reach max arm length): d_arm meter/4 sec
+        print("Target Length: {}".format(d_arm))
+        mc.move_distance(0, -d_arm, 0, velocity=d_arm/4)  
+        t2 = time.time() - t_init
+        print("t2: ", t2) 
+        
+        ## Go left and down(back to beginning): d_arm meter/6 sec
+        print("Target Length: {}".format(d_arm))
+        mc.move_distance(0, d_arm + 0.1, -d_fly, velocity=(d_arm + 0.1)/6)  
+        t3 = time.time() - t_init
+        print("t3: ", t3) 
+
+
+        # # # Go to another side
+
+        ## Go up and left(cross-hand): 0.1 meter/4 sec
+        print("Target Height: {}".format(d_abs))
+        mc.move_distance(0, 0.1, d_fly, velocity=d_fly/4)  
+        t4 = time.time() - t_init
+        print("t4: ", t4)
+
+        ## Go left(reach max arm length): d_arm meter/4 sec
+        print("Target Length: {}".format(d_arm))
+        mc.move_distance(0, d_arm, 0, velocity=d_arm/4)  
+        t5 = time.time() - t_init
+        print("t5: ", t5) 
+
+        ## Go right and down(back to beginning): d_arm meter/6 sec
+        print("Target Length: {}".format(d_arm))
+        mc.move_distance(0, -(d_arm + 0.1), -d_fly, velocity=(d_arm + 0.1)/6)  
+        t6 = time.time() - t_init
+        print("t6: ", t6) 
 
 # # Posture 3 (using MotionCommander)
 def move_baduanjin_mc_p3(scf):
@@ -227,9 +284,13 @@ if __name__ == '__main__':
         
         time.sleep(3)
 
-        
+        reset_estimator(scf_1)
+
         # # Posture 1 (MotionCommander)
         # move_baduanjin_mc_p1(scf_1)
+
+        # # Posture 2 (MotionCommander)
+        move_baduanjin_mc_p2(scf_1)
 
         # # Posture 1 (PositioningHlCommander)
         # activate_high_level_commander(scf_1.cf)
@@ -237,7 +298,7 @@ if __name__ == '__main__':
 
 
         # # Posture 3 (MotionCommander)
-        move_baduanjin_mc_p3(scf_1)
+        # move_baduanjin_mc_p3(scf_1)
 
         # # Posture 3 (PositioningHlCommander)
         # activate_high_level_commander(scf_1.cf)

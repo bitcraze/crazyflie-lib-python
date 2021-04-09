@@ -47,7 +47,22 @@ from cflib.positioning.motion_commander import MotionCommander
 # URI = 'radio://0/70/2M'
 URI = 'radio://0/80/2M/E7E7E7E702'
 
-DEFAULT_HEIGHT = 0.5
+# Input params
+print("Please Enter Default Height: ")
+DEFAULT_HEIGHT = input()    # initial height level of Crazyflie after taking off (p1,p3 = 0.7, p2 = 1.2)
+DEFAULT_HEIGHT = float(DEFAULT_HEIGHT)
+
+print("Please Enter Absolute(Highest) Distance: ")
+d_abs = input()      
+d_abs = float(d_abs)       # entire distance from initial to end (i.e. a distance from ground to subject's wrist when he lift his arm up at the maximum height)  
+
+d_fly = d_abs - DEFAULT_HEIGHT       # flying distance of Crazyflie 
+
+print("Please Enter Absolute(arm) Distance: ")
+d_arm = input()  
+d_arm = float(d_arm) 
+
+# DEFAULT_HEIGHT = 0.5
 position_estimate = [0, 0, 0]
 
 is_flow_deck_attached = False
@@ -117,7 +132,83 @@ def move_baduanjin_p1(scf):
         mc.move_distance(0, 0, -0.3, velocity=0.05)
         time.sleep(1)
 
+# # Posture 1 (using MotionCommander)
+def move_baduanjin_mc_p1(scf):
+    with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
 
+        print("Target Height: {}".format(DEFAULT_HEIGHT))
+        time.sleep(1)
+
+        t_init = time.time()
+
+        ## Go up: d_fly meter/4 sec
+        print("Target Height: {}".format(d_abs))
+        mc.move_distance(0, 0, d_fly, velocity=d_fly/5)   # the final posistion will be "d_abs = DEFAULT_HEIGHT + d_fly" 
+        t1 = time.time() - t_init
+        print("t1: ", t1)
+        
+        ## Delay 4 sec
+        # mc.stop()
+        time.sleep(4)
+        t2 = time.time() - t_init
+        print("t2: ", t2)
+
+        ## Go down: d_fly meter/5 sec
+        print("Target Height: {}".format(DEFAULT_HEIGHT))
+        mc.move_distance(0, 0, -d_fly, velocity=d_fly/5)
+        t3 = time.time() - t_init
+        print("t3: ", t3)
+        time.sleep(1)
+
+
+# # Posture 2 (using MotionCommander)
+def move_baduanjin_mc_p2(scf):
+    with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
+
+        print("Target Height: {}".format(DEFAULT_HEIGHT))
+        time.sleep(1)
+
+        t_init = time.time()
+        
+        ## Go up and right(cross-hand): 0.1 meter/4 sec
+        print("Target Height: {}".format(d_abs))
+        mc.move_distance(0, -0.1, d_fly, velocity=d_fly/4)  
+        t1 = time.time() - t_init
+        print("t1: ", t1)
+        
+        ## Go right(reach max arm length): d_arm meter/4 sec
+        print("Target Length: {}".format(d_arm))
+        mc.move_distance(0, -d_arm, 0, velocity=d_arm/4)  
+        t2 = time.time() - t_init
+        print("t2: ", t2) 
+        
+        ## Go left and down(back to beginning): d_arm meter/6 sec
+        print("Target Length: {}".format(d_arm))
+        mc.move_distance(0, d_arm + 0.1, -d_fly, velocity=(d_arm + 0.1)/6)  
+        t3 = time.time() - t_init
+        print("t3: ", t3) 
+
+
+        # # # Go to another side
+
+        ## Go up and left(cross-hand): 0.1 meter/4 sec
+        print("Target Height: {}".format(d_abs))
+        mc.move_distance(0, 0.1, d_fly, velocity=d_fly/4)  
+        t4 = time.time() - t_init
+        print("t4: ", t4)
+
+        ## Go left(reach max arm length): d_arm meter/4 sec
+        print("Target Length: {}".format(d_arm))
+        mc.move_distance(0, d_arm, 0, velocity=d_arm/4)  
+        t5 = time.time() - t_init
+        print("t5: ", t5) 
+
+        ## Go right and down(back to beginning): d_arm meter/6 sec
+        print("Target Length: {}".format(d_arm))
+        mc.move_distance(0, -(d_arm + 0.1), -d_fly, velocity=(d_arm + 0.1)/6)  
+        t6 = time.time() - t_init
+        print("t6: ", t6) 
+        
 
 def wait_for_position_estimator(scf):
     print('Waiting for estimator to find position...')
@@ -185,7 +276,7 @@ def position_callback(timestamp, data, logconf):
 
 
 def start_position_printing(scf):
-    log_conf = LogConfig(name='Position', period_in_ms=10)
+    log_conf = LogConfig(name='Position', period_in_ms=500)
     log_conf.add_variable('kalman.stateX', 'float')
     log_conf.add_variable('kalman.stateY', 'float')
     log_conf.add_variable('kalman.stateZ', 'float')
@@ -247,11 +338,13 @@ if __name__ == '__main__':
      
         # logconf.data_received_cb.add_callback(log_pos_callback)
 
+        # if is_flow_deck_attached and is_dwm1000_deck_attached:
         if is_flow_deck_attached:
             # reset_estimator(scf)
             start_position_printing(scf)
 
             # move_baduanjin_p1(scf)
+            move_baduanjin_mc_p2(scf)
             # simple_move(scf)
 
         else:

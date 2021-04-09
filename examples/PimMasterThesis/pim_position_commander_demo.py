@@ -44,6 +44,17 @@ import time
 # URI to the Crazyflie to connect to
 uri = 'radio://0/80/2M/E7E7E7E701'
 
+# Input params
+print("Please Enter Default Height: ")
+DEFAULT_HEIGHT = input()    # initial height level of Crazyflie after taking off (default = 0.7)
+DEFAULT_HEIGHT = float(DEFAULT_HEIGHT)
+print("Please Enter Absolute Distance: ")
+d_abs = input()      
+d_abs = float(d_abs)       # entire distance from initial to end (i.e. a distance from ground to subject's wrist when he lift his arm up at the maximum height)  
+d_fly = d_abs - DEFAULT_HEIGHT       # flying distance of Crazyflie 
+
+
+# Sensor checking
 is_flow_deck_attached = False
 is_led_deck_attached = False
 is_dwm1000_deck_attached = False
@@ -165,8 +176,8 @@ def slightly_more_complex_usage(scf):
 
     with PositionHlCommander(
             scf,
-            x=1.5, y=2.0, z=0.0,
-            default_velocity=0.5,
+            x=2.2, y=1.7, z=0.0,
+            default_velocity=0.2,
             default_height=0.5,
             controller=PositionHlCommander.CONTROLLER_PID) as pc:
         # Go to a coordinate
@@ -175,25 +186,25 @@ def slightly_more_complex_usage(scf):
         # print('Setting position {2.0, 3.5, 0.5}')
         # pc.left(1.5)
         
-        print('Setting position {1.5, 2.0, 1.0}')
+        print('Setting position {2.2, 1.7, 1.0}')
         print("t1: ", time.time())
-        # pc.go_to(1.5, 2.0, 1.0, velocity=0.2)
-        pc.up(0.5, velocity=0.2)
+        # pc.go_to(2.2, 1.7, 1.0, velocity=0.2)
+        pc.up(1.8, velocity=0.05)
 
-        print('Setting position {1.5, 2.0, 1.5}')
-        print("t2: ", time.time())
-        # pc.go_to(1.5, 2.0, 1.5, velocity=0.1)
-        pc.up(0.5, velocity=0.2)
+        # print('Setting position {2.2, 1.7, 1.5}')
+        # print("t2: ", time.time())
+        # # pc.go_to(2.2, 1.7, 1.5, velocity=0.1)
+        # pc.up(0.5, velocity=0.05)
 
-        print('Setting position {1.5, 2.0, 1.0}')
-        print("t3: ", time.time())
-        # pc.go_to(1.5, 2.0, 1.0, velocity=0.05)
-        pc.down(0.5, velocity=0.2)
+        # print('Setting position {2.2, 1.7, 1.0}')
+        # print("t3: ", time.time())
+        # # pc.go_to(2.2, 1.7, 1.0, velocity=0.05)
+        # pc.down(0.5, velocity=0.05)
 
-        print('Setting position {1.5, 2.0, 0.5}')
+        print('Setting position {2.2, 1.7, 0.5}')
         print("t4: ", time.time())
-        # pc.go_to(1.5, 2.0, 0.5, velocity=0.05)
-        pc.down(0.5, velocity=0.1)
+        # pc.go_to(2.2, 1.7, 0.5, velocity=0.05)
+        pc.down(1.8, velocity=0.05)
         
         print("t5: ", time.time())
 
@@ -217,6 +228,40 @@ def slightly_more_complex_usage(scf):
         # pc.set_default_velocity(0.3)
         # pc.set_default_height(1.0)
         # pc.go_to(1.0, 2.0)
+
+
+# # Posture 1 (using PositionHlCommander)
+def move_baduanjin_hl_p1(scf):
+    with PositionHlCommander(
+            scf,
+            x=1.2, y=1.7, z=0.0,
+            default_velocity=0.2,
+            default_height=DEFAULT_HEIGHT,
+            controller=PositionHlCommander.CONTROLLER_PID) as pc:
+        
+        print('Setting position [2.2, 1.7, {}]'.format(DEFAULT_HEIGHT))
+        t_init = time.time()
+
+        time.sleep(1)
+
+        ## Go up: d_fly meter/6 sec
+        print('Setting position [2.2, 1.7, {}]'.format(d_abs))
+        pc.up(d_fly, velocity=d_fly/6)
+        t1 = time.time() - t_init
+        print("t1: ", t1)
+        
+        ## Delay 4 sec
+        time.sleep(4)
+        t2 = time.time() - t_init
+        print("t2: ", t2)
+
+        ## Go down: d_fly meter/6 sec
+        print('Setting position [2.2, 1.7, {}]'.format(DEFAULT_HEIGHT))
+        pc.down(d_fly, velocity=d_fly/6)
+        t3 = time.time() - t_init
+        print("t3: ", t3)
+        time.sleep(1)
+
 
 
 def simple_sequence():
@@ -260,7 +305,9 @@ if __name__ == '__main__':
 
             activate_high_level_commander(scf.cf)
 
-            slightly_more_complex_usage(scf)
+            # slightly_more_complex_usage(scf)
+
+            move_baduanjin_hl_p1(scf)
 
         else:
             print("CF cannot fly since there is no dwm1000 deck attached!")

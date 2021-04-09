@@ -5,6 +5,7 @@ import concurrent.futures
 import queue
 import threading
 import winsound
+import os
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
@@ -14,7 +15,7 @@ from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.mem import MemoryElement
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E701'
+uri_1 = 'radio://0/80/2M/E7E7E7E702'
 uri_2 = 'radio://0/80/2M/E7E7E7E704'
 uri_3 = 'radio://0/80/2M/E7E7E7E705' # always lost connection after few minutes (maybe only few seconds?) 
 
@@ -26,7 +27,7 @@ print("Please Enter Absolute Distance: ")
 d_abs = input()      
 d_abs = float(d_abs)       # entire distance from initial to end (i.e. a distance from ground to subject's wrist when he lift his arm up at the maximum height)  
 d_fly = d_abs - DEFAULT_HEIGHT       # flying distance of Crazyflie 
-d_th = 0.2   # Threshold of error between WS sensor and Crazyflie (threshold = 0.1 m = 10 cm)
+d_th = 0.3   # Threshold of error between WS sensor and Crazyflie (threshold = 0.1 m = 10 cm)
 
 position_estimate_1 = [0, 0, 0]
 position_estimate_2 = [0, 0, 0]
@@ -141,6 +142,7 @@ def move_baduanjin_mc_p3(scf, event2):
         print("Target Height: {}".format(DEFAULT_HEIGHT))
         t_init = time.time()
 
+
         ## Delay 6 sec
         time.sleep(6)
         t1 = time.time() - t_init
@@ -214,16 +216,20 @@ def move_baduanjin_hl_p3(scf, event2):
         # setting the event for turning off the LED feedback process
         event2.set()
 
-        
+# # Open Baduanjin Sound
+
+def open_baduanjin_sound():
+    os.startfile('p1_1.mp3')
+
 
 # # Feedback Section
 
 def position_state_change(event1, event2):
     while not event2.is_set():
-        # if abs(position_estimate_2[2]-position_estimate_1[2]) > d_th or abs(position_estimate_3[2]-position_estimate_1[2]) > d_th:
-        #     # print("---Wrist Sensor is outbounded---")
-        #     event1.set()
-        if abs(position_estimate_2[2]-position_estimate_1[2]) < d_th or abs(position_estimate_3[2]-position_estimate_1[2]) < d_th:
+        if abs((position_estimate_2[2]+0.2)-position_estimate_1[2]) > d_th or abs((position_estimate_3[2]+0.2)-position_estimate_1[2]) > d_th:
+            # print("---Wrist Sensor is outbounded---")
+            event1.set()
+        if abs((position_estimate_2[2]+0.2)-position_estimate_1[2]) < d_th or abs((position_estimate_3[2]+0.2)-position_estimate_1[2]) < d_th:
             event1.clear()
         
         else:
@@ -234,7 +240,7 @@ def sound_feedback(event1, event2):
         if event1.isSet()==True:
             print("Beep!!")
             frequency = 2500  # Set Frequency To 2500 Hertz
-            duration = 250  # Set Duration To 250 ms == 0.25 second
+            duration = 500  # Set Duration To 250 ms == 0.25 second
             winsound.Beep(frequency, duration)
         else:
             # print("Nothing")
@@ -283,16 +289,20 @@ if __name__ == '__main__':
                 logconf_3.start()
                 time.sleep(3)
 
+                # Starting the Baduanjin sound thread
+                baduanjin_sound_thread = threading.Thread(name='Baduanjin-Sound-Thread', target=open_baduanjin_sound, args=()) 
+
                 # Starting the LED-feedback thread
                 pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change, args=(e1, e2))
                 sound_thread = threading.Thread(name='Sound-Feedback-Thread', target=sound_feedback, args=(e1, e2))
-
+            
+                baduanjin_sound_thread.start()
                 pos_state_thread.start()
                 sound_thread.start()
 
-
+                
                 # # Posture 1 (MotionCommander)
-                # move_baduanjin_mc_p1(scf_1, e2)
+                move_baduanjin_mc_p1(scf_1, e2)
 
                 # # Posture 1 (PositioningHlCommander)
                 # activate_high_level_commander(scf_1.cf)
@@ -300,19 +310,21 @@ if __name__ == '__main__':
 
 
                 # # Posture 3 (MotionCommander)
-                move_baduanjin_mc_p3(scf_1, e2)
+                # move_baduanjin_mc_p3(scf_1, e2)
 
                 # # Posture 3 (PositioningHlCommander)
                 # activate_high_level_commander(scf_1.cf)
                 # move_baduanjin_hl_p3(scf_1, e2)
                 
-
+                
+                baduanjin_sound_thread.join()
                 pos_state_thread.join()
                 sound_thread.join()
                      
                 
-                # time.sleep(10)
+                time.sleep(3)
 
-                # logconf_2.stop()
-                # logconf_3.stop()
+                logconf_1.stop()
+                logconf_2.stop()
+                logconf_3.stop()
 

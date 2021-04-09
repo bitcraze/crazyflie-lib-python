@@ -33,7 +33,7 @@ max_arm_length = input()
 max_arm_length = float(max_arm_length)
 s2_5 = max_arm_length/2
 
-s3_6 = max_leg_length - 0.1  # 0.1 m = width of your foot
+s3_6 = max_leg_length  # 0.1 m = width of your foot
 
 
 # Input params for P3
@@ -98,54 +98,54 @@ def move_baduanjin_mc_p2(scf, event2): # default take-off height = 0.3 m
 
         ## Go up: h0 meter/8 sec 
         print("Target Height: {}".format(p2_h0))
-        mc.up(p2_h0, velocity=p2_h0/8)
+        mc.up(p2_h0, velocity=p2_h0/4)
         t1 = time.time() - t_init
         print("t1: ", t1)
 
         ## Delay 1 sec
-        time.sleep(1)
+        time.sleep(4)
 
         ## clear the event for turning on the sound feedback process
         event2.clear()
 
         ## Go right: s1 meter/4 sec
         print("Target Length (right): {}".format(s1_4))
-        mc.right(s1_4, velocity=s1_4/4)  
+        mc.right(s1_4, velocity=s1_4/2)  
         t2 = time.time() - t_init
         print("t2: ", t2)
         
         ## Delay 1 sec
-        time.sleep(1)
+        time.sleep(2)
 
         ## Go right: s2 meter/3 sec
         print("Target Length (right): {}".format(s2_5))
-        mc.right(s2_5, velocity=s2_5/3)  
+        mc.right(s2_5, velocity=s2_5/2)  
         t3 = time.time() - t_init
         print("t3: ", t3)
 
         ## Delay 1 sec
-        time.sleep(1)
+        time.sleep(2)
         
         ## Go left: s3 meter/5 sec
         print("Target Length (left): {}".format(s3_6))
-        mc.left(s3_6, velocity=s3_6/3)  
+        mc.left(s3_6+0.1, velocity=(s3_6+0.1)/3)  
         t4 = time.time() - t_init
         print("t4: ", t4)
 
         ## Delay 1 sec
-        time.sleep(1)
+        time.sleep(2)
 
 
         ### Move to another side (left side)
         
         ## Go left: s4 meter/2 sec
         print("Target Length (left): {}".format(s1_4))
-        mc.left(s1_4, velocity=s1_4/2)  
+        mc.left(s1_4, velocity=s1_4/1.5)  
         t5 = time.time() - t_init
         print("t5: ", t5)
 
         ## Delay 1 sec
-        time.sleep(1)
+        time.sleep(2)
 
         ## Go left: s5 meter/2 sec
         print("Target Length (left): {}".format(s2_5))
@@ -154,23 +154,21 @@ def move_baduanjin_mc_p2(scf, event2): # default take-off height = 0.3 m
         print("t6: ", t6)
 
         ## Delay 1 sec
-        time.sleep(1)
+        time.sleep(2)
 
         ## Go right: s6 meter/5 sec
         print("Target Length (right): {}".format(s3_6))
-        mc.right(s3_6, velocity=s3_6/5)  
+        mc.right(s3_6+0.1, velocity=(s3_6+0.1)/3)  
         t7 = time.time() - t_init
         print("t7: ", t7)
 
         ## Delay 5 sec
-        time.sleep(5)
+        time.sleep(3)
 
         ## set the event for turning off the sound feedback process
         event2.set()
 
-        ## Go down: h0 meter/8 sec 
-        mc.down(p2_h0, velocity=p2_h0/8)
-
+      
 
 # # Posture 3 (using MotionCommander)
 def move_baduanjin_mc_p3(scf, event2):
@@ -251,10 +249,10 @@ def move_baduanjin_mc_p3(scf, event2):
 # # Open Baduanjin Sound
 
 def open_baduanjin_sound_p2():
-    os.startfile('p2_1_2.mp3')
+    os.startfile('p2_1_2.mp4')
 
 def open_baduanjin_sound_p3():
-    os.startfile('p3_1_2.mp3')
+    os.startfile('p3_1_2.mp4')
 
 
 # # Feedback Section
@@ -287,7 +285,7 @@ def sound_feedback(event1, event2):
             print("Beep!!")
             frequency = 2500  # Set Frequency To 2500 Hertz
             duration = 500  # Set Duration To 250 ms == 0.25 second
-            winsound.Beep(frequency, duration)
+            # winsound.Beep(frequency, duration)
         else:
             # print("Nothing")
             pass
@@ -356,24 +354,24 @@ if __name__ == '__main__':
                 sound_thread_p2.join()
 
 
-            # # Movement no.3 (MotionCommander)
-                # Declaring feedback threads for movement no.3
-                baduanjin_sound_thread_p3 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p3, args=()) 
-                pos_state_thread_p3 = threading.Thread(name='P3-Position-State-Change-Thread', target=position_state_change_p3, args=(e1, e2))
-                sound_thread_p3 = threading.Thread(name='Sound-Feedback-Thread', target=sound_feedback, args=(e1, e2))
+            # # # Movement no.3 (MotionCommander)
+            #     # Declaring feedback threads for movement no.3
+            #     baduanjin_sound_thread_p3 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p3, args=()) 
+            #     pos_state_thread_p3 = threading.Thread(name='P3-Position-State-Change-Thread', target=position_state_change_p3, args=(e1, e2))
+            #     sound_thread_p3 = threading.Thread(name='Sound-Feedback-Thread', target=sound_feedback, args=(e1, e2))
             
-                # Starting threads for movement no.3
-                baduanjin_sound_thread_p3.start()
-                pos_state_thread_p3.start()
-                sound_thread_p3.start()
+            #     # Starting threads for movement no.3
+            #     baduanjin_sound_thread_p3.start()
+            #     pos_state_thread_p3.start()
+            #     sound_thread_p3.start()
 
-                # Perform the movement
-                move_baduanjin_mc_p3(scf_1, e2)
+            #     # Perform the movement
+            #     move_baduanjin_mc_p3(scf_1, e2)
 
-                # Threads join  
-                baduanjin_sound_thread_p3.join()
-                pos_state_thread_p3.join()
-                sound_thread_p3.join()
+            #     # Threads join  
+            #     baduanjin_sound_thread_p3.join()
+            #     pos_state_thread_p3.join()
+            #     sound_thread_p3.join()
                 
                 
                 time.sleep(3)

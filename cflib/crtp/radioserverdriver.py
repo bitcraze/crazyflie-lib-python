@@ -158,7 +158,9 @@ class RadioServerDriver(CRTPDriver):
         self._socket.send_json({
             "jsonrpc": "2",
             "method": "scan",
-            "params": {}
+            "params": {
+                "address": [b for b in address.to_bytes(5, "big")]
+            }
         })
 
         answer = self._socket.recv_json();

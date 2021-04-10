@@ -153,55 +153,77 @@ def move_baduanjin_mc_p3(scf):
         print("t1: ", t1)
         
         ## Delay 2 sec
-        time.sleep(5)
+        time.sleep(5.5)
         t2 = time.time() - t_init
         print("t2: ", t2)
 
 
         ## Go up: p3_h1 meter/5 sec
         print("Target Height: {}".format(p3_h1))
-        mc.up(p3_h1, velocity=p3_h1/5)  
+        # mc.up(p3_h1, velocity=p3_h1/5)  
+        mc.start_up(velocity=p3_h1/3.75)  
         t3 = time.time() - t_init
         print("t3: ", t3)
         
+        time.sleep(3.75)
+
+        mc.stop()
+
+
         ## Delay 3 sec
-        time.sleep(3)
+        time.sleep(3.5)
         t4 = time.time() - t_init
         print("t4: ", t4)
 
-        # ## Go down: p3_h1 meter/4 sec
-        # print("Target Height: {}".format(p3_h1))
-        # mc.down(p3_h1, velocity=p3_h1/4)  
-        # t5 = time.time() - t_init
-        # print("t5: ", t5)
+        ## Go down: p3_h1 meter/4 sec
+        print("Target Height: {}".format(p3_h1))
+        # mc.down(p3_h1, velocity=p3_h1/3) 
+        mc.start_down(velocity=(p3_h1-0.1)/3)  
+        t5 = time.time() - t_init
+        print("t5: ", t5)
 
-        # ## Delay 2 sec
-        # time.sleep(2)
-        # t6 = time.time() - t_init
-        # print("t6: ", t6)
+        time.sleep(3)
+
+        mc.stop()
 
 
-        # ### Move to another side (left side)
+        ## Delay 2 sec
+        time.sleep(3)
+        t6 = time.time() - t_init
+        print("t6: ", t6)
 
-        # ## Go up: p3_h1 meter/5 sec
-        # print("Target Height: {}".format(p3_h1))
-        # mc.up(p3_h1, velocity=p3_h1/5)  
-        # t7 = time.time() - t_init
-        # print("t7: ", t7)
 
-        # ## Delay 2 sec
-        # time.sleep(2)
-        # t8 = time.time() - t_init
-        # print("t8: ", t8)
+        ### Move to another side (left side)
 
-        # ## Go down: p3_h1 meter/5 sec
-        # print("Target Height: {}".format(p3_h1))
-        # mc.down(p3_h1, velocity=p3_h1/5)  
-        # t9 = time.time() - t_init
-        # print("t9: ", t9)
+        ## Go up: p3_h1 meter/5 sec
+        print("Target Height: {}".format(p3_h1))
+        # mc.up(p3_h1, velocity=p3_h1/3.5)  
+        mc.start_up(velocity=p3_h1/3.5) 
+        t7 = time.time() - t_init
+        print("t7: ", t7)
 
-        # ## Delay 5 sec
-        # time.sleep(5)
+        time.sleep(3.5)
+
+        mc.stop()
+
+        ## Delay 2 sec
+        time.sleep(3.75)
+        t8 = time.time() - t_init
+        print("t8: ", t8)
+
+        ## Go down: p3_h1 meter/5 sec
+        print("Target Height: {}".format(p3_h1))
+        # mc.down(p3_h1, velocity=(p3_h1-0.1)/3.25)  
+        mc.start_down(velocity=(p3_h1-0.1)/3.25)
+        t9 = time.time() - t_init
+        print("t9: ", t9)
+
+        time.sleep(3.25)
+
+        mc.stop()
+
+        ## Delay 5 sec
+        time.sleep(2)
 
 
 

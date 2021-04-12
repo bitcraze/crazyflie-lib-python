@@ -71,9 +71,14 @@ def move_baduanjin_mc_p2(scf): # default take-off height = 0.3 m
 
         ## Go up: h0 meter/8 sec 
         print("Target Height: {}".format(p2_h0))
-        mc.up(p2_h0, velocity=p2_h0/4)
+        # mc.up(p2_h0, velocity=p2_h0/4)
+        mc.start_up(velocity=p2_h0/4)
         t1 = time.time() - t_init
         print("t1: ", t1)
+
+        time.sleep(4)
+
+        mc.stop()
 
         ## Delay 1 sec
         time.sleep(4)
@@ -81,27 +86,42 @@ def move_baduanjin_mc_p2(scf): # default take-off height = 0.3 m
 
         ## Go right: s1 meter/4 sec
         print("Target Length (right): {}".format(s1_4))
-        mc.right(s1_4, velocity=s1_4/2)  
+        # mc.right(s1_4, velocity=s1_4/2) 
+        mc.start_right(velocity=s1_4/2)  
         t2 = time.time() - t_init
         print("t2: ", t2)
+
+        time.sleep(2)
+
+        mc.stop()
         
         ## Delay 1 sec
         time.sleep(2)
 
         ## Go right: s2 meter/3 sec
         print("Target Length (right): {}".format(s2_5))
-        mc.right(s2_5, velocity=s2_5/2)  
+        # mc.right(s2_5, velocity=s2_5/2)
+        mc.start_right(velocity=s2_5/2)  
         t3 = time.time() - t_init
         print("t3: ", t3)
+
+        time.sleep(2)
+
+        mc.stop()
 
         ## Delay 1 sec
         time.sleep(2)
         
         ## Go left: s3 meter/5 sec
         print("Target Length (left): {}".format(s3_6))
-        mc.left(s3_6+0.1, velocity=(s3_6+0.1)/3)  
+        # mc.left(s3_6+0.1, velocity=(s3_6+0.1)/3) 
+        mc.start_left(velocity=(s3_6+0.1)/3)  
         t4 = time.time() - t_init
         print("t4: ", t4)
+
+        time.sleep(3)
+
+        mc.stop()
 
         ## Delay 1 sec
         time.sleep(2)
@@ -111,27 +131,42 @@ def move_baduanjin_mc_p2(scf): # default take-off height = 0.3 m
         
         ## Go left: s4 meter/2 sec
         print("Target Length (left): {}".format(s1_4))
-        mc.left(s1_4, velocity=s1_4/1.5)  
+        # mc.left(s1_4, velocity=s1_4/1.5)  
+        mc.start_left(velocity=s1_4/1.5) 
         t5 = time.time() - t_init
         print("t5: ", t5)
+
+        time.sleep(1.5)
+
+        mc.stop()
 
         ## Delay 1 sec
         time.sleep(2)
 
         ## Go left: s5 meter/2 sec
         print("Target Length (left): {}".format(s2_5))
-        mc.left(s2_5, velocity=s2_5/2)  
+        # mc.left(s2_5, velocity=s2_5/2)
+        mc.start_left(velocity=s2_5/2)  
         t6 = time.time() - t_init
         print("t6: ", t6)
+
+        time.sleep(2)
+
+        mc.stop()
 
         ## Delay 1 sec
         time.sleep(2)
 
         ## Go right: s6 meter/5 sec
         print("Target Length (right): {}".format(s3_6))
-        mc.right(s3_6+0.1, velocity=(s3_6+0.1)/3)  
+        # mc.right(s3_6+0.1, velocity=(s3_6+0.1)/3)  
+        mc.start_right(velocity=(s3_6+0.1)/3) 
         t7 = time.time() - t_init
         print("t7: ", t7)
+
+        time.sleep(3)
+
+        mc.stop()
 
         ## Delay 5 sec
         time.sleep(3)
@@ -148,9 +183,14 @@ def move_baduanjin_mc_p3(scf):
 
         ## Go up: p3_h0 meter/8 sec
         print("Target Height: {}".format(p3_h0))
-        mc.up(p3_h0, velocity=p3_h0/3)  
+        # mc.up(p3_h0, velocity=p3_h0/3) 
+        mc.start_up(velocity=p3_h0/3) 
         t1 = time.time() - t_init
         print("t1: ", t1)
+
+        time.sleep(3)
+
+        mc.stop()
         
         ## Delay 2 sec
         time.sleep(5.5)
@@ -257,34 +297,34 @@ if __name__ == '__main__':
         time.sleep(3)
 
 
-    # # # Movement no.2 (MotionCommander)
-    #     # Declaring feedback threads for movement no.2
-    #     baduanjin_sound_thread_p2 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p2, args=()) 
+    # # Movement no.2 (MotionCommander)
+        # Declaring feedback threads for movement no.2
+        baduanjin_sound_thread_p2 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p2, args=()) 
         
-    #     # Starting threads for movement no.2
-    #     baduanjin_sound_thread_p2.start()
+        # Starting threads for movement no.2
+        baduanjin_sound_thread_p2.start()
 
-    #     # Perform the movement
-    #     move_baduanjin_mc_p2(scf_1)
+        # Perform the movement
+        move_baduanjin_mc_p2(scf_1)
         
-    #     # Threads join
-    #     baduanjin_sound_thread_p2.join()
+        # Threads join
+        baduanjin_sound_thread_p2.join()
 
 
 
-    # # Movement no.3 (MotionCommander)
-        # Declaring feedback threads for movement no.3
-        baduanjin_sound_thread_p3 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p3, args=()) 
+    # # # Movement no.3 (MotionCommander)
+    #     # Declaring feedback threads for movement no.3
+    #     baduanjin_sound_thread_p3 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p3, args=()) 
         
     
-        # Starting threads for movement no.3
-        baduanjin_sound_thread_p3.start()
+    #     # Starting threads for movement no.3
+    #     baduanjin_sound_thread_p3.start()
  
-        # Perform the movement
-        move_baduanjin_mc_p3(scf_1)
+    #     # Perform the movement
+    #     move_baduanjin_mc_p3(scf_1)
 
-        # Threads join  
-        baduanjin_sound_thread_p3.join()
+    #     # Threads join  
+    #     baduanjin_sound_thread_p3.join()
         
         
 

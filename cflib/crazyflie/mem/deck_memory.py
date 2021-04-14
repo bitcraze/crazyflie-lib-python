@@ -121,7 +121,7 @@ class DeckMemory:
                 self.required_hash, self.required_length, self._base_address, _name = struct.unpack('<LLL19s', data[1:])
                 self.name = _name.split(b'\x00')[0].decode()
             except Exception as e:
-                logger.warning(f"Error while decoding deck mem ({e}), skipping!")
+                logger.warning(f'Error while decoding deck mem ({e}), skipping!')
                 self._bit_field = 0
 
 

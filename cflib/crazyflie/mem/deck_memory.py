@@ -117,8 +117,12 @@ class DeckMemory:
     def _parse(self, data):
         self._bit_field = struct.unpack('<B', data[0:1])[0]
         if self.is_valid:
-            self.required_hash, self.required_length, self._base_address, _name = struct.unpack('<LLL19s', data[1:])
-            self.name = _name.split(b'\x00')[0].decode()
+            try:
+                self.required_hash, self.required_length, self._base_address, _name = struct.unpack('<LLL19s', data[1:])
+                self.name = _name.split(b'\x00')[0].decode()
+            except Exception as e:
+                logger.warning(f"Error while decoding deck mem ({e}), skipping!")
+                self._bit_field = 0
 
 
 class DeckMemoryManager(MemoryElement):

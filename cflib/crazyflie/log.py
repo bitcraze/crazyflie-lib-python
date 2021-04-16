@@ -340,7 +340,7 @@ class LogTocElement:
              0x04: ('int8_t', '<b', 1),
              0x05: ('int16_t', '<h', 2),
              0x06: ('int32_t', '<i', 4),
-             0x08: ('FP16', '<h', 2),
+             0x08: ('FP16', '<e', 2),
              0x07: ('float', '<f', 4)}
 
     @staticmethod

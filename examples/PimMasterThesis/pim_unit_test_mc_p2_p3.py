@@ -10,7 +10,7 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E702'
+uri_1 = 'radio://0/80/2M/E7E7E7E703'
 
 
 # Input params for P2
@@ -29,8 +29,8 @@ max_arm_length = input()
 max_arm_length = float(max_arm_length)
 s2_5 = max_arm_length/2
 
-s3_6 = max_leg_length  # 0.1 m = width of your foot
-
+# s3_6 = max_leg_length  # 0.1 m = width of your foot
+s3_6 = s1_4 + s2_5
 
 # Input params for P3
 print("Please enter (default) height of your hand from the ground(m): ")
@@ -114,7 +114,7 @@ def move_baduanjin_mc_p2(scf): # default take-off height = 0.3 m
         
         ## Go left: s3 meter/5 sec
         print("Target Length (left): {}".format(s3_6))
-        mc.left(s3_6+0.1, velocity=(s3_6+0.1)/3) 
+        mc.left(s3_6, velocity=(s3_6)/3) 
         # mc.start_left(velocity=(s3_6+0.1)/3)  
         t4 = time.time() - t_init
         print("t4: ", t4)
@@ -159,7 +159,7 @@ def move_baduanjin_mc_p2(scf): # default take-off height = 0.3 m
 
         ## Go right: s6 meter/5 sec
         print("Target Length (right): {}".format(s3_6))
-        mc.right(s3_6+0.1, velocity=(s3_6+0.1)/3)  
+        mc.right(s3_6, velocity=(s3_6)/3)  
         # mc.start_right(velocity=(s3_6+0.1)/3) 
         t7 = time.time() - t_init
         print("t7: ", t7)
@@ -297,34 +297,34 @@ if __name__ == '__main__':
         time.sleep(3)
 
 
-    # # # Movement no.2 (MotionCommander)
-    #     # Declaring feedback threads for movement no.2
-    #     baduanjin_sound_thread_p2 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p2, args=()) 
+    # # Movement no.2 (MotionCommander)
+        # Declaring feedback threads for movement no.2
+        baduanjin_sound_thread_p2 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p2, args=()) 
         
-    #     # Starting threads for movement no.2
-    #     baduanjin_sound_thread_p2.start()
+        # Starting threads for movement no.2
+        baduanjin_sound_thread_p2.start()
 
-    #     # Perform the movement
-    #     move_baduanjin_mc_p2(scf_1)
+        # Perform the movement
+        move_baduanjin_mc_p2(scf_1)
         
-    #     # Threads join
-    #     baduanjin_sound_thread_p2.join()
+        # Threads join
+        baduanjin_sound_thread_p2.join()
 
 
 
-    # # Movement no.3 (MotionCommander)
-        # Declaring feedback threads for movement no.3
-        baduanjin_sound_thread_p3 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p3, args=()) 
+    # # # Movement no.3 (MotionCommander)
+    #     # Declaring feedback threads for movement no.3
+    #     baduanjin_sound_thread_p3 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p3, args=()) 
         
     
-        # Starting threads for movement no.3
-        baduanjin_sound_thread_p3.start()
+    #     # Starting threads for movement no.3
+    #     baduanjin_sound_thread_p3.start()
  
-        # Perform the movement
-        move_baduanjin_mc_p3(scf_1)
+    #     # Perform the movement
+    #     move_baduanjin_mc_p3(scf_1)
 
-        # Threads join  
-        baduanjin_sound_thread_p3.join()
+    #     # Threads join  
+    #     baduanjin_sound_thread_p3.join()
         
         
 

@@ -143,6 +143,9 @@ class LogConfig(object):
     """Representation of one log configuration that enables logging
     from the Crazyflie"""
 
+    # Maximum log payload length (4 bytes are used for block id and timestamp)
+    MAX_LEN = 26
+
     def __init__(self, name, period_in_ms):
         """Initialize the entry"""
         self.data_received_cb = Caller()
@@ -474,7 +477,7 @@ class Log():
                     logconf.valid = False
                     raise KeyError('Variable {} not in TOC'.format(var.name))
 
-        if (size <= CRTPPacket.MAX_DATA_SIZE and
+        if (size <= LogConfig.MAX_LEN and
                 (logconf.period > 0 and logconf.period < 0xFF)):
             logconf.valid = True
             logconf.cf = self.cf

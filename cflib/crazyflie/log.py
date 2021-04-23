@@ -401,6 +401,8 @@ class LogTocElement:
 class Log():
     """Create log configuration"""
 
+    MAX_BLOCKS = 16
+
     # These codes can be decoded using os.stderror, but
     # some of the text messages will look very strange
     # in the UI, so they are redefined here
@@ -446,6 +448,11 @@ class Log():
             logger.error('Cannot add configs without being connected to a '
                          'Crazyflie!')
             return
+
+        if len(self.log_blocks) == self.MAX_BLOCKS:
+            raise AttributeError(
+                'Configuration has max number of blocks (%d)' % self.MAX_BLOCKS
+            )
 
         # If the log configuration contains variables that we added without
         # type (i.e we want the stored as type for fetching as well) then

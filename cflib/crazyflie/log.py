@@ -402,6 +402,7 @@ class Log():
     """Create log configuration"""
 
     MAX_BLOCKS = 16
+    MAX_VARIABLES = 128
 
     # These codes can be decoded using os.stderror, but
     # some of the text messages will look very strange
@@ -452,6 +453,19 @@ class Log():
         if len(self.log_blocks) == self.MAX_BLOCKS:
             raise AttributeError(
                 'Configuration has max number of blocks (%d)' % self.MAX_BLOCKS
+            )
+
+        #
+        # The Crazyflie firmware can only handle 128 variables before erroring
+        # out with ENOMEM.
+        #
+        num_variables = 0
+        for block in self.log_blocks:
+            num_variables += len(block.variables)
+        if num_variables + len(logconf.variables) > self.MAX_VARIABLES:
+            raise AttributeError(
+                ('Adding this configuration would exceed max number '
+                 'of variables (%d)' % self.MAX_VARIABLES)
             )
 
         # If the log configuration contains variables that we added without

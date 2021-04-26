@@ -123,7 +123,7 @@ class WallFollower:
             print(front_range,side_range)
             if (side_range < self.ref_distance_from_wall/math.cos(0.78)+0.2 and front_range < self.ref_distance_from_wall/math.cos(0.78)+0.2):
                 self.previous_heading = current_heading;
-                self.angle = self.direction*( 1.57 - math.atan(front_range/side_range) -0.1)
+                self.angle = self.direction*( 1.57 - math.atan(front_range/side_range) - 0.1)
                 self.state = self.transition("TURN_TO_ALLIGN_TO_WALL")
             if (side_range < 1.0 and front_range > 2.0):
                 self.around_corner_first_turn = True
@@ -136,7 +136,7 @@ class WallFollower:
                 self.state = self.transition("FORWARD_ALONG_WALL")
 
         elif self.state =="FORWARD_ALONG_WALL":
-            if side_range > 2:
+            if side_range >  self.ref_distance_from_wall + 0.3:
                 self.around_corner_first_turn = True
                 self.state = self.transition("ROTATE_AROUND_WALL")
             if front_range < self.ref_distance_from_wall+0.2:

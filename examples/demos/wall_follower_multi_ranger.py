@@ -4,12 +4,17 @@ import time
 #import tf
 import math
 from _ast import IsNot
-from amcl.cfg.AMCLConfig import inf
-import numpy as np
 
 def wraptopi(number):
-    return  ( number + np.pi) % (2 * np.pi ) - np.pi
+    return  ( number + 3.14159) % (2 * 3.14159 ) - 3.14159
 
+class WallFollowingCommand:
+
+    def __init__(self, vel_x: float=0.0, vel_y: float=0.0, vel_z: float=0.0, ang_z: float=0.0):
+        self.vel_x = vel_x
+        self.vel_y = vel_y
+        self.vel_z = vel_z
+        self.ang_z = ang_z
 
 class WallFollower:
 
@@ -30,70 +35,65 @@ class WallFollower:
     def init(self,new_ref_distance_from_wall,max_speed_ref = 0.2):
         self.ref_distance_from_wall = new_ref_distance_from_wall
         self.state = "TURN_TO_FIND_WALL"
-        self.max_speed = max_speed_ref
-        
-        
+        self.max_speed = max_speed_ref  
         
     def take_off(self):
-        twist = Twist()
-        twist.linear.z = 0.1;
-        return twist
+        command = WallFollowingCommand()
+        command.vel_z = 0.1;
+        return command
 
     def hover(self):
-        twist = Twist()
-        return twist
+        command = WallFollowingCommand()
+        return command
 
-
-    def twistForward(self):
+    def commandForward(self):
         v = self.max_speed
         w = 0
-        twist = Twist()
-        twist.linear.x = v
-        twist.angular.z = w
-        return twist
+        command = WallFollowingCommand()
+        command.vel_x = v
+        command.ang_z = w
+        return command
 
-    def twistForwardAlongWall(self, range):
-        twist = Twist()
-        twist.linear.x = self.max_speed
+    def commandForwardAlongWall(self, range):
+        command = WallFollowingCommand()
+        command.vel_x = self.max_speed
         if  self.logicIsCloseTo(self.ref_distance_from_wall, range, 0.1) == False:
             if range>self.ref_distance_from_wall:
-                twist.linear.y = self.direction*( - self.max_speed/3)
+                command.vel_y = self.direction*( - self.max_speed/3)
             else:
-                twist.linear.y = self.direction*self.max_speed /3
+                command.vel_y = self.direction*self.max_speed /3
 
-        return twist
+        return command
 
-    def twistTurn(self,rate):
+    def commandTurn(self,rate):
         v = 0.0
         w = self.direction*rate
-        twist = Twist()
-        twist.linear.x = v
-        twist.angular.z = w
-        return twist
+        command = WallFollowingCommand()
+        command.vel_x = v
+        command.ang_z = w
+        return command
 
-    def twistTurnandAdjust(self,rate, range):
+    def commandTurnandAdjust(self,rate, range):
         v = 0.0
         w = self.direction*rate
-        twist = Twist()
+        command = WallFollowingCommand()
 
         if  self.logicIsCloseTo(self.ref_distance_from_wall, range, 0.1) == False:
             if range>self.ref_distance_from_wall:
-                twist.linear.y = self.direction*( - self.max_speed/3)
+                command.vel_y = self.direction*( - self.max_speed/3)
             else:
-                twist.linear.y = self.direction*( self.max_speed /3)
-        twist.linear.x = v
-        twist.angular.z = w
-        return twist
+                command.vel_y = self.direction*( self.max_speed /3)
+        command.vel_x = v
+        command.ang_z = w
+        return command
 
-    def twistTurnAroundCorner(self, radius):
+    def commandTurnAroundCorner(self, radius):
         v = self.max_speed
         w = self.direction*(-v/radius)
-        twist = Twist()
-        twist.linear.x = v
-        twist.angular.z = w
-        return twist
-
-
+        command = WallFollowingCommand()
+        command.vel_x = v
+        command.ang_z = w
+        return command
 
 
     def logicIsCloseTo(self,real_value = 0.0, checked_value =0.0, margin=0.05):
@@ -114,19 +114,16 @@ class WallFollower:
 
         self.direction = direction_turn
         #handle state transitions
-        if self.state == "TAKE_OFF":
-            if self.altitude > 0.5:
-                self.state = self.transition("FORWARD")
-        elif self.state == "FORWARD":
-            if front_range < self.ref_distance_from_wall:
+        if self.state == "FORWARD":
+            if front_range < self.ref_distance_from_wall + 0.2:
                 self.state = self.transition("TURN_TO_FIND_WALL")
         elif self.state == "HOVER":
-            print(state)
+            print(self.state)
         elif self.state == "TURN_TO_FIND_WALL":
             print(front_range,side_range)
             if (side_range < self.ref_distance_from_wall/math.cos(0.78)+0.2 and front_range < self.ref_distance_from_wall/math.cos(0.78)+0.2):
                 self.previous_heading = current_heading;
-                self.angle = self.direction*( 1.57 - math.atan(front_range/side_range))
+                self.angle = self.direction*( 1.57 - math.atan(front_range/side_range) -0.1)
                 self.state = self.transition("TURN_TO_ALLIGN_TO_WALL")
             if (side_range < 1.0 and front_range > 2.0):
                 self.around_corner_first_turn = True
@@ -142,11 +139,11 @@ class WallFollower:
             if side_range > 2:
                 self.around_corner_first_turn = True
                 self.state = self.transition("ROTATE_AROUND_WALL")
-            if front_range < self.ref_distance_from_wall:
+            if front_range < self.ref_distance_from_wall+0.2:
                 self.state = self.transition("ROTATE_IN_CORNER")
                 self.previous_heading = current_heading;
         elif self.state =="ROTATE_AROUND_WALL":
-            if front_range < self.ref_distance_from_wall+0.3:
+            if front_range < self.ref_distance_from_wall+0.2:
                 self.state = self.transition("TURN_TO_FIND_WALL")
         elif self.state == "ROTATE_IN_CORNER":
             print(current_heading-self.previous_heading)
@@ -154,70 +151,52 @@ class WallFollower:
                 self.state = self.transition("TURN_TO_FIND_WALL")
 
 
-        print(self.state)
-
-
-
         #handle state ations
         if self.state == "TAKE_OFF":
-            twist = self.take_off()
+            command = self.take_off()
         elif self.state == "FORWARD":
-            twist = self.twistForward()
+            command = self.commandForward()
         elif self.state == "HOVER":
-            twist = self.hover()
+            command = self.hover()
         elif self.state == "TURN_TO_FIND_WALL":
-            twist = self.hover()
+            command = self.hover()
             if (time.time() - self.state_start_time) > 1:
-                twist = self.twistTurn(self.max_rate);
+                command = self.commandTurn(self.max_rate);
         elif self.state =="TURN_TO_ALLIGN_TO_WALL":
-            twist = self.hover()
+            command = self.hover()
             if (time.time() - self.state_start_time) > 1:
-                twist = self.twistTurn(self.max_rate)
+                command = self.commandTurn(self.max_rate)
         elif self.state =="FORWARD_ALONG_WALL":
-            twist = self.twistForwardAlongWall(side_range)
+            command = self.commandForwardAlongWall(side_range)
         elif self.state == "ROTATE_AROUND_WALL":
             if self.around_corner_first_turn:
                 print("regular_turn_first")
             #if side_range>self.ref_distance_from_wall+0.5 and self.around_corner_first_turn:
-                twist = self.twistTurn(-self.max_rate)
+                command = self.commandTurn(-self.max_rate)
                 if side_range<=self.ref_distance_from_wall+0.5:
                     self.around_corner_first_turn = False
                     self.previous_heading = current_heading;
             else:
                 if side_range>self.ref_distance_from_wall+0.5:
-                    print("twistTurnandAdjust")
-               # twist = self.twistTurnandAdjust(self.max_rate,side_range)
+                    print("commandTurnandAdjust")
                     print("headin diff", wraptopi(abs(current_heading - self.previous_heading)))
                     if wraptopi(abs(current_heading - self.previous_heading)) > 0.3:
                         self.around_corner_go_back = True
                     if  self.around_corner_go_back:
-                        twist = self.twistTurnandAdjust(self.max_rate,side_range)
+                        command = self.commandTurnandAdjust(self.max_rate,side_range)
                         print("go back")
                     else:
-                        twist = self.twistTurnandAdjust(-1*self.max_rate,side_range)
+                        command = self.commandTurnandAdjust(-1*self.max_rate,side_range)
                         print("forward")
                 else:
-                    print("twistTurnAroundCorner")
+                    print("commandTurnAroundCorner")
                     self.previous_heading = current_heading;
-                    twist = self.twistTurnAroundCorner(self.ref_distance_from_wall)
+                    command = self.commandTurnAroundCorner(self.ref_distance_from_wall)
                     self.previous_heading = current_heading
                     self.around_corner_go_back = False
 
         elif self.state == "ROTATE_IN_CORNER":
-            twist = self.twistTurn(self.max_rate);
+            command = self.commandTurn(self.max_rate);
 
 
-        return twist, self.state
-
-
-
-
-
-
-
-
-if __name__ == '__main__':
-    try:
-        wall_follower()
-    except rospy.ROSInterruptException:
-        pass
+        return command, self.state

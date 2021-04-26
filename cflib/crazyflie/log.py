@@ -143,6 +143,9 @@ class LogConfig(object):
     """Representation of one log configuration that enables logging
     from the Crazyflie"""
 
+    # Maximum log payload length (4 bytes are used for block id and timestamp)
+    MAX_LEN = 26
+
     def __init__(self, name, period_in_ms):
         """Initialize the entry"""
         self.data_received_cb = Caller()
@@ -398,6 +401,9 @@ class LogTocElement:
 class Log():
     """Create log configuration"""
 
+    MAX_BLOCKS = 16
+    MAX_VARIABLES = 128
+
     # These codes can be decoded using os.stderror, but
     # some of the text messages will look very strange
     # in the UI, so they are redefined here
@@ -444,6 +450,24 @@ class Log():
                          'Crazyflie!')
             return
 
+        if len(self.log_blocks) == self.MAX_BLOCKS:
+            raise AttributeError(
+                'Configuration has max number of blocks (%d)' % self.MAX_BLOCKS
+            )
+
+        #
+        # The Crazyflie firmware can only handle 128 variables before erroring
+        # out with ENOMEM.
+        #
+        num_variables = 0
+        for block in self.log_blocks:
+            num_variables += len(block.variables)
+        if num_variables + len(logconf.variables) > self.MAX_VARIABLES:
+            raise AttributeError(
+                ('Adding this configuration would exceed max number '
+                 'of variables (%d)' % self.MAX_VARIABLES)
+            )
+
         # If the log configuration contains variables that we added without
         # type (i.e we want the stored as type for fetching as well) then
         # resolve this now and add them to the block again.
@@ -474,7 +498,7 @@ class Log():
                     logconf.valid = False
                     raise KeyError('Variable {} not in TOC'.format(var.name))
 
-        if (size <= CRTPPacket.MAX_DATA_SIZE and
+        if (size <= LogConfig.MAX_LEN and
                 (logconf.period > 0 and logconf.period < 0xFF)):
             logconf.valid = True
             logconf.cf = self.cf

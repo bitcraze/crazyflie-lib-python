@@ -284,7 +284,7 @@ class LogConfig(object):
             if num_variables + len(self.variables) > Log.MAX_VARIABLES:
                 raise AttributeError(
                     ('Adding this configuration would exceed max number '
-                    'of variables (%d)' % self.MAX_VARIABLES)
+                    'of variables (%d)' % Log.MAX_VARIABLES)
                 )
         self.pending += 1
         while not is_done:

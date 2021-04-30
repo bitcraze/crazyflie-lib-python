@@ -163,6 +163,7 @@ class LogConfig(object):
         self.period_in_ms = period_in_ms
         self._added = False
         self._started = False
+        self.pending = False
         self.valid = False
         self.variables = []
         self.default_fetch_as = []
@@ -264,6 +265,28 @@ class LogConfig(object):
         command = self._cmd_create_block()
         next_to_add = 0
         is_done = False
+
+        #
+        # The Crazyflie firmware can only handle 128 variables before erroring
+        # out with ENOMEM.
+        #
+        num_variables = 0
+        pending = 0
+        for block in self.cf.log.log_blocks:
+            if block.pending:
+                pending += 1
+            
+            num_variables += len(block.variables)
+
+        print('PENDING {}'.format(pending))
+
+        if block.pending < Log.MAX_BLOCKS:
+            if num_variables + len(self.variables) > Log.MAX_VARIABLES:
+                raise AttributeError(
+                    ('Adding this configuration would exceed max number '
+                    'of variables (%d)' % self.MAX_VARIABLES)
+                )
+        self.pending += 1
         while not is_done:
             pk = CRTPPacket()
             pk.set_header(5, CHAN_SETTINGS)
@@ -449,24 +472,6 @@ class Log():
             logger.error('Cannot add configs without being connected to a '
                          'Crazyflie!')
             return
-
-        if len(self.log_blocks) == self.MAX_BLOCKS:
-            raise AttributeError(
-                'Configuration has max number of blocks (%d)' % self.MAX_BLOCKS
-            )
-
-        #
-        # The Crazyflie firmware can only handle 128 variables before erroring
-        # out with ENOMEM.
-        #
-        num_variables = 0
-        for block in self.log_blocks:
-            num_variables += len(block.variables)
-        if num_variables + len(logconf.variables) > self.MAX_VARIABLES:
-            raise AttributeError(
-                ('Adding this configuration would exceed max number '
-                 'of variables (%d)' % self.MAX_VARIABLES)
-            )
 
         # If the log configuration contains variables that we added without
         # type (i.e we want the stored as type for fetching as well) then

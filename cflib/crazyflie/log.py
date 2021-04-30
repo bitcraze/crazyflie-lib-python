@@ -275,8 +275,7 @@ class LogConfig(object):
         for block in self.cf.log.log_blocks:
             if block.pending:
                 pending += 1
-            
-            num_variables += len(block.variables)
+                num_variables += len(block.variables)
 
         print('PENDING {}'.format(pending))
 

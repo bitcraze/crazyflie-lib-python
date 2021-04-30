@@ -35,7 +35,9 @@ import zipfile
 from collections import namedtuple
 from typing import Callable
 from typing import List
+from typing import NoReturn
 from typing import Optional
+from typing import Tuple
 
 from .boottypes import BootVersion
 from .boottypes import TargetTypes
@@ -126,7 +128,7 @@ class Bootloader:
     def get_target(self, target_id):
         return self._cload.request_info_update(target_id)
 
-    def flash(self, filename, targets: List[Target]):
+    def flash(self, filename: str, targets: List[Target]):
         # Separate flash targets from decks
         platform = self._get_platform_id()
         flash_targets = [t for t in targets if t.platform == platform]
@@ -181,6 +183,33 @@ class Bootloader:
                 int(100))
         else:
             print('')
+
+    def flash_full(self, filename: Optional[str], warm: bool = True,
+                   targets: Optional[Tuple[str, ...]] = None,
+                   info_cb: Optional[Callable[[int, TargetTypes], NoReturn]] = None,
+                   progress_cb: Optional[Callable[[str, int], NoReturn]] = None,
+                   terminate_flash_cb: Optional[Callable[[], bool]] = None):
+        """
+        Flash .zip or bin .file to list of targets.
+        Reset to firmware when done.
+        """
+        if progress_cb is not None:
+            self.progress_cb = progress_cb
+        if terminate_flash_cb is not None:
+            self.terminate_flashing_cb = terminate_flash_cb
+
+        if not self.start_bootloader(warm_boot=warm):
+            raise Exception('Could not connect to bootloader')
+
+        if info_cb is not None:
+            connected = (self.get_target(TargetTypes.STM32),)
+            if self.protocol_version == BootVersion.CF2_PROTO_VER:
+                connected += (self.get_target(TargetTypes.NRF51),)
+            info_cb(self.protocol_version, connected)
+
+        if filename is not None:
+            self.flash(filename, targets)
+            self.reset_to_firmware()
 
     def _get_flash_artifacts_from_zip(self, filename):
         if not zipfile.is_zipfile(filename):
@@ -246,7 +275,7 @@ class Bootloader:
                 self.progress_cb('Error: Not enough space to flash the image file.', int(progress))
             else:
                 print('Error: Not enough space to flash the image file.')
-            raise Exception()
+            raise Exception('Not enough space to flash the image file')
 
         if not self.progress_cb:
             logger.info(('%d bytes (%d pages) ' % (

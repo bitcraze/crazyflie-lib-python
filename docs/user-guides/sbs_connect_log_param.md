@@ -105,8 +105,6 @@ Now run the script in your terminal:
 
 You are supposed to see the following in the terminal:
 ```python
-Connecting to radio://0/80/2M/E7E7E7E7E7
-Connected to radio://0/80/2M/E7E7E7E7E7
 Yeah, I'm connected! :D
 Now I will disconnect :'(
 ```
@@ -510,8 +508,6 @@ if __name__ == '__main__':
 Run the script with `python3 connect_log_param.py` in a terminal and you should see the following:
 
 ```python
-Connecting to radio://0/80/2M/E7E7E7E7E7
-Connected to radio://0/80/2M/E7E7E7E7E7
 The crazyflie has parameter stabilizer.estimator set at number: 1
 The crazyflie has parameter stabilizer.estimator set at number: 2
 The crazyflie has parameter stabilizer.estimator set at number: 1

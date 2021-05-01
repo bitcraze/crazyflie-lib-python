@@ -29,9 +29,12 @@ class. It handles the asynchronous nature of the Crazyflie API and turns it
 into blocking function. It is useful for simple scripts that performs tasks
 as a sequence of events.
 """
+import logging
 from threading import Event
 
 from cflib.crazyflie import Crazyflie
+
+logger = logging.getLogger(__name__)
 
 
 class SyncCrazyflie:
@@ -57,7 +60,7 @@ class SyncCrazyflie:
 
         self._add_callbacks()
 
-        print('Connecting to %s' % self._link_uri)
+        logger.debug('Connecting to %s' % self._link_uri)
 
         self._connect_event = Event()
         self.cf.open_link(self._link_uri)
@@ -88,7 +91,7 @@ class SyncCrazyflie:
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
         has been connected and the TOCs have been downloaded."""
-        print('Connected to %s' % link_uri)
+        logger.debug('Connected to %s' % link_uri)
         self._is_link_open = True
         if self._connect_event:
             self._connect_event.set()
@@ -96,7 +99,7 @@ class SyncCrazyflie:
     def _connection_failed(self, link_uri, msg):
         """Callback when initial connection fails (i.e no Crazyflie
         at the specified address)"""
-        print('Connection to %s failed: %s' % (link_uri, msg))
+        logger.debug('Connection to %s failed: %s' % (link_uri, msg))
         self._is_link_open = False
         self._error_message = msg
         if self._connect_event:

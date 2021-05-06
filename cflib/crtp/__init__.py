@@ -26,7 +26,7 @@
 #  MA  02110-1301, USA.
 """Scans and creates communication interfaces."""
 import logging
-import os
+import platform
 
 from .exceptions import WrongUriType
 from .prrtdriver import PrrtDriver
@@ -47,8 +47,11 @@ CLASSES = []
 def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
     """Initialize all the drivers."""
 
-    env = os.getenv('USE_CFLINK')
-    if env is not None and env == 'cpp':
+    #
+    # Right now cflinkcpp only supports x86_64, see setup.py for more info:
+    #
+    mach = platform.machine()
+    if mach in ['x86_64']:
         from .cflinkcppdriver import CfLinkCppDriver
         CLASSES.append(CfLinkCppDriver)
     else:

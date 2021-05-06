@@ -1,6 +1,17 @@
 #!/usr/bin/env python3
+import platform
+
 from setuptools import find_packages
 from setuptools import setup
+
+extra_required = []
+#
+# For now we only require the CPP native radio link driver on x86_64
+# since we only build and test on that platform. This will probably change.
+# And probably faster if you request it.
+#
+if platform.machine() == 'x86_64':
+    extra_required.extend(['cflinkcpp>=1.0a3'])
 
 setup(
     name='cflib',
@@ -26,8 +37,8 @@ setup(
 
     install_requires=[
         'pyusb>=1.0.0b2',
-        'opencv-python-headless==4.5.1.48'
-    ],
+        'opencv-python-headless==4.5.1.48',
+    ] + extra_required,
 
     # $ pip install -e .[dev]
     extras_require={

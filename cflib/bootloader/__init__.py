@@ -90,26 +90,30 @@ class Bootloader:
                               info_cb=None,
                               in_boot_cb=None)
 
-    def start_bootloader(self, warm_boot=False):
+    def start_bootloader(self, warm_boot=False, cf=None):
         self.warm_booted = warm_boot
 
         if warm_boot:
+            if cf is not None and cf.link:
+                cf.close_link()
             self._cload.open_bootloader_uri(self.clink)
             started = self._cload.reset_to_bootloader(TargetTypes.NRF51)
             if started:
                 started = self._cload.check_link_and_get_info()
         else:
-            uri = self._cload.scan_for_bootloader()
+            if not self._cload.link:
+                uri = self._cload.scan_for_bootloader()
 
-            # Workaround for libusb on Windows (open/close too fast)
-            time.sleep(1)
+                # Workaround for libusb on Windows (open/close too fast)
+                time.sleep(1)
 
-            if uri:
-                self._cload.open_bootloader_uri(uri)
-                started = self._cload.check_link_and_get_info()
+                if uri:
+                    self._cload.open_bootloader_uri(uri)
+                    started = self._cload.check_link_and_get_info()
+                else:
+                    started = False
             else:
-                started = False
-
+                started = True
         if started:
             self.protocol_version = self._cload.protocol_version
 
@@ -128,7 +132,7 @@ class Bootloader:
     def get_target(self, target_id):
         return self._cload.request_info_update(target_id)
 
-    def flash(self, filename: str, targets: List[Target]):
+    def flash(self, filename: str, targets: List[Target], cf=None):
         # Separate flash targets from decks
         platform = self._get_platform_id()
         flash_targets = [t for t in targets if t.platform == platform]
@@ -170,7 +174,7 @@ class Bootloader:
                     self.progress_cb('Deck updated! Restarting firmware.', int(100))
 
                 # Put the crazyflie back in Bootloader mode to exit the function in the same state we entered it
-                self.start_bootloader(warm_boot=True)
+                self.start_bootloader(warm_boot=True, cf=cf)
 
                 deck_update_msg = 'Deck update complete.'
             else:
@@ -184,7 +188,9 @@ class Bootloader:
         else:
             print('')
 
-    def flash_full(self, filename: Optional[str], warm: bool = True,
+    def flash_full(self, cf: Optional[Crazyflie] = None,
+                   filename: Optional[str] = None,
+                   warm: bool = True,
                    targets: Optional[Tuple[str, ...]] = None,
                    info_cb: Optional[Callable[[int, TargetTypes], NoReturn]] = None,
                    progress_cb: Optional[Callable[[str, int], NoReturn]] = None,
@@ -198,7 +204,7 @@ class Bootloader:
         if terminate_flash_cb is not None:
             self.terminate_flashing_cb = terminate_flash_cb
 
-        if not self.start_bootloader(warm_boot=warm):
+        if not self.start_bootloader(warm_boot=warm, cf=cf):
             raise Exception('Could not connect to bootloader')
 
         if info_cb is not None:
@@ -208,7 +214,7 @@ class Bootloader:
             info_cb(self.protocol_version, connected)
 
         if filename is not None:
-            self.flash(filename, targets)
+            self.flash(filename, targets, cf)
             self.reset_to_firmware()
 
     def _get_flash_artifacts_from_zip(self, filename):

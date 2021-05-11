@@ -70,7 +70,8 @@ class CfLinkCppDriver(CRTPDriver):
         self.uri = uri
         self._link_quality_callback = link_quality_callback
         self._link_error_callback = link_error_callback
-        if link_quality_callback is not None or link_error_callback is not None:
+
+        if uri.startswith('radio://') and link_quality_callback is not None:
             self._last_connection_stats = self._connection.statistics
             self._recompute_link_quality_timer()
 

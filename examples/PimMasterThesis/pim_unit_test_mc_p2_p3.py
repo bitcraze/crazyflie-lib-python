@@ -12,35 +12,44 @@ from cflib.crazyflie.log import LogConfig
 # URI to the Crazyflie to connect to
 uri_1 = 'radio://0/80/2M/E7E7E7E703'
 
+f = open("pim.txt", "rt")
+data = f.read()
+data_split = data.split()
+DEFAULT_HEIGHT_P2 = float(data_split[0])
+max_leg_length = float(data_split[1])
+max_arm_length = float(data_split[2])
+DEFAULT_HEIGHT_P3 = float(data_split[3])
+max_hand_raising = float(data_split[4])
+
 
 # Input params for P2
-print("Please enter the (default) height of your chest from the ground(m): ")
-DEFAULT_HEIGHT_P2 = input()    # default height level for this movement (P2) i.e. 1.3 m
-DEFAULT_HEIGHT_P2 = float(DEFAULT_HEIGHT_P2)
+# print("Please enter the (default) height of your chest from the ground(m): ")
+# DEFAULT_HEIGHT_P2 = input()    # default height level for this movement (P2) i.e. 1.3 m
+# DEFAULT_HEIGHT_P2 = float(DEFAULT_HEIGHT_P2)
 p2_h0 = DEFAULT_HEIGHT_P2 - 0.3  # (default take-off height of Crazyflie = 0.3 m)
 
-print("Please enter the maximum length between both legs after widening out(m): ")
-max_leg_length = input()
-max_leg_length = float(max_leg_length)
+# print("Please enter the maximum length between both legs after widening out(m): ")
+# max_leg_length = input()
+# max_leg_length = float(max_leg_length)
 s1_4 = max_leg_length/2
 
-print("Please enter the maximum arm length (R_wrist - L_wrist) after stretching out(m): ")
-max_arm_length = input()
-max_arm_length = float(max_arm_length)
+# print("Please enter the maximum arm length (R_wrist - L_wrist) after stretching out(m): ")
+# max_arm_length = input()
+# max_arm_length = float(max_arm_length)
 s2_5 = max_arm_length/2
 
 # s3_6 = max_leg_length  # 0.1 m = width of your foot
 s3_6 = s1_4 + s2_5
 
 # Input params for P3
-print("Please enter (default) height of your hand from the ground(m): ")
-DEFAULT_HEIGHT_P3 = input()   # default height level for this movement (P3) i.e. 0.7 m
-DEFAULT_HEIGHT_P3 = float(DEFAULT_HEIGHT_P3)
+# print("Please enter (default) height of your hand from the ground(m): ")
+# DEFAULT_HEIGHT_P3 = input()   # default height level for this movement (P3) i.e. 0.7 m
+# DEFAULT_HEIGHT_P3 = float(DEFAULT_HEIGHT_P3)
 p3_h0 = DEFAULT_HEIGHT_P3 - 0.3  # (default take-off height of Crazyflie = 0.3 m)
 
-print("Please enter the maximum height of your wrist from the ground after raising your hand up(m): ")
-max_hand_raising = input()      
-max_hand_raising = float(max_hand_raising)       
+# print("Please enter the maximum height of your wrist from the ground after raising your hand up(m): ")
+# max_hand_raising = input()      
+# max_hand_raising = float(max_hand_raising)       
 p3_h1 = max_hand_raising - DEFAULT_HEIGHT_P3  
 
 
@@ -131,7 +140,7 @@ def move_baduanjin_mc_p2(scf): # default take-off height = 0.3 m
         
         ## Go left: s4 meter/2 sec
         print("Target Length (left): {}".format(s1_4))
-        mc.left(s1_4, velocity=s1_4/1.5)  
+        mc.left(s1_4, velocity=(s1_4)/1.5)  
         # mc.start_left(velocity=s1_4/1.5) 
         t5 = time.time() - t_init
         print("t5: ", t5)
@@ -145,7 +154,7 @@ def move_baduanjin_mc_p2(scf): # default take-off height = 0.3 m
 
         ## Go left: s5 meter/2 sec
         print("Target Length (left): {}".format(s2_5))
-        mc.left(s2_5, velocity=s2_5/2)
+        mc.left(s2_5, velocity=(s2_5)/2)
         # mc.start_left(velocity=s2_5/2)  
         t6 = time.time() - t_init
         print("t6: ", t6)

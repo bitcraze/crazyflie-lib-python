@@ -383,9 +383,9 @@ class MotionCommander:
 
         self._set_vel_setpoint(velocity, 0.0, 0.0, rate)
 
-    def start_linear_motion(self, velocity_x_m, velocity_y_m, velocity_z_m):
+    def start_linear_motion(self, velocity_x_m, velocity_y_m, velocity_z_m, rate_yaw=0.0):
         """
-        Start a linear motion. This function returns immediately.
+        Start a linear motion with an optional yaw rate input. This function returns immediately.
 
         positive X is forward
         positive Y is left
@@ -394,10 +394,11 @@ class MotionCommander:
         :param velocity_x_m: The velocity along the X-axis (meters/second)
         :param velocity_y_m: The velocity along the Y-axis (meters/second)
         :param velocity_z_m: The velocity along the Z-axis (meters/second)
+        :param rate: The angular rate (degrees/second)
         :return:
         """
         self._set_vel_setpoint(
-            velocity_x_m, velocity_y_m, velocity_z_m, 0.0)
+            velocity_x_m, velocity_y_m, velocity_z_m, rate_yaw)
 
     def _set_vel_setpoint(self, velocity_x, velocity_y, velocity_z, rate_yaw):
         if not self._is_flying:

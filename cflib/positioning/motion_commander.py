@@ -383,7 +383,7 @@ class MotionCommander:
 
         self._set_vel_setpoint(velocity, 0.0, 0.0, rate)
 
-    def start_linear_motion(self, velocity_x_m, velocity_y_m, velocity_z_m, rate_yaw = 0.0):
+    def start_linear_motion(self, velocity_x_m, velocity_y_m, velocity_z_m, rate_yaw=0.0):
         """
         Start a linear motion. This function returns immediately.
 

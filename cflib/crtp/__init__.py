@@ -27,7 +27,6 @@
 """Scans and creates communication interfaces."""
 import logging
 import os
-import platform
 
 from .exceptions import WrongUriType
 from .prrtdriver import PrrtDriver
@@ -48,28 +47,12 @@ CLASSES = []
 def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
     """Initialize all the drivers."""
 
-    def append_cpp():
+    env = os.getenv('USE_CFLINK')
+    if env is not None and env == 'cpp':
         from .cflinkcppdriver import CfLinkCppDriver
         CLASSES.append(CfLinkCppDriver)
-
-    def append_python():
+    else:
         CLASSES.extend([RadioDriver, UsbDriver])
-
-    env = os.getenv('USE_CFLINK')
-    if env is None:  # this is default behavior
-        mach = platform.machine()  # cflinkcpp only supports x86_64
-        if mach in ['x86_64']:
-            append_cpp()
-        else:  # on non-x86_64 machines, fall-back to python
-            append_python()
-
-    else:  # if USE_CFLINK override is used, enforce it.
-        if env == 'cpp':
-            append_cpp()
-        elif env == 'python':
-            append_python()
-        else:
-            raise Exception('The cflink "{}" is not supported'.format(env))
 
     if enable_debug_driver:
         logger.warn('The debug driver is no longer supported!')

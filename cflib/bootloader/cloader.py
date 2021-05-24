@@ -73,6 +73,7 @@ class Cloader:
         self.targets = {}
         self.mapping = None
         self._available_boot_uri = ('radio://0/110/2M/E7E7E7E7E7', 'radio://0/0/2M/E7E7E7E7E7')
+        self._verify = True
 
     def close(self):
         """ Close the link """
@@ -311,13 +312,47 @@ class Cloader:
                     self.mapping.append(page)
                     page += m[(2 * i) + 1]
 
+    def read_buffer(self, target_id, page, address) -> bytearray:
+        """ read data from a buffer on the Crazyflie """
+        pk = None
+        retry_counter = 5
+        while ((not pk or pk.header != 0xFF or
+                struct.unpack('<BB', pk.data[0:2]) != (target_id, 0x15)) and
+                retry_counter >= 0):
+            pk = CRTPPacket()
+            pk.set_header(0xFF, 0xFF)
+            pk.data = struct.pack('<BBHH', target_id, 0x15, page, address)
+            self.link.send_packet(pk)
+
+            pk = self.link.receive_packet(1)
+            retry_counter -= 1
+
+        if retry_counter < 0:
+            return None
+
+        return pk.data[6:]
+
+    def _verify_upload(self, sent: bytearray, target_id, page, address):
+        if not self._verify:
+            return
+
+        readback = self.read_buffer(target_id, page, address)
+        if sent != readback[:len(sent)]:
+            logging.warning(
+                ("""mismatch @ {}:{}:{}!\n"""
+                 """{} != {}""".format(target_id, page, address, sent, readback)))
+        else:
+            logger.warning('match @ {}:{}:{}!'.format(target_id, page, address))
+
     def upload_buffer(self, target_id, page, address, buff):
         """Upload data into a buffer on the Crazyflie"""
         # print len(buff)
         count = 0
         pk = CRTPPacket()
         pk.set_header(0xFF, 0xFF)
-        pk.data = struct.pack('=BBHH', target_id, 0x14, page, address)
+
+        current_address = address
+        pk.data = struct.pack('=BBHH', target_id, 0x14, page, current_address)
 
         for i in range(0, len(buff)):
             pk.data.append(buff[i])
@@ -326,13 +361,17 @@ class Cloader:
 
             if count > 24:
                 self.link.send_packet(pk)
+                self._verify_upload(pk.data[6:], target_id, page,
+                                    current_address)
                 count = 0
+                current_address = i + address + 1
                 pk = CRTPPacket()
                 pk.set_header(0xFF, 0xFF)
                 pk.data = struct.pack('=BBHH', target_id, 0x14, page,
-                                      i + address + 1)
+                                      current_address)
 
         self.link.send_packet(pk)
+        self._verify_upload(pk.data[6:], target_id, page, current_address)
 
     def read_flash(self, addr=0xFF, page=0x00):
         """Read back a flash page from the Crazyflie and return it"""

@@ -333,12 +333,11 @@ class Cloader:
         return pk.data[6:]
 
     def _verify_upload(self, sent: bytearray, target_id, page, address):
-        if not self._verify:
-            return
+        return
 
         readback = self.read_buffer(target_id, page, address)
         if sent != readback[:len(sent)]:
-            logging.warning(
+            logger.warning(
                 ("""mismatch @ {}:{}:{}!\n"""
                  """{} != {}""".format(target_id, page, address, sent, readback)))
         else:
@@ -375,9 +374,8 @@ class Cloader:
 
     def read_flash(self, addr=0xFF, page=0x00):
         """Read back a flash page from the Crazyflie and return it"""
-        buff = bytearray()
-
         page_size = self.targets[addr].page_size
+        buff = bytearray()
 
         for i in range(0, int(math.ceil(page_size / 25.0))):
             pk = None
@@ -399,6 +397,29 @@ class Cloader:
 
         # For some reason we get one byte extra here...
         return buff[0:page_size]
+
+    def verify_flash(self, addr, image, start_page, page_count):
+        page_size = self.targets[addr].page_size
+        first_page = self.targets[addr].start_page
+
+        for i in range(page_count):
+            page = start_page + i
+            index = (page - first_page) * page_size
+            readback = self.read_flash(addr, page)
+
+            if index >= len(image):
+                end = len(image) - 1
+            else:
+                end = index + page_size
+
+            part = image[index: end]
+            if part != readback:
+                logger.warning('mismatch @ {}:{}:'.format(addr, page))
+                for i, b in enumerate(part):
+                    if readback[i] != b:
+                        logger.warning('@ index: {}, expected: {}, found {}'.format(i, part[i], readback[i]))
+            else:
+                logger.warning('match @ {}:{}!'.format(addr, page))
 
     def write_flash(self, addr, page_buffer, target_page, page_count):
         """Initiate flashing of data in the buffer to flash."""

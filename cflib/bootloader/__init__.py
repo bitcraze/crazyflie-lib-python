@@ -292,19 +292,18 @@ class Bootloader:
 
         # For each page
         ctr = 0  # Buffer counter
+        current_buffer = None
         for i in range(0, int((len(image) - 1) / t_data.page_size) + 1):
             if self.terminate_flashing_cb and self.terminate_flashing_cb():
                 raise Exception('Flashing terminated')
 
             # Load the buffer
             if ((i + 1) * t_data.page_size) > len(image):
-                self._cload.upload_buffer(
-                    t_data.addr, ctr, 0, image[i * t_data.page_size:])
+                current_buffer = image[i * t_data.page_size:]
             else:
-                self._cload.upload_buffer(
-                    t_data.addr, ctr, 0,
-                    image[i * t_data.page_size: (i + 1) * t_data.page_size])
+                current_buffer = image[i * t_data.page_size: (i + 1) * t_data.page_size]
 
+            self._cload.upload_buffer(t_data.addr, ctr, 0, current_buffer)
             ctr += 1
 
             if self.progress_cb:
@@ -345,6 +344,9 @@ class Bootloader:
                               self._cload.error_code)
                     raise Exception()
 
+                self._cload.verify_flash(t_data.addr, image,
+                                         start_page + i - (ctr - 1), ctr)
+
                 ctr = 0
 
         if ctr > 0:
@@ -370,6 +372,9 @@ class Bootloader:
                     print('\nError during flash operation (code %d). Maybe'
                           ' wrong radio link?' % self._cload.error_code)
                 raise Exception()
+
+            self._cload.verify_flash(t_data.addr, image,
+                                     start_page + i - (ctr - 1), ctr)
 
     def _get_platform_id(self):
         """Get platform identifier used in the zip manifest for curr copter"""

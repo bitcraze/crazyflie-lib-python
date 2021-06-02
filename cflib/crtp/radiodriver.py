@@ -357,14 +357,16 @@ class RadioDriver(CRTPDriver):
             except queue.Empty:
                 return None
 
-    def send_packet(self, pk):
+    def send_packet(self, pk) -> bool:
         """ Send the packet pk though the link """
         try:
             self.out_queue.put(pk, True, 2)
+            return True
         except queue.Full:
             if self.link_error_callback:
                 self.link_error_callback('RadioDriver: Could not send packet'
                                          ' to copter')
+            return False
 
     def pause(self):
         self._thread.stop()

@@ -52,7 +52,8 @@ class PositionHlCommander:
                  x=0.0, y=0.0, z=0.0,
                  default_velocity=0.5,
                  default_height=0.5,
-                 controller=CONTROLLER_PID):
+                 controller=CONTROLLER_PID,
+                 default_landing_height=0.0):
         """
         Construct an instance of a PositionHlCommander
 
@@ -63,6 +64,7 @@ class PositionHlCommander:
         :param default_velocity: the default velocity to use
         :param default_height: the default height to fly at
         :param controller: Which underlying controller to use
+        :param default_landing_height: If taking off/landing on objects higher than ground, set this parameter to ensure proper landing
         """
         if isinstance(crazyflie, SyncCrazyflie):
             self._cf = crazyflie.cf
@@ -84,6 +86,8 @@ class PositionHlCommander:
         self._is_flying = False
 
         self._init_time = time.time()
+
+        self._default_landing_height = default_landing_height
 
     def take_off(self, height=DEFAULT, velocity=DEFAULT):
         """
@@ -117,7 +121,7 @@ class PositionHlCommander:
         time.sleep(duration_s)
         self._z = height
 
-    def land(self, velocity=DEFAULT):
+    def land(self, velocity=DEFAULT, landing_height=0.0):
         """
         Go straight down and turn off the motors.
 
@@ -128,10 +132,10 @@ class PositionHlCommander:
         :return:
         """
         if self._is_flying:
-            duration_s = self._z / self._velocity(velocity)
-            self._hl_commander.land(0, duration_s)
+            duration_s = (self._z - landing_height) / self._velocity(velocity)
+            self._hl_commander.land(landing_height, duration_s)
             time.sleep(duration_s)
-            self._z = 0.0
+            self._z = landing_height
 
             self._hl_commander.stop()
             self._is_flying = False
@@ -141,7 +145,7 @@ class PositionHlCommander:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.land()
+        self.land(landing_height=self._default_landing_height)
 
     def left(self, distance_m, velocity=DEFAULT):
         """
@@ -291,3 +295,10 @@ class PositionHlCommander:
         if height is self.DEFAULT:
             return self._default_height
         return height
+ 
+    def set_landing_height(self, landing_height):
+        """
+        Set the landing height to a specific value
+        Use this function to land on objects that are at non-zero height                
+        """
+        self._default_landing_height = landing_height

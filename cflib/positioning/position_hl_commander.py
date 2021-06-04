@@ -64,7 +64,7 @@ class PositionHlCommander:
         :param default_velocity: the default velocity to use
         :param default_height: the default height to fly at
         :param controller: Which underlying controller to use
-        :param default_landing_height: If taking off/landing on objects higher than ground, set this parameter to ensure proper landing
+        :param default_landing_height: Landing height (zero if not specified); for landing on objects off the ground
         """
         if isinstance(crazyflie, SyncCrazyflie):
             self._cf = crazyflie.cf
@@ -299,6 +299,6 @@ class PositionHlCommander:
     def set_landing_height(self, landing_height):
         """
         Set the landing height to a specific value
-        Use this function to land on objects that are at non-zero height                
+        Use this function to land on objects that are at non-zero height
         """
         self._default_landing_height = landing_height

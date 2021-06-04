@@ -121,7 +121,7 @@ class PositionHlCommander:
         time.sleep(duration_s)
         self._z = height
 
-    def land(self, velocity=DEFAULT, landing_height=0.0):
+    def land(self, velocity=DEFAULT, landing_height=DEFAULT):
         """
         Go straight down and turn off the motors.
 
@@ -132,6 +132,7 @@ class PositionHlCommander:
         :return:
         """
         if self._is_flying:
+            landing_height = self._landing_height(landing_height)
             duration_s = (self._z - landing_height) / self._velocity(velocity)
             self._hl_commander.land(landing_height, duration_s)
             time.sleep(duration_s)
@@ -145,7 +146,7 @@ class PositionHlCommander:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.land(landing_height=self._default_landing_height)
+        self.land()
 
     def left(self, distance_m, velocity=DEFAULT):
         """
@@ -295,6 +296,11 @@ class PositionHlCommander:
         if height is self.DEFAULT:
             return self._default_height
         return height
+
+    def _landing_height(self, landing_height):
+        if landing_height is self.DEFAULT:
+            return self._default_landing_height
+        return landing_height
  
     def set_landing_height(self, landing_height):
         """

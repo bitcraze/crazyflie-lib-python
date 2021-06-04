@@ -135,7 +135,7 @@ class TestPositionHlCommander(unittest.TestCase):
         self.sut.set_landing_height(0.4)
 
         # Test
-        self.sut.land(velocity=0.6, landing_height=0.4)
+        self.sut.land(velocity=0.6)
 
         # Assert
         duration = (1.0 - 0.4) / 0.6

@@ -190,7 +190,6 @@ logging.basicConfig(level=logging.ERROR)
 def take_off_simple(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
         time.sleep(3)
-        mc.stop()
 
 def param_deck_flow(name, value_str):
     ...
@@ -300,9 +299,9 @@ Let's integrate some logging to this as well. Add the following log config right
 
 
 ```python
-    lg_stab = LogConfig(name='Position', period_in_ms=10)
-    lg_stab.add_variable('stateEstimate.x', 'float')
-    lg_stab.add_variable('stateEstimate.y', 'float')
+    logconf = LogConfig(name='Position', period_in_ms=10)
+    logconf.add_variable('stateEstimate.x', 'float')
+    logconf.add_variable('stateEstimate.y', 'float')
     cf = scf.cf
     cf.log.add_config(logconf)
     logconf.data_received_cb.add_callback(log_pos_callback)
@@ -402,7 +401,7 @@ if __name__ == '__main__':
 There is a reason why we put the position_estimate to catch the positions from the log, since we would like to now do something with it!
 
 ## Back and forth with limits
-Lets start with a new function above `move_in_box_limit(scf)`:
+Lets start with a new function above `move_linear_simple(scf)`:
 
 ```python
 def move_box_limit(scf):
@@ -421,7 +420,7 @@ Now we will add some behavior in the while loop:
 ```python
 def move_box_limit(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
-        start_forward()
+        mc.start_forward()
 
         while (1):
             if position_estimate[0] > BOX_LIMIT:
@@ -462,10 +461,6 @@ position_estimate = [0, 0]
 
 def move_box_limit(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
-        body_x_cmd = 0.2
-        body_y_cmd = 0.1
-        max_vel = 0.2
-
         while (1):
             if position_estimate[0] > BOX_LIMIT:
                 mc.start_back()

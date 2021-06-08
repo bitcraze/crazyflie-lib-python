@@ -101,7 +101,13 @@ class Cloader:
         ts = time.time()
         while time.time() - ts < timeout:
             pk = self.link.receive_packet(2)
-            if pk is not None and pk.port == 15 and pk.channel == 3 and len(pk.data) > 3:
+            if pk is None:
+                continue
+
+            if pk.port == 15 and pk.channel == 3 and len(pk.data) > 3:
+                if struct.unpack('<BB', pk.data[0:2]) != (target_id, 0xFF):
+                    continue
+
                 address = "B1" + binascii.hexlify(pk.data[2:6][::-1]).upper().decode('utf8')
 
                 pk = CRTPPacket(0xFF, [target_id, 0xF0, 0x00])
@@ -132,6 +138,8 @@ class Cloader:
                 self.link.send_packet(pk)
                 continue
             if answer.port == 15 and answer.channel == 3 and len(answer.data) > 2:
+                if struct.unpack('<BB', pk.data[0:2]) != (target_id, 0xFF):
+                    continue
                 pk = CRTPPacket(0xff, [target_id, 0xf0, 0x01])
                 self.link.send_packet(pk)
                 time.sleep(1)

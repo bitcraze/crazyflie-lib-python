@@ -112,7 +112,7 @@ class Cloader:
 
                 pk = CRTPPacket(0xFF, [target_id, 0xF0, 0x00])
                 self.link.send_packet(pk)
-                time.sleep(0.2)
+                time.sleep(0.5)
 
                 self.link.close()
                 self.link = cflib.crtp.get_link_driver(f'radio://0/0/2M/{address}?safelink=0')

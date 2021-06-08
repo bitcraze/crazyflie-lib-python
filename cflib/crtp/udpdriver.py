@@ -28,8 +28,10 @@
 See udpserver.py for the protocol"""
 import queue
 import re
+import socket
 import struct
-from socket import socket
+
+from urllib.parse import urlparse
 
 from .crtpdriver import CRTPDriver
 from .crtpstack import CRTPPacket
@@ -50,7 +52,7 @@ class UdpDriver(CRTPDriver):
             raise WrongUriType('Not an UDP URI')
 
         self.queue = queue.Queue()
-        self.socket = socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.addr = ('localhost', 7777)
         self.socket.connect(self.addr)
 

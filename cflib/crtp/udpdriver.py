@@ -56,8 +56,7 @@ class UdpDriver(CRTPDriver):
         self.addr = (parse.hostname, parse.port)
         self.socket.connect(self.addr)
 
-        # Add this to the server clients list
-        self.socket.sendto('\xFF\x01\x01\x01', self.addr)
+        self.socket.sendto('\xFF\x01\x01\x01'.encode(), self.addr)
 
     def receive_packet(self, time=0):
         data, addr = self.socket.recvfrom(1024)
@@ -92,11 +91,11 @@ class UdpDriver(CRTPDriver):
         data = ''.join(chr(v) for v in (raw + (cksum,)))
 
         # print tuple(data)
-        self.socket.sendto(data, self.addr)
+        self.socket.sendto(data.encode(), self.addr)
 
     def close(self):
         # Remove this from the server clients list
-        self.socket.sendto('\xFF\x01\x02\x02', self.addr)
+        self.socket.sendto('\xFF\x01\x02\x02'.encode(), self.addr)
 
     def get_name(self):
         return 'udp'

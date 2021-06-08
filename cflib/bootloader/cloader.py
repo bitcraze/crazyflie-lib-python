@@ -219,6 +219,7 @@ class Cloader:
                 break
 
         time.sleep(0.1)
+        return True
 
     def open_bootloader_uri(self, uri=None):
         if self.link:

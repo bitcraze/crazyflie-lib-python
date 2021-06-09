@@ -67,6 +67,15 @@ def slightly_more_complex_usage():
             pc.go_to(0.0, 0.0)
 
 
+def land_on_elevated_surface():
+    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        with PositionHlCommander(scf, default_height=0.5, default_velocity=0.2, default_landing_height=0.35) as pc:
+            # fly onto a landing platform at non-zero height (ex: from floor to desk, etc)
+            pc.forward(1.0)
+            pc.left(1.0)
+            # land() will be called on context exit, gradually lowering to default_lanidng_height, then stoppig motors
+
+
 def simple_sequence():
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         with PositionHlCommander(scf) as pc:
@@ -81,3 +90,4 @@ if __name__ == '__main__':
 
     simple_sequence()
     # slightly_more_complex_usage()
+    # land_on_elevated_surface()

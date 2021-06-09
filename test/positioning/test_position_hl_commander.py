@@ -128,6 +128,20 @@ class TestPositionHlCommander(unittest.TestCase):
         self.commander_mock.land.assert_called_with(0.0, duration)
         sleep_mock.assert_called_with(duration)
 
+    def test_that_it_goes_down_to_set_landing_height_on_landing(
+            self, sleep_mock):
+        # Fixture
+        self.sut.take_off(height=1.0)
+        self.sut.set_landing_height(0.4)
+
+        # Test
+        self.sut.land(velocity=0.6)
+
+        # Assert
+        duration = (1.0 - 0.4) / 0.6
+        self.commander_mock.land.assert_called_with(0.4, duration)
+        sleep_mock.assert_called_with(duration)
+
     def test_that_it_takes_off_and_lands_as_context_manager(
             self, sleep_mock):
         # Fixture

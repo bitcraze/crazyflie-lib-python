@@ -37,7 +37,6 @@ import cflib.crtp
 from .boottypes import Target
 from .boottypes import TargetTypes
 from cflib.crtp.crtpstack import CRTPPacket
-from cflib.crtp.crtpstack import CRTPPort
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Cloader']
@@ -92,84 +91,60 @@ class Cloader:
             return res[0]
         return None
 
-    def reset_to_bootloader(self, target_id):
-        retry_counter = 5
-        pk = CRTPPacket()
-        pk.set_header(0xFF, 0xFF)
-        pk.data = (target_id, 0xFF)
+    def reset_to_bootloader(self, target_id: int) -> bool:
+        pk = CRTPPacket(0xFF, [target_id, 0xFF])
         self.link.send_packet(pk)
+        address = None
 
-        got_answer = False
-        while(not got_answer and retry_counter >= 0):
-            pk = self.link.receive_packet(1)
-            if pk and pk.header == 0xFF:
-                try:
-                    data = struct.unpack('<BB', pk.data[0:2])
-                    got_answer = data == (target_id, 0xFF)
-                except struct.error:
-                    # Failed unpacking, retry
-                    pass
-
-        if got_answer:
-            new_address = (0xb1,) + struct.unpack('<BBBB', pk.data[2:6][::-1])
-
-            # The reset packet arrival cannot be checked.
-            # Send it more than one time to increase the chances it makes it.
-            for _ in range(10):
-                pk = CRTPPacket()
-                pk.set_header(0xFF, 0xFF)
-                pk.data = (target_id, 0xF0, 0x00)
-                self.link.send_packet(pk)
-
-            addr = int(binascii.hexlify(
-                struct.pack('B' * 5, *new_address)), 16)
-
-            time.sleep(1)
-            self.link.close()
-            time.sleep(0.2)
-            self.link = cflib.crtp.get_link_driver(
-                'radio://0/0/2M/{:X}?safelink=0'.format(addr))
-
-            return True
-        else:
-            return False
-
-    def reset_to_firmware(self, target_id):
-        """ Reset to firmware
-        The parameter cpuid shall correspond to the device to reset.
-
-        Return true if the reset has been done
-        """
-        # The fake CPU ID is legacy from the Crazyflie 1.0
-        # In order to reset the CPU id had to be sent, but this
-        # was removed before launching it. But the length check is
-        # still in the bootloader. So to work around this bug so
-        # some extra data needs to be sent.
-        fake_cpu_id = (1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-        # Send the reset to bootloader request
-        pk = CRTPPacket()
-        pk.set_header(0xFF, 0xFF)
-        pk.data = (target_id, 0xFF) + fake_cpu_id
-        self.link.send_packet(pk)
-
-        # Wait to ack the reset ...
-        pk = None
-        while True:
+        timeout = 5  # seconds
+        ts = time.time()
+        while time.time() - ts < timeout:
             pk = self.link.receive_packet(2)
-            if not pk:
-                return False
+            if pk is None:
+                continue
+            if pk.port == 15 and pk.channel == 3 and len(pk.data) > 3:
+                if struct.unpack('<BB', pk.data[0:2]) != (target_id, 0xFF):
+                    continue
 
-            if (pk.header == 0xFF and struct.unpack(
-                    'B' * len(pk.data), pk.data)[:2] == (target_id, 0xFF)):
-                # Difference in CF1 and CF2 (CPU ID)
-                if target_id == 0xFE:
-                    pk.data = (target_id, 0xF0, 0x01)
-                else:
-                    pk.data = (target_id, 0xF0) + fake_cpu_id
+                address = 'B1' + binascii.hexlify(pk.data[2:6][::-1]).upper().decode('utf8')
+
+                pk = CRTPPacket(0xFF, [target_id, 0xF0, 0x00])
                 self.link.send_packet(pk)
-                break
+                time.sleep(0.5)
+
+                self.link.close()
+                self.link = cflib.crtp.get_link_driver(f'radio://0/0/2M/{address}?safelink=0')
+                time.sleep(0.5)
+                return True
+
+        return False
+
+    def reset_to_firmware(self, target_id: int) -> bool:
+        """ Reset to firmware
+        The parameter target_id corresponds to the device to reset.
+
+        Return True if the reset has been done, False on timeout
+        """
+        pk = CRTPPacket(0xFF, [target_id, 0xFF])
+        self.link.send_packet(pk)
+
+        timeout = 5  # seconds
+        ts = time.time()
+        while time.time() - ts < timeout:
+            answer = self.link.receive_packet(2)
+            if answer is None:
+                self.link.send_packet(pk)
+                continue
+            if answer.port == 15 and answer.channel == 3 and len(answer.data) > 2:
+                if struct.unpack('<BB', pk.data[0:2]) != (target_id, 0xFF):
+                    continue
+                pk = CRTPPacket(0xff, [target_id, 0xf0, 0x01])
+                self.link.send_packet(pk)
+                time.sleep(1)
+                return True
 
         time.sleep(0.1)
+        return False
 
     def open_bootloader_uri(self, uri=None):
         if self.link:

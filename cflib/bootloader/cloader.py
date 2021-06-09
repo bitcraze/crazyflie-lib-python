@@ -134,55 +134,6 @@ class Cloader:
         else:
             return False
 
-    def reset_to_bootloader1(self, cpu_id):
-        """ Reset to the bootloader
-        The parameter cpuid shall correspond to the device to reset.
-
-        Return true if the reset has been done and the contact with the
-        bootloader is established.
-        """
-        # Send an echo request and wait for the answer
-        # Mainly aim to bypass a bug of the crazyflie firmware that prevents
-        # reset before normal CRTP communication
-        pk = CRTPPacket()
-        pk.port = CRTPPort.LINKCTRL
-        pk.data = (1, 2, 3) + cpu_id
-        self.link.send_packet(pk)
-
-        pk = None
-        while True:
-            pk = self.link.receive_packet(2)
-            if not pk:
-                return False
-
-            if pk.port == CRTPPort.LINKCTRL:
-                break
-
-        # Send the reset to bootloader request
-        pk = CRTPPacket()
-        pk.set_header(0xFF, 0xFF)
-        pk.data = (0xFF, 0xFE) + cpu_id
-        self.link.send_packet(pk)
-
-        # Wait to ack the reset ...
-        pk = None
-        while True:
-            pk = self.link.receive_packet(2)
-            if not pk:
-                return False
-
-            if pk.port == 0xFF and tuple(pk.data) == (0xFF, 0xFE) + cpu_id:
-                pk.data = (0xFF, 0xF0) + cpu_id
-                self.link.send_packet(pk)
-                break
-
-        time.sleep(0.1)
-        self.link.close()
-        self.link = cflib.crtp.get_link_driver(self.clink_address)
-        # time.sleep(0.1)
-
-        return self._update_info()
-
     def reset_to_firmware(self, target_id):
         """ Reset to firmware
         The parameter cpuid shall correspond to the device to reset.

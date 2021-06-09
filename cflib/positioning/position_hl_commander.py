@@ -301,7 +301,7 @@ class PositionHlCommander:
         if landing_height is self.DEFAULT:
             return self._default_landing_height
         return landing_height
- 
+
     def set_landing_height(self, landing_height):
         """
         Set the landing height to a specific value

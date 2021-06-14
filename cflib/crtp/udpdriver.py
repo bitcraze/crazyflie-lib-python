@@ -28,8 +28,9 @@
 See udpserver.py for the protocol"""
 import queue
 import re
+import socket
 import struct
-from socket import socket
+from urllib.parse import urlparse
 
 from .crtpdriver import CRTPDriver
 from .crtpstack import CRTPPacket
@@ -45,23 +46,23 @@ class UdpDriver(CRTPDriver):
         None
 
     def connect(self, uri, linkQualityCallback, linkErrorCallback):
-        # check if the URI is a radio URI
         if not re.search('^udp://', uri):
             raise WrongUriType('Not an UDP URI')
 
+        parse = urlparse(uri)
+
         self.queue = queue.Queue()
-        self.socket = socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.addr = ('localhost', 7777)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.addr = (parse.hostname, parse.port)
         self.socket.connect(self.addr)
 
-        # Add this to the server clients list
-        self.socket.sendto('\xFF\x01\x01\x01', self.addr)
+        self.socket.sendto('\xFF\x01\x01\x01'.encode(), self.addr)
 
     def receive_packet(self, time=0):
         data, addr = self.socket.recvfrom(1024)
 
         if data:
-            data = struct.unpack('b' * (len(data) - 1), data[0:len(data) - 1])
+            data = struct.unpack('B' * (len(data) - 1), data[0:len(data) - 1])
             pk = CRTPPacket()
             pk.port = data[0]
             pk.data = data[1:]
@@ -90,11 +91,11 @@ class UdpDriver(CRTPDriver):
         data = ''.join(chr(v) for v in (raw + (cksum,)))
 
         # print tuple(data)
-        self.socket.sendto(data, self.addr)
+        self.socket.sendto(data.encode(), self.addr)
 
     def close(self):
         # Remove this from the server clients list
-        self.socket.sendto('\xFF\x01\x02\x02', self.addr)
+        self.socket.sendto('\xFF\x01\x02\x02'.encode(), self.addr)
 
     def get_name(self):
         return 'udp'

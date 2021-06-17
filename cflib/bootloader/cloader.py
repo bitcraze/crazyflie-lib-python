@@ -156,16 +156,15 @@ class Cloader:
                 self.clink_address + '?safelink=0')
 
     def check_link_and_get_info(self, target_id=0xFF):
-        """Try to get a connection with the bootloader by requesting info
-        5 times. This let roughly 10 seconds to boot the copter ..."""
-        for _ in range(0, 5):
-            if self._update_info(target_id):
-                if self._in_boot_cb:
-                    self._in_boot_cb.call(True, self.targets[
-                        target_id].protocol_version)
-                if self._info_cb:
-                    self._info_cb.call(self.targets[target_id])
-                return True
+        """Try to get a connection with the bootloader ...
+           update_info has a timeout of 10 seconds """
+        if self._update_info(target_id):
+            if self._in_boot_cb:
+                self._in_boot_cb.call(True, self.targets[
+                    target_id].protocol_version)
+            if self._info_cb:
+                self._info_cb.call(self.targets[target_id])
+            return True
         return False
 
     def request_info_update(self, target_id):
@@ -186,32 +185,37 @@ class Cloader:
         pk.data = (target_id, 0x10)
         self.link.send_packet(pk)
 
-        # Wait for the answer
-        pk = self.link.receive_packet(2)
+        timeout = 10  # seconds
+        ts = time.time()
+        while time.time() - ts < timeout:
+            # Wait for the answer
+            answer = self.link.receive_packet(2)
+            if answer is None:
+                self.link.send_packet(pk)
 
-        if (pk and pk.header == 0xFF and struct.unpack('<BB', pk.data[0:2]) ==
-                (target_id, 0x10)):
-            tab = struct.unpack('BBHHHH', pk.data[0:10])
-            cpuid = struct.unpack('B' * 12, pk.data[10:22])
-            if target_id not in self.targets:
-                self.targets[target_id] = Target(target_id)
-            self.targets[target_id].addr = target_id
-            if len(pk.data) > 22:
-                self.targets[target_id].protocol_version = pk.datat[22]
-                self.protocol_version = pk.datat[22]
-            self.targets[target_id].page_size = tab[2]
-            self.targets[target_id].buffer_pages = tab[3]
-            self.targets[target_id].flash_pages = tab[4]
-            self.targets[target_id].start_page = tab[5]
-            self.targets[target_id].cpuid = '%02X' % cpuid[0]
-            for i in cpuid[1:]:
-                self.targets[target_id].cpuid += ':%02X' % i
+            if (answer and answer.header == 0xFF and struct.unpack('<BB', answer.data[0:2]) ==
+                    (target_id, 0x10)):
+                tab = struct.unpack('BBHHHH', answer.data[0:10])
+                cpuid = struct.unpack('B' * 12, answer.data[10:22])
+                if target_id not in self.targets:
+                    self.targets[target_id] = Target(target_id)
+                self.targets[target_id].addr = target_id
+                if len(answer.data) > 22:
+                    self.targets[target_id].protocol_version = answer.datat[22]
+                    self.protocol_version = answer.datat[22]
+                self.targets[target_id].page_size = tab[2]
+                self.targets[target_id].buffer_pages = tab[3]
+                self.targets[target_id].flash_pages = tab[4]
+                self.targets[target_id].start_page = tab[5]
+                self.targets[target_id].cpuid = '%02X' % cpuid[0]
+                for i in cpuid[1:]:
+                    self.targets[target_id].cpuid += ':%02X' % i
 
-            if (self.protocol_version == 0x10 and
-                    target_id == TargetTypes.STM32):
-                self._update_mapping(target_id)
+                if (self.protocol_version == 0x10 and
+                        target_id == TargetTypes.STM32):
+                    self._update_mapping(target_id)
 
-            return True
+                return True
 
         return False
 

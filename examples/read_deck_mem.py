@@ -44,7 +44,7 @@ class ReadMem:
         self._cf = Crazyflie(rw_cache='./cache')
         self.read_mem = False
 
-        with SyncCrazyflie(uri, cf=cf) as scf:
+        with SyncCrazyflie(uri, cf=self._cf) as scf:
             mems = scf.cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
 
             count = len(mems)

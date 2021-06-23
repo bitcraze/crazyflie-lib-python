@@ -25,6 +25,7 @@
 Example of how to read the memory from a deck
 """
 import logging
+import sys
 from threading import Event
 
 import cflib.crtp  # noqa
@@ -40,8 +41,10 @@ logging.basicConfig(level=logging.ERROR)
 class ReadMem:
     def __init__(self, uri):
         self._event = Event()
+        self._cf = Crazyflie(rw_cache='./cache')
+        self.read_mem = False
 
-        with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        with SyncCrazyflie(uri, cf=cf) as scf:
             mems = scf.cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
 
             count = len(mems)
@@ -83,6 +86,7 @@ class ReadMem:
 
     def read_complete(self, addr, data):
         print(data)
+        self.read_mem = True
         self._event.set()
 
     def read_failed(self, addr):
@@ -97,4 +101,6 @@ if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
-    ReadMem(uri)
+    rm = ReadMem(uri)
+    if not rm.read_mem:
+        sys.exit(1)

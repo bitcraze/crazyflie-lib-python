@@ -53,6 +53,9 @@ class OWExample:
         # Create a Crazyflie object without specifying any cache dirs
         self._cf = Crazyflie()
 
+        # Keep track on if ow memory was detected
+        self.read_ow = False
+
         # Connect some callbacks from the Crazyflie API
         self._cf.connected.add_callback(self._connected)
         self._cf.disconnected.add_callback(self._disconnected)
@@ -76,6 +79,11 @@ class OWExample:
         mems = self._cf.mem.get_mems(MemoryElement.TYPE_1W)
         self._mems_to_update = len(mems)
         print('Found {} 1-wire memories'.format(len(mems)))
+
+        if len(mems) == 0:
+            self.read_ow = True
+            self._cf.close_link()
+
         for m in mems:
             print('Updating id={}'.format(m.id))
             m.update(self._data_updated)
@@ -97,6 +105,7 @@ class OWExample:
 
         self._mems_to_update -= 1
         if self._mems_to_update == 0:
+            self.read_ow = True
             self._cf.close_link()
 
     def _stab_log_error(self, logconf, msg):
@@ -132,9 +141,14 @@ if __name__ == '__main__':
 
     # The Crazyflie lib doesn't contain anything to keep the application alive,
     # so this is where your application should do something. In our case we
-    # are just waiting until we are disconnected.
+    # are just waiting until we are disconnected, or timeout.
+    timeout = 5  # seconds
+    ts = time.time()
     try:
-        while le.is_connected:
+        while le.is_connected and (time.time() - ts < timeout):
             time.sleep(1)
     except KeyboardInterrupt:
+        sys.exit(1)
+
+    if not le.read_ow:
         sys.exit(1)

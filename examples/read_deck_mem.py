@@ -55,6 +55,10 @@ class ReadMem:
             mem.query_decks(self.query_complete_cb)
             self._event.wait()
 
+            if len(mem.deck_memories.items()) == 0:
+                print('No memories to read')
+                self.read_mem = True
+
             for id, deck_mem in mem.deck_memories.items():
                 print('-----')
                 print('Deck id:', id)

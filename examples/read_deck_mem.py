@@ -42,7 +42,6 @@ class ReadMem:
     def __init__(self, uri):
         self._event = Event()
         self._cf = Crazyflie(rw_cache='./cache')
-        self.read_mem = False
 
         with SyncCrazyflie(uri, cf=self._cf) as scf:
             mems = scf.cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
@@ -57,7 +56,6 @@ class ReadMem:
 
             if len(mem.deck_memories.items()) == 0:
                 print('No memories to read')
-                self.read_mem = True
 
             for id, deck_mem in mem.deck_memories.items():
                 print('-----')
@@ -90,7 +88,6 @@ class ReadMem:
 
     def read_complete(self, addr, data):
         print(data)
-        self.read_mem = True
         self._event.set()
 
     def read_failed(self, addr):
@@ -106,5 +103,3 @@ if __name__ == '__main__':
     cflib.crtp.init_drivers()
 
     rm = ReadMem(uri)
-    if not rm.read_mem:
-        sys.exit(1)

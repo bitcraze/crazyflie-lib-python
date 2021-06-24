@@ -47,6 +47,7 @@ then you need to import the libraries for cflib:
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.utils import uri_helper
 ```
 
 * The cflib.crtp module is for scanning for Crazyflies instances.
@@ -62,10 +63,10 @@ After these imports, start the script with:
 
 ```python
 # URI to the Crazyflie to connect to
-uri = 'radio://0/80/2M/E7E7E7E7E7'
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 ```
 
-This is the radio uri of the crazyflie, and currently displaying the default. It should be probably fine but if you do not know what the uri of your Crazyfie is you can check that with an usb cable and looking at the config ([here](https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-configuration) are the instructions)
+This is the radio uri of the crazyflie, it can be set by setting the environment variable `CFLIB_URI`, if not set it uses the default. It should be probably fine but if you do not know what the uri of your Crazyfie is you can check that with an usb cable and looking at the config ([here](https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-configuration) are the instructions)
 
 ## Main
 

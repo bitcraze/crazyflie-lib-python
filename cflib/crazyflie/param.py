@@ -278,6 +278,17 @@ class Param():
             pk.data += struct.pack(element.pytype, value_nr)
             self.param_updater.request_param_setvalue(pk)
 
+    def get_value(self, complete_name):
+        """
+        Read a value for the supplied parameter. If None then the value has
+        not been updated yet, retry.
+        """
+        try:
+            [group, name] = complete_name.split('.')
+            return self.values[group][name]
+        except KeyError:
+            return None
+
 
 class _ParamUpdater(Thread):
     """This thread will update params through a queue to make sure that we

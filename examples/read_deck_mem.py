@@ -25,7 +25,6 @@
 Example of how to read the memory from a deck
 """
 import logging
-import sys
 from threading import Event
 
 import cflib.crtp  # noqa

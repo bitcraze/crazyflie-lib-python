@@ -242,14 +242,21 @@ class Bootloader:
             self._internal_flash(artifact, i + 1, len(artifacts))
 
     def reset_to_firmware(self) -> bool:
+        status = False
         if self._cload.protocol_version == BootVersion.CF2_PROTO_VER:
-            return self._cload.reset_to_firmware(TargetTypes.NRF51)
+            status = self._cload.reset_to_firmware(TargetTypes.NRF51)
         else:
-            return self._cload.reset_to_firmware(TargetTypes.STM32)
+            status = self._cload.reset_to_firmware(TargetTypes.STM32)
+
+        if status:
+            self.close()
+
+        return status
 
     def close(self):
         if self._cload:
             self._cload.close()
+            self._cload.link = None
 
     def _internal_flash(self, artifact: FlashArtifact, current_file_number=1, total_files=1):
 

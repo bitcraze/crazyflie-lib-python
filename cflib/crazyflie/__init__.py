@@ -165,15 +165,11 @@ class Crazyflie():
     def _platform_info_fetched(self):
         self.log.refresh_toc(self._log_toc_updated_cb, self._toc_cache)
 
-    def _param_values_updated_cb(self):
-        logger.info('Param values finished updating')
-        self.connected_ts = datetime.datetime.now()
-        self.connected.call(self.link_uri)
-
     def _param_toc_updated_cb(self):
         """Called when the param TOC has been fully updated"""
         logger.info('Param TOC finished updating')
-        self.param.all_updated.add_callback(self._param_values_updated_cb)
+        self.connected_ts = datetime.datetime.now()
+        self.connected.call(self.link_uri)
         # Trigger the update for all the parameters
         self.param.request_update_of_all_params()
 

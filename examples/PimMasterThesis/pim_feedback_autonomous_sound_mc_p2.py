@@ -12,7 +12,7 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E703'
+uri_1 = 'radio://0/80/2M/E7E7E7E701'
 uri_2 = 'radio://0/80/2M/E7E7E7E704'
 uri_3 = 'radio://0/80/2M/E7E7E7E705'
 
@@ -338,7 +338,7 @@ def position_state_change_p3(event1, event2):
         # if abs((position_estimate_2[2]+0.2)-position_estimate_1[2]) > d_th or abs((position_estimate_3[2]+0.2)-position_estimate_1[2]) > d_th:
         #     # print("---Wrist Sensor is outbounded---")
         #     event1.set()
-        if abs((position_estimate_2[2]+0.2)-position_estimate_1[2]) < d_th or abs((position_estimate_3[2]+0.2)-position_estimate_1[2]) < d_th:
+        if abs((position_estimate_2[2]+0.2)-position_estimate_1[2]) < d_th or abs((position_estimate_3[2]+0.3)-position_estimate_1[2]) < d_th:
             event1.clear()
             # print("Hello _Pim!!!!")
         

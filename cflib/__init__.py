@@ -45,7 +45,7 @@ for i in available:
     print "Found Crazyflie on URI [%s] with comment [%s]"
             % (available[0], available[1])
 
-Example of connecting to a Crazyflie with know URI (radio dongle 0 and
+Example of connecting to a Crazyflie with known URI (radio dongle 0 and
 radio channel 125):
 cf = Crazyflie()
 cf.open_link("radio://0/125")

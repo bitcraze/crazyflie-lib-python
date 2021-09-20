@@ -58,6 +58,7 @@ WAIT_WRITE = 3
 TOC_CHANNEL = 0
 READ_CHANNEL = 1
 WRITE_CHANNEL = 2
+MISC_CHANNEL = 3
 
 # One element entry in the TOC
 
@@ -246,6 +247,25 @@ class Param():
         """
         self.param_updater.request_param_update(
             self.toc.get_element_id(complete_name))
+
+    def set_value_raw(self, complete_name, type, value):
+        """
+        Set a parameter value using the complete name and the type. Does not
+        need to have received the TOC.
+        """
+        char_array = bytes(complete_name.replace('.', '\0') + '\0', 'utf-8')
+        len_array = len(char_array)
+
+        # This gives us the type for the struct.pack
+        pytype = ParamTocElement.types[type][1][1]
+
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
+        pk.data = struct.pack(f'<B{len_array}sB{pytype}', 0, char_array, type, value)
+
+        # We will not get an update callback when using raw (MISC_CHANNEL)
+        # so just send.
+        self.cf.send_packet(pk)
 
     def set_value(self, complete_name, value):
         """

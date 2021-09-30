@@ -22,12 +22,15 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
 import time
+from collections import namedtuple
 from threading import Thread
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
+
+SwarmPosition = namedtuple('SwarmPosition', 'x y z')
 
 
 class _Factory:
@@ -76,6 +79,7 @@ class Swarm:
         """
         self._cfs = {}
         self._is_open = False
+        self._positions = dict()
 
         for uri in uris:
             self._cfs[uri] = factory.construct(uri)
@@ -110,6 +114,27 @@ class Swarm:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_links()
 
+    def __get_estimated_position(self, scf):
+        log_config = LogConfig(name='stateEstimate', period_in_ms=10)
+        log_config.add_variable('stateEstimate.x', 'float')
+        log_config.add_variable('stateEstimate.y', 'float')
+        log_config.add_variable('stateEstimate.z', 'float')
+
+        with SyncLogger(scf, log_config) as logger:
+            for entry in logger:
+                x = entry[1]['stateEstimate.x']
+                y = entry[1]['stateEstimate.y']
+                z = entry[1]['stateEstimate.z']
+                self._positions[scf.cf.link_uri] = SwarmPosition(x, y, z)
+                break
+
+    def get_estimated_positions(self):
+        """
+        Return a dict of the SwarmPosition namedtuple with the estimated
+        (x, y, z) of each Crazyflie in the swarm. The URIs are the key.
+        """
+        self.parallel_safe(self.__get_estimated_position)
+        return self._positions
 
     def __wait_for_position_estimator(self, scf):
         log_config = LogConfig(name='Kalman Variance', period_in_ms=500)

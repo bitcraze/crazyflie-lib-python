@@ -304,8 +304,8 @@ class Param():
 
     def get_value(self, complete_name, timeout=60):
         """
-        Read a value for the supplied parameter. If None then the value has
-        not been updated yet, retry.
+        Read a value for the supplied parameter. This can block for a period
+        of time if the parameter values have not been fetched yet.
         """
         if not self._initialized.wait(timeout=60):
             raise Exception('Connection timed out')

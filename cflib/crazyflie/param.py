@@ -34,6 +34,7 @@ the parameters that can be written/read.
 import logging
 import struct
 from queue import Queue
+from threading import Event
 from threading import Lock
 from threading import Thread
 
@@ -133,6 +134,7 @@ class Param():
 
         self.all_updated = Caller()
         self.is_updated = False
+        self._initialized = Event()
 
         self.values = {}
 
@@ -189,6 +191,7 @@ class Param():
             # updated callbacks)
             if self._check_if_all_updated() and not self.is_updated:
                 self.is_updated = True
+                self._initialized.set()
                 self.all_updated.call()
         else:
             logger.debug('Variable id [%d] not found in TOC', var_id)
@@ -237,6 +240,7 @@ class Param():
         """Disconnected callback from Crazyflie API"""
         self.param_updater.close()
         self.is_updated = False
+        self._initialized.clear()
         # Clear all values from the previous Crazyflie
         self.toc = Toc()
         self.values = {}
@@ -298,16 +302,16 @@ class Param():
             pk.data += struct.pack(element.pytype, value_nr)
             self.param_updater.request_param_setvalue(pk)
 
-    def get_value(self, complete_name):
+    def get_value(self, complete_name, timeout=60):
         """
         Read a value for the supplied parameter. If None then the value has
         not been updated yet, retry.
         """
-        try:
-            [group, name] = complete_name.split('.')
-            return self.values[group][name]
-        except KeyError:
-            return None
+        if not self._initialized.wait(timeout=60):
+            raise Exception('Connection timed out')
+
+        [group, name] = complete_name.split('.')
+        return self.values[group][name]
 
 
 class _ParamUpdater(Thread):

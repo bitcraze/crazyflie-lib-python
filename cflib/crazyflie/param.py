@@ -252,11 +252,14 @@ class Param():
         self.param_updater.request_param_update(
             self.toc.get_element_id(complete_name))
 
-    def set_value_raw(self, complete_name, type, value):
+    def set_value_raw(self, complete_name, type, value, wait=False):
         """
         Set a parameter value using the complete name and the type. Does not
         need to have received the TOC.
         """
+        if wait:
+            if not self._initialized.wait(timeout=60):
+                raise Exception('Connection timed out')
         char_array = bytes(complete_name.replace('.', '\0') + '\0', 'utf-8')
         len_array = len(char_array)
 
@@ -275,6 +278,9 @@ class Param():
         """
         Set the value for the supplied parameter.
         """
+        if not self._initialized.wait(timeout=60):
+            raise Exception('Connection timed out')
+
         element = self.toc.get_element_by_complete_name(complete_name)
 
         if not element:

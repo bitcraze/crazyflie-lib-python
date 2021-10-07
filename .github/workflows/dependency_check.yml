@@ -1,0 +1,17 @@
+name: Dependency check
+
+on:
+  on:
+  workflow_dispatch:
+  schedule:
+  - cron:  '0 2 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: python:latest
+
+    steps:
+      - name: install lib
+        run: pip install -e .

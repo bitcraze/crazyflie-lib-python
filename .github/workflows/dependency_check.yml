@@ -13,5 +13,7 @@ jobs:
       image: python:latest
 
     steps:
+      - uses: actions/checkout@v2
+
       - name: install lib
         run: pip install -e .

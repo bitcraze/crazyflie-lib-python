@@ -6,10 +6,10 @@ on:
   - cron:  '0 2 * * *'
 
 jobs:
-  latest-python:
+  python-3.9:
     runs-on: ubuntu-latest
     container:
-      image: python:latest
+      image: python:3.9
 
     steps:
       - uses: actions/checkout@v2

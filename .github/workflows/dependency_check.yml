@@ -19,11 +19,11 @@ jobs:
 
   minimum-python:
     runs-on: ubuntu-latest
-      container:
-        image: python:3.6
+    container:
+      image: python:3.6
 
-      steps:
-        - uses: actions/checkout@v2
+    steps:
+      - uses: actions/checkout@v2
 
-        - name: install lib
-          run: pip install -e .
+      - name: install lib
+        run: pip install -e .

@@ -39,16 +39,20 @@ The two main uses-cases are scanning for Crazyflies available on a
 communication link and opening a communication link to a Crazyflie.
 
 Example of scanning for available Crazyflies on all communication links:
+```python
 cflib.crtp.init_drivers()
 available = cflib.crtp.scan_interfaces()
 for i in available:
     print "Found Crazyflie on URI [%s] with comment [%s]"
             % (available[0], available[1])
+```
 
 Example of connecting to a Crazyflie with known URI (radio dongle 0 and
 radio channel 125):
+```python
 cf = Crazyflie()
 cf.open_link("radio://0/125")
 ...
 cf.close_link()
+```
 """

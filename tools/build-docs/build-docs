@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+scriptDir=$(dirname $0)
+cflibDir=$scriptDir/../../cflib
+apiRefDir=$scriptDir/../../docs/api
+templateDir=$apiRefDir/template
+
+mkdir -p $apiRefDir
+mkdir -p $scriptDir/tmp
+
+[ -n "$API_REF_BASE" ] || {
+    export API_REF_BASE=$(readlink -fn $apiRefDir)
+}
+pdoc3 --force $cflibDir --output-dir $apiRefDir --template-dir $templateDir

@@ -46,9 +46,9 @@ from .loco_memory_2 import LocoMemory2
 from .memory_element import MemoryElement
 from .memory_tester import MemoryTester
 from .ow_element import OWElement
-from .trajectory_memory import Poly4D
-from .trajectory_memory import CompressedStart
 from .trajectory_memory import CompressedSegment
+from .trajectory_memory import CompressedStart
+from .trajectory_memory import Poly4D
 from .trajectory_memory import TrajectoryMemory
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort

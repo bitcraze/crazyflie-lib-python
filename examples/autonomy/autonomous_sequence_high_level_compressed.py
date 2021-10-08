@@ -37,9 +37,9 @@ import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.high_level_commander import HighLevelCommander
 from cflib.crazyflie.log import LogConfig
-from cflib.crazyflie.mem import MemoryElement
-from cflib.crazyflie.mem import CompressedStart
 from cflib.crazyflie.mem import CompressedSegment
+from cflib.crazyflie.mem import CompressedStart
+from cflib.crazyflie.mem import MemoryElement
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.utils import uri_helper

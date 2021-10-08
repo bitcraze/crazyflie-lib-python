@@ -113,7 +113,8 @@ class CompressedSegment(_CompressedBase):
         self.yaw = element_yaw
 
     def pack(self):
-        element_types = (self._encode_type(self.x) << 0) | (self._encode_type(self.y) << 2) | (self._encode_type(self.z) << 4) | (self._encode_type(self.yaw) << 6)
+        element_types = (self._encode_type(self.x) << 0) | (self._encode_type(self.y) << 2) | (
+            self._encode_type(self.z) << 4) | (self._encode_type(self.yaw) << 6)
         duration_ms = int(self.duration * 1000.0)
 
         data = bytearray()
@@ -129,7 +130,7 @@ class CompressedSegment(_CompressedBase):
     def _validate(self, element):
         length = len(element)
         if length != 0 and length != 1 and length != 3 and length != 7:
-            raise Exception("length of element must be 0, 1, 3, or 7")
+            raise Exception('length of element must be 0, 1, 3, or 7')
 
     def _encode_type(self, element):
         if len(element) == 0:

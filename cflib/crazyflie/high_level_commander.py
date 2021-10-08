@@ -52,7 +52,9 @@ class HighLevelCommander():
     ALL_GROUPS = 0
 
     TRAJECTORY_LOCATION_MEM = 1
+
     TRAJECTORY_TYPE_POLY4D = 0
+    TRAJECTORY_TYPE_POLY4D_COMPRESSED = 1
 
     def __init__(self, crazyflie=None):
         """
@@ -177,20 +179,21 @@ class HighLevelCommander():
                                       trajectory_id,
                                       time_scale))
 
-    def define_trajectory(self, trajectory_id, offset, n_pieces):
+    def define_trajectory(self, trajectory_id, offset, n_pieces, type=TRAJECTORY_TYPE_POLY4D):
         """
         Define a trajectory that has previously been uploaded to memory.
 
         :param trajectory_id: The id of the trajectory
         :param offset: offset in uploaded memory
         :param n_pieces: Nr of pieces in the trajectory
+        :param type: The type of trajectory data; TRAJECTORY_TYPE_POLY4D or TRAJECTORY_TYPE_POLY4D_COMPRESSED
         :return:
         """
         self._send_packet(struct.pack('<BBBBIB',
                                       self.COMMAND_DEFINE_TRAJECTORY,
                                       trajectory_id,
                                       self.TRAJECTORY_LOCATION_MEM,
-                                      self.TRAJECTORY_TYPE_POLY4D,
+                                      type,
                                       offset,
                                       n_pieces))
 

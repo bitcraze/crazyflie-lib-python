@@ -24,10 +24,56 @@
 %>
 
 <%!
+    import re
     def deflist(s):
+        param_re = r':param (.*):'
+        params_found = False
+        in_param = False
+        desc = str()
+
+        #
+        # Here we try to turn the docstring parameters into a markdown table
+        #
+        # :param param1: description1
+        # :param param2: desccription2
+        #                description2 continues
+        # :param param3:
+        #
+        # into:
+        #
+        # #### Parameters
+        #
+        # | Name   | Description |
+        # | ----   | ----------- |
+        # | param1 | decription1 |
+        # | param2 | description2 description2 continues |
+        # | param3 | |
+        #
         out = str()
         for line in s.splitlines():
-            out += line + '\n'
+            match = re.match(param_re, line)
+            if match is not None:
+                if not params_found:
+                    params_found = True
+                    out += h(4, 'Parameters') + '\n'
+                    out += '\n' + '| Name | Description |' + '\n'
+                    out +=        '| ---- | ----------- |' + '\n'
+
+                if in_param:
+                    out += f'{desc} |' + '\n'
+
+                in_param = True
+                out += f'| {match.group(1)} | '
+                desc = line.replace(match.group(0), '')
+
+            elif in_param:
+                desc += line
+            else:
+                out += line + '\n'
+
+        if in_param:
+            out += f'{desc} |' + '\n'
+
         return out
 %>
 

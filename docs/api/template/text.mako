@@ -5,7 +5,7 @@
         if name == 'cflib':
             return 'The CFLib API reference'
         else:
-            return heading + ' ' + name
+            return name.split('.')[-1]
 %>
 
 <%!

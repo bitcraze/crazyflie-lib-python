@@ -78,14 +78,6 @@ params = {
 }
 
 
-def reset_estimator(scf):
-    cf = scf.cf
-    cf.param.set_value('kalman.resetEstimation', '1')
-    time.sleep(0.1)
-    cf.param.set_value('kalman.resetEstimation', '0')
-    time.sleep(2)
-
-
 def poshold(cf, t, z):
     steps = t * 10
 
@@ -146,5 +138,5 @@ if __name__ == '__main__':
 
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
-        swarm.parallel(reset_estimator)
+        swarm.reset_estimators()
         swarm.parallel(run_sequence, args_dict=params)

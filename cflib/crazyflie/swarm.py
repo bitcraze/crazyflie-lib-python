@@ -21,10 +21,16 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
+import time
+from collections import namedtuple
 from threading import Thread
 
 from cflib.crazyflie import Crazyflie
+from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.crazyflie.syncLogger import SyncLogger
+
+SwarmPosition = namedtuple('SwarmPosition', 'x y z')
 
 
 class _Factory:
@@ -73,6 +79,7 @@ class Swarm:
         """
         self._cfs = {}
         self._is_open = False
+        self._positions = dict()
 
         for uri in uris:
             self._cfs[uri] = factory.construct(uri)
@@ -106,6 +113,77 @@ class Swarm:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_links()
+
+    def __get_estimated_position(self, scf):
+        log_config = LogConfig(name='stateEstimate', period_in_ms=10)
+        log_config.add_variable('stateEstimate.x', 'float')
+        log_config.add_variable('stateEstimate.y', 'float')
+        log_config.add_variable('stateEstimate.z', 'float')
+
+        with SyncLogger(scf, log_config) as logger:
+            for entry in logger:
+                x = entry[1]['stateEstimate.x']
+                y = entry[1]['stateEstimate.y']
+                z = entry[1]['stateEstimate.z']
+                self._positions[scf.cf.link_uri] = SwarmPosition(x, y, z)
+                break
+
+    def get_estimated_positions(self):
+        """
+        Return a dict of the SwarmPosition namedtuple with the estimated
+        (x, y, z) of each Crazyflie in the swarm. The URIs are the key.
+        """
+        self.parallel_safe(self.__get_estimated_position)
+        return self._positions
+
+    def __wait_for_position_estimator(self, scf):
+        log_config = LogConfig(name='Kalman Variance', period_in_ms=500)
+        log_config.add_variable('kalman.varPX', 'float')
+        log_config.add_variable('kalman.varPY', 'float')
+        log_config.add_variable('kalman.varPZ', 'float')
+
+        var_y_history = [1000] * 10
+        var_x_history = [1000] * 10
+        var_z_history = [1000] * 10
+
+        threshold = 0.001
+
+        with SyncLogger(scf, log_config) as logger:
+            for log_entry in logger:
+                data = log_entry[1]
+
+                var_x_history.append(data['kalman.varPX'])
+                var_x_history.pop(0)
+                var_y_history.append(data['kalman.varPY'])
+                var_y_history.pop(0)
+                var_z_history.append(data['kalman.varPZ'])
+                var_z_history.pop(0)
+
+                min_x = min(var_x_history)
+                max_x = max(var_x_history)
+                min_y = min(var_y_history)
+                max_y = max(var_y_history)
+                min_z = min(var_z_history)
+                max_z = max(var_z_history)
+
+                if (max_x - min_x) < threshold and (
+                        max_y - min_y) < threshold and (
+                        max_z - min_z) < threshold:
+                    break
+
+    def __reset_estimator(self, scf):
+        cf = scf.cf
+        cf.param.set_value('kalman.resetEstimation', '1')
+        time.sleep(0.1)
+        cf.param.set_value('kalman.resetEstimation', '0')
+        self.__wait_for_position_estimator(scf)
+
+    def reset_estimators(self):
+        """
+        Reset estimator on all members of the swarm and wait for a stable
+        positions.
+        """
+        self.parallel_safe(self.__reset_estimator)
 
     def sequential(self, func, args_dict=None):
         """

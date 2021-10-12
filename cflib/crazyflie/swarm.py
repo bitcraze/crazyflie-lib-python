@@ -195,6 +195,7 @@ class Swarm:
         the args_dict. The dictionary is keyed on URI.
 
         Example:
+        ```python
         def my_function(scf, optional_param0, optional_param1)
             ...
 
@@ -205,7 +206,8 @@ class Swarm:
         }
 
 
-        self.sequential(my_function, args_dict)
+        swarm.sequential(my_function, args_dict)
+        ```
 
         :param func: the function to execute
         :param args_dict: parameters to pass to the function

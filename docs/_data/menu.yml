@@ -13,6 +13,7 @@
     - {page_id: crazyradio_lib}
 - title: Development
   subs:
+    - {page_id: api_reference}
     - {page_id: matlab}
     - {page_id: eeprom}
     - {page_id: uart_communication}

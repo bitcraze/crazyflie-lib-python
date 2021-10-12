@@ -1,4 +1,7 @@
 {
   "version": "1.0",
-  "environmentReq": ["python3"]
+  "environmentReq": {
+    "build": ["python3"],
+    "build-docs": ["doxygen"]
+  }
 }

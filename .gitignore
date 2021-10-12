@@ -15,3 +15,6 @@ venv*
 
 #jekyll generated pages
 docs/.jekyll-metadata
+docs/api/cflib/*
+tools/build-docs/.local/*
+docs/api/cflib/index.md

@@ -56,3 +56,6 @@ cf.open_link("radio://0/125")
 cf.close_link()
 ```
 """
+__pdoc__ = {}
+__pdoc__['cflib.localization'] = False
+__pdoc__['cflib.crtp.cflinkcppdriver'] = False

@@ -11,4 +11,17 @@ mkdir -p $scriptDir/tmp
 [ -n "$API_REF_BASE" ] || {
     export API_REF_BASE=$(readlink -fn $apiRefDir)
 }
+
+#
+# If cflib is not installed (mostly its dependencies) then pdoc3 cannot
+# traverse the library and get docstrings.
+#
+# The rewriting of HOME is a hack to make this work in a bare-bone Docker
+# environment.
+#
+pip3 show cflib > /dev/null 2>&1 || {  # this will run if cflib is not found
+    HOME=$scriptDir pip3 install --user --upgrade pip
+    HOME=$scriptDir pip3 install --user -e $scriptDir/../../
+}
+
 pdoc3 --force $cflibDir --output-dir $apiRefDir --template-dir $templateDir

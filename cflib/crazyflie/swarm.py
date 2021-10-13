@@ -130,8 +130,8 @@ class Swarm:
 
     def get_estimated_positions(self):
         """
-        Return a dict of the SwarmPosition namedtuple with the estimated
-        (x, y, z) of each Crazyflie in the swarm. The URIs are the key.
+        Return a `dict`, keyed by URI and with the SwarmPosition namedtuples as
+        value, with the estimated (x, y, z) of each Crazyflie in the swarm.
         """
         self.parallel_safe(self.__get_estimated_position)
         return self._positions
@@ -181,7 +181,7 @@ class Swarm:
     def reset_estimators(self):
         """
         Reset estimator on all members of the swarm and wait for a stable
-        positions.
+        positions. Blocks until position estimators finds a position.
         """
         self.parallel_safe(self.__reset_estimator)
 
@@ -192,7 +192,8 @@ class Swarm:
         The first argument of the function that is passed in will be a
         SyncCrazyflie instance connected to the Crazyflie to operate on.
         A list of optional parameters (per Crazyflie) may follow defined by
-        the args_dict. The dictionary is keyed on URI.
+        the `args_dict`. The dictionary is keyed on URI and has a list of
+        parameters as value.
 
         Example:
         ```python
@@ -223,10 +224,10 @@ class Swarm:
         threads are joined at the end. Exceptions raised by the threads are
         ignored.
 
-        For a description of the arguments, see sequential()
+        For a more detailed description of the arguments, see `sequential()`
 
-        :param func:
-        :param args_dict:
+        :param func: the function to execute
+        :param args_dict: parameters to pass to the function
         """
         try:
             self.parallel_safe(func, args_dict)
@@ -240,10 +241,10 @@ class Swarm:
         threads are joined at the end and if one or more of the threads raised
         an exception this function will also raise an exception.
 
-        For a description of the arguments, see sequential()
+        For a more detailed description of the arguments, see `sequential()`
 
-        :param func:
-        :param args_dict:
+        :param func: the function to execute
+        :param args_dict: parameters to pass to the function
         """
         threads = []
         reporter = self.Reporter()

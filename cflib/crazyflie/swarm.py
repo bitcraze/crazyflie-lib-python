@@ -278,7 +278,7 @@ class Swarm:
         args = [scf]
 
         if args_dict:
-            args += args_dict[uri]
+            args.append(args_dict[uri])
 
         return args
 

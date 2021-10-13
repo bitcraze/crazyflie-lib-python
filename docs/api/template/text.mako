@@ -20,6 +20,11 @@
     from pathlib import Path
     def linkify(name, module, base_module):
         link = module.url(relative_to=base_module).replace('html', 'md')
+        # we do not support hashes in uri right now
+        index = link.find('#')
+        if index > 0:
+            link = link[:index]
+
         return f'[{name}]({link})'
 %>
 

@@ -25,6 +25,11 @@
         if index > 0:
             link = link[:index]
 
+        # we do not support linkin to builtins
+        index = link.find('.ext')
+        if index > 0:
+            return name
+
         return f'[{name}]({link})'
 %>
 

@@ -28,6 +28,15 @@ The synchronous Crazyflie class is a wrapper around the "normal" Crazyflie
 class. It handles the asynchronous nature of the Crazyflie API and turns it
 into blocking function. It is useful for simple scripts that performs tasks
 as a sequence of events.
+
+Example:
+```python
+with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+    with PositionHlCommander(scf, default_height=0.5, default_velocity=0.2) as pc:
+        # fly onto a landing platform at non-zero height (ex: from floor to desk, etc)
+        pc.forward(1.0)
+        pc.left(1.0)
+```
 """
 import logging
 from threading import Event

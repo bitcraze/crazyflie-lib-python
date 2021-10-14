@@ -59,8 +59,8 @@ class MotionCommander:
         """
         Construct an instance of a MotionCommander
 
-        :param crazyflie: a Crazyflie or SyncCrazyflie instance
-        :param default_height: the default height to fly at
+        :param crazyflie: A Crazyflie or SyncCrazyflie instance
+        :param default_height: The default height to fly at
         """
         if isinstance(crazyflie, SyncCrazyflie):
             self._cf = crazyflie.cf
@@ -80,9 +80,9 @@ class MotionCommander:
         Do not call this function if you use the with keyword. Take off is
         done automatically when the context is created.
 
-        :param height: the height (meters) to hover at. None uses the default
+        :param height: The height (meters) to hover at. None uses the default
                        height set when constructed.
-        :param velocity: the velocity (meters/second) when taking off
+        :param velocity: The velocity (meters/second) when taking off
         :return:
         """
         if self._is_flying:
@@ -132,8 +132,8 @@ class MotionCommander:
         """
         Go left
 
-        :param distance_m: the distance to travel (meters)
-        :param velocity: the velocity of the motion (meters/second)
+        :param distance_m: The distance to travel (meters)
+        :param velocity: The velocity of the motion (meters/second)
         :return:
         """
         self.move_distance(0.0, distance_m, 0.0, velocity)
@@ -142,8 +142,8 @@ class MotionCommander:
         """
         Go right
 
-        :param distance_m: the distance to travel (meters)
-        :param velocity: the velocity of the motion (meters/second)
+        :param distance_m: The distance to travel (meters)
+        :param velocity: The velocity of the motion (meters/second)
         :return:
         """
         self.move_distance(0.0, -distance_m, 0.0, velocity)
@@ -152,8 +152,8 @@ class MotionCommander:
         """
         Go forward
 
-        :param distance_m: the distance to travel (meters)
-        :param velocity: the velocity of the motion (meters/second)
+        :param distance_m: The distance to travel (meters)
+        :param velocity: The velocity of the motion (meters/second)
         :return:
         """
         self.move_distance(distance_m, 0.0, 0.0, velocity)
@@ -162,8 +162,8 @@ class MotionCommander:
         """
         Go backwards
 
-        :param distance_m: the distance to travel (meters)
-        :param velocity: the velocity of the motion (meters/second)
+        :param distance_m: The distance to travel (meters)
+        :param velocity: The velocity of the motion (meters/second)
         :return:
         """
         self.move_distance(-distance_m, 0.0, 0.0, velocity)
@@ -172,8 +172,8 @@ class MotionCommander:
         """
         Go up
 
-        :param distance_m: the distance to travel (meters)
-        :param velocity: the velocity of the motion (meters/second)
+        :param distance_m: The distance to travel (meters)
+        :param velocity: The velocity of the motion (meters/second)
         :return:
         """
         self.move_distance(0.0, 0.0, distance_m, velocity)
@@ -182,8 +182,8 @@ class MotionCommander:
         """
         Go down
 
-        :param distance_m: the distance to travel (meters)
-        :param velocity: the velocity of the motion (meters/second)
+        :param distance_m: The distance to travel (meters)
+        :param velocity: The velocity of the motion (meters/second)
         :return:
         """
         self.move_distance(0.0, 0.0, -distance_m, velocity)
@@ -259,7 +259,7 @@ class MotionCommander:
         :param distance_x_m: The distance to travel along the X-axis (meters)
         :param distance_y_m: The distance to travel along the Y-axis (meters)
         :param distance_z_m: The distance to travel along the Z-axis (meters)
-        :param velocity: the velocity of the motion (meters/second)
+        :param velocity: The velocity of the motion (meters/second)
         :return:
         """
         distance = math.sqrt(distance_x_m * distance_x_m +

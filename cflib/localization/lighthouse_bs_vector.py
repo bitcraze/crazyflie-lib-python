@@ -38,9 +38,9 @@ class LighthouseBsVector:
     def __init__(self, lh_v1_horiz_angle, lh_v1_vert_angle):
         """
         Initialize from lighthouse V1 angles
-        :param lh_v1_horiz_angle: horizontal sweep angle, 0 straight forward. Right (seen from the bs) is negative,
+        :param lh_v1_horiz_angle: Horizontal sweep angle, 0 straight forward. Right (seen from the bs) is negative,
                                   left is positive
-        :param lh_v1_vert_angle: vertical sweep angle, 0 straight forward. Down is negative, up is positive.
+        :param lh_v1_vert_angle: Vertical sweep angle, 0 straight forward. Down is negative, up is positive.
         """
         self._lh_v1_horiz_angle = lh_v1_horiz_angle
         self._lh_v1_vert_angle = lh_v1_vert_angle

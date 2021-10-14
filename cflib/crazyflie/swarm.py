@@ -210,8 +210,8 @@ class Swarm:
         swarm.sequential(my_function, args_dict)
         ```
 
-        :param func: the function to execute
-        :param args_dict: parameters to pass to the function
+        :param func: The function to execute
+        :param args_dict: Parameters to pass to the function
         """
         for uri, cf in self._cfs.items():
             args = self._process_args_dict(cf, uri, args_dict)
@@ -226,8 +226,8 @@ class Swarm:
 
         For a more detailed description of the arguments, see `sequential()`
 
-        :param func: the function to execute
-        :param args_dict: parameters to pass to the function
+        :param func: The function to execute
+        :param args_dict: Parameters to pass to the function
         """
         try:
             self.parallel_safe(func, args_dict)
@@ -243,8 +243,8 @@ class Swarm:
 
         For a more detailed description of the arguments, see `sequential()`
 
-        :param func: the function to execute
-        :param args_dict: parameters to pass to the function
+        :param func: The function to execute
+        :param args_dict: Parameters to pass to the function
         """
         threads = []
         reporter = self.Reporter()

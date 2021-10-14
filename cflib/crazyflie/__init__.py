@@ -75,8 +75,8 @@ class Crazyflie():
         """
         Create the objects from this module and register callbacks.
 
-        ro_cache -- Path to read-only cache (string)
-        rw_cache -- Path to read-write cache (string)
+        @param ro_cache Path to read-only cache (string)
+        @param rw_cache Path to read-write cache (string)
         """
 
         # Called on disconnect, no matter the reason
@@ -308,9 +308,9 @@ class Crazyflie():
         """
         Send a packet through the link interface.
 
-        pk -- Packet to send
-        expect_answer -- True if a packet from the Crazyflie is expected to
-                         be sent back, otherwise false
+        @param pk Packet to send
+        @param expect_answer True if a packet from the Crazyflie is expected to
+                             be sent back, otherwise false
 
         """
 

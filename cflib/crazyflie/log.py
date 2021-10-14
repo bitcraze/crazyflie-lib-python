@@ -32,33 +32,23 @@ the variables that can be logged. Using this it's possible to add logging
 configurations where selected variables are sent to the client at a
 specified period.
 
-Terminology:
-  Log configuration - A configuration with a period and a number of variables
-                      that are present in the TOC.
-  Stored as         - The size and type of the variable as declared in the
-                      Crazyflie firmware
-  Fetch as          - The size and type that a variable should be fetched as.
-                      This does not have to be the same as the size and type
-                      it's stored as.
+#### Terminology
 
-States of a configuration:
-  Created on host - When a configuration is created the contents is checked
-                    so that all the variables are present in the TOC. If not
-                    then the configuration cannot be created.
-  Created on CF   - When the configuration is deemed valid it is added to the
-                    Crazyflie. At this time the memory constraint is checked
-                    and the status returned.
-  Started on CF   - Any added block that is not started can be started. Once
-                    started the Crazyflie will send back logdata periodically
-                    according to the specified period when it's created.
-  Stopped on CF   - Any started configuration can be stopped. The memory taken
-                    by the configuration on the Crazyflie is NOT freed, the
-                    only effect is that the Crazyflie will stop sending
-                    logdata back to the host.
-  Deleted on CF   - Any block that is added can be deleted. When this is done
-                    the memory taken by the configuration is freed on the
-                    Crazyflie. The configuration will have to be re-added to
-                    be used again.
+| Term              | Description |
+| ----------------- | ----------- |
+| <nobr>Log configuration</nobr> | A configuration with a period and a number of variables that are present in the TOC. | # noqa: E501
+| Stored as         | The size and type of the variable as declared in the Crazyflie firmware. | # noqa: E501
+| Fetch as          | The size and type that a variable should be fetched as. This does not have to be the same as the size and type it's stored as. | # noqa: E501
+
+#### States of a configuration
+
+| State             | Description |
+| ----------------- | ----------- |
+| <nobr>Created on host</nobr> | When a configuration is created the contents is checked so that all the variables are present in the TOC. If not then the configuration cannot be created. | # noqa: E501
+| <nobr>Created on CF</nobr>   | When the configuration is deemed valid it is added to the Crazyflie. At this time the memory constraint is checked and the status returned. | # noqa: E501
+| <nobr>Started on CF</nobr>   | Any added block that is not started can be started. Once started the Crazyflie will send back logdata periodically according to the specified period when it's created. | # noqa: E501
+| <nobr>Stopped on CF</nobr>   | Any started configuration can be stopped. The memory taken by the configuration on the Crazyflie is NOT freed, the only effect is that the Crazyflie will stop sending logdata back to the host. | # noqa: E501
+| <nobr>Deleted on CF</nobr>   | Any block that is added can be deleted. When this is done the memory taken by the configuration is freed on the Crazyflie. The configuration will have to be re-added to be used again. | # noqa: E501
 """
 import errno
 import logging

@@ -177,7 +177,12 @@ class TocFetcher:
             else:
                 self.state = GET_TOC_ELEMENT
                 self.requested_index = 0
-                self._request_toc_element(self.requested_index)
+                if (self.nbr_of_items > 0):
+                    self._request_toc_element(self.requested_index)
+                else:
+                    logger.debug('No TOC entries for port [%s]' % self.port)
+                    self._toc_cache.insert(self._crc, self.toc.toc)
+                    self._toc_fetch_finished()
 
         elif (self.state == GET_TOC_ELEMENT):
             # Always add new element, but only request new if it's not the

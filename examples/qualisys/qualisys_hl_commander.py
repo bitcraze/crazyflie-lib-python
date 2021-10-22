@@ -272,12 +272,11 @@ def upload_trajectory(cf, trajectory_id, trajectory):
         y = Poly4D.Poly(row[9:17])
         z = Poly4D.Poly(row[17:25])
         yaw = Poly4D.Poly(row[25:33])
-        trajectory_mem.poly4Ds.append(Poly4D(duration, x, y, z, yaw))
+        trajectory_mem.trajectory.append(Poly4D(duration, x, y, z, yaw))
         total_duration += duration
 
     Uploader().upload(trajectory_mem)
-    cf.high_level_commander.define_trajectory(trajectory_id, 0,
-                                              len(trajectory_mem.poly4Ds))
+    cf.high_level_commander.define_trajectory(trajectory_id, 0, len(trajectory_mem.trajectory))
     return total_duration
 
 

@@ -34,7 +34,7 @@ setup(
 
     install_requires=[
         'pyusb>=1.0.0b2',
-        'opencv-python-headless==4.5.1.48'
+        'opencv-python-headless~=4.5.1'
     ],
 
     # $ pip install -e .[dev]

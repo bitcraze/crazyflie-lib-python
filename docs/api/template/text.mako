@@ -2,18 +2,12 @@
 
 <%!
     def title(heading, name):
-        if name == 'cflib':
-            return 'The CFLib API reference'
-        else:
-            return name.split('.')[-1]
+        return name.split('.')[-1]
 %>
 
 <%!
     def page_id(name):
-        if name == 'cflib':
-            return 'api_reference'
-        else:
-            return name.replace('.', '-')
+        return name.replace('.', '-')
 %>
 
 <%!

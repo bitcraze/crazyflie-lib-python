@@ -4,12 +4,13 @@ scriptDir=$(dirname $0)
 cflibDir=$scriptDir/../../cflib
 apiRefDir=$scriptDir/../../docs/api
 templateDir=$apiRefDir/template
+tempDir=$scriptDir/.tmp
 
 mkdir -p $apiRefDir
-mkdir -p $scriptDir/tmp
+mkdir -p $tempDir
 
 [ -n "$API_REF_BASE" ] || {
-    export API_REF_BASE=$(readlink -fn $apiRefDir)
+    export API_REF_BASE=$(readlink -fn $tempDir)
 }
 
 #
@@ -24,4 +25,20 @@ pip3 show cflib > /dev/null 2>&1 || {  # this will run if cflib is not found
     HOME=$scriptDir pip3 install --user -e $scriptDir/../../
 }
 
-pdoc3 --force $cflibDir --output-dir $apiRefDir --template-dir $templateDir
+# Generate documentation
+pdoc3 --force $cflibDir --output-dir $tempDir --template-dir $templateDir
+
+# Modify the generated content to fit our file tree
+## Rename root file that will be included in another md file
+rootFile=$tempDir/cflib/index.md_raw
+mv $tempDir/cflib/index.md $rootFile
+## Remove the front matter at the top
+sed -i '1,4d' $rootFile
+## Links are not processed properly in the included content. Hack it by removing index.md
+sed -i s/index\.md// $rootFile
+
+# Copy to the md file tree
+cp -r $tempDir/cflib/* $apiRefDir/cflib/.
+
+# Clean up
+rm -r $tempDir

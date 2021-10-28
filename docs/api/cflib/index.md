@@ -3,8 +3,4 @@ title: API reference for CFLib
 page_id: api_reference
 ---
 
-This is a placeholder, you need to run:
-
-```
-$ ./tools/build-docs/build-docs
-```
+{% include_relative_generated index.md_raw info="Placeholder for generated file. Run `tb build-docs` to generate content." %}

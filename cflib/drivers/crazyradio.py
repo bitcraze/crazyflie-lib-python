@@ -258,7 +258,7 @@ class Crazyradio:
             self.set_data_rate(s['datarate'])
             status = self.send_packet(packet)
             if status and status.ack:
-                result = result + (s,)
+                result += (s,)
 
         return result
 
@@ -278,7 +278,7 @@ class Crazyradio:
                 self.set_channel(i)
                 status = self.send_packet(packet)
                 if status and status.ack:
-                    result = result + (i,)
+                    result += (i,)
             return result
 
     # Data transfers

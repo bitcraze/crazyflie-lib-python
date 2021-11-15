@@ -47,11 +47,27 @@ class Console:
         """
 
         self.receivedChar = Caller()
+        """
+        This member variable is used to setup a callback that will be called
+        when text is received from the CONSOLE port of CRTP (0).
+
+        Example:
+        ```python
+        [...]
+
+        def log_console(self, text):
+            self.log_file.write(text)
+
+        [...]
+
+        self.cf.console.receivedChar.add_callback(self.log_console)
+        ```
+        """
 
         self.cf = crazyflie
-        self.cf.add_port_callback(CRTPPort.CONSOLE, self.incoming)
+        self.cf.add_port_callback(CRTPPort.CONSOLE, self._incoming)
 
-    def incoming(self, packet):
+    def _incoming(self, packet):
         """
         Callback for data received from the copter.
         """

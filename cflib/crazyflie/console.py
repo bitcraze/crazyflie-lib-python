@@ -65,9 +65,9 @@ class Console:
         """
 
         self.cf = crazyflie
-        self.cf.add_port_callback(CRTPPort.CONSOLE, self.incoming)
+        self.cf.add_port_callback(CRTPPort.CONSOLE, self._incoming)
 
-    def incoming(self, packet):
+    def _incoming(self, packet):
         """
         Callback for data received from the copter.
         """

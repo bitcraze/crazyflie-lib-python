@@ -33,6 +33,12 @@ import platform
 
 import usb
 
+try:
+    if os.environ['CRTP_PCAP_LOG'] is not None:
+        from cflib.crtp.pcap import PCAPLog
+except KeyError:
+    pass
+
 __author__ = 'Bitcraze AB'
 __all__ = ['Crazyradio']
 
@@ -122,6 +128,7 @@ class Crazyradio:
         self.current_channel = None
         self.current_address = None
         self.current_datarate = None
+        self.devid = devid
 
         if device is None:
             try:
@@ -167,6 +174,15 @@ class Crazyradio:
             self.set_arc(3)
             self.set_ard_bytes(32)
             self.set_ack_enable(True)
+
+    def _log_packet(self, receive, devid, address, channel, packet):
+        try:
+            if os.environ['CRTP_PCAP_LOG'] is not None:
+                if len(packet) > 0:
+                    logger = PCAPLog.instance()
+                    logger.logCRTP(receive, devid, address, channel, packet)
+        except KeyError:
+            pass
 
     def close(self):
         if (pyusb1 is False):
@@ -295,6 +311,14 @@ class Crazyradio:
             else:
                 self.handle.write(endpoint=1, data=dataOut, timeout=1000)
                 data = self.handle.read(0x81, 64, timeout=1000)
+
+            self._log_packet(
+                False,
+                self.devid,
+                self.current_address,
+                self.current_channel,
+                dataOut
+            )
         except usb.USBError:
             pass
 
@@ -307,6 +331,15 @@ class Crazyradio:
                 ackIn.data = data[1:]
             else:
                 ackIn.retry = self.arc
+
+            if ackIn.ack:
+                self._log_packet(
+                    True,
+                    self.devid,
+                    self.current_address,
+                    self.current_channel,
+                    ackIn.data
+                )
 
         return ackIn
 

@@ -446,7 +446,7 @@ class Param():
                 else:
                     # Remove little-endian indicator ('<')
                     just_type = element.pytype[1:]
-                    stored_value, default_value = struct.unpack(f'<{just_type * 2}', pk.data[4:])
+                    default_value, stored_value = struct.unpack(f'<{just_type * 2}', pk.data[4:])
 
                 callback(complete_name,
                          PersistentParamState(

@@ -275,6 +275,9 @@ class Param():
         """
         Set the value for the supplied parameter.
         """
+        if not self._initialized.wait(timeout=60):
+            raise Exception('Connection timed out')
+
         element = self.toc.get_element_by_complete_name(complete_name)
 
         if not element:

@@ -26,7 +26,7 @@
 """
 The synchronous Crazyflie class is a wrapper around the "normal" Crazyflie
 class. It handles the asynchronous nature of the Crazyflie API and turns it
-into blocking function. It is useful for simple scripts that performs tasks
+into blocking functions. It is useful for simple scripts that performs tasks
 as a sequence of events.
 
 Example:
@@ -49,9 +49,13 @@ logger = logging.getLogger(__name__)
 class SyncCrazyflie:
 
     def __init__(self, link_uri, cf=None):
-        """ Create a synchronous Crazyflie instance with the specified
-        link_uri """
+        """
+        Create a synchronous Crazyflie instance with the specified link_uri
 
+        :param link_uri: The uri to use when connecting to the Crazyflie
+        :param cf: Optional Crazyflie instance to use, None by default. If no object is supplied, a Crazyflie instance
+         is created. This parameters is useful if you want to use a Crazyflie instance with log/param caching.
+        """
         if cf:
             self.cf = cf
         else:
@@ -60,10 +64,20 @@ class SyncCrazyflie:
         self._link_uri = link_uri
         self._connect_event = None
         self._disconnect_event = None
+        self._params_updated_event = Event()
         self._is_link_open = False
         self._error_message = None
 
     def open_link(self):
+        """
+        Open a link to a Crazyflie on the underlying Crazyflie instance.
+
+        This function is blocking and will return when the connection is established and TOCs for log and
+        parameters have been downloaded or fetched from the cache.
+
+        Note: Parameter values have not been updated when this function returns. See the wait_for_params()
+        method.
+        """
         if (self.is_link_open()):
             raise Exception('Link already open')
 
@@ -72,13 +86,36 @@ class SyncCrazyflie:
         logger.debug('Connecting to %s' % self._link_uri)
 
         self._connect_event = Event()
+        self._params_updated_event.clear()
         self.cf.open_link(self._link_uri)
         self._connect_event.wait()
         self._connect_event = None
 
         if not self._is_link_open:
             self._remove_callbacks()
+            self._params_updated_event.clear()
             raise Exception(self._error_message)
+
+    def wait_for_params(self):
+        """
+        Wait for parameter values to be updated.
+
+        During the connection sequence, parameter values are downloaded after the TOCs have been received. The
+        open_link() method will return after the TOCs have been received but before the parameter values
+        are downloaded.
+        This method will block until the parameter values are received and can be used
+        to make sure the connection sequence has terminated. In most cases this is not important, but
+        radio bandwidth will be limited while parameters are downloaded due to the communication that is going on.
+
+        Example:
+        ```python
+        with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+            scf.wait_for_params()
+            # At this point the connection sequence is finished
+        ```
+
+        """
+        self._params_updated_event.wait()
 
     def __enter__(self):
         self.open_link()
@@ -90,12 +127,16 @@ class SyncCrazyflie:
             self.cf.close_link()
             self._disconnect_event.wait()
             self._disconnect_event = None
+            self._params_updated_event.clear()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_link()
 
     def is_link_open(self):
         return self._is_link_open
+
+    def is_params_updated(self):
+        return self._params_updated_event.is_set()
 
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
@@ -120,10 +161,14 @@ class SyncCrazyflie:
         if self._disconnect_event:
             self._disconnect_event.set()
 
+    def _all_params_updated(self):
+        self._params_updated_event.set()
+
     def _add_callbacks(self):
         self.cf.connected.add_callback(self._connected)
         self.cf.connection_failed.add_callback(self._connection_failed)
         self.cf.disconnected.add_callback(self._disconnected)
+        self.cf.param.all_updated.add_callback(self._all_params_updated)
 
     def _remove_callbacks(self):
         def remove_callback(container, callback):
@@ -135,3 +180,4 @@ class SyncCrazyflie:
         remove_callback(self.cf.connected, self._connected)
         remove_callback(self.cf.connection_failed, self._connection_failed)
         remove_callback(self.cf.disconnected, self._disconnected)
+        remove_callback(self.cf.param.all_updated, self._all_params_updated)

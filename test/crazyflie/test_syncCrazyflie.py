@@ -28,6 +28,7 @@ from test.support.asyncCallbackCaller import AsyncCallbackCaller
 from unittest.mock import MagicMock
 
 from cflib.crazyflie import Crazyflie
+from cflib.crazyflie import Param
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 from cflib.utils.callbacks import Caller
@@ -56,7 +57,16 @@ class SyncCrazyflieTest(unittest.TestCase):
         )
         self.cf_mock.close_link = self.close_link_mock.trigger
 
-        self.sut = SyncCrazyflie(self.uri, self.cf_mock)
+        # Mock the behaviour that param values are updated(downloaded) after connection
+        self.param_mock = MagicMock(spec=Param)
+        self.param_mock.all_updated = Caller()
+        self.cf_mock.param = self.param_mock
+
+        # Register a callback to be called when connected. Use it to trigger a callback
+        # to trigger the call to the param.all_updated() callback
+        self.cf_mock.connected.add_callback(self._connected_callback)
+
+        self.sut = SyncCrazyflie(self.uri, cf=self.cf_mock)
 
     def test_different_underlying_cf_instances(self):
         # Fixture
@@ -107,6 +117,26 @@ class SyncCrazyflieTest(unittest.TestCase):
         with self.assertRaises(Exception):
             self.sut.open_link()
 
+    def test_wait_for_params(self):
+        # Fixture
+
+        self.sut.open_link()
+
+        # Test
+        self.sut.wait_for_params()
+
+        # Assert
+        self.assertTrue(self.sut.is_params_updated())
+
+    def test_do_not_wait_for_params(self):
+        # Fixture
+
+        # Test
+        self.sut.open_link()
+
+        # Assert
+        self.assertFalse(self.sut.is_params_updated())
+
     def test_close_link(self):
         # Fixture
         self.sut.open_link()
@@ -152,6 +182,17 @@ class SyncCrazyflieTest(unittest.TestCase):
         self.assertEqual(1, self.close_link_mock.call_count)
         self._assertAllCallbacksAreRemoved()
 
+    def test_wait_for_params_with_context_management(self):
+        # Fixture
+
+        # Test
+        with SyncCrazyflie(self.uri, cf=self.cf_mock) as sut:
+            sut.wait_for_params()
+            self.assertTrue(sut.is_params_updated())
+
+        # Assert
+        self._assertAllCallbacksAreRemoved()
+
     def test_multiple_open_close_of_link(self):
         # Fixture
 
@@ -166,7 +207,38 @@ class SyncCrazyflieTest(unittest.TestCase):
         self.assertFalse(self.sut.is_link_open())
         self._assertAllCallbacksAreRemoved()
 
+    def test_wait_for_params_with_multiple_open_close_of_link(self):
+        # Fixture
+
+        # Test
+        self.sut.open_link()
+        self.assertFalse(self.sut.is_params_updated())
+        self.sut.wait_for_params()
+        self.assertTrue(self.sut.is_params_updated())
+        self.sut.close_link()
+        self.assertFalse(self.sut.is_params_updated())
+
+        self.sut.open_link()
+        self.assertFalse(self.sut.is_params_updated())
+        self.sut.wait_for_params()
+        self.assertTrue(self.sut.is_params_updated())
+        self.sut.close_link()
+
+        # Assert
+        self.assertFalse(self.sut.is_params_updated())
+        self._assertAllCallbacksAreRemoved()
+
     def _assertAllCallbacksAreRemoved(self):
+        # Remove our probe callback
+        self.cf_mock.connected.remove_callback(self._connected_callback)
+
         self.assertEqual(0, len(self.cf_mock.connected.callbacks))
         self.assertEqual(0, len(self.cf_mock.connection_failed.callbacks))
         self.assertEqual(0, len(self.cf_mock.disconnected.callbacks))
+        self.assertEqual(0, len(self.param_mock.all_updated.callbacks))
+
+    def _connected_callback(self, uri):
+        AsyncCallbackCaller(
+            cb=self.param_mock.all_updated,
+            delay=0.2
+        ).trigger()

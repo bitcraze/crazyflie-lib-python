@@ -437,9 +437,11 @@ class Param():
 
                 is_stored = pk.data[3] == 1
                 if not is_stored:
-                    default_value = struct.unpack(f'<{element.pytype}')
+                    default_value, = struct.unpack(element.pytype, pk.data[4:])
                 else:
-                    default_value, stored_value = struct.unpack(f'<{element.pytype}*2')
+                    # Remove little-endian indicator ('<')
+                    just_type = element.pytype[1:]
+                    default_value, stored_value = struct.unpack(f'<{just_type * 2}', pk.data[4:])
 
                 callback(complete_name,
                          PersistentParamState(

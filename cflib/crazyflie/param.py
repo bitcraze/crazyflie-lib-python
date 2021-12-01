@@ -368,13 +368,13 @@ class Param():
         argument on success and with `False` as an argument on failure.
 
         @param complete_name The 'group.name' name of the parameter to store
-        @param callback Optional callback should take boolean status as arg
+        @param callback Optional callback should take `complete_name` and boolean status as arguments
         """
         element = self.toc.get_element_by_complete_name(complete_name)
 
         def new_packet_cb(pk):
             if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_CLEAR:
-                callback(pk.data[3] == 0)
+                callback(complete_name, pk.data[3] == 0)
                 self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
 
         if callback is not None:
@@ -392,13 +392,13 @@ class Param():
         argument on success, and with `False` as an argument on failure.
 
         @param complete_name The 'group.name' name of the parameter to store
-        @param callback Optional callback should take boolean status as arg
+        @param callback Optional callback should take `complete_name` and boolean status as arguments
         """
         element = self.toc.get_element_by_complete_name(complete_name)
 
         def new_packet_cb(pk):
             if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_STORE:
-                callback(pk.data[3] == 0)
+                callback(complete_name, pk.data[3] == 0)
                 self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
 
         if callback is not None:
@@ -424,14 +424,14 @@ class Param():
         | `stored_value`    | Value stored in eeprom, None if `not is_stored` |
 
         @param complete_name The 'group.name' name of the parameter to store
-        @param callback Callback, takes PersistentParamState namedtuple as arg
+        @param callback Callback, takes `complete_name` and PersistentParamState namedtuple as arg
         """
         element = self.toc.get_element_by_complete_name(complete_name)
 
         def new_packet_cb(pk):
             if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_GET_STATE:
                 if pk.data[3] == errno.ENOENT:
-                    callback(None)
+                    callback(complete_name, None)
                     self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
                     return
 
@@ -441,11 +441,13 @@ class Param():
                 else:
                     default_value, stored_value = struct.unpack(f'<{element.pytype}*2')
 
-                callback(PersistentParamState(
-                    is_stored,
-                    default_value,
-                    None if not is_stored else stored_value
-                ))
+                callback(complete_name,
+                         PersistentParamState(
+                            is_stored,
+                            default_value,
+                            None if not is_stored else stored_value
+                         )
+                )
                 self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
 
         self.cf.add_port_callback(CRTPPort.PARAM, new_packet_cb)

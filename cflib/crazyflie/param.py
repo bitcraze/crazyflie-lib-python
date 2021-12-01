@@ -443,11 +443,11 @@ class Param():
 
                 callback(complete_name,
                          PersistentParamState(
-                            is_stored,
-                            default_value,
-                            None if not is_stored else stored_value
+                             is_stored,
+                             default_value,
+                             None if not is_stored else stored_value
                          )
-                )
+                         )
                 self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
 
         self.cf.add_port_callback(CRTPPort.PARAM, new_packet_cb)

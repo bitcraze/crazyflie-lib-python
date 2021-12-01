@@ -158,9 +158,6 @@ class Param():
             self.cf, self._useV2, self._param_updated)
         self.param_updater.start()
 
-        self.extended_type_fetcher = _ExtendedTypeFetcher(self.cf, self.toc)
-        self.extended_type_fetcher.start()
-
         self.cf.disconnected.add_callback(self._disconnected)
 
         self.all_updated = Caller()
@@ -270,8 +267,10 @@ class Param():
                         extended_elements.append(element)
 
             if len(extended_elements) > 0:
-                self.extended_type_fetcher.set_callback(refresh_done_callback)
-                self.extended_type_fetcher.request_extended_types(extended_elements)
+                extended_type_fetcher = _ExtendedTypeFetcher(self.cf, self.toc)
+                extended_type_fetcher.start()
+                extended_type_fetcher.set_callback(refresh_done_callback)
+                extended_type_fetcher.request_extended_types(extended_elements)
             else:
                 refresh_done_callback()
 

@@ -22,8 +22,9 @@
 """
 Example to show the use of persistent parameters.
 
-All persistent parameters are fectched and the current state is printed out.
-Finallay the LED ring effect is set to a new value and stored.
+* All persistent parameters are fectched and the current state is printed out.
+* The LED ring effect is set to a new value and stored.
+* The LED ring effect persisted value is cleared.
 
 Note: this script will change the value of the LED ring.effect parameter
 """
@@ -35,62 +36,112 @@ import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
+import time
 
-
-uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+# uri = uri_helper.uri_from_env(default='usb://0')
+uri = uri_helper.uri_from_env(default='radio://0/30/2M/E7E7E7E7E7')
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
+
+def get_persistent_state(cf, complete_param_name):
+    wait_for_callback_event = Event()
+
+    def state_callback(complete_name, state):
+        print(f'{complete_name}: {state}')
+        wait_for_callback_event.set()
+
+    cf.param.persistent_get_state(complete_param_name, state_callback)
+    wait_for_callback_event.wait()
+
+
+def persist_parameter(cf, complete_param_name):
+    wait_for_callback_event = Event()
+
+    def is_stored_callback(complete_name, success):
+        if success:
+            print(f'Persisted {complete_name}!')
+        else:
+            print(f'Failed to persist {complete_name}!')
+        wait_for_callback_event.set()
+
+    cf.param.persistent_store(complete_param_name, callback=is_stored_callback)
+    wait_for_callback_event.wait()
+
+
+def clear_persistent_parameter(cf, complete_param_name):
+    wait_for_callback_event = Event()
+
+    def is_stored_cleared(complete_name, success):
+        if success:
+            print(f'Cleared {complete_name}!')
+        else:
+            print(f'Failed to clear {complete_name}!')
+        wait_for_callback_event.set()
+
+    cf.param.persistent_clear(complete_param_name, callback=is_stored_cleared)
+    wait_for_callback_event.wait()
+
+
+def get_all_persistent_param_names(cf):
+    persistent_params = []
+    for group_name, params in cf.param.toc.toc.items():
+        for param_name, element in params.items():
+            if element.is_persistent():
+                complete_name = group_name + '.' + param_name
+                persistent_params.append(complete_name)
+
+    return persistent_params
+
+def all_params_are_fetched():
+    print("Got all!")
 
 if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
     cf = Crazyflie(rw_cache='./cache')
+
+    fetch_all_params = Event()
+    cf.param.all_updated.add_callback(lambda: fetch_all_params.set())
+
     with SyncCrazyflie(uri, cf=cf) as scf:
-        wait_for_callback_event = Event()
+        # Wait for all parameters to be fetched
+        fetch_all_params.wait()
 
-        # Collect the names of all persistent parameters
-        persistent_params = []
-        for group_name, params in scf.cf.param.toc.toc.items():
-            for param_name, element in params.items():
-                if element.is_persistent():
-                    complete_name = group_name + '.' + param_name
-                    persistent_params.append(complete_name)
+        # Get the names of all parameters that can be persisted
+        persistent_params = get_all_persistent_param_names(scf.cf)
 
-        if len(persistent_params) == 0:
+        if not persistent_params:
             print('No persistent parameters')
             sys.exit(0)
 
-        # Get state for the persistent parameters
+        # Get the state of all persistent parameters
         print('-- All persistent parameters --')
-
-        def state_callback(complete_name, state):
-            print(complete_name, state)
-
-            persistent_params.pop(0)
-            if len(persistent_params) > 0:
-                scf.cf.param.persistent_get_state(persistent_params[0], state_callback)
-            else:
-                wait_for_callback_event.set()
-
-        wait_for_callback_event.clear()
-        # Request the state for the first parameter. The callback will pop the name from the list
-        # and request the next
-        scf.cf.param.persistent_get_state(persistent_params[0], state_callback)
-        # Wait for all parameters to be done
-        wait_for_callback_event.wait()
+        for complete_name in persistent_params:
+            get_persistent_state(scf.cf, complete_name)
 
         print()
-        print('-- Set the default LED ring effect --')
-        led_ring_param_name = 'ring.effect'
-        scf.cf.param.set_value(led_ring_param_name, 7)
+        param_name = 'ring.effect'
+        param_value = 10
 
-        def is_stored_callback():
-            print('New LED ring effect is persisted')
-            wait_for_callback_event.set()
+        print(f'Set parameter {param_name} to {param_value}')
+        scf.cf.param.set_value(param_name, param_value)
 
-        wait_for_callback_event.clear()
-        scf.cf.param.persistent_store(led_ring_param_name, callback=is_stored_callback)
-        wait_for_callback_event.wait()
+        # Wait a bit to make sure the parameter has been set
+        time.sleep(0.1)
+
+        print()
+        print("Store the new value in persistent memory")
+        persist_parameter(scf.cf, param_name)
+
+        print("The new state is:")
+        get_persistent_state(scf.cf, param_name)
+
+        print()
+        print("Clear the persisted parameter")
+        clear_persistent_parameter(scf.cf, param_name)
+
+        print("The new state is:")
+        get_persistent_state(scf.cf, param_name)

@@ -441,13 +441,13 @@ class Param():
                 else:
                     # Remove little-endian indicator ('<')
                     just_type = element.pytype[1:]
-                    default_value, stored_value = struct.unpack(f'<{just_type * 2}', pk.data[4:])
+                    stored_value, default_value = struct.unpack(f'<{just_type * 2}', pk.data[4:])
 
                 callback(complete_name,
                          PersistentParamState(
                              is_stored,
                              default_value,
-                             None if not is_stored else stored_value
+                             stored_value if is_stored else None
                          )
                          )
                 self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)

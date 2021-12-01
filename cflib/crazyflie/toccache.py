@@ -126,7 +126,7 @@ class TocCache():
             elem.ctype = str(obj['ctype'])
             elem.pytype = str(obj['pytype'])
             elem.access = obj['access']
-            if isinstance(obj, ParamTocElement):
+            if isinstance(elem, ParamTocElement):
                 elem.extended = obj['extended']
             return elem
         return obj

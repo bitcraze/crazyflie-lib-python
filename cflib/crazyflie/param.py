@@ -371,6 +371,8 @@ class Param():
         @param callback Optional callback should take `complete_name` and boolean status as arguments
         """
         element = self.toc.get_element_by_complete_name(complete_name)
+        if not element.is_persistent():
+            raise AttributeError(f"Param '{complete_name}' is not persistent")
 
         def new_packet_cb(pk):
             if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_CLEAR:
@@ -395,6 +397,8 @@ class Param():
         @param callback Optional callback should take `complete_name` and boolean status as arguments
         """
         element = self.toc.get_element_by_complete_name(complete_name)
+        if not element.is_persistent():
+            raise AttributeError(f"Param '{complete_name}' is not persistent")
 
         def new_packet_cb(pk):
             if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_STORE:
@@ -427,6 +431,8 @@ class Param():
         @param callback Callback, takes `complete_name` and PersistentParamState namedtuple as arg
         """
         element = self.toc.get_element_by_complete_name(complete_name)
+        if not element.is_persistent():
+            raise AttributeError(f"Param '{complete_name}' is not persistent")
 
         def new_packet_cb(pk):
             if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_GET_STATE:

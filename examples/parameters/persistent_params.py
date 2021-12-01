@@ -30,13 +30,13 @@ Note: this script will change the value of the LED ring.effect parameter
 """
 import logging
 import sys
+import time
 from threading import Event
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
-import time
 
 # uri = uri_helper.uri_from_env(default='usb://0')
 uri = uri_helper.uri_from_env(default='radio://0/30/2M/E7E7E7E7E7')
@@ -94,8 +94,6 @@ def get_all_persistent_param_names(cf):
 
     return persistent_params
 
-def all_params_are_fetched():
-    print("Got all!")
 
 if __name__ == '__main__':
     # Initialize the low-level drivers
@@ -133,15 +131,15 @@ if __name__ == '__main__':
         time.sleep(0.1)
 
         print()
-        print("Store the new value in persistent memory")
+        print('Store the new value in persistent memory')
         persist_parameter(scf.cf, param_name)
 
-        print("The new state is:")
+        print('The new state is:')
         get_persistent_state(scf.cf, param_name)
 
         print()
-        print("Clear the persisted parameter")
+        print('Clear the persisted parameter')
         clear_persistent_parameter(scf.cf, param_name)
 
-        print("The new state is:")
+        print('The new state is:')
         get_persistent_state(scf.cf, param_name)

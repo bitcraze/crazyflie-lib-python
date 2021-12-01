@@ -31,8 +31,10 @@ When a Crazyflie is connected it's possible to download a TableOfContent of all
 the parameters that can be written/read.
 
 """
+import errno
 import logging
 import struct
+from collections import namedtuple
 from queue import Queue
 from threading import Event
 from threading import Lock
@@ -63,6 +65,10 @@ MISC_CHANNEL = 3
 
 MISC_SETBYNAME = 0
 MISC_GET_EXTENDED_TYPE = 2
+
+PersistentParamState = namedtuple('PersistentParamState', 'is_stored default_value stored_value')
+
+MISC_PERSISTENT_GET_STATE = 4
 
 # One element entry in the TOC
 
@@ -352,6 +358,51 @@ class Param():
 
         [group, name] = complete_name.split('.')
         return self.values[group][name]
+
+    def persistent_get_state(self, complete_name, callback):
+        """
+        Get the state of the specified persistent parameter. The state will be
+        returned in the supplied callback. The state is represented as a
+        namedtuple with members: `is_stored`, `default_value` and
+        `stored_value`. The state is `None` if the parameter is not persistent
+        or if something goes wrong.
+
+        | Member            | Description                                     |
+        | ----------------- | ----------------------------------------------- |
+        | `is_stored`       | `True` if the value is stored to eeprom         |
+        | `default_value`   | The default value supplied by the firmware      |
+        | `stored_value`    | Value stored in eeprom, None if `not is_stored` |
+
+        @param complete_name The 'group.name' name of the parameter to store
+        @param callback Callback, takes PersistentParamState namedtuple as arg
+        """
+        element = self.toc.get_element_by_complete_name(complete_name)
+
+        def new_packet_cb(pk):
+            if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_GET_STATE:
+                if pk.data[3] == errno.ENOENT:
+                    callback(None)
+                    self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+                    return
+
+                is_stored = pk.data[3] == 1
+                if not is_stored:
+                    default_value = struct.unpack(f'<{element.pytype}')
+                else:
+                    default_value, stored_value = struct.unpack(f'<{element.pytype}*2')
+
+                callback(PersistentParamState(
+                    is_stored,
+                    default_value,
+                    None if not is_stored else stored_value
+                ))
+                self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+
+        self.cf.add_port_callback(CRTPPort.PARAM, new_packet_cb)
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
+        pk.data = struct.pack('<BH', MISC_PERSISTENT_GET_STATE, element.ident)
+        self.cf.send_packet(pk, expected_reply=(tuple(pk.data[:3])))
 
 
 class _ExtendedTypeFetcher(Thread):

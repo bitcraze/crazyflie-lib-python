@@ -101,13 +101,7 @@ if __name__ == '__main__':
 
     cf = Crazyflie(rw_cache='./cache')
 
-    fetch_all_params = Event()
-    cf.param.all_updated.add_callback(lambda: fetch_all_params.set())
-
     with SyncCrazyflie(uri, cf=cf) as scf:
-        # Wait for all parameters to be fetched
-        fetch_all_params.wait()
-
         # Get the names of all parameters that can be persisted
         persistent_params = get_all_persistent_param_names(scf.cf)
 

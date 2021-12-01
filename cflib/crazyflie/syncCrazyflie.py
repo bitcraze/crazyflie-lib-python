@@ -52,15 +52,9 @@ class SyncCrazyflie:
         """
         Create a synchronous Crazyflie instance with the specified link_uri
 
-        Parameters
-        ----------
-        link_uri: string
-            The uri to use when connecting to the Crazyflie
-        cf: Crazyflie
-            Optional Crazyflie instance to use, None by default. If no object is supplied a Crazyflie instance
-            is created.
-            This parameters is useful if you want to use a Crazyflie instance with log/param
-            caching.
+        :param link_uri: The uri to use when connecting to the Crazyflie
+        :param cf: Optional Crazyflie instance to use, None by default. If no object is supplied, a Crazyflie instance
+         is created. This parameters is useful if you want to use a Crazyflie instance with log/param caching.
         """
         if cf:
             self.cf = cf
@@ -113,8 +107,7 @@ class SyncCrazyflie:
         to make sure the connection sequence has terminated. In most cases this is not important, but
         radio bandwidth will be limited while parameters are downloaded due to the communication that is going on.
 
-        Example
-        -------
+        Example:
         ```python
         with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
             scf.wait_for_params()

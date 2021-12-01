@@ -70,6 +70,7 @@ PersistentParamState = namedtuple('PersistentParamState', 'is_stored default_val
 
 MISC_PERSISTENT_STORE = 3
 MISC_PERSISTENT_GET_STATE = 4
+MISC_PERSISTENT_CLEAR = 5
 
 # One element entry in the TOC
 
@@ -359,6 +360,30 @@ class Param():
 
         [group, name] = complete_name.split('.')
         return self.values[group][name]
+
+    def persistent_clear(self, complete_name, callback=None):
+        """
+        Clear the current value of the specified persistent parameter from
+        eeprom. The supplied callback will be called with `True` as an
+        argument on success and with `False` as an argument on failure.
+
+        @param complete_name The 'group.name' name of the parameter to store
+        @param callback Optional callback should take boolean status as arg
+        """
+        element = self.toc.get_element_by_complete_name(complete_name)
+
+        def new_packet_cb(pk):
+            if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_CLEAR:
+                callback(pk.data[3] == 0)
+                self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+
+        if callback is not None:
+            self.cf.add_port_callback(CRTPPort.PARAM, new_packet_cb)
+
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
+        pk.data = struct.pack('<BH', MISC_PERSISTENT_CLEAR, element.ident)
+        self.cf.send_packet(pk, expected_reply=(tuple(pk.data[:3])))
 
     def persistent_store(self, complete_name, callback=None):
         """

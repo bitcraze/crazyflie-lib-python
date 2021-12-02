@@ -271,7 +271,7 @@ class Param():
         # so just send.
         self.cf.send_packet(pk)
 
-    def set_value(self, complete_name, value):
+    def set_value(self, complete_name, value, wait_for_reply=True):
         """
         Set the value for the supplied parameter.
         """
@@ -303,7 +303,7 @@ class Param():
                 value_nr = value
 
             pk.data += struct.pack(element.pytype, value_nr)
-            self.param_updater.request_param_setvalue(pk)
+            self.param_updater.request_param_setvalue(pk, wait_for_reply=wait_for_reply)
 
     def get_value(self, complete_name, timeout=60):
         """
@@ -333,6 +333,7 @@ class _ParamUpdater(Thread):
         self.cf.add_port_callback(CRTPPort.PARAM, self._new_packet_cb)
         self._should_close = False
         self._req_param = -1
+        self._write_event = Event()
 
     def close(self):
         # First empty the queue from all packets
@@ -345,10 +346,13 @@ class _ParamUpdater(Thread):
         except Exception:
             pass
 
-    def request_param_setvalue(self, pk):
+    def request_param_setvalue(self, pk, wait_for_reply=True):
         """Place a param set value request on the queue. When this is sent to
         the Crazyflie it will answer with the update param value. """
+        self._write_event.clear()
         self.request_queue.put(pk)
+        if wait_for_reply:
+            self._write_event.wait(timeout=1)
 
     def _new_packet_cb(self, pk):
         """Callback for newly arrived packets"""
@@ -361,6 +365,10 @@ class _ParamUpdater(Thread):
                 var_id = pk.data[0]
             if (pk.channel != TOC_CHANNEL and self._req_param == var_id and
                     pk is not None):
+
+                if pk.channel == WRITE_CHANNEL:
+                    self._write_event.set()
+
                 self.updated_callback(pk)
                 self._req_param = -1
                 try:

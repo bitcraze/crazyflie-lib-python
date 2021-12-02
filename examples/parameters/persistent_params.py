@@ -121,9 +121,6 @@ if __name__ == '__main__':
         print(f'Set parameter {param_name} to {param_value}')
         scf.cf.param.set_value(param_name, param_value)
 
-        # Wait a bit to make sure the parameter has been set
-        time.sleep(0.1)
-
         print()
         print('Store the new value in persistent memory')
         persist_parameter(scf.cf, param_name)

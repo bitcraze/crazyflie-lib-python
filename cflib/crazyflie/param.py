@@ -384,7 +384,7 @@ class Param():
         pk = CRTPPacket()
         pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
         pk.data = struct.pack('<BH', MISC_PERSISTENT_CLEAR, element.ident)
-        self.cf.send_packet(pk, expected_reply=(tuple(pk.data[:3])))
+        self.param_updater.send_param_misc(pk)
 
     def persistent_store(self, complete_name, callback=None):
         """
@@ -410,7 +410,7 @@ class Param():
         pk = CRTPPacket()
         pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
         pk.data = struct.pack('<BH', MISC_PERSISTENT_STORE, element.ident)
-        self.cf.send_packet(pk, expected_reply=(tuple(pk.data[:3])))
+        self.param_updater.send_param_misc(pk)
 
     def persistent_get_state(self, complete_name, callback):
         """
@@ -461,7 +461,7 @@ class Param():
         pk = CRTPPacket()
         pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
         pk.data = struct.pack('<BH', MISC_PERSISTENT_GET_STATE, element.ident)
-        self.cf.send_packet(pk, expected_reply=(tuple(pk.data[:3])))
+        self.param_updater.send_param_misc(pk)
 
 
 class _ExtendedTypeFetcher(Thread):
@@ -570,6 +570,13 @@ class _ParamUpdater(Thread):
         the Crazyflie it will answer with the update param value. """
         self.request_queue.put(pk)
 
+
+    def send_param_misc(self, pk):
+        """Place a param misc request on the queue. When this is sent to
+        the Crazyflie it will answer with the same var_id and command. """
+        self.request_queue.put(pk)
+
+
     def _new_packet_cb(self, pk):
         """Callback for newly arrived packets"""
         if pk.channel == READ_CHANNEL or pk.channel == WRITE_CHANNEL:
@@ -587,6 +594,10 @@ class _ParamUpdater(Thread):
                     self.wait_lock.release()
                 except Exception:
                     pass
+        elif pk.channel == MISC_CHANNEL:
+            command = struct.unpack('<H', pk.data[:2])[0]
+            if self._req_param == command:
+                self.wait_lock.release()
 
     def request_param_update(self, var_id):
         """Place a param update request on the queue"""

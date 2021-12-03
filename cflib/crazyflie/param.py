@@ -31,8 +31,10 @@ When a Crazyflie is connected it's possible to download a TableOfContent of all
 the parameters that can be written/read.
 
 """
+import errno
 import logging
 import struct
+from collections import namedtuple
 from queue import Queue
 from threading import Event
 from threading import Lock
@@ -61,6 +63,15 @@ READ_CHANNEL = 1
 WRITE_CHANNEL = 2
 MISC_CHANNEL = 3
 
+MISC_SETBYNAME = 0
+MISC_GET_EXTENDED_TYPE = 2
+
+PersistentParamState = namedtuple('PersistentParamState', 'is_stored default_value stored_value')
+
+MISC_PERSISTENT_STORE = 3
+MISC_PERSISTENT_GET_STATE = 4
+MISC_PERSISTENT_CLEAR = 5
+
 # One element entry in the TOC
 
 
@@ -69,6 +80,8 @@ class ParamTocElement:
 
     RW_ACCESS = 0
     RO_ACCESS = 1
+
+    EXTENDED_PERSISTENT = 1
 
     types = {0x08: ('uint8_t', '<B'),
              0x09: ('uint16_t', '<H'),
@@ -85,6 +98,8 @@ class ParamTocElement:
     def __init__(self, ident=0, data=None):
         """TocElement creator. Data is the binary payload of the element."""
         self.ident = ident
+        self.persistent = False
+        self.extended = False
         if (data):
             strs = struct.unpack('s' * len(data[1:]), data[1:])
             s = ''
@@ -98,6 +113,10 @@ class ParamTocElement:
             if type(metadata) == str:
                 metadata = ord(metadata)
 
+            # If the fouth byte (1 << 4) (0x10) is set we have extended
+            # type information for this element.
+            self.extended = ((metadata & 0x10) != 0)
+
             self.ctype = self.types[metadata & 0x0F][0]
             self.pytype = self.types[metadata & 0x0F][1]
             if ((metadata & 0x40) != 0):
@@ -109,6 +128,15 @@ class ParamTocElement:
         if (self.access == ParamTocElement.RO_ACCESS):
             return 'RO'
         return 'RW'
+
+    def is_extended(self):
+        return self.extended
+
+    def mark_persistent(self):
+        self.persistent = True
+
+    def is_persistent(self):
+        return self.persistent
 
 
 class Param():
@@ -230,10 +258,26 @@ class Param():
         """
         Initiate a refresh of the parameter TOC.
         """
+        def refresh_done():
+            extended_elements = list()
+
+            for group in self.toc.toc:
+                for element in self.toc.toc[group].values():
+                    if element.is_extended():
+                        extended_elements.append(element)
+
+            if len(extended_elements) > 0:
+                extended_type_fetcher = _ExtendedTypeFetcher(self.cf, self.toc)
+                extended_type_fetcher.start()
+                extended_type_fetcher.set_callback(refresh_done_callback)
+                extended_type_fetcher.request_extended_types(extended_elements)
+            else:
+                refresh_done_callback()
+
         self._useV2 = self.cf.platform.get_protocol_version() >= 4
         toc_fetcher = TocFetcher(self.cf, ParamTocElement,
                                  CRTPPort.PARAM, self.toc,
-                                 refresh_done_callback, toc_cache)
+                                 refresh_done, toc_cache)
         toc_fetcher.start()
 
     def _disconnected(self, uri):
@@ -316,6 +360,182 @@ class Param():
         [group, name] = complete_name.split('.')
         return self.values[group][name]
 
+    def persistent_clear(self, complete_name, callback=None):
+        """
+        Clear the current value of the specified persistent parameter from
+        eeprom. The supplied callback will be called with `True` as an
+        argument on success and with `False` as an argument on failure.
+
+        @param complete_name The 'group.name' name of the parameter to store
+        @param callback Optional callback should take `complete_name` and boolean status as arguments
+        """
+        element = self.toc.get_element_by_complete_name(complete_name)
+        if not element.is_persistent():
+            raise AttributeError(f"Param '{complete_name}' is not persistent")
+
+        def new_packet_cb(pk):
+            if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_CLEAR:
+                callback(complete_name, pk.data[3] == 0)
+                self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+
+        if callback is not None:
+            self.cf.add_port_callback(CRTPPort.PARAM, new_packet_cb)
+
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
+        pk.data = struct.pack('<BH', MISC_PERSISTENT_CLEAR, element.ident)
+        self.param_updater.send_param_misc(pk)
+
+    def persistent_store(self, complete_name, callback=None):
+        """
+        Store the current value of the specified persistent parameter to
+        eeprom. The supplied callback will be called with `True` as an
+        argument on success, and with `False` as an argument on failure.
+
+        @param complete_name The 'group.name' name of the parameter to store
+        @param callback Optional callback should take `complete_name` and boolean status as arguments
+        """
+        element = self.toc.get_element_by_complete_name(complete_name)
+        if not element.is_persistent():
+            raise AttributeError(f"Param '{complete_name}' is not persistent")
+
+        def new_packet_cb(pk):
+            if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_STORE:
+                callback(complete_name, pk.data[3] == 0)
+                self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+
+        if callback is not None:
+            self.cf.add_port_callback(CRTPPort.PARAM, new_packet_cb)
+
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
+        pk.data = struct.pack('<BH', MISC_PERSISTENT_STORE, element.ident)
+        self.param_updater.send_param_misc(pk)
+
+    def persistent_get_state(self, complete_name, callback):
+        """
+        Get the state of the specified persistent parameter. The state will be
+        returned in the supplied callback. The state is represented as a
+        namedtuple with members: `is_stored`, `default_value` and
+        `stored_value`. The state is `None` if the parameter is not persistent
+        or if something goes wrong.
+
+        | Member            | Description                                     |
+        | ----------------- | ----------------------------------------------- |
+        | `is_stored`       | `True` if the value is stored to eeprom         |
+        | `default_value`   | The default value supplied by the firmware      |
+        | `stored_value`    | Value stored in eeprom, None if `not is_stored` |
+
+        @param complete_name The 'group.name' name of the parameter to store
+        @param callback Callback, takes `complete_name` and PersistentParamState namedtuple as arg
+        """
+        element = self.toc.get_element_by_complete_name(complete_name)
+        if not element.is_persistent():
+            raise AttributeError(f"Param '{complete_name}' is not persistent")
+
+        def new_packet_cb(pk):
+            if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_PERSISTENT_GET_STATE:
+                if pk.data[3] == errno.ENOENT:
+                    callback(complete_name, None)
+                    self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+                    return
+
+                is_stored = pk.data[3] == 1
+                if not is_stored:
+                    default_value, = struct.unpack(element.pytype, pk.data[4:])
+                else:
+                    # Remove little-endian indicator ('<')
+                    just_type = element.pytype[1:]
+                    default_value, stored_value = struct.unpack(f'<{just_type * 2}', pk.data[4:])
+
+                callback(complete_name,
+                         PersistentParamState(
+                             is_stored,
+                             default_value,
+                             stored_value if is_stored else None
+                         )
+                         )
+                self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+
+        self.cf.add_port_callback(CRTPPort.PARAM, new_packet_cb)
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
+        pk.data = struct.pack('<BH', MISC_PERSISTENT_GET_STATE, element.ident)
+        self.param_updater.send_param_misc(pk)
+
+
+class _ExtendedTypeFetcher(Thread):
+
+    def __init__(self, cf, toc):
+        Thread.__init__(self)
+        self.setDaemon(True)
+        self._lock = Lock()
+
+        self._cf = cf
+        self._toc = toc
+        self._done_callback = None
+
+        self.request_queue = Queue()
+        self._cf.add_port_callback(CRTPPort.PARAM, self._new_packet_cb)
+        self._should_close = False
+        self._req_param = -1
+        self._count = -1
+
+    def _new_packet_cb(self, pk):
+        """Callback for newly arrived packets"""
+        if pk.channel == MISC_CHANNEL:
+            var_id = struct.unpack('<H', pk.data[1:3])[0]
+
+            if self._req_param == var_id:
+                extended_type = pk.data[3]
+                if extended_type == ParamTocElement.EXTENDED_PERSISTENT:
+                    self._toc.get_element_by_id(var_id).mark_persistent()
+                self._count -= 1
+                if self._count == 0:
+                    if self._done_callback is not None:
+                        self._done_callback()
+                    self._close()
+
+                self._req_param = -1
+                try:
+                    self._lock.release()
+                except Exception:
+                    pass
+
+    def set_callback(self, callback):
+        self._done_callback = callback
+
+    def request_extended_types(self, elements):
+        self._count = len(elements)
+        for element in elements:
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
+
+            pk.data = struct.pack('<BH',
+                                  MISC_GET_EXTENDED_TYPE, element.ident)
+            self.request_queue.put(pk)
+
+    def _close(self):
+        # First empty the queue from all packets
+        while not self.request_queue.empty():
+            self.request_queue.get()
+        # Then force an unlock of the mutex if we are waiting for a packet
+        # we didn't get back due to a disconnect for example.
+        try:
+            self._lock.release()
+        except Exception:
+            pass
+
+    def run(self):
+        while not self._should_close:
+            pk = self.request_queue.get()  # Wait for request update
+            self._lock.acquire()
+            if self._cf.link:
+                self._req_param = struct.unpack('<H', pk.data[1:3])[0]
+                self._cf.send_packet(pk, expected_reply=(tuple(pk.data[:3])))
+            else:
+                self._lock.release()
+
 
 class _ParamUpdater(Thread):
     """This thread will update params through a queue to make sure that we
@@ -350,6 +570,11 @@ class _ParamUpdater(Thread):
         the Crazyflie it will answer with the update param value. """
         self.request_queue.put(pk)
 
+    def send_param_misc(self, pk):
+        """Place a param misc request on the queue. When this is sent to
+        the Crazyflie it will answer with the same var_id and command. """
+        self.request_queue.put(pk)
+
     def _new_packet_cb(self, pk):
         """Callback for newly arrived packets"""
         if pk.channel == READ_CHANNEL or pk.channel == WRITE_CHANNEL:
@@ -367,6 +592,10 @@ class _ParamUpdater(Thread):
                     self.wait_lock.release()
                 except Exception:
                     pass
+        elif pk.channel == MISC_CHANNEL:
+            command = struct.unpack('<H', pk.data[:2])[0]
+            if self._req_param == command:
+                self.wait_lock.release()
 
     def request_param_update(self, var_id):
         """Place a param update request on the queue"""

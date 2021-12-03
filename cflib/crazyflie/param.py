@@ -570,12 +570,10 @@ class _ParamUpdater(Thread):
         the Crazyflie it will answer with the update param value. """
         self.request_queue.put(pk)
 
-
     def send_param_misc(self, pk):
         """Place a param misc request on the queue. When this is sent to
         the Crazyflie it will answer with the same var_id and command. """
         self.request_queue.put(pk)
-
 
     def _new_packet_cb(self, pk):
         """Callback for newly arrived packets"""

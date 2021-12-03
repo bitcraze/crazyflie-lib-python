@@ -30,7 +30,6 @@ Note: this script will change the value of the LED ring.effect parameter
 """
 import logging
 import sys
-import time
 from threading import Event
 
 import cflib.crtp

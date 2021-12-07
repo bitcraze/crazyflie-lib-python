@@ -312,7 +312,9 @@ class Param():
         pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
         pk.data = struct.pack(f'<B{len_array}sB{pytype}', 0, char_array, type, value)
 
-        self.param_updater.send_param_misc(pk)
+        # We will not get an update callback when using raw (MISC_CHANNEL)
+        # so just send.
+        self.cf.send_packet(pk)
 
     def set_value(self, complete_name, value):
         """

@@ -299,9 +299,6 @@ class Param():
         Set a parameter value using the complete name and the type. Does not
         need to have received the TOC.
         """
-        if not self._initialized.wait(timeout=60):
-            raise Exception('Connection timed out')
-
         char_array = bytes(complete_name.replace('.', '\0') + '\0', 'utf-8')
         len_array = len(char_array)
 

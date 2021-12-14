@@ -143,14 +143,17 @@ class _WriteRequest:
     """
     MAX_DATA_LENGTH = 25
 
-    def __init__(self, mem, addr, data, cf):
+    def __init__(self, mem, addr, data, cf, progress_cb=None):
         """Initialize the object with good defaults"""
         self.mem = mem
         self.addr = addr
         self._bytes_left = len(data)
+        self._write_len = self._bytes_left
         self._data = data
         self.data = bytearray()
         self.cf = cf
+        self._progress_cb = progress_cb
+        self._progress = -1
 
         self._current_addr = addr
 
@@ -195,6 +198,7 @@ class _WriteRequest:
         self.cf.send_packet(pk, expected_reply=reply, timeout=1)
 
         self._addr_add = len(data)
+        self._bytes_left -= self._addr_add
 
     def write_done(self, addr):
         """Callback when data is received from the Crazyflie"""
@@ -203,6 +207,12 @@ class _WriteRequest:
                 'Address did not match when adding data to read request!')
             return
 
+        if self._progress_cb is not None:
+            new_progress = 100 * (self._write_len - self._bytes_left) / self._write_len
+            if int(new_progress) > self._progress:
+                self._progress = int(new_progress)
+                self._progress_cb(f'Writing to memory (id: {self.mem.id})',
+                                  self._progress)
         if len(self._data) > 0:
             self._current_addr += self._addr_add
             self._write_new_chunk()
@@ -296,9 +306,9 @@ class Memory():
 
         return None
 
-    def write(self, memory, addr, data, flush_queue=False):
+    def write(self, memory, addr, data, flush_queue=False, progress_cb=None):
         """Write the specified data to the given memory at the given address"""
-        wreq = _WriteRequest(memory, addr, data, self.cf)
+        wreq = _WriteRequest(memory, addr, data, self.cf, progress_cb)
         if memory.id not in self._write_requests:
             self._write_requests[memory.id] = []
 

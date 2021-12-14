@@ -1,3 +1,10 @@
+# Modified Crazyflie lib python of the MeshRaDs research project
+
+This project contains a modified version of the Crazyflie Python libary.   
+See below for the original libary provided by Bitcraze
+
+
+
 # cflib: Crazyflie python library [![CI](https://github.com/bitcraze/crazyflie-lib-python/workflows/CI/badge.svg)](https://github.com/bitcraze/crazyflie-lib-python/actions)
 
 cflib is an API written in Python that is used to communicate with the Crazyflie

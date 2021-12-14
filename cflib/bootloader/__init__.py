@@ -420,7 +420,6 @@ class Bootloader:
 
                 if self.progress_cb:
                     self.progress_cb(f'Updating deck {deck.name}', int(50))
-                print(f'Handling {deck.name}')
 
                 # Test and wait for the deck to be started
                 while not deck.is_started:

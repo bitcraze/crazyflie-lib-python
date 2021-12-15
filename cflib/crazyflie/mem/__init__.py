@@ -200,6 +200,14 @@ class _WriteRequest:
         self._addr_add = len(data)
         self._bytes_left -= self._addr_add
 
+    def _get_progress_message(self):
+        if isinstance(self.mem, DeckMemoryManager):
+            for deck_memory in self.mem.deck_memories.values():
+                if deck_memory.contains(self._current_addr):
+                    return f'Writing to {deck_memory.name} deck memory'
+
+        return 'Writing to memory'
+
     def write_done(self, addr):
         """Callback when data is received from the Crazyflie"""
         if not addr == self._current_addr:
@@ -208,11 +216,11 @@ class _WriteRequest:
             return
 
         if self._progress_cb is not None:
-            new_progress = 100 * (self._write_len - self._bytes_left) / self._write_len
-            if int(new_progress) > self._progress:
-                self._progress = int(new_progress)
-                self._progress_cb(f'Writing to memory (id: {self.mem.id})',
-                                  self._progress)
+            new_progress = int(100 * (self._write_len - self._bytes_left) / self._write_len)
+            if new_progress > self._progress:
+                self._progress = new_progress
+                self._progress_cb(self._get_progress_message(), self._progress)
+
         if len(self._data) > 0:
             self._current_addr += self._addr_add
             self._write_new_chunk()

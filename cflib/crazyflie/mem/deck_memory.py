@@ -42,6 +42,8 @@ class DeckMemory:
     MASK_UPGRADE_REQUIRED = 32
     MASK_BOOTLOADER_ACTIVE = 64
 
+    MEMORY_MAX_SIZE = 0x10000000
+
     def __init__(self, deck_memory_manager):
         self._deck_memory_manager = deck_memory_manager
         self.required_hash = None
@@ -50,6 +52,10 @@ class DeckMemory:
 
         self._base_address = None
         self._bit_field = 0
+
+    def contains(self, address):
+        max = self._base_address + self.MEMORY_MAX_SIZE
+        return address >= self._base_address and address <= max
 
     def write(self, address, data, write_complete_cb, write_failed_cb=None, progress_cb=None):
         """Write a block of binary data to the deck"""

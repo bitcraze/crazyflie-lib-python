@@ -42,6 +42,8 @@ class DeckMemory:
     MASK_UPGRADE_REQUIRED = 32
     MASK_BOOTLOADER_ACTIVE = 64
 
+    MEMORY_MAX_SIZE = 0x10000000
+
     def __init__(self, deck_memory_manager):
         self._deck_memory_manager = deck_memory_manager
         self.required_hash = None
@@ -51,19 +53,24 @@ class DeckMemory:
         self._base_address = None
         self._bit_field = 0
 
-    def write(self, address, data, write_complete_cb, write_failed_cb=None):
+    def contains(self, address):
+        max = self._base_address + self.MEMORY_MAX_SIZE
+        return address >= self._base_address and address <= max
+
+    def write(self, address, data, write_complete_cb, write_failed_cb=None, progress_cb=None):
         """Write a block of binary data to the deck"""
         if not self.supports_write:
             raise Exception('Deck does not support write operations')
         if not self.is_started:
             raise Exception('Deck not ready')
 
-        self._deck_memory_manager._write(self._base_address, address, data, write_complete_cb, write_failed_cb)
+        self._deck_memory_manager._write(self._base_address, address, data,
+                                         write_complete_cb, write_failed_cb, progress_cb)
 
-    def write_sync(self, address, data):
+    def write_sync(self, address, data, progress_cb=None):
         """Write a block of binary data to the deck, block until done"""
         syncer = Syncer()
-        self.write(address, data, syncer.success_cb, write_failed_cb=syncer.failure_cb)
+        self.write(address, data, syncer.success_cb, write_failed_cb=syncer.failure_cb, progress_cb=progress_cb)
         syncer.wait()
         return syncer.is_success
 
@@ -225,7 +232,7 @@ class DeckMemoryManager(MemoryElement):
 
         return result
 
-    def _write(self, base_address, address, data, read_complete_cb, read_failed_cb):
+    def _write(self, base_address, address, data, read_complete_cb, read_failed_cb, progress_cb):
         """Called from deck memory to write data"""
         if self._write_complete_cb is not None:
             raise Exception('Write operation ongoing')
@@ -235,7 +242,7 @@ class DeckMemoryManager(MemoryElement):
         self._write_failed_cb = read_failed_cb
 
         mapped_address = address + self._write_base_address
-        self.mem_handler.write(self, mapped_address, data, flush_queue=True)
+        self.mem_handler.write(self, mapped_address, data, flush_queue=True, progress_cb=progress_cb)
 
     def _write_done(self, mem, addr):
         if mem.id == self.id:

@@ -32,25 +32,6 @@ from cflib.crazyflie.syncLogger import SyncLogger
 
 SwarmPosition = namedtuple('SwarmPosition', 'x y z')
 
-logging_list = []
-
-def firmware_print_callback(console_text):              # this callbacks gets called whenever a print message gets received from a crazyflie
-    print(console_text, end = '')
-    logging_list.append(console_text)
-   
-def firmware_print_writing(file_name):
-      with open(file_name, 'w') as logging_file:
-        write = False
-        for log in logging_list:
-
-            if ("P2P" in log) or write:
-                write = True
-                for char in log:
-                    if char == '\n':
-                        logging_file.write(';')
-                        write = False
-                    logging_file.write(char)
-
 class _Factory:
     """
     Default Crazyflie factory class.
@@ -72,7 +53,6 @@ class CachedCfFactory:
 
     def construct(self, uri):
         cf = Crazyflie(ro_cache=self.ro_cache, rw_cache=self.rw_cache)
-        cf.console.receivedChar.add_callback(firmware_print_callback)
         return SyncCrazyflie(uri, cf=cf)
 
 

@@ -36,34 +36,45 @@ from queue import Queue
 import cflib.crtp
 from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
-from cflib.crazyflie.swarm import firmware_print_writing
+
 
 # Possible commands, all times are in seconds
 Takeoff = namedtuple('Takeoff', ['height', 'time'])
 Land = namedtuple('Land', ['time'])
 Goto = namedtuple('Goto', ['x', 'y', 'z', 'time'])
 Quit = namedtuple('Quit', [])                          # Reserved for the control loop, do not use in sequence
+Wait = namedtuple('Wait', ['amount'])                  # Waits until amount many P2P packets have been received
 
 # Configuration Variables
 uris = [
     'radio://0/80/2M/E7E7E7E703',  # cf_id 0
-    #'radio://0/80/2M/E7E7E7E702',  # cf_id 1
-    #'radio://0/80/2M/E7E7E7E703',  # cf_id 2
+    'radio://0/80/2M/E7E7E7E704',  # cf_id 1
+    #'radio://0/80/2M/E7E7E7E702',  # cf_id 2
     # More URIs can be added to have more drones within the swarm
 ]
 
-STEP_TIME = 5           # Time waited after each step in seconds
+STEP_TIME = 3           # Time waited after each step in seconds
 
 sequence = [
     # Step, CF_id,  action
     (0,    0,      Takeoff(0.5, 2)),
 
-    (1,    0,      Goto(0,  0,   0.5, 1)),
+    (0,    1,      Takeoff(0.75, 2)),
 
-    (2,    0,      Goto(0.5, -1, 0.5, 2)),
+    (1,    0,      Goto(0, 0, 0.5, 1)),
+    (1,    1,      Goto(0.5, 0.5, 0.75, 1)),
 
+    (2,    0,     Wait(10)),
+    (2,    1,     Wait(10)),
 
-    (3,    0,      Land(2)),
+    (3,    0,      Goto(0, -1, 0.5, 1)),
+    (3,    1,      Goto(0.25, 0, 0.75, 1)),
+
+    (4,    0,     Wait(10)),
+    (4,    1,     Wait(10)),
+
+    (5,    0,      Land(2)),
+    (5,    1,      Land(2)),
 ]
 
 # Logging
@@ -85,6 +96,34 @@ def logging_callback(uri, timestamp, data, log_conf):       # The callback gets 
     z = float(data['stateEstimate.z'])
     print("Postion:{}, {}, {}" .format(x, y, z) )
 
+# Logging console text
+
+logging_list = []
+logging_count = 0
+
+def firmware_print_callback(console_text):              # this callbacks gets called whenever a print message gets received from a crazyflie
+     #print(console_text, end = '')
+    logging_list.append(console_text)
+    global logging_count
+    if ("P2P" in console_text):
+        logging_count += 1
+    
+   
+def firmware_print_writing(file_name):
+      with open(file_name, 'w') as logging_file:
+        already_writing = False
+        for log in logging_list:
+
+            if ("P2P" in log) or already_writing:
+                already_writing = True
+                for char in log:
+                    if char == '\n':
+                        logging_file.write(';')
+                        already_writing = False
+                    logging_file.write(char)
+
+
+
 # Definitions of Functions used for the swarm to fly
 def activate_high_level_commander(scf):
     scf.cf.param.set_value('commander.enHighLevel', '1')
@@ -105,6 +144,8 @@ def crazyflie_control(scf):
 
     commander = scf.cf.high_level_commander
 
+    global logging_count
+
     while True:
         command = control.get()
         if type(command) is Quit:
@@ -114,7 +155,14 @@ def crazyflie_control(scf):
         elif type(command) is Land:
             commander.land(0.0, command.time)
         elif type(command) is Goto:
+            logging_list.append("P2P:{} starts to move to {}, {}, {}\n".format(cf.link_uri[-1], command.x, command.y, command.z))
             commander.go_to(command.x, command.y, command.z, 0, command.time)
+        elif type(command) is Wait:
+            logging_list.append("P2P:{} starting measurment\n" .format(cf.link_uri[-1]))
+            logging_count = 0
+            while (logging_count < command.amount):
+                time.sleep(0.01)
+            logging_list.append("P2P:{} finished measurment\n" .format(cf.link_uri[-1]))
         else:
             print('Warning! unknown command {} for uri {}'.format(command,
                                                                   cf.uri))
@@ -153,18 +201,22 @@ if __name__ == '__main__':
 
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
-        swarm.parallel_safe(log_async)
+
+        for uri in uris:
+            swarm._cfs[uri].cf.console.receivedChar.add_callback(firmware_print_callback)       # adding callback for each cf
+
+        # swarm.parallel_safe(log_async)                    # cb for logger
         swarm.parallel_safe(activate_high_level_commander)
         swarm.reset_estimators()
 
-        print('Starting sequence!')
+        print('Starting sequence and logging measurments!')
+        logging_list = []       
 
         threading.Thread(target=control_thread).start()
 
         swarm.parallel_safe(crazyflie_control)
 
         time.sleep(1)
-
         firmware_print_writing('logging.csv')
 
 

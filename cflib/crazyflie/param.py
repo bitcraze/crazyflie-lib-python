@@ -70,6 +70,7 @@ PersistentParamState = namedtuple('PersistentParamState', 'is_stored default_val
 MISC_PERSISTENT_STORE = 3
 MISC_PERSISTENT_GET_STATE = 4
 MISC_PERSISTENT_CLEAR = 5
+MISC_GET_DEFAULT_VALUE = 6
 
 # One element entry in the TOC
 
@@ -357,6 +358,35 @@ class Param():
 
         [group, name] = complete_name.split('.')
         return self.values[group][name]
+
+    def get_default_value(self, complete_name, callback):
+        """
+        Get the default value of the specified parameter.
+        The supplied callback will be called with the name of the parameter
+        as well as the default value. None if there is an error.
+
+        @param complete_name The 'group.name' name of the parameter to store
+        @param callback The callback should take `complete_name` and default value as argument
+        """
+        element = self.toc.get_element_by_complete_name(complete_name)
+
+        def new_packet_cb(pk):
+            if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_GET_DEFAULT_VALUE:
+                if pk.data[3] == errno.ENOENT:
+                    callback(complete_name, None)
+                    self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+                    return
+
+                default_value, = struct.unpack(element.pytype, pk.data[3:])
+                callback(complete_name, default_value)
+                self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+
+        self.cf.add_port_callback(CRTPPort.PARAM, new_packet_cb)
+
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
+        pk.data = struct.pack('<BH', MISC_GET_DEFAULT_VALUE, element.ident)
+        self.param_updater.send_param_misc(pk)
 
     def persistent_clear(self, complete_name, callback=None):
         """

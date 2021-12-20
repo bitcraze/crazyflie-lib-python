@@ -31,9 +31,9 @@ Gui une the PID controller of the crazyflie
 import logging
 import sys
 import time
+import tkinter as tk
 
 import matplotlib.pyplot as plt
-import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import cflib.crtp

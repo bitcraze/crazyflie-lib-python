@@ -38,6 +38,7 @@ import queue
 import re
 import struct
 import threading
+import time
 from enum import Enum
 from queue import Queue
 from threading import Semaphore
@@ -46,8 +47,11 @@ from typing import Any
 from typing import Dict
 from typing import Iterable
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import Union
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 
 import cflib.drivers.crazyradio as crazyradio
 from .crtpstack import CRTPPacket
@@ -258,7 +262,7 @@ class RadioDriver(CRTPDriver):
         an error message.
         """
 
-        devid, channel, datarate, address = self.parse_uri(uri)
+        devid, channel, datarate, address, rate_limit = self.parse_uri(uri)
         self.uri = uri
 
         if self._radio is None:
@@ -285,56 +289,59 @@ class RadioDriver(CRTPDriver):
                                           self.out_queue,
                                           link_quality_callback,
                                           link_error_callback,
-                                          self)
+                                          self,
+                                          rate_limit)
         self._thread.start()
 
         self.link_error_callback = link_error_callback
 
     @staticmethod
-    def parse_uri(uri):
+    def parse_uri(uri: str):
         # check if the URI is a radio URI
-        if not re.search('^radio://', uri):
+        if not uri.startswith('radio://'):
             raise WrongUriType('Not a radio URI')
 
+        parsed_uri = urlparse(uri)
+        parsed_query = parse_qs(parsed_uri.query)
+        parsed_path = parsed_uri.path.strip('/').split('/')
+
         # Open the USB dongle
-        if not re.search('^radio://([0-9a-fA-F]+)((/([0-9]+))'
-                         '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?(\\?.+)?$', uri):
-            raise WrongUriType('Wrong radio URI format!')
-
-        uri_data = re.search('^radio://([0-9a-fA-F]+)((/([0-9]+))'
-                             '((/(250K|1M|2M))?(/([A-F0-9]+))?)?)?(\\?.+)?$', uri)
-
-        if len(uri_data.group(1)) < 10 and uri_data.group(1).isdigit():
-            devid = int(uri_data.group(1))
+        if len(parsed_uri.netloc) < 10 and parsed_uri.netloc.isdigit():
+            devid = int(parsed_uri.netloc)
         else:
             try:
                 devid = crazyradio.get_serials().index(
-                    uri_data.group(1).upper())
+                    parsed_uri.netloc.upper())
             except ValueError:
                 raise Exception('Cannot find radio with serial {}'.format(
-                    uri_data.group(1)))
+                    parsed_uri.netloc))
 
         channel = 2
-        if uri_data.group(4):
-            channel = int(uri_data.group(4))
+        if len(parsed_path) > 0:
+            channel = int(parsed_path[0])
 
         datarate = Crazyradio.DR_2MPS
-        if uri_data.group(7) == '250K':
-            datarate = Crazyradio.DR_250KPS
-        if uri_data.group(7) == '1M':
-            datarate = Crazyradio.DR_1MPS
-        if uri_data.group(7) == '2M':
-            datarate = Crazyradio.DR_2MPS
+        if len(parsed_path) > 1:
+            if parsed_path[1] == '250K':
+                datarate = Crazyradio.DR_250KPS
+            if parsed_path[1] == '1M':
+                datarate = Crazyradio.DR_1MPS
+            if parsed_path[1] == '2M':
+                datarate = Crazyradio.DR_2MPS
 
         address = DEFAULT_ADDR_A
-        if uri_data.group(9):
+        if len(parsed_path) > 2:
             # We make sure to pad the address with zeros if we do not have the
             # correct length.
-            addr = '{:0>10}'.format(uri_data.group(9))
+            addr = '{:0>10}'.format(parsed_path[2])
             new_addr = struct.unpack('<BBBBB', binascii.unhexlify(addr))
             address = new_addr
 
-        return devid, channel, datarate, address
+        rate_limit = None
+        if 'rate_limit' in parsed_query:
+            rate_limit = int(parsed_query['rate_limit'][0])
+
+        return devid, channel, datarate, address, rate_limit
 
     def receive_packet(self, wait=0):
         """
@@ -517,7 +524,7 @@ class _RadioDriverThread(threading.Thread):
     Crazyradio USB driver. """
 
     def __init__(self, radio, inQueue, outQueue,
-                 link_quality_callback, link_error_callback, link):
+                 link_quality_callback, link_error_callback, link, rate_limit: Optional[int]):
         """ Create the object """
         threading.Thread.__init__(self)
         self._radio = radio
@@ -529,6 +536,7 @@ class _RadioDriverThread(threading.Thread):
         self._retry_before_disconnect = _nr_of_retries
         self._retries = collections.deque()
         self._retry_sum = 0
+        self.rate_limit = rate_limit
 
         self._curr_up = 0
         self._curr_down = 1
@@ -640,6 +648,11 @@ class _RadioDriverThread(threading.Thread):
                     waitTime = 0.01
                 else:
                     waitTime = 0
+
+            # If there is a rate limit setup, sleep here to force the rate limit
+            if self.rate_limit:
+                time.sleep(1.0/self.rate_limit)
+                waitTime = 0
 
             # get the next packet to send of relaxation (wait 10ms)
             outPacket = None

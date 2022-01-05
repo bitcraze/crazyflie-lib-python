@@ -142,8 +142,22 @@ class LighthouseBsVector:
 
 class LighthouseBsVectors(list[LighthouseBsVector]):
     def projection_pair_list(self) -> npt.NDArray:
+        """
+        Genereate a list of projection pairs for all vectors
+        """
         result = np.empty((len(self), 2), dtype=float)
         for i, vector in enumerate(self):
             result[i] = vector.projection
+
+        return result
+
+    def angle_list(self) -> npt.NDArray:
+        """
+        Genereate a list of angles for all vectors, the order is horizontal, vertical, horizontal, vertical...
+        """
+        result = np.empty((len(self) * 2), dtype=float)
+        for i, vector in enumerate(self):
+            result[i * 2] = vector.lh_v1_horiz_angle
+            result[i * 2 + 1] = vector.lh_v1_vert_angle
 
         return result

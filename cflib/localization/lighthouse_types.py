@@ -124,6 +124,9 @@ class LhCfPoseSample:
         # The initial estimate of the CF pose for this sample, in the global ref frame
         self.inital_est_pose: Pose = None
 
+        # The refined estimate of the CF pose for this sample, in the global ref frame
+        self.estimated_pose: Pose = None
+
 
 class LhDeck4SensorPositions:
     """ Positions of the sensors on the Lighthouse 4 deck """

@@ -23,6 +23,7 @@ import unittest
 
 import numpy as np
 import numpy.typing as npt
+from scipy.spatial.transform.rotation import Rotation
 
 from cflib.localization.lighthouse_types import Pose
 
@@ -46,6 +47,13 @@ class LighthouseTestBase(unittest.TestCase):
         self.assertAlmostEqual(0.0, np.linalg.norm(translation_diff), places,
                                f'Translation different, expected: {expected.translation}, actual: {actual.translation}')
 
-        rotation_diff = expected.rot_vec - actual.rot_vec
+        def un_ambiguize(rot_vec):
+            quat = Rotation.from_rotvec(expected.rot_vec).as_quat()
+            return Rotation.from_quat(quat).as_rotvec()
+
+        _expected_rot_vec = un_ambiguize(expected.rot_vec)
+        _actual_rot_vec = un_ambiguize(actual.rot_vec)
+
+        rotation_diff = _expected_rot_vec - _actual_rot_vec
         self.assertAlmostEqual(0.0, np.linalg.norm(rotation_diff), places,
                                f'Rotation different, expected: {expected.rot_vec}, actual: {actual.rot_vec}')

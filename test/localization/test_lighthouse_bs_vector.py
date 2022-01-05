@@ -19,7 +19,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import unittest
+from test.localization.lighthouse_test_base import LighthouseTestBase
 
 import numpy as np
 
@@ -27,7 +27,7 @@ from cflib.localization import LighthouseBsVector
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
 
 
-class TestLighthouseBsVector(unittest.TestCase):
+class TestLighthouseBsVector(LighthouseTestBase):
     def setUp(self):
         pass
 
@@ -147,3 +147,18 @@ class TestLighthouseBsVector(unittest.TestCase):
         self.assertEqual(len(vectors), len(actual))
         self.assertListEqual(vectors[0].projection.tolist(), actual[0].tolist())
         self.assertListEqual(vectors[3].projection.tolist(), actual[3].tolist())
+
+    def test_conversion_to_angle_list(self):
+        # Fixture
+        vectors = LighthouseBsVectors((
+            LighthouseBsVector(0.0, 0.1),
+            LighthouseBsVector(0.2, 0.3),
+            LighthouseBsVector(0.4, 0.5),
+            LighthouseBsVector(0.6, 0.7),
+        ))
+
+        # Test
+        actual = vectors.angle_list()
+
+        # Assert
+        self.assertVectorsAlmostEqual((0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7), actual)

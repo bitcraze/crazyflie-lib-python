@@ -22,6 +22,7 @@
 from collections import namedtuple
 
 import numpy as np
+import numpy.typing as npt
 
 from ._ippe import mat_run
 
@@ -46,7 +47,7 @@ class IppeCf:
     Solution = namedtuple('Solution', ['R', 't', 'reproj_err'])
 
     @staticmethod
-    def mat_run(U_cf, Q_cf):
+    def solve(U_cf: npt.ArrayLike, Q_cf: npt.ArrayLike) -> list[Solution]:
         """
         The solution to Perspective IPPE with point correspondences computed
         between points in world coordinates on the plane z=0, and normalised points in the

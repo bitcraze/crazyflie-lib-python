@@ -19,8 +19,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-from cflib.localization.lighthouse_types import LhCfPoseSample, LhMeasurement
+from cflib.localization.lighthouse_types import LhCfPoseSample
+from cflib.localization.lighthouse_types import LhMeasurement
 
 
 class LighthouseSampleMatcher:
@@ -32,7 +32,9 @@ class LighthouseSampleMatcher:
     """
 
     @classmethod
-    def match(cls, samples: list[LhMeasurement], max_time_diff: float =0.010, min_nr_of_bs_in_match: int =0) -> list[LhCfPoseSample]:
+    def match(cls, samples: list[LhMeasurement], max_time_diff: float = 0.010,
+              min_nr_of_bs_in_match: int = 0) -> list[LhCfPoseSample]:
+
         result = []
         current: LhCfPoseSample = None
 

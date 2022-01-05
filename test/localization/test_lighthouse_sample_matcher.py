@@ -20,10 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 import unittest
-from cflib.localization.lighthouse_bs_vector import LighthouseBsVector
 
+from cflib.localization.lighthouse_bs_vector import LighthouseBsVector
 from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
 from cflib.localization.lighthouse_types import LhMeasurement
+
 
 class TestLighthouseSampleMatcher(unittest.TestCase):
     def setUp(self):
@@ -38,7 +39,6 @@ class TestLighthouseSampleMatcher(unittest.TestCase):
             LhMeasurement(timestamp=1.020, base_station_id=0, angles=self.vec2),
             LhMeasurement(timestamp=1.035, base_station_id=1, angles=self.vec3),
         ]
-
 
     def test_that_samples_are_aggregated(self):
         # Fixture

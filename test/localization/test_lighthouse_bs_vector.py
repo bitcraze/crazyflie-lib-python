@@ -24,6 +24,7 @@ import unittest
 import numpy as np
 
 from cflib.localization import LighthouseBsVector
+from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
 
 
 class TestLighthouseBsVector(unittest.TestCase):
@@ -116,3 +117,33 @@ class TestLighthouseBsVector(unittest.TestCase):
 
         # Assert
         self.assertAlmostEqual(1.0, actual)
+
+    def test_conversion_to_from_projection(self):
+        # Fixture
+        horiz = 0.123
+        vert = 0.456
+        v1 = LighthouseBsVector(horiz, vert)
+
+        # Test
+        actual = LighthouseBsVector.from_projection(v1.projection)
+
+        # Assert
+        self.assertAlmostEqual(horiz, actual.lh_v1_horiz_angle)
+        self.assertAlmostEqual(vert, actual.lh_v1_vert_angle)
+
+    def test_conversion_to_projection_pair_list(self):
+        # Fixture
+        vectors = LighthouseBsVectors((
+            LighthouseBsVector(0.0, 0.0),
+            LighthouseBsVector(0.1, 0.1),
+            LighthouseBsVector(0.2, 0.2),
+            LighthouseBsVector(0.3, 0.3),
+        ))
+
+        # Test
+        actual = vectors.projection_pair_list()
+
+        # Assert
+        self.assertEqual(len(vectors), len(actual))
+        self.assertListEqual(vectors[0].projection.tolist(), actual[0].tolist())
+        self.assertListEqual(vectors[3].projection.tolist(), actual[3].tolist())

@@ -60,14 +60,23 @@ class TestLighthouseSampleMatcher(unittest.TestCase):
         self.assertEqual(1, len(actual[2].angles_calibrated))
         self.assertEqual(self.vec3, actual[2].angles_calibrated[1])
 
-    def test_that_single_bs_samples_are_fitered(self):
+    def test_that_single_bs_samples_are_fitered_out(self):
         # Fixture
 
         # Test
-        actual = LighthouseSampleMatcher.match(self.samples, max_time_diff=0.010, min_nr_of_bs_in_match=1)
+        actual = LighthouseSampleMatcher.match(self.samples, max_time_diff=0.010, min_nr_of_bs_in_match=2)
 
         # Assert
         self.assertEqual(1.015, actual[0].timestamp)
         self.assertEqual(2, len(actual[0].angles_calibrated))
         self.assertEqual(self.vec1, actual[0].angles_calibrated[1])
         self.assertEqual(self.vec2, actual[0].angles_calibrated[0])
+
+    def test_that_empty_sample_list_works(self):
+        # Fixture
+
+        # Test
+        actual = LighthouseSampleMatcher.match([])
+
+        # Assert
+        self.assertEqual(0, len(actual))

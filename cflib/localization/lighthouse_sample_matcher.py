@@ -55,5 +55,5 @@ class LighthouseSampleMatcher:
 
     @classmethod
     def _append_result(cls, current: LhCfPoseSample, result: list[LhCfPoseSample], min_nr_of_bs_in_match: int):
-        if len(current.angles_calibrated) > min_nr_of_bs_in_match:
+        if current is not None and len(current.angles_calibrated) >= min_nr_of_bs_in_match:
             result.append(current)

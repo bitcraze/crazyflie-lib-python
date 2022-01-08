@@ -285,7 +285,7 @@ class LighthouseGeometrySolver:
 
         # Calculate the error at the CF positions
         distances_to_cfs = np.repeat(np.linalg.norm(
-            bss[index_angle_pair_to_bs] - cfs_full[index_angle_pair_to_cf], axis=1), 2)
+            bss[index_angle_pair_to_bs][:,3:] - cfs_full[index_angle_pair_to_cf][:,3:], axis=1), 2)
         residual = np.tan(diff) * distances_to_cfs
 
         return residual

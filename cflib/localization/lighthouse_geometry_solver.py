@@ -116,8 +116,9 @@ class LighthouseGeometrySolver:
         is found.
 
         :param initial_guess_bs_poses: Initial guess for the base station poses
-        :param matched_samples: List of matched samples, must have been augmented with
-                                initial guesses of the CF poses
+        :param matched_samples: List of matched samples, must have been augmented with initial guesses of the CF
+                                poses. The samples will be updated with their estimated pose and error during the
+                                process.
         :param sensor_positions: Sensor positions (3D), in the CF reference frame
         :return: an instance of LighthouseGeometrySolution
         """
@@ -232,17 +233,16 @@ class LighthouseGeometrySolver:
         """
         Generate parameters for base stations and CFs, this is the initial guess we start to iterate from.
         """
-        params_bs = np.zeros((len(initial_guess_bs_poses) * defs.n_params_per_bs))
+        params_bs = np.zeros((defs.n_bss, defs.n_params_per_bs))
         for bs_id, pose in initial_guess_bs_poses.items():
-            index = defs.bs_id_to_index[bs_id] * defs.n_params_per_bs
-            params_bs[index:index + defs.n_params_per_bs] = cls._pose_to_params(pose)
+            params_bs[defs.bs_id_to_index[bs_id], :] = cls._pose_to_params(pose)
 
         # Skip the first CF pose, it is the definition of the origin and is not a parameter
-        params_cfs = []
-        for sample in matched_samples[1:]:
-            params_cfs.append(cls._pose_to_params(sample.inital_est_pose))
+        params_cfs = np.zeros((defs.n_cfs_in_params, defs.n_params_per_cf))
+        for index, sample in enumerate(matched_samples[1:]):
+            params_cfs[index, :] = cls._pose_to_params(sample.inital_est_pose)
 
-        return params_bs, np.array(params_cfs)
+        return params_bs, params_cfs
 
     @classmethod
     def _params_to_struct(cls, params, defs: LighthouseGeometrySolution):

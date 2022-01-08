@@ -112,6 +112,9 @@ def estimate_geometry(origin, samples):
     for bs_id, pose in sorted(solution.bs_poses.items()):
         pos = pose.translation
         print(f'    {bs_id}: ({pos[0]}, {pos[1]}, {pos[2]})')
+    print('  Solution match per base station:')
+    for bs_id, value in solution.error_info['bs'].items():
+        print(f'    {bs_id}: {value}')
 
     return solution.bs_poses
 
@@ -152,7 +155,7 @@ if __name__ == '__main__':
         print('Step 2. Put the Crazyflie where you want the origin of your coordinate system, ' +
               'oriented with forward in the positive X direction.')
         input('Press return when ready. ')
-        print('  Recoding...')
+        print('  Recording...')
         origin = record_angles_average(scf)
         print('  Position recorded')
 

@@ -127,6 +127,9 @@ class LhCfPoseSample:
         # The refined estimate of the CF pose for this sample, in the global ref frame
         self.estimated_pose: Pose = None
 
+        # The aprroximate errors in final solution
+        self.estimated_errors: dict[int, float] = {}
+
 
 class LhDeck4SensorPositions:
     """ Positions of the sensors on the Lighthouse 4 deck """

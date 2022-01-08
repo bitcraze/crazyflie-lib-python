@@ -78,10 +78,10 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
     def test_that_linked_bs_poses_in_multiple_samples_are_estimated(self):
         # Fixture
         # CF_ORIGIN is used in the first sample and will define the global reference frame
-        bs_id0 = 3
-        bs_id1 = 1
-        bs_id2 = 2
-        bs_id3 = 0
+        bs_id0 = 7
+        bs_id1 = 2
+        bs_id2 = 9
+        bs_id3 = 3
         matched_samples = [
             LhCfPoseSample(angles_calibrated={
                 bs_id0: self.fixtures.angles_cf_origin_bs0,

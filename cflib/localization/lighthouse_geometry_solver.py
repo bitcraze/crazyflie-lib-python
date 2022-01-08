@@ -1,13 +1,9 @@
-from collections import namedtuple
-
 import numpy as np
 import numpy.typing as npt
 import scipy.optimize
 
 from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import Pose
-
-Ray = namedtuple('Ray', ['position', 'vector'])
 
 
 class LighthouseGeometrySolution:
@@ -52,6 +48,8 @@ class LighthouseGeometrySolution:
         # True if the sover was terminated due to reaching the maximum nr of alowed iterations
         self.max_iter_reached: bool = False
 
+        # Information about errors in the solution
+        self.error_info = {}
 
 
 class LighthouseGeometrySolver:
@@ -285,7 +283,7 @@ class LighthouseGeometrySolver:
 
         # Calculate the error at the CF positions
         distances_to_cfs = np.repeat(np.linalg.norm(
-            bss[index_angle_pair_to_bs][:,3:] - cfs_full[index_angle_pair_to_cf][:,3:], axis=1), 2)
+            bss[index_angle_pair_to_bs][:, 3:] - cfs_full[index_angle_pair_to_cf][:, 3:], axis=1), 2)
         residual = np.tan(diff) * distances_to_cfs
 
         return residual
@@ -373,86 +371,52 @@ class LighthouseGeometrySolver:
     @classmethod
     def _condense_results(cls, lsq_result, solution: LighthouseGeometrySolution,
                           matched_samples: list[LhCfPoseSample]) -> None:
-        solution.lsq_result = lsq_result
-
         bss, cf_poses = cls._params_to_struct(lsq_result.x, solution)
 
+        # Update matched samples with estimated CF poses
         matched_samples[0].estimated_pose = Pose()
         for i, sample in enumerate(matched_samples[1:]):
             sample.estimated_pose = cls._params_to_pose(cf_poses[i], solution)
 
+        # Extract base station pose estimates
         solution.bs_poses = {}
         for index, pose in enumerate(bss):
             bs_id = solution.bs_index_to_id[index]
             solution.bs_poses[bs_id] = cls._params_to_pose(pose, solution)
 
-        solution.max = lsq_result == 0
+        solution.max_iter_reached = lsq_result == 0
 
+        # Extract the final error for each sample. Use the approximate distance from the first sensor to the ray
+        residuals = lsq_result.fun
+        i = 0
+        for sample in matched_samples:
+            for bs_id in sorted(sample.angles_calibrated.keys()):
+                sample.estimated_errors[bs_id] = np.linalg.norm(residuals[i:i + 2])
+                i += solution.n_sensors * 2
 
-    # TODO
+        solution.error_info = cls._aggregate_error_info(matched_samples)
 
-    # @classmethod
-    # def estimate_error(cls, bs_poses, matched_samples, sensor_base_pos):
-    #     # Estimate the error (in meters) for all CF positions by calculating
-    #     # the distance from the ray (defined by measured angles/bs pose) to
-    #     # the estimated sensor position
-    #     for sample in matched_samples:
-    #         cf_pose = sample['pose']
-    #         errors = {}
-    #         for bs_id, angles in sample['data'].items():
-    #             # Only look at sensor 0
-    #             horiz = angles[0]
-    #             vert = angles[1]
+    @classmethod
+    def _aggregate_error_info(cls, matched_samples: list[LhCfPoseSample]):
+        error_per_bs = {}
+        errors = []
+        for sample in matched_samples:
+            for bs_id, error in sample.estimated_errors.items():
+                if bs_id not in error_per_bs:
+                    error_per_bs[bs_id] = []
+                error_per_bs[bs_id].append(error)
+                errors.append(error)
 
-    #             bs_pose = bs_poses[bs_id]
-    #             ray = cls._calc_ray(bs_pose, horiz, vert)
+        error_info = {}
+        error_info['mean_error'] = np.mean(errors)
+        error_info['max_error'] = np.max(errors)
+        error_info['std_error'] = np.std(errors)
 
-    #             sensor_pos = np.dot(cf_pose[0], sensor_base_pos[0]) + cf_pose[1]
+        error_info['bs'] = {}
+        for bs_id, errors in error_per_bs.items():
+            error_info['bs'][bs_id] = {}
+            error_info['bs'][bs_id]['mean_error'] = np.mean(errors)
+            error_info['bs'][bs_id]['max_error'] = np.max(errors)
+            error_info['bs'][bs_id]['std_error'] = np.std(errors)
 
-    #             error_dist = cls._distance_point_to_ray(sensor_pos, ray)
-    #             errors[bs_id] = error_dist
-    #         sample['error'] = errors
-
-    #     error_info = cls._analyze_errors(matched_samples)
-    #     return error_info
-
-    # @classmethod
-    # def _analyze_errors(cls, matched_samples):
-    #     error_per_bs = {}
-    #     errors = []
-    #     for sample in matched_samples:
-    #         for bs_id, error in sample['error'].items():
-    #             if bs_id not in error_per_bs:
-    #                 error_per_bs[bs_id] = []
-    #             error_per_bs[bs_id].append(error)
-    #             errors.append(error)
-
-    #     error_info = {}
-    #     error_info['mean_error'] = np.mean(errors)
-    #     error_info['max_error'] = np.max(errors)
-    #     error_info['std_error'] = np.std(errors)
-
-    #     error_info['bs'] = {}
-    #     for bs_id, errors in error_per_bs.items():
-    #         error_info['bs'][bs_id] = {}
-    #         error_info['bs'][bs_id]['mean_error'] = np.mean(errors)
-    #         error_info['bs'][bs_id]['max_error'] = np.max(errors)
-    #         error_info['bs'][bs_id]['std_error'] = np.std(errors)
-
-    #     return error_info
-
-    # @classmethod
-    # def _calc_ray(cls, geometry, horiz, vert):
-    #     n1 = np.array([np.sin(horiz), -np.cos(horiz), 0.0])
-    #     n2 = np.array([-np.sin(vert), 0.0, np.cos(vert)])
-
-    #     n21 = np.cross(n2, n1)
-    #     normal = n21 / np.linalg.norm(n21)
-
-    #     R = geometry[0]
-    #     vec = np.dot(R, normal)
-    #     return Ray(geometry[1], vec)
-
-    # @classmethod
-    # def _distance_point_to_ray(cls, point, ray):
-    #     return np.linalg.norm(np.cross(ray.vector, ray.position - point)) / np.linalg.norm(ray.vector)
+        return error_info

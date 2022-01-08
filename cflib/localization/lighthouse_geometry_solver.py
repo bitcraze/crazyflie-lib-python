@@ -49,18 +49,9 @@ class LighthouseGeometrySolution:
         # The estimated poses of the base stations
         self.bs_poses: dict[int, Pose] = {}
 
-        # The raw result from the scipy.optimize.least_squares() function
-        self.lsq_result = None
+        # True if the sover was terminated due to reaching the maximum nr of alowed iterations
+        self.max_iter_reached: bool = False
 
-    @property
-    def max_iter_reached(self):
-        """
-        True if the sover was terminated due to reaching the maximum nr of alowed iterations
-        """
-        result = False
-        if self.lsq_result is not None:
-            result = self.lsq_result == 0
-        return result
 
 
 class LighthouseGeometrySolver:
@@ -130,21 +121,21 @@ class LighthouseGeometrySolver:
         :param sensor_positions: Sensor positions (3D), in the CF reference frame
         :return: an instance of LighthouseGeometrySolution
         """
-        defs = LighthouseGeometrySolution()
+        solution = LighthouseGeometrySolution()
 
-        defs.n_bss = len(initial_guess_bs_poses)
-        defs.n_cfs = len(matched_samples)
-        defs.n_cfs_in_params = len(matched_samples) - 1
-        defs.n_sensors = len(sensor_positions)
-        defs.bs_id_to_index, defs.bs_index_to_id = cls._crate_bs_map(initial_guess_bs_poses)
+        solution.n_bss = len(initial_guess_bs_poses)
+        solution.n_cfs = len(matched_samples)
+        solution.n_cfs_in_params = len(matched_samples) - 1
+        solution.n_sensors = len(sensor_positions)
+        solution.bs_id_to_index, solution.bs_index_to_id = cls._crate_bs_map(initial_guess_bs_poses)
 
-        target_angles = cls._populate_target_angles(matched_samples, defs)
+        target_angles = cls._populate_target_angles(matched_samples, solution)
         idx_agl_pr_to_bs, idx_agl_pr_to_cf, idx_agl_pr_to_sens_pos, jac_sparsity = cls._populate_indexes_and_jacobian(
-            matched_samples, defs)
-        params_bs, params_cfs = cls._populate_initial_guess(initial_guess_bs_poses, matched_samples, defs)
+            matched_samples, solution)
+        params_bs, params_cfs = cls._populate_initial_guess(initial_guess_bs_poses, matched_samples, solution)
 
         # Extra arguments passed on to calc_residual()
-        args = (defs, idx_agl_pr_to_bs, idx_agl_pr_to_cf, idx_agl_pr_to_sens_pos, target_angles, sensor_positions)
+        args = (solution, idx_agl_pr_to_bs, idx_agl_pr_to_cf, idx_agl_pr_to_sens_pos, target_angles, sensor_positions)
 
         # Vector to optimize. Composed of base station parameters followed by cf parameters
         x0 = np.hstack((params_bs.ravel(), params_cfs.ravel()))
@@ -156,23 +147,11 @@ class LighthouseGeometrySolver:
                                               x_scale='jac',
                                               ftol=1e-8,
                                               method='trf',
-                                              max_nfev=defs.max_nr_iter,
+                                              max_nfev=solution.max_nr_iter,
                                               args=args)
 
-        defs.lsq_result = result
-
-        bss, cf_poses = cls._params_to_struct(result.x, defs)
-
-        matched_samples[0].estimated_pose = Pose()
-        for i, sample in enumerate(matched_samples[1:]):
-            sample.estimated_pose = cls._params_to_pose(cf_poses[i], defs)
-
-        defs.bs_poses = {}
-        for index, pose in enumerate(bss):
-            bs_id = defs.bs_index_to_id[index]
-            defs.bs_poses[bs_id] = cls._params_to_pose(pose, defs)
-
-        return defs
+        cls._condense_results(result, solution, matched_samples)
+        return solution
 
     @classmethod
     def _populate_target_angles(cls, matched_samples: list[LhCfPoseSample], defs: LighthouseGeometrySolution
@@ -390,6 +369,25 @@ class LighthouseGeometrySolver:
             bs_index_to_id[index] = id
 
         return bs_id_to_index, bs_index_to_id
+
+    @classmethod
+    def _condense_results(cls, lsq_result, solution: LighthouseGeometrySolution,
+                          matched_samples: list[LhCfPoseSample]) -> None:
+        solution.lsq_result = lsq_result
+
+        bss, cf_poses = cls._params_to_struct(lsq_result.x, solution)
+
+        matched_samples[0].estimated_pose = Pose()
+        for i, sample in enumerate(matched_samples[1:]):
+            sample.estimated_pose = cls._params_to_pose(cf_poses[i], solution)
+
+        solution.bs_poses = {}
+        for index, pose in enumerate(bss):
+            bs_id = solution.bs_index_to_id[index]
+            solution.bs_poses[bs_id] = cls._params_to_pose(pose, solution)
+
+        solution.max = lsq_result == 0
+
 
     # TODO
 

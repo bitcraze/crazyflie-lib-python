@@ -34,6 +34,7 @@ setup(
 
     install_requires=[
         'pyusb>=1.0.0b2',
+        'scipy>=1.7',
     ],
 
     # $ pip install -e .[dev]

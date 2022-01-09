@@ -46,7 +46,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         actual = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
 
         # Assert
-        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual[bs_id], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual.bs_poses[bs_id], places=3)
 
     def test_that_two_bs_poses_in_same_sample_are_found(self):
         # Fixture
@@ -64,15 +64,15 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         actual = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
 
         # Assert
-        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual[bs_id0], places=3)
-        self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, actual[bs_id1], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual.bs_poses[bs_id0], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, actual.bs_poses[bs_id1], places=3)
 
     def test_that_linked_bs_poses_in_multiple_samples_are_found(self):
         # Fixture
         # CF_ORIGIN is used in the first sample and will define the global reference frame
-        bs_id0 = 3
+        bs_id0 = 7
         bs_id1 = 1
-        bs_id2 = 2
+        bs_id2 = 5
         bs_id3 = 0
         samples = [
             LhCfPoseSample(angles_calibrated={
@@ -93,10 +93,40 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         actual = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
 
         # Assert
-        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual[bs_id0], places=3)
-        self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, actual[bs_id1], places=3)
-        self.assertPosesAlmostEqual(self.fixtures.BS2_POSE, actual[bs_id2], places=3)
-        self.assertPosesAlmostEqual(self.fixtures.BS3_POSE, actual[bs_id3], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual.bs_poses[bs_id0], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, actual.bs_poses[bs_id1], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS2_POSE, actual.bs_poses[bs_id2], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS3_POSE, actual.bs_poses[bs_id3], places=3)
+
+    def test_that_cf_poses_are_estimated(self):
+        # Fixture
+        # CF_ORIGIN is used in the first sample and will define the global reference frame
+        bs_id0 = 7
+        bs_id1 = 1
+        bs_id2 = 5
+        bs_id3 = 0
+        samples = [
+            LhCfPoseSample(angles_calibrated={
+                bs_id0: self.fixtures.angles_cf_origin_bs0,
+                bs_id1: self.fixtures.angles_cf_origin_bs1,
+            }),
+            LhCfPoseSample(angles_calibrated={
+                bs_id1: self.fixtures.angles_cf1_bs1,
+                bs_id2: self.fixtures.angles_cf1_bs2,
+            }),
+            LhCfPoseSample(angles_calibrated={
+                bs_id2: self.fixtures.angles_cf2_bs2,
+                bs_id3: self.fixtures.angles_cf2_bs3,
+            }),
+        ]
+
+        # Test
+        actual = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+
+        # Assert
+        self.assertPosesAlmostEqual(self.fixtures.CF_ORIGIN_POSE, actual.cf_poses[0], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.CF1_POSE, actual.cf_poses[1], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.CF2_POSE, actual.cf_poses[2], places=3)
 
     def test_that_the_global_ref_frame_is_used(self):
         # Fixture
@@ -120,11 +150,11 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
 
         # Assert
         self.assertPosesAlmostEqual(
-            Pose.from_rot_vec(R_vec=(0.0, 0.0, -np.pi / 2), t_vec=(1.0, 3.0, 3.0)), actual[bs_id0], places=3)
+            Pose.from_rot_vec(R_vec=(0.0, 0.0, -np.pi / 2), t_vec=(1.0, 3.0, 3.0)), actual.bs_poses[bs_id0], places=3)
         self.assertPosesAlmostEqual(
-            Pose.from_rot_vec(R_vec=(0.0, 0.0, 0.0), t_vec=(-2.0, 1.0, 3.0)), actual[bs_id1], places=3)
+            Pose.from_rot_vec(R_vec=(0.0, 0.0, 0.0), t_vec=(-2.0, 1.0, 3.0)), actual.bs_poses[bs_id1], places=3)
         self.assertPosesAlmostEqual(
-            Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi), t_vec=(2.0, 1.0, 3.0)), actual[bs_id2], places=3)
+            Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi), t_vec=(2.0, 1.0, 3.0)), actual.bs_poses[bs_id2], places=3)
 
     def test_that_raises_for_isolated_bs(self):
         # Fixture

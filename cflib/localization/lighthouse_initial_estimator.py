@@ -23,6 +23,7 @@ import numpy as np
 import numpy.typing as npt
 
 from .ippe_cf import IppeCf
+from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import Pose
 
@@ -35,31 +36,36 @@ class LighthouseInitialEstimator:
     """
 
     @classmethod
-    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike) -> dict[int, Pose]:
+    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike) -> LhBsCfPoses:
         """
-        Make a rough estimate of the poses of all base stations found in the samples.
+        Make a rough estimate of the poses of all base stations and CF poses found in the samples.
 
         The pose of the Crazyflie in the first sample is used as a reference and will define the
         global reference frame.
 
-        :param matched_samples: A list of samples with lihghthouse angles. Note: matched_samples is augmented with
-                                more information during the process, including the estimated poses
+        :param matched_samples: A list of samples with lihghthouse angles.
         :param sensor_positions: An array with the sensor positions on the lighthouse deck (3D, CF ref frame)
+        :return: a
         """
 
-        cls._angles_to_poses(matched_samples, sensor_positions)
+        bs_poses_ref_cfs = cls._angles_to_poses(matched_samples, sensor_positions)
 
+        # Use the first CF pose as the global reference frame
+        bs_poses: dict[int, Pose] = bs_poses_ref_cfs[0]
         # TODO Do not use first sample as reference, pass it in as a parameter
 
-        bs_poses: dict[int, Pose] = {}
-        cls._get_reference_bs_poses(matched_samples[0], bs_poses)
-        cls._calc_remaining_bs_poses(matched_samples, bs_poses)
-        cls._calc_cf_poses(matched_samples, bs_poses)
+        cls._calc_remaining_bs_poses(bs_poses_ref_cfs, bs_poses)
+        cf_poses = cls._calc_cf_poses(bs_poses_ref_cfs, bs_poses)
 
-        return bs_poses
+        return LhBsCfPoses(bs_poses, cf_poses)
 
     @classmethod
-    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike) -> None:
+    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike
+                         ) -> list[dict[int, Pose]]:
+        """
+        Estimate the base station poses in the Crazyflie reference frames, for each sample.
+        """
+        result: list[dict[int, Pose]] = []
         for sample in matched_samples:
             poses: dict[int, Pose] = {}
             for bs, angles in sample.angles_calibrated.items():
@@ -71,24 +77,15 @@ class LighthouseInitialEstimator:
                 t_vec = np.dot(R_mat, -estimate[0][1])
 
                 poses[bs] = Pose(R_mat, t_vec)
-            sample.initial_est_bs_poses = poses
+            result.append(poses)
+        return result
 
     @classmethod
-    def _get_reference_bs_poses(cls, sample: LhCfPoseSample, bs_poses: dict[int, Pose]) -> None:
-        """
-        The Pose of the CF in this sample is defining the global ref frame.
-        Store the poses for the bases stations that are in the sample.
-        """
-        est_ref_cf = sample.initial_est_bs_poses
-        for bs, pose in est_ref_cf.items():
-            bs_poses[bs] = pose
-
-    @classmethod
-    def _calc_remaining_bs_poses(cls, matched_sampels: list[LhCfPoseSample], bs_poses: dict[int, Pose]) -> None:
+    def _calc_remaining_bs_poses(cls, bs_poses_ref_cfs: list[dict[int, Pose]], bs_poses: dict[int, Pose]) -> None:
         # Find all base stations in the list
         all_bs = set()
-        for sample in matched_sampels:
-            all_bs.update(sample.initial_est_bs_poses.keys())
+        for initial_est_bs_poses in bs_poses_ref_cfs:
+            all_bs.update(initial_est_bs_poses.keys())
 
         # Remove the reference base stations that we already have the poses for
         to_find = all_bs - bs_poses.keys()
@@ -96,8 +93,8 @@ class LighthouseInitialEstimator:
         # run through the list of samples until we manage to find them all
         remaining = len(to_find)
         while remaining > 0:
-            for sample in matched_sampels:
-                bs_poses_in_sample = sample.initial_est_bs_poses
+            for initial_est_bs_poses in bs_poses_ref_cfs:
+                bs_poses_in_sample = initial_est_bs_poses
                 unknown = to_find.intersection(bs_poses_in_sample.keys())
                 known = set(bs_poses.keys()).intersection(bs_poses_in_sample.keys())
 
@@ -126,16 +123,21 @@ class LighthouseInitialEstimator:
             remaining = len(to_find)
 
     @classmethod
-    def _calc_cf_poses(cls, matched_samples: list[LhCfPoseSample], bs_poses: list[Pose]) -> None:
-        for sample in matched_samples:
+    def _calc_cf_poses(cls, bs_poses_ref_cfs: list[dict[int, Pose]], bs_poses: list[Pose]) -> list[Pose]:
+        cf_poses: list[Pose] = []
+
+        for initial_est_bs_poses in bs_poses_ref_cfs:
             # Use the first base station pose as a reference
-            est_ref_cf = sample.initial_est_bs_poses
+            est_ref_cf = initial_est_bs_poses
             ref_bs = list(est_ref_cf.keys())[0]
 
             pose_global = bs_poses[ref_bs]
             pose_cf = est_ref_cf[ref_bs]
             est_ref_global = cls._map_cf_pos_to_cf_pos(pose_global, pose_cf)
-            sample.inital_est_pose = est_ref_global
+
+            cf_poses.append(est_ref_global)
+
+        return cf_poses
 
     @classmethod
     def _map_pose_to_ref_frame(cls, pose1_ref1: Pose, pose1_ref2: Pose, pose2_ref2: Pose) -> Pose:

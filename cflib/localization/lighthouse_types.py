@@ -100,6 +100,12 @@ class LhMeasurement(NamedTuple):
     angles: LighthouseBsVectors
 
 
+class LhBsCfPoses(NamedTuple):
+    """Represents all poses of base stations and CF samples"""
+    bs_poses: dict[int, Pose]
+    cf_poses: list[Pose]
+
+
 class LhCfPoseSample:
     """ Represents a sample of a Crazyflie pose in space, it contains
     various data related to the pose such as:
@@ -117,18 +123,6 @@ class LhCfPoseSample:
         self.angles_calibrated: dict[int, LighthouseBsVectors] = angles_calibrated
         if self.angles_calibrated is None:
             self.angles_calibrated = {}
-
-        # Initial estimates of bs poses for this sample, in the CF reference frame
-        self.initial_est_bs_poses: dict[int, Pose] = {}
-
-        # The initial estimate of the CF pose for this sample, in the global ref frame
-        self.inital_est_pose: Pose = None
-
-        # The refined estimate of the CF pose for this sample, in the global ref frame
-        self.estimated_pose: Pose = None
-
-        # The aprroximate errors in final solution
-        self.estimated_errors: dict[int, float] = {}
 
 
 class LhDeck4SensorPositions:

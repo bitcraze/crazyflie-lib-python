@@ -48,7 +48,7 @@ class LighthouseTestBase(unittest.TestCase):
                                f'Translation different, expected: {expected.translation}, actual: {actual.translation}')
 
         def un_ambiguize(rot_vec):
-            quat = Rotation.from_rotvec(expected.rot_vec).as_quat()
+            quat = Rotation.from_rotvec(rot_vec).as_quat()
             return Rotation.from_quat(quat).as_rotvec()
 
         _expected_rot_vec = un_ambiguize(expected.rot_vec)

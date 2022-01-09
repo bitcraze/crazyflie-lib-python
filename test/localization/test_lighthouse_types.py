@@ -19,14 +19,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import unittest
+from test.localization.lighthouse_test_base import LighthouseTestBase
 
 import numpy as np
 
 from cflib.localization.lighthouse_types import Pose
 
 
-class TestLighthouseTypes(unittest.TestCase):
+class TestLighthouseTypes(LighthouseTestBase):
     def setUp(self):
         pass
 
@@ -50,11 +50,11 @@ class TestLighthouseTypes(unittest.TestCase):
 
     def test_rotate_translate(self):
         # Fixture
-        pose = Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi / 2), t_vec=(1.0, 0.0, 0.0))
+        transform = Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi / 2), t_vec=(1.0, 0.0, 0.0))
         point = (2.0, 0.0, 0.0)
 
         # Test
-        actual = pose.rotate_translate(point)
+        actual = transform.rotate_translate(point)
 
         # Assert
         self.assertAlmostEqual(1.0, actual[0])
@@ -63,13 +63,36 @@ class TestLighthouseTypes(unittest.TestCase):
 
     def test_rotate_translate_and_back(self):
         # Fixture
-        pose = Pose.from_rot_vec(R_vec=(1.0, 2.0, 3.0), t_vec=(0.1, 0.2, 0.3))
+        transform = Pose.from_rot_vec(R_vec=(1.0, 2.0, 3.0), t_vec=(0.1, 0.2, 0.3))
         expected = (2.0, 3.0, 4.0)
 
         # Test
-        actual = pose.inv_rotate_translate(pose.rotate_translate(expected))
+        actual = transform.inv_rotate_translate(transform.rotate_translate(expected))
 
         # Assert
         self.assertAlmostEqual(expected[0], actual[0])
         self.assertAlmostEqual(expected[1], actual[1])
         self.assertAlmostEqual(expected[2], actual[2])
+
+    def test_rotate_translate_pose(self):
+        # Fixture
+        transform = Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi / 2), t_vec=(1.0, 0.0, 0.0))
+        pose = Pose(t_vec=(2.0, 0.0, 0.0))
+        expected = Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi / 2), t_vec=(1.0, 2.0, 0.0))
+
+        # Test
+        actual = transform.rotate_translate_pose(pose)
+
+        # Assert
+        self.assertPosesAlmostEqual(expected, actual)
+
+    def test_rotate_translate_pose_and_back(self):
+        # Fixture
+        transform = Pose.from_rot_vec(R_vec=(1.0, 2.0, 3.0), t_vec=(0.1, 0.2, 0.3))
+        expected = Pose(t_vec=(2.0, 3.0, 4.0))
+
+        # Test
+        actual = transform.inv_rotate_translate_pose(transform.rotate_translate_pose(expected))
+
+        # Assert
+        self.assertPosesAlmostEqual(expected, actual)

@@ -92,6 +92,26 @@ class Pose:
         """
         return np.dot(np.transpose(self.rot_matrix), point - self.translation)
 
+    def rotate_translate_pose(self, pose: 'Pose') -> 'Pose':
+        """
+        Rotate and translate a pose
+        """
+        t = np.dot(self.rot_matrix, pose.translation) + self.translation
+        R = np.dot(self.rot_matrix, pose.rot_matrix)
+
+        return Pose(R_matrix=R, t_vec=t)
+
+    def inv_rotate_translate_pose(self, pose: 'Pose') -> 'Pose':
+        """
+        Inverse rotate and translate a point, that is transform from global
+        to local reference frame
+        """
+        inv_rot_matrix = np.transpose(self.rot_matrix)
+        t = np.dot(inv_rot_matrix, pose.translation - self.translation)
+        R = np.dot(inv_rot_matrix, pose.rot_matrix)
+
+        return Pose(R_matrix=R, t_vec=t)
+
 
 class LhMeasurement(NamedTuple):
     """Represents a measurement from one base station."""

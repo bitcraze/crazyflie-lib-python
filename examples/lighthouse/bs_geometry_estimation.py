@@ -53,6 +53,7 @@ from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEst
 from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
+from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
 from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 from cflib.localization.lighthouse_types import LhMeasurement
@@ -103,20 +104,29 @@ def parse(recording_time, default):
         return default
 
 
-def estimate_geometry(origin, samples):
-    matched_samples = [origin] + LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
+def estimate_geometry(origin, x_axis, xy_plane, samples):
+    matched_samples = [origin] + x_axis + xy_plane + LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
     initial_guess = LighthouseInitialEstimator.estimate(matched_samples, LhDeck4SensorPositions.positions)
     solution = LighthouseGeometrySolver.solve(initial_guess, matched_samples, LhDeck4SensorPositions.positions)
 
+    start_x_axis = 1
+    start_xy_plane = 1 + len(x_axis)
+    origin_pos = solution.cf_poses[0].translation
+    x_axis_poses = solution.cf_poses[start_x_axis:start_x_axis + len(x_axis)]
+    x_axis_pos = list(map(lambda x: x.translation, x_axis_poses))
+    xy_plane_poses = solution.cf_poses[start_xy_plane:start_xy_plane + len(xy_plane)]
+    xy_plane_pos = list(map(lambda x: x.translation, xy_plane_poses))
+    bs_aligned_poses = LighthouseSystemAligner.align(origin_pos, x_axis_pos, xy_plane_pos, solution.bs_poses)
+
     print('  Base stations at:')
-    for bs_id, pose in sorted(solution.bs_poses.items()):
+    for bs_id, pose in sorted(bs_aligned_poses.items()):
         pos = pose.translation
         print(f'    {bs_id}: ({pos[0]}, {pos[1]}, {pos[2]})')
     print('  Solution match per base station:')
     for bs_id, value in solution.error_info['bs'].items():
         print(f'    {bs_id}: {value}')
 
-    return solution.bs_poses
+    return bs_aligned_poses
 
 
 def upload_geometry(scf, bs_poses):
@@ -152,14 +162,36 @@ if __name__ == '__main__':
     print(f'Step 1. Connecting to the Crazyflie on uri {uri}...')
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         print('  Connected')
-        print('Step 2. Put the Crazyflie where you want the origin of your coordinate system, ' +
-              'oriented with forward in the positive X direction.')
+        print('')
+        print('In the 3 following steps we will define the coordinate system.')
+        print('Step 2. Put the Crazyflie where you want the origin of your coordinate system.')
         input('Press return when ready. ')
         print('  Recording...')
         origin = record_angles_average(scf)
         print('  Position recorded')
 
-        print('Step 3. We will now record data from the space you plan to fly in and optimize the base station ' +
+        print('Step 3. Put the Crazyflie somehere on the positive X-axis.')
+        print('Multiple samples can be recorded if you want to, type "r" before you hit enter to repeat the step.')
+        x_axis = []
+        do_repeat = True
+        while do_repeat:
+            do_repeat = 'r' == input('Press return when ready. ').lower()
+            print('  Recording...')
+            x_axis.append(record_angles_average(scf))
+            print('  Position recorded')
+
+        print('Step 4. Put the Crazyflie somehere in the XY-plane, but not on the X-axis.')
+        print('Multiple samples can be recorded if you want to, type "r" before you hit enter to repeat the step.')
+        xy_plane = []
+        do_repeat = True
+        while do_repeat:
+            do_repeat = 'r' == input('Press return when ready. ').lower()
+            print('  Recording...')
+            xy_plane.append(record_angles_average(scf))
+            print('  Position recorded')
+
+        print()
+        print('Step 5. We will now record data from the space you plan to fly in and optimize the base station ' +
               'geometry based on this data. Move the Crazyflie around, try to cover all of the space, make sure ' +
               'all the base stations are received and do not move too fast. ')
         print('This step does not add anything in a system with only one base station, enter 0 in this case.')
@@ -171,11 +203,11 @@ if __name__ == '__main__':
         samples = record_angles_sequence(scf, recording_time_s)
         print('  Recording ended')
 
-        print('Step 4. Estimating geometry...')
-        bs_poses = estimate_geometry(origin, samples)
+        print('Step 6. Estimating geometry...')
+        bs_poses = estimate_geometry(origin, x_axis, xy_plane, samples)
         print('  Geometry estimated')
 
-        print('Step 5. Upload geometry to the Crazyflie')
+        print('Step 7. Upload geometry to the Crazyflie')
         input('Press enter to upload geometry. ')
         upload_geometry(scf, bs_poses)
         print('Geometry uploaded')

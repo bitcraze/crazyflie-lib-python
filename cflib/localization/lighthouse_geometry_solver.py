@@ -1,3 +1,26 @@
+# -*- coding: utf-8 -*-
+#
+# ,---------,       ____  _ __
+# |  ,-^-,  |      / __ )(_) /_______________ _____  ___
+# | (  O  ) |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
+# | / ,--'  |    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
+#    +------`   /_____/_/\__/\___/_/   \__,_/ /___/\___/
+#
+# Copyright (C) 2022 Bitcraze AB
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, in version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+from __future__ import annotations
+
 import numpy as np
 import numpy.typing as npt
 import scipy.optimize
@@ -120,10 +143,8 @@ class LighthouseGeometrySolver:
         Iteration is terminated after a fixed number of iteration if acceptable solution
         is found.
 
-        :param initial_guess_bs_poses: Initial guess for the base station and CF sample poses
-        :param matched_samples: List of matched samples, must have been augmented with initial guesses of the CF
-                                poses. The samples will be updated with their estimated pose and error during the
-                                process.
+        :param initial_guess: Initial guess for the base stations and CF sample poses
+        :param matched_samples: List of matched samples.
         :param sensor_positions: Sensor positions (3D), in the CF reference frame
         :return: an instance of LighthouseGeometrySolution
         """

@@ -22,6 +22,8 @@
 """
 Functionality to handle base station geometry in the lighthouse poistioning system
 """
+from __future__ import annotations
+
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVector
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator

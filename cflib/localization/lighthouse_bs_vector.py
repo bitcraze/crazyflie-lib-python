@@ -19,6 +19,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+from __future__ import annotations
+
 import math
 
 import numpy as np
@@ -140,7 +142,7 @@ class LighthouseBsVector:
 # each sensor
 # LighthouseBsVectors = list[LighthouseBsVector]
 
-class LighthouseBsVectors(list[LighthouseBsVector]):
+class LighthouseBsVectors(list):
     def projection_pair_list(self) -> npt.NDArray:
         """
         Genereate a list of projection pairs for all vectors

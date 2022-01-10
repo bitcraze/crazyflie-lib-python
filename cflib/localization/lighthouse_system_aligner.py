@@ -19,9 +19,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+from __future__ import annotations
+
 import numpy as np
 import numpy.typing as npt
 import scipy.optimize
+
 from cflib.localization.lighthouse_types import Pose
 
 
@@ -63,7 +66,7 @@ class LighthouseSystemAligner:
         :return: The transformation from the current reference frame to the desired reference frame. Note: the solution may
                  be flipped.
         """
-        args=(origin, x_axis, xy_plane)
+        args = (origin, x_axis, xy_plane)
 
         x0 = np.zeros((6))
 

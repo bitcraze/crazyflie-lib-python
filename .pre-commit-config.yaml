@@ -1,4 +1,4 @@
--   repo: git://github.com/pre-commit/pre-commit-hooks
+-   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: 7192665e31cea6ace58a71e086c7248d7e5610c2
     hooks:
     -   id: autopep8-wrapper
@@ -15,7 +15,7 @@
     -   id: end-of-file-fixer
     -   id: flake8
     -   id: requirements-txt-fixer
--   repo: git://github.com/asottile/reorder_python_imports
+-   repo: https://github.com/asottile/reorder_python_imports
     rev: ab609b9b982729dfc287b4e75963c0c4de254a31
     hooks:
     -   id: reorder-python-imports

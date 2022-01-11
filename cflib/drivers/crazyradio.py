@@ -30,6 +30,8 @@ import os
 import platform
 
 import usb
+import usb.core
+import libusb_package
 
 try:
     if os.environ['CRTP_PCAP_LOG'] is not None:
@@ -59,18 +61,6 @@ SET_CONT_CARRIER = 0x20
 SCANN_CHANNELS = 0x21
 LAUNCH_BOOTLOADER = 0xFF
 
-try:
-    import usb.core
-
-    pyusb_backend = None
-    if os.name == 'nt':
-        import usb.backend.libusb0 as libusb0
-
-        pyusb_backend = libusb0.get_backend()
-    pyusb1 = True
-except Exception:
-    pyusb1 = False
-
 
 def _find_devices(serial=None):
     """
@@ -78,21 +68,13 @@ def _find_devices(serial=None):
     """
     ret = []
 
-    if pyusb1:
-        for d in usb.core.find(idVendor=0x1915, idProduct=0x7777, find_all=1,
-                               backend=pyusb_backend):
+    devices = usb.core.find(idVendor=0x1915, idProduct=0x7777, find_all=1,
+                            backend=libusb_package.get_libusb1_backend())
+    if devices:
+        for d in devices:
             if serial is not None and serial == d.serial_number:
                 return d
             ret.append(d)
-    else:
-        busses = usb.busses()
-        for bus in busses:
-            for device in bus.devices:
-                if device.idVendor == CRADIO_VID:
-                    if device.idProduct == CRADIO_PID:
-                        if serial == device.serial_number:
-                            return device
-                        ret += [device, ]
 
     return ret
 
@@ -142,16 +124,10 @@ class Crazyradio:
 
         self.dev = device
 
-        if (pyusb1 is True):
-            self.dev.set_configuration(1)
-            self.handle = self.dev
-            self.version = float('{0:x}.{1:x}'.format(
-                self.dev.bcdDevice >> 8, self.dev.bcdDevice & 0x0FF))
-        else:
-            self.handle = self.dev.open()
-            self.handle.setConfiguration(1)
-            self.handle.claimInterface(0)
-            self.version = float(self.dev.deviceVersion)
+        self.dev.set_configuration(1)
+        self.handle = self.dev
+        self.version = float('{0:x}.{1:x}'.format(
+            self.dev.bcdDevice >> 8, self.dev.bcdDevice & 0x0FF))
 
         if self.version < 0.3:
             raise 'This driver requires Crazyradio firmware V0.3+'
@@ -159,9 +135,6 @@ class Crazyradio:
         if self.version < 0.4:
             logger.warning('You should update to Crazyradio firmware V0.4+')
 
-        # Reset the dongle to power up settings
-        if platform.system() == 'Linux':
-            self.handle.reset()
         self.set_data_rate(self.DR_2MPS)
         self.set_channel(2)
         self.arc = -1
@@ -183,12 +156,8 @@ class Crazyradio:
             pass
 
     def close(self):
-        if (pyusb1 is False):
-            if self.handle:
-                self.handle.releaseInterface()
-        else:
-            if self.dev:
-                usb.util.dispose_resources(self.dev)
+        if self.dev:
+            usb.util.dispose_resources(self.dev)
 
         self.handle = None
         self.dev = None
@@ -303,12 +272,8 @@ class Crazyradio:
         ackIn = None
         data = None
         try:
-            if (pyusb1 is False):
-                self.handle.bulkWrite(1, dataOut, 1000)
-                data = self.handle.bulkRead(0x81, 64, 1000)
-            else:
-                self.handle.write(endpoint=1, data=dataOut, timeout=1000)
-                data = self.handle.read(0x81, 64, timeout=1000)
+            self.handle.write(endpoint=1, data=dataOut, timeout=1000)
+            data = self.handle.read(0x81, 64, timeout=1000)
 
             self._log_packet(
                 False,
@@ -344,19 +309,11 @@ class Crazyradio:
 
 # Private utility functions
 def _send_vendor_setup(handle, request, value, index, data):
-    if pyusb1:
-        handle.ctrl_transfer(usb.TYPE_VENDOR, request, wValue=value,
-                             wIndex=index, timeout=1000, data_or_wLength=data)
-    else:
-        handle.controlMsg(usb.TYPE_VENDOR, request, data, value=value,
-                          index=index, timeout=1000)
+    handle.ctrl_transfer(usb.TYPE_VENDOR, request, wValue=value,
+                        wIndex=index, timeout=1000, data_or_wLength=data)
 
 
 def _get_vendor_setup(handle, request, value, index, length):
-    if pyusb1:
-        return handle.ctrl_transfer(usb.TYPE_VENDOR | 0x80, request,
-                                    wValue=value, wIndex=index, timeout=1000,
-                                    data_or_wLength=length)
-    else:
-        return handle.controlMsg(usb.TYPE_VENDOR | 0x80, request, length,
-                                 value=value, index=index, timeout=1000)
+    return handle.ctrl_transfer(usb.TYPE_VENDOR | 0x80, request,
+                                wValue=value, wIndex=index, timeout=1000,
+                                data_or_wLength=length)

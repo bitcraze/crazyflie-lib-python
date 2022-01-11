@@ -78,9 +78,6 @@ class LighthouseGeometrySolution:
         # Information about errors in the solution
         self.error_info = {}
 
-        # True if the sover was terminated due to reaching the maximum nr of alowed iterations
-        self.max_iter_reached: bool = False
-
 
 class LighthouseGeometrySolver:
     """
@@ -411,7 +408,8 @@ class LighthouseGeometrySolver:
             bs_id = solution.bs_index_to_id[index]
             solution.bs_poses[bs_id] = cls._params_to_pose(pose, solution)
 
-        solution.max_iter_reached = lsq_result == 0
+        if not lsq_result.success:
+            raise Exception('Solution did not converge')
 
         # Extract the error for each CF pose
         residuals = lsq_result.fun

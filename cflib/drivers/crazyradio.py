@@ -180,7 +180,7 @@ class Crazyradio:
             if os.environ['CRTP_PCAP_LOG'] is not None:
                 if len(packet) > 0:
                     logger = PCAPLog.instance()
-                    logger.logCRTP(receive, devid, address, channel, packet)
+                    logger.logCRTP(logger.LinkType.RADIO, receive, devid, address, channel, packet)
         except KeyError:
             pass
 

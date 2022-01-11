@@ -1,6 +1,7 @@
 import os
 import struct
 from datetime import datetime
+from enum import IntEnum
 
 
 class PCAPLog():
@@ -91,6 +92,11 @@ class PCAPLog():
               was captured. If incl_len and orig_len differ, the actually saved
               packet size was limited by snaplen.
     """
+    # Link type options for CRTP packet
+    class LinkType(IntEnum):
+        RADIO = 1
+        USB = 2
+
     # Global header for pcap 2.4
     pcap_global_header = ('D4 C3 B2 A1 '
                           '02 00 '         # major revision (i.e. pcap <2>.4)
@@ -121,20 +127,20 @@ class PCAPLog():
 
         return cls._instance
 
-    def logCRTP(self, receive, devid, address, channel, crtp_packet):
-        length = len(address) + 1 + 1 + 1 + len(crtp_packet)  # addr + devid + receive + channel + data
+    def logCRTP(self, link_type: LinkType, receive, devid, address, channel, crtp_packet):
+        length = len(address) + 1 + 1 + 1 + 1 + len(crtp_packet)  # type + addr + devid + receive + channel + data
 
         self._log.write(self._pcap_header(length))
         self._log.write(
             self._assemble_record(
-                receive, address, channel, devid, crtp_packet
+                int(link_type), receive, address, channel, devid, crtp_packet
             )
         )
 
-    def _assemble_record(self, receive, address, channel, devid, crtp_packet):
+    def _assemble_record(self, link_type, receive, address, channel, devid, crtp_packet):
         return struct.pack(
-            '<B{}BB{}'.format(5 * 'B', len(crtp_packet) * 'B'),
-            receive, *address, channel, devid, *crtp_packet
+            '<BB{}BB{}'.format(5 * 'B', len(crtp_packet) * 'B'),
+            link_type, receive, *address, channel, devid, *crtp_packet
         )
 
     def _pcap_header(self, len):

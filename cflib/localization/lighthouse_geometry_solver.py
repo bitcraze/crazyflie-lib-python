@@ -401,8 +401,9 @@ class LighthouseGeometrySolver:
         bss, cf_poses = cls._params_to_struct(lsq_result.x, solution)
 
         # Extract CF pose estimates
+        # First pose (origin) is not in the parameter list
         solution.cf_poses.append(Pose())
-        for i, sample in enumerate(matched_samples[1:]):
+        for i in range(len(matched_samples) - 1):
             solution.cf_poses.append(cls._params_to_pose(cf_poses[i], solution))
 
         # Extract base station pose estimates

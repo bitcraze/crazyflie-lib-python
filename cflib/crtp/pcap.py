@@ -128,18 +128,13 @@ class PCAPLog():
         return cls._instance
 
     def logCRTP(self, link_type: LinkType, receive, devid, address, channel, crtp_packet):
-        length = len(address) + 1 + 1 + 1 + 1 + len(crtp_packet)  # type + addr + devid + receive + channel + data
-
-        self._log.write(self._pcap_header(length))
-        self._log.write(
-            self._assemble_record(
-                int(link_type), receive, address, channel, devid, crtp_packet
-            )
-        )
+        record = self._assemble_record(int(link_type), receive, address, channel, devid, crtp_packet)
+        self._log.write(self._pcap_header(len(record)))
+        self._log.write(record)
 
     def _assemble_record(self, link_type, receive, address, channel, devid, crtp_packet):
         return struct.pack(
-            '<BB{}BB{}'.format(5 * 'B', len(crtp_packet) * 'B'),
+            '<BB{}BB{}'.format(len(address) * 'B', len(crtp_packet) * 'B'),
             link_type, receive, *address, channel, devid, *crtp_packet
         )
 

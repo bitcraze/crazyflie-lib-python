@@ -32,6 +32,12 @@ import os
 
 import usb
 
+try:
+    if os.environ['CRTP_PCAP_LOG'] is not None:
+        from cflib.crtp.pcap import PCAPLog
+except KeyError:
+    pass
+
 __author__ = 'Bitcraze AB'
 __all__ = ['CfUsb']
 
@@ -140,6 +146,22 @@ class CfUsb:
         else:
             _send_vendor_setup(self.handle, 0x01, 0x01, 0, ())
 
+    def _log_packet(self, receive, id, packet):
+        try:
+            if os.environ['CRTP_PCAP_LOG'] is not None:
+                if len(packet) > 0:
+                    logger = PCAPLog.instance()
+                    logger.logCRTP(
+                        logger.LinkType.USB,
+                        receive,
+                        id,
+                        bytearray.fromhex(self.get_serial()),
+                        0,
+                        packet
+                    )
+        except KeyError:
+            pass
+
     # Data transfers
     def send_packet(self, dataOut):
         """ Send a packet and receive the ack from the radio dongle
@@ -150,6 +172,9 @@ class CfUsb:
                 self.handle.bulkWrite(1, dataOut, 20)
             else:
                 self.handle.write(endpoint=1, data=dataOut, timeout=20)
+
+            self._log_packet(False, self.dev.port_number, dataOut)
+
         except usb.USBError:
             pass
 
@@ -173,6 +198,8 @@ class CfUsb:
                 # if the cable is disconnected. So this detection is not
                 # supported, but the "normal" case will work.
                 pass
+
+        self._log_packet(True, self.dev.port_number, dataIn)
 
         return dataIn
 

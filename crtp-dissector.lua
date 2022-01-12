@@ -45,6 +45,15 @@ crtp.fields = {
     f_crtp_setpoint_hl_id, f_crtp_setpoint_hl_timescale
 }
 
+local Links = {
+    UNKNOWN = 0,
+    RADIO = 1,
+    USB = 2,
+}
+
+local link = Links.UNKNOWN
+
+local crtp_start = 0
 
 -- Analye port and channel and figure what service (port name / channel name)
 -- we are dealing with
@@ -61,6 +70,7 @@ local Ports = {
     Platform = 0xD,
     All = 0xF
 }
+
 function get_crtp_port_channel_names(port, channel)
     local port_name = "Unknown"
     local channel_name = nil
@@ -116,19 +126,28 @@ function get_crtp_port_channel_names(port, channel)
 end
 
 function format_address(buffer)
-    addr = buffer(2, 5):bytes():tohex()
-    port = buffer(7, 1):uint()
+    if link == Links.RADIO then
+        addr = buffer(2, 5):bytes():tohex()
+        port = buffer(7, 1):uint()
 
-    addr = addr:gsub("..", ":%0"):sub(2)
-    port = tostring(port)
+        addr = addr:gsub("..", ":%0"):sub(2)
+        port = tostring(port)
 
-    return addr .. " (" .. port .. ")"
+        return addr .. " (" .. port .. ")"
+    elseif link == Links.USB then
+        return buffer(2, 12):bytes():tohex()
+    end
 end
 
-function format_radio(buffer)
-    devid = buffer(8, 1):uint()
+function format_device(buffer)
+    if link == Links.RADIO then
+        devid = buffer(8, 1):uint()
+        return "Radio #" .. tostring(devid)
+    elseif link == Links.USB then
+        devid = buffer(15, 1):uint()
+        return "USB #" .. tostring(devid)
+    end
 
-    return "Radio #" .. tostring(devid)
 end
 
 function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
@@ -160,7 +179,7 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
 
     local port_tree = tree:add(crtp, port_name)
 
-    local cmd = buffer(10, 1):uint()
+    local cmd = buffer(crtp_start + 1, 1):uint()
     local cmd_str = "Unknown"
 
     if cmd == Commands.COMMAND_SET_GROUP_MASK then
@@ -181,7 +200,7 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
         --    uint8_t groupMask;        // mask for which CFs this should apply to
         --  } __attribute__((packed));
         if receive == 0 then
-            group_mask = buffer(11, 1):uint()
+            group_mask = buffer(crtp_start + 2, 1):uint()
         end
     elseif cmd == Commands.COMMAND_GO_TO then
         cmd_str = "Go To"
@@ -196,13 +215,13 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
         --    float duration; // sec
         --  } __attribute__((packed));
         if receive == 0 then
-            group_mask = buffer(11, 1):uint()
-            relative = buffer(12, 1):uint()
-            x = buffer(13, 4):le_float()
-            y = buffer(17, 4):le_float()
-            z = buffer(21, 4):le_float()
-            yaw = buffer(25, 4):le_float()
-            duration = buffer(29, 4):le_float()
+            group_mask = buffer(crtp_start + 2, 1):uint()
+            relative = buffer(crtp_start + 3, 1):uint()
+            x = buffer(crtp_start + 4, 4):le_float()
+            y = buffer(crtp_start + 8, 4):le_float()
+            z = buffer(crtp_start + 12, 4):le_float()
+            yaw = buffer(crtp_start + 16, 4):le_float()
+            duration = buffer(crtp_start + 20, 4):le_float()
         end
     elseif cmd == Commands.COMMAND_START_TRAJECTORY then
         cmd_str = "Start Trajectory"
@@ -215,11 +234,11 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
         --   float timescale; // time factor; 1 = original speed; >1: slower; <1: faster
         --  } __attribute__((packed));
         if receive == 0 then
-            group_mask = buffer(11, 1):uint()
-            relative = buffer(12, 1):uint()
-            reversed = buffer(13, 1):uint()
-            id = buffer(14, 1):uint()
-            timescale = buffer(15):float()
+            group_mask = buffer(crtp_start + 2, 1):uint()
+            relative = buffer(crtp_start + 3, 1):uint()
+            reversed = buffer(crtp_start + 4, 1):uint()
+            id = buffer(crtp_start + 5, 1):uint()
+            timescale = buffer(crtp_start + 6):float()
         end
     elseif cmd == Commands.COMMAND_DEFINE_TRAJECTORY then
         cmd_str = "Define Trajectory"
@@ -229,7 +248,7 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
         --    struct trajectoryDescription description;
         --  } __attribute__((packed));
         if receive == 0 then
-            id = buffer(11, 1):uint()
+            id = buffer(crtp_start + 2, 1):uint()
         end
     elseif cmd == Commands.COMMAND_TAKEOFF_2 then
         cmd_str = "Take Off"
@@ -242,11 +261,11 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
         -- float duration;           // s (time it should take until target height is reached)
         -- } __attribute__((packed));
         if receive == 0 then
-            group_mask = buffer(11, 1):uint()
-            height = buffer(12, 4):le_float()
-            yaw =  buffer(16, 4):le_float()
-            use_yaw = buffer(20, 1):uint()
-            duration = buffer(21, 4):le_float()
+            group_mask = buffer(crtp_start + 2, 1):uint()
+            height = buffer(crtp_start + 3, 4):le_float()
+            yaw =  buffer(crtp_start + 7, 4):le_float()
+            use_yaw = buffer(crtp_start + 11, 1):uint()
+            duration = buffer(crtp_start + 12, 4):le_float()
         end
 
     elseif cmd == Commands.COMMAND_LAND_2 then
@@ -259,11 +278,11 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
         -- float duration;           // s (time it should take until target height is reached)
         -- } __attribute__((packed));
         if receive == 0 then
-            group_mask = buffer(11, 1):uint()
-            height = buffer(12, 4):le_float()
-            yaw =  buffer(16, 4):le_float()
-            use_yaw = buffer(20, 1):uint()
-            duration = buffer(21, 4):le_float()
+            group_mask = buffer(crtp_start + 2, 1):uint()
+            height = buffer(crtp_start + 3, 4):le_float()
+            yaw =  buffer(crtp_start + 7, 4):le_float()
+            use_yaw = buffer(crtp_start + 11, 1):uint()
+            duration = buffer(crtp_start + 12, 4):le_float()
         end
 
     elseif cmd == Commands.COMMAND_TAKEOFF_WITH_VELOCITY then cmd_str = "Take Off With Velocity"
@@ -272,7 +291,7 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
     port_tree:add_le(f_crtp_setpoint_hl_command, cmd_str)
     local success = true
     if receive == 1 then
-        retval = buffer(13):uint()
+        retval = buffer(crtp_start + 4):uint()
         local success = (retval == 0) and "Success" or "Failure"
         port_tree:add_le(f_crtp_setpoint_hl_retval, retval):append_text(" (" .. success .. ")")
     end
@@ -317,51 +336,58 @@ function handle_parameter_port(tree, buffer, channel, size)
      if (channel == 1 or channel == 2) and size > 2 then
 
         -- Add variable id
-        local var_id = buffer(10, 2):le_uint()
+        local var_id = buffer(crtp_start + 1, 2):le_uint()
         local port_tree = tree:add(crtp, port_name)
         port_tree:add_le(f_crtp_parameter_varid, var_id)
 
         -- Add value
         if size > 3 then
-            port_tree:add_le(f_crtp_parameter_val_uint, buffer(13):le_uint())
-            port_tree:add_le(f_crtp_parameter_val_int, buffer(13):le_int())
+            port_tree:add_le(f_crtp_parameter_val_uint, buffer(crtp_start + 4):le_uint())
+            port_tree:add_le(f_crtp_parameter_val_int, buffer(crtp_start + 4):le_int())
         end
         if size >= 7 then
-            port_tree:add_le(f_crtp_parameter_val_float, buffer(13):le_float())
+            port_tree:add_le(f_crtp_parameter_val_float, buffer(crtp_start + 4):le_float())
         end
     end
 end
 
 -- create a function to dissect it, layout:
--- | receive| address | channel | radio devid | crtp header | crtp data |
--- | 1 byte | 5 bytes |  1 byte |    1 byte   |    1 byte   |   n bytes |
+-- | link_type | receive| address       | channel | radio devid | crtp header | crtp data |
+-- | 1 byte    | 1 byte | 5 or 12 bytes |  1 byte |    1 byte   |    1 byte   |   n bytes |
 function crtp.dissector(buffer, pinfo, tree)
     pinfo.cols.protocol = "CRTP"
 
-    if buffer:len() <= 9 then return end
+    link = buffer(0, 1):uint()
+    if link == Links.RADIO then
+        crtp_start = 9
+    elseif link == Links.USB then
+        crtp_start = 16
+    end
+
+    if buffer:len() <= crtp_start then return end
 
     local receive = buffer(1, 1):uint()
     if receive == 1 then
-        pinfo.cols.dst = format_radio(buffer)
+        pinfo.cols.dst = format_device(buffer)
         pinfo.cols.src = format_address(buffer)
     else
         pinfo.cols.dst = format_address(buffer)
-        pinfo.cols.src = format_radio(buffer)
+        pinfo.cols.src = format_device(buffer)
     end
 
     local subtree = tree:add(crtp, "CRTP Packet")
-    local header = bit.band(buffer(9, 1):uint(), 0xF3)
+    local header = bit.band(buffer(crtp_start, 1):uint(), 0xF3)
     local crtp_port = bit.rshift(bit.band(header, 0xF0), 4)
     local crtp_channel = bit.band(header, 0x03)
 
     -- Add CRTP packet size:
     -- receive_byte + address + channel + devid = 8
     -- Rest is CRTP packet
-    local crtp_size = buffer:len() - 9
+    local crtp_size = buffer:len() - crtp_start
     subtree:add_le(f_crtp_size, crtp_size)
 
     -- Check for safelink packet
-    if crtp_size == 3 and header == 0xF3 and buffer(10, 1):uint() == 0x05 then
+    if crtp_size == 3 and header == 0xF3 and buffer(crtp_start + 1, 1):uint() == 0x05 then
         pinfo.cols.info = "SafeLink"
         return
     end
@@ -385,7 +411,7 @@ function crtp.dissector(buffer, pinfo, tree)
     -- Console, we can add text
     if crtp_port == Ports.Console then
         local port_tree = tree:add(crtp, port_name)
-        port_tree:add_le(f_crtp_console_text, buffer(10):string())
+        port_tree:add_le(f_crtp_console_text, buffer(crtp_start + 1):string())
     end
 
     if crtp_port == Ports.Parameters then

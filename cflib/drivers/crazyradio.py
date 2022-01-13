@@ -70,7 +70,7 @@ def _find_devices(serial=None):
     if os.name == 'nt':
         import usb.backend.libusb0 as libusb0
 
-        backend = libusb0
+        backend = libusb0.get_backend()
     else:
         backend = libusb_package.get_libusb1_backend()
 

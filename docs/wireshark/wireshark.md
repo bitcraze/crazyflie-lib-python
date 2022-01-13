@@ -11,7 +11,7 @@ We have written a plugin to Wireshark that can display [CRTP](https://www.bitcra
 
 In order for Wireshark (and our dissector plugin) to be able to decode CRTP you need to do *two* things:
 
-## 1. Install the plugin [crtp-dissector.lua](../../crtp-dissector.lua) in Wireshark
+## 1. Install the plugin [crtp-dissector.lua](../../tools/crtp-dissector.lua) in Wireshark
 
 Wireshark looks for plugins in both a personal plugin folder and a global plugin folder. Lua plugins are stored in the plugin folders; compiled plugins are stored in subfolders of the plugin folders, with the subfolder name being the Wireshark minor version number (X.Y). There is another hierarchical level for each Wireshark plugin type (libwireshark, libwiretap and codecs). So for example the location for a libwireshark plugin foo.so (foo.dll on Windows) would be PLUGINDIR/X.Y/epan (libwireshark used to be called libepan; the other folder names are codecs and wiretap).
 

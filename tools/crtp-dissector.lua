@@ -5,6 +5,7 @@ crtp = Proto("CrazyRealTimeTProtocol","Crazy Real Time Protocol")
 local f_crtp_port = ProtoField.uint8("crtp.port", "Port")
 local f_crtp_channel = ProtoField.uint8("crtp.channel", "Channel")
 local f_crtp_size = ProtoField.uint8("crtp.size", "Size")
+local f_crtp_undecoded = ProtoField.string("crtp.undecoded", "Undecoded")
 
 -- Specialized CRTP service fields
 local f_crtp_console_text = ProtoField.string("crtp.console_text", "Text", base.ASCII)
@@ -42,7 +43,7 @@ crtp.fields = {
     f_crtp_setpoint_hl_groupmask, f_crtp_setpoint_hl_duration,
     f_crtp_setpoint_hl_height, f_crtp_setpoint_hl_relative,
     f_crtp_setpoint_hl_x, f_crtp_setpoint_hl_y, f_crtp_setpoint_hl_z,
-    f_crtp_setpoint_hl_id, f_crtp_setpoint_hl_timescale
+    f_crtp_setpoint_hl_id, f_crtp_setpoint_hl_timescale, f_crtp_undecoded
 }
 
 local Links = {
@@ -52,7 +53,7 @@ local Links = {
 }
 
 local link = Links.UNKNOWN
-
+local undecoded = 0
 local crtp_start = 0
 
 -- Analye port and channel and figure what service (port name / channel name)
@@ -202,6 +203,7 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
         if receive == 0 then
             group_mask = buffer(crtp_start + 2, 1):uint()
         end
+        undecoded = undecoded - 1
     elseif cmd == Commands.COMMAND_GO_TO then
         cmd_str = "Go To"
 
@@ -222,6 +224,8 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
             z = buffer(crtp_start + 12, 4):le_float()
             yaw = buffer(crtp_start + 16, 4):le_float()
             duration = buffer(crtp_start + 20, 4):le_float()
+            undecoded = undecoded - 24
+
         end
     elseif cmd == Commands.COMMAND_START_TRAJECTORY then
         cmd_str = "Start Trajectory"
@@ -239,6 +243,7 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
             reversed = buffer(crtp_start + 4, 1):uint()
             id = buffer(crtp_start + 5, 1):uint()
             timescale = buffer(crtp_start + 6):float()
+            undecoded = undecoded - 10
         end
     elseif cmd == Commands.COMMAND_DEFINE_TRAJECTORY then
         cmd_str = "Define Trajectory"
@@ -249,6 +254,7 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
         --  } __attribute__((packed));
         if receive == 0 then
             id = buffer(crtp_start + 2, 1):uint()
+            undecoded = undecoded - 1
         end
     elseif cmd == Commands.COMMAND_TAKEOFF_2 then
         cmd_str = "Take Off"
@@ -266,6 +272,7 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
             yaw =  buffer(crtp_start + 7, 4):le_float()
             use_yaw = buffer(crtp_start + 11, 1):uint()
             duration = buffer(crtp_start + 12, 4):le_float()
+            undecoded = undecoded - 16
         end
 
     elseif cmd == Commands.COMMAND_LAND_2 then
@@ -283,6 +290,7 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
             yaw =  buffer(crtp_start + 7, 4):le_float()
             use_yaw = buffer(crtp_start + 11, 1):uint()
             duration = buffer(crtp_start + 12, 4):le_float()
+            undecoded = undecoded - 16
         end
 
     elseif cmd == Commands.COMMAND_TAKEOFF_WITH_VELOCITY then cmd_str = "Take Off With Velocity"
@@ -294,6 +302,7 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
         retval = buffer(crtp_start + 4):uint()
         local success = (retval == 0) and "Success" or "Failure"
         port_tree:add_le(f_crtp_setpoint_hl_retval, retval):append_text(" (" .. success .. ")")
+        undecoded = undecoded - 4
     end
 
     if id then
@@ -348,6 +357,7 @@ function handle_parameter_port(tree, buffer, channel, size)
         if size >= 7 then
             port_tree:add_le(f_crtp_parameter_val_float, buffer(crtp_start + 4):le_float())
         end
+        undecoded = 0
     end
 end
 
@@ -386,6 +396,8 @@ function crtp.dissector(buffer, pinfo, tree)
     local crtp_size = buffer:len() - crtp_start
     subtree:add_le(f_crtp_size, crtp_size)
 
+    undecoded = crtp_size - 1
+
     -- Check for safelink packet
     if crtp_size == 3 and header == 0xF3 and buffer(crtp_start + 1, 1):uint() == 0x05 then
         pinfo.cols.info = "SafeLink"
@@ -412,6 +424,7 @@ function crtp.dissector(buffer, pinfo, tree)
     if crtp_port == Ports.Console then
         local port_tree = tree:add(crtp, port_name)
         port_tree:add_le(f_crtp_console_text, buffer(crtp_start + 1):string())
+        undecoded = 0
     end
 
     if crtp_port == Ports.Parameters then
@@ -422,6 +435,10 @@ function crtp.dissector(buffer, pinfo, tree)
         handle_setpoint_highlevel(tree, receive, buffer, crtp_channel, crtp_size)
     end
 
+    if undecoded > 0 then
+        local from = crtp_start + (crtp_size - undecoded)
+        subtree:add_le(f_crtp_undecoded, buffer(from, undecoded):bytes():tohex())
+    end
 end
 
 wtap_encap = DissectorTable.get("wtap_encap")

@@ -54,17 +54,18 @@ class LighthouseSystemAligner:
         return result
 
     @classmethod
-    def find_transformation(cls, origin: npt.ArrayLike, x_axis: list[npt.ArrayLike], xy_plane: list[npt.ArrayLike]) -> Pose:
+    def find_transformation(cls, origin: npt.ArrayLike, x_axis: list[npt.ArrayLike],
+                            xy_plane: list[npt.ArrayLike]) -> Pose:
         """
-        Finds the transformation from the current reference frame to a desired reference frame based on measured positions
-        of the desired reference frame.
+        Finds the transformation from the current reference frame to a desired reference frame based on measured
+        positions of the desired reference frame.
 
         :param origin: The position of the desired origin in the current reference frame
         :param x_axis: One or more positions on the desired positive X-axis (X>0, Y=Z=0) in the current
                        reference frame
         :param x_axis: One or more positions in the desired XY-plane (Z=0) in the current reference frame
-        :return: The transformation from the current reference frame to the desired reference frame. Note: the solution may
-                 be flipped.
+        :return: The transformation from the current reference frame to the desired reference frame. Note: the
+                 solution may be flipped.
         """
         args = (origin, x_axis, xy_plane)
 
@@ -104,7 +105,8 @@ class LighthouseSystemAligner:
         return Pose.from_rot_vec(R_vec=params[:3], t_vec=params[3:])
 
     @classmethod
-    def _de_flip_transformation(cls, raw_transformation: Pose, x_axis: list[npt.ArrayLike], bs_poses: dict[int, Pose]) -> Pose:
+    def _de_flip_transformation(cls, raw_transformation: Pose, x_axis: list[npt.ArrayLike],
+                                bs_poses: dict[int, Pose]) -> Pose:
         """
         Investigats a transformation and flips it if needed. This method assumes that
         1. all base stations are at Z>0

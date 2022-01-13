@@ -47,7 +47,6 @@ from threading import Event
 
 import cflib.crtp  # noqa
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie.mem import LighthouseMemHelper
 from cflib.crazyflie.mem.lighthouse_memory import LighthouseBsGeometry
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.localization.lighthouse_config_manager import LighthouseConfigWriter

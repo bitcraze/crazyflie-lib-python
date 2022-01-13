@@ -54,7 +54,6 @@ class LighthouseInitialEstimator:
 
         # Use the first CF pose as the global reference frame
         bs_poses: dict[int, Pose] = bs_poses_ref_cfs[0]
-        # TODO Do not use first sample as reference, pass it in as a parameter
 
         cls._calc_remaining_bs_poses(bs_poses_ref_cfs, bs_poses)
         cf_poses = cls._calc_cf_poses(bs_poses_ref_cfs, bs_poses)

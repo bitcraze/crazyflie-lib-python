@@ -57,24 +57,17 @@ class IppeCf:
 
         This is a wrapper function to convert from/to CF coordinate system/array style
 
-        Parameters
-        ----------
-        U_cf: Nx3 matrix holding the model points in world coordinates.
+        :param U_cf: Nx3 matrix holding the model points in world coordinates.
+        :param Q_cf: Nx2 matrix holding the points in the image. These are in normalised
+                     pixel coordinates. That is, the effects of the camera's intrinsic matrix
+                     and lens distortion are corrected, so that the Q projects with a perfect
+                     pinhole model.
 
-        Q_cf: Nx2 matrix holding the points in the image. These are in normalised
-            pixel coordinates. That is, the effects of the camera's intrinsic matrix
-            and lens distortion are corrected, so that the Q projects with a perfect
-            pinhole model.
-
-            First param: Y (positive to the left)
-            Second param: Z (positive up)
-
-
-        Return
-        ---------
-        IPPEPoses: A list that contains 2 sets of pose solution from IPPE including rotation matrix
-            translation matrix, and reprojection error. The first solution in the list has
-            the smallest reprojection error.
+                     First param: Y (positive to the left)
+                     Second param: Z (positive up)
+        :return: A list that contains 2 sets of pose solution from IPPE including rotation matrix
+                 translation matrix, and reprojection error. The first solution in the list has
+                 the smallest reprojection error.
         """
 
         U, Q = IppeCf._cf_to_ippe(U_cf, Q_cf)

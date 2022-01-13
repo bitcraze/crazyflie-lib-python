@@ -59,7 +59,7 @@ class LighthouseGeometrySolution:
         self.n_sensors: int = None
 
         # The maximum nr of iterations to execute when solving the system
-        self.max_nr_iter = 10
+        self.max_nr_iter = 100
 
         self.bs_id_to_index: dict[int, int] = {}
         self.bs_index_to_id: dict[int, int] = {}

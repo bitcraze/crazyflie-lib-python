@@ -36,8 +36,10 @@ supported by the CF firmware).
 This script is a temporary implementation until similar functionality has been
 added to the client.
 
-Prerequisite: The base station calibration data must have been
+Prerequisite:
+1. The base station calibration data must have been
 received by the Crazyflie before this script is executed.
+2. Base stations must point downwards, towards the floor.
 '''
 import logging
 import time
@@ -48,6 +50,7 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import LighthouseMemHelper
 from cflib.crazyflie.mem.lighthouse_memory import LighthouseBsGeometry
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.localization.lighthouse_config_manager import LighthouseConfigWriter
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
@@ -141,12 +144,10 @@ def upload_geometry(scf, bs_poses):
     event = Event()
 
     def data_written(success):
-        if not success:
-            raise Exception('Upload failed')
         event.set()
 
-    helper = LighthouseMemHelper(scf.cf)
-    helper.write_geos(geo_dict, data_written)
+    helper = LighthouseConfigWriter(scf.cf)
+    helper.write_and_store_config(data_written, geos=geo_dict)
     event.wait()
 
 
@@ -193,7 +194,8 @@ if __name__ == '__main__':
         print()
         print('Step 5. We will now record data from the space you plan to fly in and optimize the base station ' +
               'geometry based on this data. Move the Crazyflie around, try to cover all of the space, make sure ' +
-              'all the base stations are received and do not move too fast. ')
+              'all the base stations are received and do not move too fast. Make sure the Crazyflie is fairly ' +
+              'level during the recording.')
         print('This step does not add anything in a system with only one base station, enter 0 in this case.')
         default_time = 10
         recording_time = input(f'Enter the number of seconds you want to record ({default_time} by default), ' +

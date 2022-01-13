@@ -72,15 +72,45 @@ class LighthouseInitialEstimator:
             poses: dict[int, Pose] = {}
             for bs, angles in sample.angles_calibrated.items():
                 Q = angles.projection_pair_list()
-                estimate = IppeCf.solve(sensor_positions, Q)
+                estimates_ref_bs = IppeCf.solve(sensor_positions, Q)
+                estimates_ref_cf = cls._convert_estimates_to_cf_reference_frame(estimates_ref_bs)
+                bs_pose = cls._solution_picker(estimates_ref_cf)
 
-                # Pick the first solution from IPPE and convert to cf ref frame
-                R_mat = estimate[0][0].transpose()
-                t_vec = np.dot(R_mat, -estimate[0][1])
-
-                poses[bs] = Pose(R_mat, t_vec)
+                poses[bs] = bs_pose
             result.append(poses)
         return result
+
+    def _convert_estimates_to_cf_reference_frame(estimates_ref_bs: list[IppeCf.Solution]) -> tuple[Pose, Pose]:
+        """
+        Convert the two ippe solutions from the base station reference frame to the CF reference frame
+        """
+        R1 = estimates_ref_bs[0].R.transpose()
+        t1 = np.dot(R1, -estimates_ref_bs[0].t)
+
+        R2 = estimates_ref_bs[1].R.transpose()
+        t2 = np.dot(R2, -estimates_ref_bs[1].t)
+
+        return Pose(R1, t1), Pose(R2, t2)
+
+    @classmethod
+    def _solution_picker(cls, estimates_ref_cf: tuple[Pose, Pose]) -> Pose:
+        """
+        IPPE produces two solutions and we have to pick the right one.
+        The solutions are on opposite sides of the CF Z-axis and one of them is also flipped up side down.
+        Assuming that our base stations are pointing downwards and that the CF is fairly flat, we can
+        find the correct solution by looking at the orientation and pick the one where the Z-axis is pointing
+        upwards.
+
+        :param estimates_ref_cf: The two possible estimated base station poses
+        :return: The selected solution
+        """
+        pose1 = estimates_ref_cf[0]
+        pose2 = estimates_ref_cf[1]
+
+        if np.dot(pose1.rot_matrix, (0.0, 0.0, 1.0))[2] > 0:
+            return pose1
+        else:
+            return pose2
 
     @classmethod
     def _calc_remaining_bs_poses(cls, bs_poses_ref_cfs: list[dict[int, Pose]], bs_poses: dict[int, Pose]) -> None:

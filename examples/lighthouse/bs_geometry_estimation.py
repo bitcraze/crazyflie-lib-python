@@ -121,10 +121,10 @@ def estimate_geometry(origin, x_axis, xy_plane, samples):
     print('  Base stations at:')
     for bs_id, pose in sorted(bs_aligned_poses.items()):
         pos = pose.translation
-        print(f'    {bs_id}: ({pos[0]}, {pos[1]}, {pos[2]})')
+        print(f'    {bs_id + 1}: ({pos[0]}, {pos[1]}, {pos[2]})')
     print('  Solution match per base station:')
     for bs_id, value in solution.error_info['bs'].items():
-        print(f'    {bs_id}: {value}')
+        print(f'    {bs_id + 1}: {value}')
 
     return bs_aligned_poses
 

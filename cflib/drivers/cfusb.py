@@ -28,9 +28,9 @@ USB driver for the Crazyflie.
 import logging
 import os
 
+import libusb_package
 import usb
 import usb.core
-import libusb_package
 
 try:
     if os.environ['CRTP_PCAP_LOG'] is not None:
@@ -47,7 +47,6 @@ USB_VID = 0x0483
 USB_PID = 0x5740
 
 
-
 def _find_devices():
     """
     Returns a list of CrazyRadio devices currently connected to the computer
@@ -56,13 +55,17 @@ def _find_devices():
 
     logger.info('Looking for devices....')
 
+    if os.name == 'nt':
+        backend = None
+    else:
+        backend = libusb_package.get_libusb1_backend()
+
     devices = usb.core.find(idVendor=USB_VID, idProduct=USB_PID, find_all=1,
-                            backend=libusb_package.get_libusb1_backend())
+                            backend=backend)
     if devices:
         for d in devices:
             if d.manufacturer == 'Bitcraze AB':
                 ret.append(d)
-
 
     return ret
 
@@ -89,7 +92,7 @@ class CfUsb:
             self.handle = self.dev
             self.version = float(
                 '{0:x}.{1:x}'.format(self.dev.bcdDevice >> 8,
-                                        self.dev.bcdDevice & 0x0FF))
+                                     self.dev.bcdDevice & 0x0FF))
 
     def get_serial(self):
         # The signature for get_string has changed between versions to 1.0.0b1,
@@ -175,9 +178,7 @@ def _send_vendor_setup(handle, request, value, index, data):
                          wIndex=index, timeout=1000, data_or_wLength=data)
 
 
-
 def _get_vendor_setup(handle, request, value, index, length):
     return handle.ctrl_transfer(usb.TYPE_VENDOR | 0x80, request,
                                 wValue=value, wIndex=index, timeout=1000,
                                 data_or_wLength=length)
-

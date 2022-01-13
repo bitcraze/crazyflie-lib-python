@@ -27,11 +27,10 @@ USB driver for the Crazyradio USB dongle.
 """
 import logging
 import os
-import platform
 
+import libusb_package
 import usb
 import usb.core
-import libusb_package
 
 try:
     if os.environ['CRTP_PCAP_LOG'] is not None:
@@ -68,8 +67,15 @@ def _find_devices(serial=None):
     """
     ret = []
 
+    if os.name == 'nt':
+        import usb.backend.libusb0 as libusb0
+
+        backend = libusb0
+    else:
+        backend = libusb_package.get_libusb1_backend()
+
     devices = usb.core.find(idVendor=0x1915, idProduct=0x7777, find_all=1,
-                            backend=libusb_package.get_libusb1_backend())
+                            backend=backend)
     if devices:
         for d in devices:
             if serial is not None and serial == d.serial_number:
@@ -310,7 +316,7 @@ class Crazyradio:
 # Private utility functions
 def _send_vendor_setup(handle, request, value, index, data):
     handle.ctrl_transfer(usb.TYPE_VENDOR, request, wValue=value,
-                        wIndex=index, timeout=1000, data_or_wLength=data)
+                         wIndex=index, timeout=1000, data_or_wLength=data)
 
 
 def _get_vendor_setup(handle, request, value, index, length):

@@ -20,6 +20,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 '''
+This functionality is experimental and may not work properly!
+
 Script to run a full base station geometry estimation of a lighthouse
 system. The script records data from a Crazyflie that is moved around in
 the flight space and creates a solution that minimizes the error
@@ -78,20 +80,34 @@ def record_angles_average(scf):
     for bs_id, data in recorded_angles.items():
         angles_calibrated[bs_id] = data[1]
 
+    visible = ', '.join(map(lambda x:str(x + 1), recorded_angles.keys()))
+    print(f'  Position recorded, bs visible: {visible}')
+
     return LhCfPoseSample(angles_calibrated=angles_calibrated)
 
 
 def record_angles_sequence(scf, recording_time_s):
     result = []
 
+    bs_seen = set()
+
     def ready_cb(bs_id, angles):
         now = time.time()
         measurement = LhMeasurement(timestamp=now, base_station_id=bs_id, angles=angles)
         result.append(measurement)
+        bs_seen.add(str(bs_id + 1))
 
     reader = LighthouseSweepAngleReader(scf.cf, ready_cb)
     reader.start()
-    time.sleep(recording_time_s)
+    end_time = time.time() + recording_time_s
+
+    while time.time() < end_time:
+        time_left = end_time - time.time()
+        visible = ', '.join(sorted(bs_seen))
+        print(f'{time_left}s, bs visible: {visible}')
+        bs_seen = set()
+        time.sleep(0.5)
+
     reader.stop()
 
     return result
@@ -168,7 +184,6 @@ if __name__ == '__main__':
         input('Press return when ready. ')
         print('  Recording...')
         origin = record_angles_average(scf)
-        print('  Position recorded')
 
         print('Step 3. Put the Crazyflie somehere on the positive X-axis.')
         print('Multiple samples can be recorded if you want to, type "r" before you hit enter to repeat the step.')
@@ -178,7 +193,6 @@ if __name__ == '__main__':
             do_repeat = 'r' == input('Press return when ready. ').lower()
             print('  Recording...')
             x_axis.append(record_angles_average(scf))
-            print('  Position recorded')
 
         print('Step 4. Put the Crazyflie somehere in the XY-plane, but not on the X-axis.')
         print('Multiple samples can be recorded if you want to, type "r" before you hit enter to repeat the step.')
@@ -188,7 +202,6 @@ if __name__ == '__main__':
             do_repeat = 'r' == input('Press return when ready. ').lower()
             print('  Recording...')
             xy_plane.append(record_angles_average(scf))
-            print('  Position recorded')
 
         print()
         print('Step 5. We will now record data from the space you plan to fly in and optimize the base station ' +

@@ -108,6 +108,8 @@ def estimate_geometry(origin, x_axis, xy_plane, samples):
     matched_samples = [origin] + x_axis + xy_plane + LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
     initial_guess = LighthouseInitialEstimator.estimate(matched_samples, LhDeck4SensorPositions.positions)
     solution = LighthouseGeometrySolver.solve(initial_guess, matched_samples, LhDeck4SensorPositions.positions)
+    if not solution.success:
+        print("Solution did not converge, it might not be good!")
 
     start_x_axis = 1
     start_xy_plane = 1 + len(x_axis)

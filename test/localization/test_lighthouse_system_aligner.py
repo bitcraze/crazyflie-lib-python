@@ -38,10 +38,11 @@ class TestLighthouseSystemAligner(LighthouseTestBase):
         xy_plane = [(2.0, 1.0, 0.0)]
 
         # Test
-        actual = LighthouseSystemAligner.find_transformation(origin, x_axis, xy_plane)
+        actual = LighthouseSystemAligner._find_transformation(origin, x_axis, xy_plane)
 
         # Assert
         self.assertVectorsAlmostEqual((0.0, 0.0, 0.0), actual.rotate_translate((1.0, 0.0, 0.0)))
+
         self.assertVectorsAlmostEqual((1.0, 0.0, 0.0), actual.rotate_translate((1.0, 1.0, 0.0)))
         self.assertVectorsAlmostEqual((0.0, 1.0, 0.0), actual.rotate_translate((0.0, 0.0, 0.0)))
         self.assertVectorsAlmostEqual((0.0, 0.0, 1.0), actual.rotate_translate((1.0, 0.0, 1.0)))
@@ -53,10 +54,11 @@ class TestLighthouseSystemAligner(LighthouseTestBase):
         xy_plane = [(2.0, 1.0, 0.0), (3.0, -1.0, 0.0), (5.0, 0.0, 0.0)]
 
         # Test
-        actual = LighthouseSystemAligner.find_transformation(origin, x_axis, xy_plane)
+        actual = LighthouseSystemAligner._find_transformation(origin, x_axis, xy_plane)
 
         # Assert
         self.assertVectorsAlmostEqual((0.0, 0.0, 0.0), actual.rotate_translate((1.0, 0.0, 0.0)))
+
         self.assertVectorsAlmostEqual((1.0, 0.0, 0.0), actual.rotate_translate((1.0, 1.0, 0.0)))
         self.assertVectorsAlmostEqual((0.0, 1.0, 0.0), actual.rotate_translate((0.0, 0.0, 0.0)))
         self.assertVectorsAlmostEqual((0.0, 0.0, 1.0), actual.rotate_translate((1.0, 0.0, 1.0)))
@@ -92,3 +94,24 @@ class TestLighthouseSystemAligner(LighthouseTestBase):
 
         # Assert
         self.assertPosesAlmostEqual(expected, actual[bs_id])
+
+    def test_that_is_aligned_for_multiple_points_where_system_is_rotated_and_poins_are_fuzzy(self):
+        # Fixture
+        origin = (0.0, 0.0, 0.0)
+        x_axis = [(-1.0, 0.0 + 0.01, 0.0), (-2.0, 0.0 - 0.02, 0.0)]
+        xy_plane = [(2.0, 2.0, 0.0 + 0.02), (-3.0, -2.0, 0.0 + 0.01), (5.0, 0.0, 0.0 - 0.01)]
+
+        # Note: Z of base stations must be positive (above the floor)
+        bs_poses = {
+            1: Pose.from_rot_vec(t_vec=(1.0, 0.0, 1.0)),
+            2: Pose.from_rot_vec(t_vec=(0.0, 1.0, 1.0)),
+            3: Pose.from_rot_vec(t_vec=(0.0, 0.0, 1.0)),
+        }
+
+        # Test
+        actual = LighthouseSystemAligner.align(origin, x_axis, xy_plane, bs_poses)
+
+        # Assert
+        self.assertVectorsAlmostEqual((-1.0, 0.0, 1.0), actual[1].translation, places=1)
+        self.assertVectorsAlmostEqual((0.0, -1.0, 1.0), actual[2].translation, places=1)
+        self.assertVectorsAlmostEqual((0.0, 0.0, 1.0), actual[3].translation, places=1)

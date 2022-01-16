@@ -44,7 +44,7 @@ class LighthouseSystemAligner:
         :param bs_poses: a dictionary with the base station poses in the current reference frame
         :return: a dictionary with the base station poses in the desired reference frame
         """
-        raw_transformation = cls.find_transformation(origin, x_axis, xy_plane)
+        raw_transformation = cls._find_transformation(origin, x_axis, xy_plane)
         transformation = cls._de_flip_transformation(raw_transformation, x_axis, bs_poses)
 
         result: dict[int, Pose] = {}
@@ -54,8 +54,8 @@ class LighthouseSystemAligner:
         return result
 
     @classmethod
-    def find_transformation(cls, origin: npt.ArrayLike, x_axis: list[npt.ArrayLike],
-                            xy_plane: list[npt.ArrayLike]) -> Pose:
+    def _find_transformation(cls, origin: npt.ArrayLike, x_axis: list[npt.ArrayLike],
+                             xy_plane: list[npt.ArrayLike]) -> Pose:
         """
         Finds the transformation from the current reference frame to a desired reference frame based on measured
         positions of the desired reference frame.
@@ -110,12 +110,13 @@ class LighthouseSystemAligner:
         """
         Investigats a transformation and flips it if needed. This method assumes that
         1. all base stations are at Z>0
-        2. x_axis samples are taken at x>0
+        2. x_axis samples are taken at X>0
         """
         transformation = raw_transformation
 
-        # X-axis poses should be on the positivie X-axis, check the first one
-        if raw_transformation.rotate_translate(x_axis[0])[0] < 0.0:
+        # X-axis poses should be on the positivie X-axis, check that the "mean" of the x-axis points ends up at X>0
+        x_axis_mean = np.mean(x_axis, axis=0)
+        if raw_transformation.rotate_translate(x_axis_mean)[0] < 0.0:
             flip_around_z_axis = Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi))
             transformation = flip_around_z_axis.rotate_translate_pose(transformation)
 

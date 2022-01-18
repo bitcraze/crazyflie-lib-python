@@ -35,7 +35,7 @@ setup(
     install_requires=[
         'pyusb>=1.0.0b2',
         'libusb-package~=1.0',
-        'opencv-python-headless~=4.5.1'
+        'scipy>=1.7',
     ],
 
     # $ pip install -e .[dev]

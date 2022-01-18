@@ -19,62 +19,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import math
 import unittest
 
 from cflib.localization import LighthouseBsGeoEstimator
-from cflib.localization import LighthouseBsVector
 
 
 class TestLighthouseBsGeoEstimator(unittest.TestCase):
     def setUp(self):
 
         self.sut = LighthouseBsGeoEstimator()
-
-    def test_that_initial_yaw_guess_is_correct_ba_is_behind(self):
-        # Fixture
-        bs_vectors = [
-            LighthouseBsVector(1, 0),
-            LighthouseBsVector(2, 0),
-            LighthouseBsVector(0, 0),
-            LighthouseBsVector(3, 0),
-        ]
-
-        # Test
-        actual = self.sut._find_initial_yaw_guess(bs_vectors)
-
-        # Assert
-        self.assertEqual(0.0, actual)
-
-    def test_that_initial_yaw_guess_is_correct_ba_is_front(self):
-        # Fixture 1, 3, 2, 0
-        bs_vectors = [
-            LighthouseBsVector(3, 0),
-            LighthouseBsVector(0, 0),
-            LighthouseBsVector(2, 0),
-            LighthouseBsVector(1, 0),
-        ]
-
-        # Test
-        actual = self.sut._find_initial_yaw_guess(bs_vectors)
-
-        # Assert
-        self.assertEqual(math.radians(180), actual)
-
-    def test_that_initial_yaw_guess_is_correct_bs_left_behind(self):
-        # Fixture
-        bs_vectors = [
-            LighthouseBsVector(1.0, 0),
-            LighthouseBsVector(-0.5, 0),
-            LighthouseBsVector(0.5, 0),
-            LighthouseBsVector(-1.0, 0),
-        ]
-
-        # Test
-        actual = self.sut._find_initial_yaw_guess(bs_vectors)
-
-        # Assert
-        self.assertEqual(math.radians(155), actual)
 
     def test_that_sanity_check_finds_coordinate_out_of_bounds(self):
         # Fixture

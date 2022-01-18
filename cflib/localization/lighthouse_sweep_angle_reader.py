@@ -6,7 +6,7 @@
 # | / ,--'  |    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #    +------`   /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-# Copyright (C) 2021 Bitcraze AB
+# Copyright (C) 2021-2022 Bitcraze AB
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 from cflib.localization import LighthouseBsVector
+from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
 
 
 class LighthouseSweepAngleReader():
@@ -66,7 +67,7 @@ class LighthouseSweepAngleReader():
             for i in range(self.NR_OF_SENSORS):
                 result.append(LighthouseBsVector(horiz_angles[i], vert_angles[i]))
 
-            self._cb(base_station_id, result)
+            self._cb(base_station_id, LighthouseBsVectors(result))
 
 
 class LighthouseSweepAngleAverageReader():
@@ -142,7 +143,7 @@ class LighthouseSweepAngleAverageReader():
         for i in range(self._reader.NR_OF_SENSORS):
             result.append(self._average_sample_list(sample_lists[i]))
 
-        return result
+        return LighthouseBsVectors(result)
 
     def _average_sample_list(self, sample_list):
         sum_horiz = 0.0

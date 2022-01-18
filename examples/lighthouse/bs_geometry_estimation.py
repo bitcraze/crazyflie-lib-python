@@ -80,7 +80,7 @@ def record_angles_average(scf):
     for bs_id, data in recorded_angles.items():
         angles_calibrated[bs_id] = data[1]
 
-    visible = ', '.join(map(lambda x:str(x + 1), recorded_angles.keys()))
+    visible = ', '.join(map(lambda x: str(x + 1), recorded_angles.keys()))
     print(f'  Position recorded, bs visible: {visible}')
 
     return LhCfPoseSample(angles_calibrated=angles_calibrated)
@@ -125,7 +125,7 @@ def estimate_geometry(origin, x_axis, xy_plane, samples):
     initial_guess = LighthouseInitialEstimator.estimate(matched_samples, LhDeck4SensorPositions.positions)
     solution = LighthouseGeometrySolver.solve(initial_guess, matched_samples, LhDeck4SensorPositions.positions)
     if not solution.success:
-        print("Solution did not converge, it might not be good!")
+        print('Solution did not converge, it might not be good!')
 
     start_x_axis = 1
     start_xy_plane = 1 + len(x_axis)

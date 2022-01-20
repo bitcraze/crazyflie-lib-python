@@ -3,6 +3,12 @@ title: Installation
 page_id: install
 ---
 
+## Requirements
+
+This project requires Python 3.7+.
+For Ubuntu it means that Ubuntu 20.04+ is supported unless a more recent version of Python is installed.
+
+See bellow sections for more platform-specific requirements.
 ## Development
 ### Developing for the cflib
 * [Fork the cflib](https://help.github.com/articles/fork-a-repo/)
@@ -12,7 +18,7 @@ page_id: install
 
 * [Uninstall the cflib if you don't want it any more](http://pip-python3.readthedocs.org/en/latest/reference/pip_uninstall.html), `pip uninstall cflib`
 
-Note: If you are developing for the cflib you must use python3. On Ubuntu (16.04, 18.08) use `pip3` instead of `pip`.
+Note: If you are developing for the cflib you must use python3. On Ubuntu (20.04+) use `pip3` instead of `pip`.
 
 ### Linux, OSX, Windows
 

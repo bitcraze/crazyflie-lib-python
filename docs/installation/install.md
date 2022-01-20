@@ -6,9 +6,7 @@ page_id: install
 ## Requirements
 
 This project requires Python 3.7+.
-For Ubuntu it means that Ubuntu 20.04+ is supported unless a more recent version of Python is installed.
-
-See bellow sections for more platform-specific requirements.
+See below sections for more platform-specific requirements.
 ## Development
 ### Developing for the cflib
 * [Fork the cflib](https://help.github.com/articles/fork-a-repo/)

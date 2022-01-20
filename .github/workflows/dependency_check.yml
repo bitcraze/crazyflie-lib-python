@@ -17,10 +17,10 @@ jobs:
       - name: install lib
         run: pip install -e .
 
-  minimum-python:
+  minimum-python37:
     runs-on: ubuntu-latest
     container:
-      image: python:3.6
+      image: python:3.7
 
     steps:
       - uses: actions/checkout@v2

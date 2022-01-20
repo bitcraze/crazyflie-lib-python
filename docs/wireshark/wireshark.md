@@ -7,11 +7,11 @@ Wireshark is a free and open-source packet analyzer. It is used for network trou
 
 We have written a plugin to Wireshark that can display [CRTP](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/) packets (what this library uses to communicate with Crazyflies).
 
-![Image of CRTP dissector in Wireshark](../images/wireshark-dissector.png?raw=true "CRTP Wireshark Dissector")
+![Image of CRTP dissector in Wireshark](../images/wireshark-dissector.png)
 
 In order for Wireshark (and our dissector plugin) to be able to decode CRTP you need to do *two* things:
 
-## 1. Install the plugin [crtp-dissector.lua](../../tools/crtp-dissector.lua) in Wireshark
+## 1. Install the plugin crtp-dissector.lua
 
 Wireshark looks for plugins in both a personal plugin folder and a global plugin folder. Lua plugins are stored in the plugin folders; compiled plugins are stored in subfolders of the plugin folders, with the subfolder name being the Wireshark minor version number (X.Y). There is another hierarchical level for each Wireshark plugin type (libwireshark, libwiretap and codecs). So for example the location for a libwireshark plugin foo.so (foo.dll on Windows) would be PLUGINDIR/X.Y/epan (libwireshark used to be called libepan; the other folder names are codecs and wiretap).
 
@@ -24,7 +24,7 @@ On Unix-like systems:
 
 - The personal plugin folder is ~/.local/lib/wireshark/plugins.
 
-Copy the crtp-dissector.lua file into the personal plugin folder and restart Wireshark or hit `CTRL+SHIFT+L`
+Copy the `tools/crtp-dissector.lua` file into the personal plugin folder and restart Wireshark or hit `CTRL+SHIFT+L`
 
 ## 2. Generate a [PCAP](https://en.wikipedia.org/wiki/Pcap) file
 

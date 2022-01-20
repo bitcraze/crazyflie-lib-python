@@ -27,6 +27,7 @@ USB driver for the Crazyradio USB dongle.
 """
 import logging
 import os
+import platform
 
 import libusb_package
 import usb
@@ -140,6 +141,9 @@ class Crazyradio:
 
         if self.version < 0.4:
             logger.warning('You should update to Crazyradio firmware V0.4+')
+
+        if platform.system() == 'Linux':
+            self.handle.reset()
 
         self.set_data_rate(self.DR_2MPS)
         self.set_channel(2)

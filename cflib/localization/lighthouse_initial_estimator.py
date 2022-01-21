@@ -79,7 +79,8 @@ class LighthouseInitialEstimator:
             result.append(poses)
         return result
 
-    def _convert_estimates_to_cf_reference_frame(estimates_ref_bs: list[IppeCf.Solution]) -> tuple[Pose, Pose]:
+    @classmethod
+    def _convert_estimates_to_cf_reference_frame(cls, estimates_ref_bs: list[IppeCf.Solution]) -> tuple[Pose, Pose]:
         """
         Convert the two ippe solutions from the base station reference frame to the CF reference frame
         """
@@ -106,7 +107,7 @@ class LighthouseInitialEstimator:
         pose1 = estimates_ref_cf[0]
         pose2 = estimates_ref_cf[1]
 
-        if np.dot(pose1.rot_matrix, (0.0, 0.0, 1.0))[2] > 0:
+        if np.dot(pose1.rot_matrix, (0.0, 0.0, 1.0))[2] > np.dot(pose2.rot_matrix, (0.0, 0.0, 1.0))[2]:
             return pose1
         else:
             return pose2

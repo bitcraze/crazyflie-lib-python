@@ -24,10 +24,6 @@
 """
 This example connects to the first Crazyflie that it finds and writes to the
 one wire memory.
-
-Note: this example will not work with the BLE version of the nRF51 firmware
-(flashed on production units).
-See https://github.com/bitcraze/crazyflie-clients-python/issues/166
 """
 import logging
 import sys
@@ -134,10 +130,6 @@ class WriteOwExample:
 
 
 if __name__ == '__main__':
-    print('This example will not work with the BLE version of the nRF51'
-          ' firmware (flashed on production units). See https://github.com'
-          '/bitcraze/crazyflie-clients-python/issues/166')
-
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 

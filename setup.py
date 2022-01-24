@@ -36,6 +36,7 @@ setup(
         'pyusb>=1.0.0b2',
         'libusb-package~=1.0',
         'scipy>=1.7',
+        'numpy>=1.20,<1.25',
         'opencv-python-headless~=4.5.1',
     ],
 

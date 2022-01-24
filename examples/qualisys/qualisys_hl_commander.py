@@ -105,8 +105,8 @@ class QtmWrapper(Thread):
 
         params = await self.connection.get_parameters(parameters=['6d'])
         xml = ET.fromstring(params)
-        self.qtm_6DoF_labels = [label.text for label in xml.iter('Name')]
-        print(self.qtm_6DoF_labels)
+        self.qtm_6DoF_labels = [label.text.strip() for index, label in enumerate(xml.findall("*/Body/Name"))]
+
 
         await self.connection.stream_frames(
             components=['6D'],

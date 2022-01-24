@@ -22,9 +22,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Simple example that connects to the crazyflie at `URI` and writes to
-the LED memory so that individual leds in the LED-ring can be set,
-it has been tested with (and designed for) the LED-ring deck.
+This example demonstrate the LEDTIMING led ring sequence memory. This memory and
+led-ring effect allows to pre-program a LED sequence to be played autonomously
+by the Crazyflie.
 
 Change the URI variable to your Crazyflie configuration.
 """

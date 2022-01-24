@@ -82,8 +82,12 @@ for channel in range(0, 126, 1):
             temp.append(pk.data[2])
 
     ack_rate = count / TRY
-    rssi_avg = np.mean(temp)
-    std = np.std(temp)
+    if len(temp) > 0:
+        rssi_avg = np.mean(temp)
+        std = np.std(temp)
+    else:
+        rssi_avg = np.NaN
+        std = np.NaN
 
     rssi.append(rssi_avg)
     ack.append(ack_rate)

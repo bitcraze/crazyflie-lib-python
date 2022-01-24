@@ -339,9 +339,9 @@ class Param():
                 pk.data = struct.pack('<B', varid)
 
             try:
-                value_nr = eval(value)
-            except TypeError:
-                value_nr = value
+                value_nr = int(value)
+            except ValueError:
+                value_nr = float(value)
 
             pk.data += struct.pack(element.pytype, value_nr)
             self.param_updater.request_param_setvalue(pk)

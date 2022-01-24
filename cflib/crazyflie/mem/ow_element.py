@@ -19,7 +19,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import array
 import logging
 import struct
 from binascii import crc32
@@ -134,7 +133,7 @@ class OWElement(MemoryElement):
         self._write_finished_cb = write_finished_cb
 
     def erase(self, write_finished_cb):
-        erase_data = array('B', [0xFF] * 112)
+        erase_data = bytes([0xFF] * 112)
         self.mem_handler.write(self, 0x00,
                                struct.unpack('B' * len(erase_data),
                                              erase_data))

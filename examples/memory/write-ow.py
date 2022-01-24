@@ -73,7 +73,7 @@ class WriteOwExample:
             print('Writing test configuration to'
                   ' memory {}'.format(mems[0].id))
 
-            # Setting VID:PID to 00:00 will make the Crazyflie match driver to the board name 
+            # Setting VID:PID to 00:00 will make the Crazyflie match driver to the board name
             mems[0].vid = 0x00
             mems[0].pid = 0x00
 

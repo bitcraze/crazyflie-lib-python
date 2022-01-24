@@ -73,13 +73,14 @@ class WriteOwExample:
             print('Writing test configuration to'
                   ' memory {}'.format(mems[0].id))
 
-            mems[0].vid = 0xBC
-            mems[0].pid = 0xFF
+            # Setting VID:PID to 00:00 will make the Crazyflie match driver to the board name 
+            mems[0].vid = 0x00
+            mems[0].pid = 0x00
 
             board_name_id = OWElement.element_mapping[1]
             board_rev_id = OWElement.element_mapping[2]
 
-            mems[0].elements[board_name_id] = 'Test board'
+            mems[0].elements[board_name_id] = 'Hello deck'
             mems[0].elements[board_rev_id] = 'A'
 
             mems[0].write_data(self._data_written)

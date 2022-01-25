@@ -508,7 +508,7 @@ to be used with a positioning system such as LPS, the lighthouse or a mocap syst
 
 ``` python
     with SyncCrazyflie(URI) as scf:
-        with PositionHlCommander(scf) as pc:
+        with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             # Go to the coordinate (0, 0, 1)
             pc.go_to(0.0, 0.0, 1.0)
             # The Crazyflie lands when leaving this "with" section

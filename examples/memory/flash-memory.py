@@ -131,14 +131,6 @@ def choose(items, title_text, question_text):
 
 
 if __name__ == '__main__':
-    # Show info about bug 166
-    print('\n###\n'
-          'Please make sure that your NRF firmware is compiled without\n'
-          'BLE support for this to work.\n'
-          'See '
-          'https://github.com/bitcraze/crazyflie-clients-python/issues/166\n'
-          '###\n')
-
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 

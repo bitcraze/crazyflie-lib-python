@@ -103,7 +103,7 @@ class TestPositionHlCommander(unittest.TestCase):
     def test_that_it_goes_up_to_default_height(
             self, sleep_mock):
         # Fixture
-        sut = PositionHlCommander(self.cf_mock, default_height=0.4)
+        sut = PositionHlCommander(self.cf_mock, default_height=0.4, controller=PositionHlCommander.CONTROLLER_PID)
 
         # Test
         sut.take_off(velocity=0.6)

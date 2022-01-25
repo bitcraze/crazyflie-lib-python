@@ -50,7 +50,7 @@ class PositionHlCommander:
                  x=0.0, y=0.0, z=0.0,
                  default_velocity=0.5,
                  default_height=0.5,
-                 controller=CONTROLLER_PID,
+                 controller=None,
                  default_landing_height=0.0):
         """
         Construct an instance of a PositionHlCommander
@@ -282,8 +282,9 @@ class PositionHlCommander:
         self._cf.param.set_value('commander.enHighLevel', '1')
 
     def _activate_controller(self):
-        value = str(self._controller)
-        self._cf.param.set_value('stabilizer.controller', value)
+        if self._controller is not None:
+            value = str(self._controller)
+            self._cf.param.set_value('stabilizer.controller', value)
 
     def _velocity(self, velocity):
         if velocity is self.DEFAULT:

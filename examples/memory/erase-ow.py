@@ -122,9 +122,6 @@ class EEPROMExample:
 
 
 if __name__ == '__main__':
-    print('This example will not work with the BLE version of the nRF51'
-          ' firmware (flashed on production units). See https://github.com'
-          '/bitcraze/crazyflie-clients-python/issues/166')
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 

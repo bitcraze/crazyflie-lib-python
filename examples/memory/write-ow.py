@@ -24,10 +24,6 @@
 """
 This example connects to the first Crazyflie that it finds and writes to the
 one wire memory.
-
-Note: this example will not work with the BLE version of the nRF51 firmware
-(flashed on production units).
-See https://github.com/bitcraze/crazyflie-clients-python/issues/166
 """
 import logging
 import sys
@@ -77,13 +73,14 @@ class WriteOwExample:
             print('Writing test configuration to'
                   ' memory {}'.format(mems[0].id))
 
-            mems[0].vid = 0xBC
-            mems[0].pid = 0xFF
+            # Setting VID:PID to 00:00 will make the Crazyflie match driver to the board name
+            mems[0].vid = 0x00
+            mems[0].pid = 0x00
 
             board_name_id = OWElement.element_mapping[1]
             board_rev_id = OWElement.element_mapping[2]
 
-            mems[0].elements[board_name_id] = 'Test board'
+            mems[0].elements[board_name_id] = 'Hello deck'
             mems[0].elements[board_rev_id] = 'A'
 
             mems[0].write_data(self._data_written)
@@ -134,10 +131,6 @@ class WriteOwExample:
 
 
 if __name__ == '__main__':
-    print('This example will not work with the BLE version of the nRF51'
-          ' firmware (flashed on production units). See https://github.com'
-          '/bitcraze/crazyflie-clients-python/issues/166')
-
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 

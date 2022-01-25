@@ -344,6 +344,12 @@ function handle_parameter_port(tree, buffer, channel, size)
      -- Read or Write
      if (channel == 1 or channel == 2) and size > 2 then
 
+        if channel == 1 then
+            value_start = 4
+        else
+            value_start = 3
+        end
+
         -- Add variable id
         local var_id = buffer(crtp_start + 1, 2):le_uint()
         local port_tree = tree:add(crtp, port_name)
@@ -351,11 +357,11 @@ function handle_parameter_port(tree, buffer, channel, size)
 
         -- Add value
         if size > 3 then
-            port_tree:add_le(f_crtp_parameter_val_uint, buffer(crtp_start + 4):le_uint())
-            port_tree:add_le(f_crtp_parameter_val_int, buffer(crtp_start + 4):le_int())
+            port_tree:add_le(f_crtp_parameter_val_uint, buffer(crtp_start + value_start):le_uint())
+            port_tree:add_le(f_crtp_parameter_val_int, buffer(crtp_start + value_start):le_int())
         end
         if size >= 7 then
-            port_tree:add_le(f_crtp_parameter_val_float, buffer(crtp_start + 4):le_float())
+            port_tree:add_le(f_crtp_parameter_val_float, buffer(crtp_start + value_start):le_float())
         end
         undecoded = 0
     end

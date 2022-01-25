@@ -70,16 +70,15 @@ class UsbDriver(CRTPDriver):
         """
 
         # check if the URI is a radio URI
-        if not re.search('^usb://', uri):
+        uri_data = re.search('^usb://([0-9]+)$',
+                             uri)
+        if not uri_data:
             raise WrongUriType('Not a radio URI')
 
         # Open the USB dongle
         if not re.search('^usb://([0-9]+)$',
                          uri):
             raise WrongUriType('Wrong radio URI format!')
-
-        uri_data = re.search('^usb://([0-9]+)$',
-                             uri)
 
         self.uri = uri
 

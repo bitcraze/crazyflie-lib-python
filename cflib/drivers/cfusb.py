@@ -27,6 +27,7 @@ USB driver for the Crazyflie.
 """
 import logging
 import os
+import platform
 
 import libusb_package
 import usb
@@ -90,6 +91,9 @@ class CfUsb:
                 self.dev = None
 
         if self.dev:
+            if platform.system() == 'Linux':
+                self.dev.reset()
+            
             self.dev.set_configuration(1)
             self.handle = self.dev
             self.version = float(
@@ -118,7 +122,7 @@ class CfUsb:
             return [('usb://0', '')]
         return []
 
-    def set_crtp_to_usb(self, crtp_to_usb):
+    def set_crtp_to_usb(self, crtp_to_usb: bool):
         if crtp_to_usb:
             _send_vendor_setup(self.handle, 0x01, 0x01, 1, ())
         else:

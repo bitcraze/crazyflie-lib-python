@@ -93,7 +93,7 @@ class CfUsb:
         if self.dev:
             if platform.system() == 'Linux':
                 self.dev.reset()
-            
+
             self.dev.set_configuration(1)
             self.handle = self.dev
             self.version = float(

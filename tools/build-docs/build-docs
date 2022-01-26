@@ -2,9 +2,6 @@
 
 set -e
 
-# This hack is needed to find --user installed modules
-export PYTHONPATH=$PYTHONPATH:$scriptDir/.local/lib/python3.7/site-packages
-
 scriptDir=$(dirname $0)
 cflibDir=$scriptDir/../../cflib
 apiRefDir=$scriptDir/../../docs/api
@@ -13,6 +10,9 @@ tempDir=$scriptDir/.tmp
 
 mkdir -p $apiRefDir
 mkdir -p $tempDir
+
+# This hack is needed to find --user installed modules
+export PYTHONPATH=$PYTHONPATH:$scriptDir/.local/lib/python3.7/site-packages
 
 [ -n "$API_REF_BASE" ] || {
     export API_REF_BASE=$(readlink -fn $tempDir)

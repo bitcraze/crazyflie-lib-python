@@ -152,7 +152,10 @@ class TunerControlCF:
         self.cf.param.add_update_callback(
             group='posCtlPid', name='zKd', cb=self.param_updated_callback_Kd)
         self.cf.param.add_update_callback(
-            group='posCtlPid', name='xyVelMax',
+            group='posCtlPid', name='xVelMax',
+            cb=self.param_updated_callback_vMax)
+        self.cf.param.add_update_callback(
+            group='posCtlPid', name='yVelMax',
             cb=self.param_updated_callback_vMax)
 
         self.current_value_kp = 0

@@ -2,6 +2,9 @@
 
 set -e
 
+# This hack is needed to find --user installed modules
+export PYTHONPATH=$PYTHONPATH:$scriptDir/.local/lib/python3.7/site-packages
+
 scriptDir=$(dirname $0)
 cflibDir=$scriptDir/../../cflib
 apiRefDir=$scriptDir/../../docs/api
@@ -22,7 +25,7 @@ mkdir -p $tempDir
 # The rewriting of HOME is a hack to make this work in a bare-bone Docker
 # environment.
 #
-pip3 show cflib > /dev/null 2>&1 || {  # this will run if cflib is not found
+python3 -m pip show cflib || {  # this will run if cflib is not found
     HOME=$scriptDir pip3 install --user --upgrade pip
     HOME=$scriptDir pip3 install --user -e $scriptDir/../../
 }

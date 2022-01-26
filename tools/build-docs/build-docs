@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 scriptDir=$(dirname $0)
 cflibDir=$scriptDir/../../cflib
 apiRefDir=$scriptDir/../../docs/api

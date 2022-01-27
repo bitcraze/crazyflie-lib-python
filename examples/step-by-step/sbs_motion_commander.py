@@ -22,7 +22,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import logging
+import sys
 import time
+from threading import Event
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -36,7 +38,7 @@ URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 DEFAULT_HEIGHT = 0.5
 BOX_LIMIT = 0.5
 
-is_deck_attached = False
+deck_attached_event = Event()
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -94,15 +96,13 @@ def log_pos_callback(timestamp, data, logconf):
     position_estimate[1] = data['stateEstimate.y']
 
 
-def param_deck_flow(name, value_str):
+def param_deck_flow(_, value_str):
     value = int(value_str)
     print(value)
-    global is_deck_attached
     if value:
-        is_deck_attached = True
+        deck_attached_event.set()
         print('Deck is attached!')
     else:
-        is_deck_attached = False
         print('Deck is NOT attached!')
 
 
@@ -121,10 +121,13 @@ if __name__ == '__main__':
         scf.cf.log.add_config(logconf)
         logconf.data_received_cb.add_callback(log_pos_callback)
 
-        if is_deck_attached:
-            logconf.start()
+        if not deck_attached_event.wait(timeout=5):
+            print('No flow deck detected!')
+            sys.exit(1)
 
-            # take_off_simple(scf)
-            # move_linear_simple(scf)
-            # move_box_limit(scf)
-            # logconf.stop()
+        logconf.start()
+
+        # take_off_simple(scf)
+        # move_linear_simple(scf)
+        # move_box_limit(scf)
+        # logconf.stop()

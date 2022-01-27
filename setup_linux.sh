@@ -3,8 +3,8 @@
 # by the current user immediately
 # Caution! This installs the Crazyflie PC client as root to your Python
 # site-packages directory. If you wish to install it as a normal user, use the
-# instructions on the Wiki at
-# http://wiki.bitcraze.se/projects:crazyflie:pc_utils:install
+# instructions in the documentation at
+# https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/
 # After installation, the Crazyflie PC client can be started with `cfclient`.
 # @author Daniel Lee 2013
 

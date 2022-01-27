@@ -53,7 +53,7 @@ This will run the lint checkers defined in `.pre-commit-config-yaml` on your pro
 ### With docker and the toolbelt
 
 For information and installation of the
-[toolbelt.](https://wiki.bitcraze.io/projects:dockerbuilderimage:index)
+[toolbelt.](https://github.com/bitcraze/toolbelt)
 
 * Check to see if you pass tests: `tb test`
 * Check to see if you pass style guidelines: `tb verify`

@@ -49,7 +49,8 @@ CRADIO_VID = 0x1915
 CRADIO_PID = 0x7777
 
 # Dongle configuration requests
-# See http://wiki.bitcraze.se/projects:crazyradio:protocol for documentation
+# See https://www.bitcraze.io/documentation/repository/crazyradio-firmware/master/functional-areas/usb_radio_protocol/ 
+#  for documentation
 SET_RADIO_CHANNEL = 0x01
 SET_RADIO_ADDRESS = 0x02
 SET_DATA_RATE = 0x03

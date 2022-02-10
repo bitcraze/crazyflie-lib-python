@@ -441,7 +441,7 @@ class Bootloader:
                 progress_cb = self.progress_cb
                 if not progress_cb:
                     def progress_cb(msg: str, percent: int):
-                        frames = ['◢', '◣', '◤', '◥']
+                        frames = ['|', '/', '-', '\\']
                         frame = frames[int(percent) % 4]
                         print('{} {}% {}'.format(frame, percent, msg))
 

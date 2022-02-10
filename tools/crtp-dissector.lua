@@ -10,7 +10,11 @@ local f_crtp_undecoded = ProtoField.string("crtp.undecoded", "Undecoded")
 -- Specialized CRTP service fields
 local f_crtp_console_text = ProtoField.string("crtp.console_text", "Text", base.ASCII)
 local f_crtp_parameter_varid = ProtoField.uint16("crtp.parameter_varid", "Variable Id")
-
+local f_crtp_parameter_type = ProtoField.string("crtp.parameter_type", "Parameter Type")
+local f_crtp_parameter_group = ProtoField.string("crtp.parameter_group", "Parameter Group")
+local f_crtp_parameter_name = ProtoField.string("crtp.parameter_name", "Parameter Name")
+local f_crtp_parameter_count = ProtoField.uint16("crtp.parameter_count", "Parameter Count")
+local f_crtp_parameter_crc = ProtoField.string("crtp.parameter_crc", "Parameter CRC")
 local f_crtp_parameter_val_uint = ProtoField.uint32("crtp.parameter_val_uint", "Value uint")
 local f_crtp_parameter_val_int = ProtoField.int32("crtp.parameter_val_int", "Value int")
 local f_crtp_parameter_val_float = ProtoField.float("crtp.parameter_val_float", "Value float")
@@ -38,6 +42,8 @@ crtp.fields = {
     f_crtp_port, f_crtp_channel, f_crtp_console_text, f_crtp_size,
     f_crtp_parameter_varid, f_crtp_parameter_val_uint,
     f_crtp_parameter_val_int, f_crtp_parameter_val_float,
+    f_crtp_parameter_name, f_crtp_parameter_group, f_crtp_parameter_type,
+    f_crtp_parameter_count, f_crtp_parameter_crc,
     f_crtp_setpoint_hl_command, f_crtp_setpoint_hl_retval,
     f_crtp_setpoint_hl_use_yaw, f_crtp_setpoint_hl_yaw,
     f_crtp_setpoint_hl_groupmask, f_crtp_setpoint_hl_duration,
@@ -45,6 +51,8 @@ crtp.fields = {
     f_crtp_setpoint_hl_x, f_crtp_setpoint_hl_y, f_crtp_setpoint_hl_z,
     f_crtp_setpoint_hl_id, f_crtp_setpoint_hl_timescale, f_crtp_undecoded
 }
+
+local param_toc = {}
 
 local Links = {
     UNKNOWN = 0,
@@ -340,8 +348,62 @@ function handle_setpoint_highlevel(tree, receive, buffer, channel, size)
     end
 end
 
-function handle_parameter_port(tree, buffer, channel, size)
-     -- Read or Write
+function append_param_type(str, type)
+    if #str == 0 then
+        return type
+    else
+        return str .. " | " .. type
+    end
+end
+
+function get_param_types(byte)
+    type = ""
+
+    local ext  = bit.lshift(1, 4)
+    local core = bit.lshift(1, 5)
+    local ronly = bit.lshift(1, 6)
+    local group = bit.lshift(1, 7)
+
+    num_type = bit.band(byte, 0x0F)
+    if num_type == 0 then
+        type = "PARAM_INT8"
+    elseif num_type == bit.lshift(0x1, 3) then
+        type = "PARAM_UINT8"
+    elseif num_type == bit.bor(0x1, bit.lshift(0x1, 3)) then
+        type = "PARAM_UINT16"
+    elseif num_type == 0x1 then
+        type = "PARAM_INT16"
+    elseif num_type == 0x2 then
+        type = "PARAM_INT32"
+    elseif num_type == bit.bor(0x2, bit.lshift(0x1, 3)) then
+        type = "PARAM_UINT32"
+    elseif num_type == bit.bor(0x2, bit.lshift(0x1, 2)) then
+        type = "PARAM_FLOAT"
+    end
+
+    if bit.band(byte, core) ~= 0 then
+        type = append_param_type(type, "PARAM_CORE")
+    end
+
+    if bit.band(byte, ronly) ~= 0 then
+        type = append_param_type(type, "PARAM_RONLY")
+    end
+
+    if bit.band(byte, group) ~= 0 then
+        type = append_param_type(type, "PARAM_GROUP")
+    end
+
+    if bit.band(byte, ext) ~= 0 then
+        type = append_param_type(type, "PARAM_EXTENDED")
+    end
+
+    return byte .. " (" .. type .. ")"
+end
+
+function handle_parameter_port(tree, receive, buffer, channel, size)
+    local port_tree = tree:add(crtp, port_name)
+
+    -- Read or Write
      if (channel == 1 or channel == 2) and size > 2 then
 
         if channel == 1 then
@@ -352,8 +414,11 @@ function handle_parameter_port(tree, buffer, channel, size)
 
         -- Add variable id
         local var_id = buffer(crtp_start + 1, 2):le_uint()
-        local port_tree = tree:add(crtp, port_name)
         port_tree:add_le(f_crtp_parameter_varid, var_id)
+
+        item = param_toc[var_id]
+        port_tree:add_le(f_crtp_parameter_group, item["group"])
+        port_tree:add_le(f_crtp_parameter_name, item["name"])
 
         -- Add value
         if size > 3 then
@@ -364,6 +429,46 @@ function handle_parameter_port(tree, buffer, channel, size)
             port_tree:add_le(f_crtp_parameter_val_float, buffer(crtp_start + value_start):le_float())
         end
         undecoded = 0
+    end
+    -- TOC
+    if channel == 0 then
+        message_id = buffer(crtp_start + 1, 1):le_uint()
+        if message_id == 3 and receive == 1 then
+            port_tree:add_le(f_crtp_parameter_count, buffer(crtp_start + 2, 2):le_uint())
+            port_tree:add_le(f_crtp_parameter_crc, buffer(crtp_start + 4):bytes():tohex())
+        end
+        if message_id == 2 then
+            -- GET_ITEM
+            item = {}
+            item["varid"] = buffer(crtp_start + 2, 2):le_uint()
+            port_tree:add_le(f_crtp_parameter_varid, item["varid"])
+
+            if receive == 1 then
+                item["type"] = get_param_types(buffer(crtp_start + 4, 1):le_uint())
+                item["group"] = ""
+                item["name"] = ""
+                full_name = buffer(crtp_start + 5):string()
+
+                stored_group = false
+                for i = 1, #full_name do
+                    local c = full_name:sub(i, i)
+                    if string.byte(c) == 0 and not stored_group then
+                        stored_group = true
+                    else
+                        if stored_group then
+                            item["name"] = item["name"] .. c
+                        else
+                            item["group"] = item["group"] .. c
+                        end
+                    end
+                end
+
+                param_toc[item["varid"]] = item
+                port_tree:add_le(f_crtp_parameter_type, item["type"])
+                port_tree:add_le(f_crtp_parameter_group, item["group"])
+                port_tree:add_le(f_crtp_parameter_name, item["name"])
+            end
+        end
     end
 end
 
@@ -434,7 +539,7 @@ function crtp.dissector(buffer, pinfo, tree)
     end
 
     if crtp_port == Ports.Parameters then
-        handle_parameter_port(tree, buffer, crtp_channel, crtp_size)
+        handle_parameter_port(tree, receive, buffer, crtp_channel, crtp_size)
     end
 
     if crtp_port == Ports.Setpoint_Highlevel then

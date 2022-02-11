@@ -19,6 +19,13 @@ local f_crtp_parameter_val_uint = ProtoField.uint32("crtp.parameter_val_uint", "
 local f_crtp_parameter_val_int = ProtoField.int32("crtp.parameter_val_int", "Value int")
 local f_crtp_parameter_val_float = ProtoField.float("crtp.parameter_val_float", "Value float")
 
+local f_crtp_log_varid = ProtoField.uint16("crtp.log_varid", "Variable Id")
+local f_crtp_log_type = ProtoField.string("crtp.log_type", "Log Type")
+local f_crtp_log_group = ProtoField.string("crtp.log_group", "Log Group")
+local f_crtp_log_name = ProtoField.string("crtp.log_name", "Log Name")
+local f_crtp_log_count = ProtoField.uint16("crtp.log_count", "Log Count")
+local f_crtp_log_crc = ProtoField.string("crtp.log_crc", "Log CRC")
+
 local f_crtp_setpoint_hl_command = ProtoField.string("crtp.setpoint_hl_command", "Command")
 local f_crtp_setpoint_hl_retval = ProtoField.uint8("crtp.setpoint_hl_retval", "Return Value")
 
@@ -51,6 +58,12 @@ crtp.fields = {
 	f_crtp_parameter_type,
 	f_crtp_parameter_count,
 	f_crtp_parameter_crc,
+	f_crtp_log_varid,
+	f_crtp_log_name,
+	f_crtp_log_group,
+	f_crtp_log_type,
+	f_crtp_log_count,
+	f_crtp_log_crc,
 	f_crtp_setpoint_hl_command,
 	f_crtp_setpoint_hl_retval,
 	f_crtp_setpoint_hl_use_yaw,
@@ -68,6 +81,7 @@ crtp.fields = {
 }
 
 local param_toc = {}
+local log_toc = {}
 
 local Links = {
 	UNKNOWN = 0,
@@ -387,6 +401,42 @@ function append_param_type(str, type)
 	end
 end
 
+function get_log_types(byte)
+	type = ""
+
+	local core = 0x20
+	local byfunc = 0x40
+	local group = 0x80
+
+	num_types_map = {
+		"LOG_UINT8",
+		"LOG_UINT16",
+		"LOG_UINT32",
+		"LOG_INT8",
+		"LOG_INT16",
+		"LOG_INT32",
+		"LOG_FLOAT",
+		"LOG_FP16",
+	}
+
+	num_type = bit.band(byte, 0x0F)
+	type = num_types_map[num_type]
+
+	if bit.band(byte, core) ~= 0 then
+		type = append_param_type(type, "LOG_CORE")
+	end
+
+	if bit.band(byte, byfunc) ~= 0 then
+		type = append_param_type(type, "LOG_BYFUNC")
+	end
+
+	if bit.band(byte, group) ~= 0 then
+		type = append_param_type(type, "LOG_GROUP")
+	end
+
+	return byte .. " (" .. type .. ")"
+end
+
 function get_param_types(byte)
 	type = ""
 
@@ -429,6 +479,51 @@ function get_param_types(byte)
 	end
 
 	return byte .. " (" .. type .. ")"
+end
+
+function handle_logging_port(tree, receive, buffer, channel, size)
+	local port_tree = tree:add(crtp, port_name)
+
+	-- TOC
+	if channel == 0 then
+		message_id = buffer(crtp_start + 1, 1):le_uint()
+		if message_id == 3 and receive == 1 then
+			port_tree:add_le(f_crtp_log_count, buffer(crtp_start + 2, 2):le_uint())
+			port_tree:add_le(f_crtp_log_crc, buffer(crtp_start + 4):bytes():tohex())
+		end
+		if message_id == 2 then
+			-- GET_ITEM
+			item = {}
+			item["varid"] = buffer(crtp_start + 2, 2):le_uint()
+			port_tree:add_le(f_crtp_log_varid, item["varid"])
+
+			if receive == 1 then
+				item["type"] = get_log_types(buffer(crtp_start + 4, 1):le_uint())
+				item["group"] = ""
+				item["name"] = ""
+				full_name = buffer(crtp_start + 5):string()
+
+				stored_group = false
+				for i = 1, #full_name do
+					local c = full_name:sub(i, i)
+					if string.byte(c) == 0 and not stored_group then
+						stored_group = true
+					else
+						if stored_group then
+							item["name"] = item["name"] .. c
+						else
+							item["group"] = item["group"] .. c
+						end
+					end
+				end
+
+				log_toc[item["varid"]] = item
+				port_tree:add_le(f_crtp_log_type, item["type"])
+				port_tree:add_le(f_crtp_log_group, item["group"])
+				port_tree:add_le(f_crtp_log_name, item["name"])
+			end
+		end
+	end
 end
 
 function handle_parameter_port(tree, receive, buffer, channel, size)
@@ -572,6 +667,10 @@ function crtp.dissector(buffer, pinfo, tree)
 
 	if crtp_port == Ports.Parameters then
 		handle_parameter_port(tree, receive, buffer, crtp_channel, crtp_size)
+	end
+
+	if crtp_port == Ports.Logging then
+		handle_logging_port(tree, receive, buffer, crtp_channel, crtp_size)
 	end
 
 	if crtp_port == Ports.Setpoint_Highlevel then

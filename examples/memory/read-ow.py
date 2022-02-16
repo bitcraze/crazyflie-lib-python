@@ -22,16 +22,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Simple example that connects to the first Crazyflie found, looks for
+Simple example that connects to a Crazyflie, looks for
 1-wire memories and lists its contents.
 """
 import logging
 import sys
-import time
+from threading import Event
 
 import cflib.crtp  # noqa
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
+from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
@@ -39,114 +40,45 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
+update_event = Event()
 
-class OWExample:
-    """
-    Simple example listing the 1-wire memories found and lists its contents.
-    """
 
-    def __init__(self, link_uri):
-        """ Initialize and run the example with the specified link_uri """
+def read_ow_mems(cf):
+    mems = cf.mem.get_mems(MemoryElement.TYPE_1W)
+    print(f'Found {len(mems)} 1-wire memories')
 
-        # Create a Crazyflie object without specifying any cache dirs
-        self._cf = Crazyflie()
+    for m in mems:
+        update_event.clear()
 
-        # Keep track on if ow memory was detected
-        self.read_ow = False
+        print(f'Reading id={m.id}')
+        m.update(data_updated_cb)
+        success = update_event.wait(timeout=5.0)
+        if not success:
+            print(f'Mem read time out for memory {m.id}')
+            sys.exit(1)
 
-        # Connect some callbacks from the Crazyflie API
-        self._cf.connected.add_callback(self._connected)
-        self._cf.disconnected.add_callback(self._disconnected)
-        self._cf.connection_failed.add_callback(self._connection_failed)
-        self._cf.connection_lost.add_callback(self._connection_lost)
 
-        print('Connecting to %s' % link_uri)
+def data_updated_cb(mem):
+    print(f'Got id={mem.id}')
+    print(f'\tAddr      : {mem.addr}')
+    print(f'\tType      : {mem.type}')
+    print(f'\tSize      : {mem.size}')
+    print(f'\tValid     : {mem.valid}')
+    print(f'\tName      : {mem.name}')
+    print(f'\tVID       : 0x{mem.vid:02X}')
+    print(f'\tPID       : 0x{mem.pid:02X}')
+    print(f'\tPins      : 0x{mem.pins:02X}')
+    print('\tElements  : ')
 
-        # Try to connect to the Crazyflie
-        self._cf.open_link(link_uri)
+    for key, element in mem.elements.items():
+        print(f'\t\t{key}={element}')
 
-        # Variable used to keep main loop occupied until disconnect
-        self.is_connected = True
-        self._mems_to_update = 0
-
-    def _connected(self, link_uri):
-        """ This callback is called form the Crazyflie API when a Crazyflie
-        has been connected and the TOCs have been downloaded."""
-        print('Connected to %s' % link_uri)
-
-        mems = self._cf.mem.get_mems(MemoryElement.TYPE_1W)
-        self._mems_to_update = len(mems)
-        print('Found {} 1-wire memories'.format(len(mems)))
-
-        if len(mems) == 0:
-            self.read_ow = True
-            self._cf.close_link()
-
-        for m in mems:
-            print('Updating id={}'.format(m.id))
-            m.update(self._data_updated)
-
-    def _data_updated(self, mem):
-        print('Updated id={}'.format(mem.id))
-        print('\tAddr      : {}'.format(mem.addr))
-        print('\tType      : {}'.format(mem.type))
-        print('\tSize      : {}'.format(mem.size))
-        print('\tValid     : {}'.format(mem.valid))
-        print('\tName      : {}'.format(mem.name))
-        print('\tVID       : 0x{:02X}'.format(mem.vid))
-        print('\tPID       : 0x{:02X}'.format(mem.pid))
-        print('\tPins      : 0x{:02X}'.format(mem.pins))
-        print('\tElements  : ')
-
-        for key in mem.elements:
-            print('\t\t{}={}'.format(key, mem.elements[key]))
-
-        self._mems_to_update -= 1
-        if self._mems_to_update == 0:
-            self.read_ow = True
-            self._cf.close_link()
-
-    def _stab_log_error(self, logconf, msg):
-        """Callback from the log API when an error occurs"""
-        print('Error when logging %s: %s' % (logconf.name, msg))
-
-    def _stab_log_data(self, timestamp, data, logconf):
-        """Callback from a the log API when data arrives"""
-        print('[%d][%s]: %s' % (timestamp, logconf.name, data))
-
-    def _connection_failed(self, link_uri, msg):
-        """Callback when connection initial connection fails (i.e no Crazyflie
-        at the specified address)"""
-        print('Connection to %s failed: %s' % (link_uri, msg))
-        self.is_connected = False
-
-    def _connection_lost(self, link_uri, msg):
-        """Callback when disconnected after a connection has been made (i.e
-        Crazyflie moves out of range)"""
-        print('Connection to %s lost: %s' % (link_uri, msg))
-
-    def _disconnected(self, link_uri):
-        """Callback when the Crazyflie is disconnected (called in all cases)"""
-        print('Disconnected from %s' % link_uri)
-        self.is_connected = False
+    update_event.set()
 
 
 if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
-    le = OWExample(uri)
-
-    # The Crazyflie lib doesn't contain anything to keep the application alive,
-    # so this is where your application should do something. In our case we
-    # are just waiting until we are disconnected, or timeout.
-    timeout = 5  # seconds
-    ts = time.time()
-    try:
-        while le.is_connected and (time.time() - ts < timeout):
-            time.sleep(1)
-    except KeyboardInterrupt:
-        sys.exit(1)
-
-    if not le.read_ow:
-        sys.exit(1)
+    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        read_ow_mems(scf.cf)

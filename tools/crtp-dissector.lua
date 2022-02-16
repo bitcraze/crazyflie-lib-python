@@ -43,6 +43,8 @@ local f_crtp_setpoint_hl_x = ProtoField.float("crtp.setpoint_hl_x", "X")
 local f_crtp_setpoint_hl_y = ProtoField.float("crtp.setpoint_hl_y", "Y")
 local f_crtp_setpoint_hl_z = ProtoField.float("crtp.setpoint_hl_z", "Z")
 
+local f_crtp_echo_data = ProtoField.uint32("crtp.echo_data", "Echo Data")
+
 -- All possible fields registred
 crtp.fields = {
 	f_crtp_port,
@@ -77,6 +79,7 @@ crtp.fields = {
 	f_crtp_setpoint_hl_z,
 	f_crtp_setpoint_hl_id,
 	f_crtp_setpoint_hl_timescale,
+	f_crtp_echo_data,
 	f_crtp_undecoded,
 }
 
@@ -106,7 +109,8 @@ local Ports = {
 	Commander_Generic = 0x7,
 	Setpoint_Highlevel = 0x8,
 	Platform = 0xD,
-	All = 0xF,
+	LinkControl = 0xF,
+	ALL = 0xFF
 }
 
 function get_crtp_port_channel_names(port, channel)
@@ -168,7 +172,9 @@ function get_crtp_port_channel_names(port, channel)
 		end
 	elseif port == 0x0F then
 		port_name = "Link Control"
-		if channel == 1 then
+		if channel == 0 then
+			channel_name = "Echo"
+		elseif channel == 1 then
 			channel_name = "Link Service Source"
 		end
 	elseif port == 0xFF then
@@ -663,6 +669,14 @@ function crtp.dissector(buffer, pinfo, tree)
 		local port_tree = tree:add(crtp, port_name)
 		port_tree:add_le(f_crtp_console_text, buffer(crtp_start + 1):string())
 		undecoded = 0
+	end
+
+	if crtp_port == Ports.LinkControl then
+		if crtp_channel == 0 then -- Echo
+			local port_tree = tree:add(crtp, channel_name)
+			port_tree:add_le(f_crtp_echo_data, buffer(crtp_start + 1):le_uint())
+			undecoded = 0
+		end
 	end
 
 	if crtp_port == Ports.Parameters then

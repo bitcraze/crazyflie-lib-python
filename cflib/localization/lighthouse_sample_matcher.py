@@ -36,6 +36,9 @@ class LighthouseSampleMatcher:
     @classmethod
     def match(cls, samples: list[LhMeasurement], max_time_diff: float = 0.010,
               min_nr_of_bs_in_match: int = 0) -> list[LhCfPoseSample]:
+        """
+        Aggregate samples close in time into lists
+        """
 
         result = []
         current: LhCfPoseSample = None

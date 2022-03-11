@@ -32,26 +32,6 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
     def setUp(self):
         self.fixtures = LighthouseFixtures()
 
-    def test_that_one_bs_poses_in_one_sample_is_estimated(self):
-        # Fixture
-        # CF_ORIGIN is used in the first sample and will define the global reference frame
-        bs_id0 = 3
-        matched_samples = [
-            LhCfPoseSample(angles_calibrated={
-                bs_id0: self.fixtures.angles_cf_origin_bs0,
-            }),
-        ]
-
-        initial_guess = LighthouseInitialEstimator.estimate(matched_samples, LhDeck4SensorPositions.positions)
-
-        # Test
-        actual = LighthouseGeometrySolver.solve(
-            initial_guess, matched_samples, LhDeck4SensorPositions.positions)
-
-        # Assert
-        bs_poses = actual.bs_poses
-        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, bs_poses[bs_id0], places=3)
-
     def test_that_two_bs_poses_in_one_sample_are_estimated(self):
         # Fixture
         # CF_ORIGIN is used in the first sample and will define the global reference frame

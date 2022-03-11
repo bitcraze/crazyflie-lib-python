@@ -138,11 +138,10 @@ class LighthouseBsVector:
         return math.tan(self._lh_v1_vert_angle) / math.sqrt(1 + math.tan(self._lh_v1_horiz_angle) ** 2)
 
 
-# A LighthouseBsVectors is a list of 4 LighthouseBsVector, one for
-# each sensor
-# LighthouseBsVectors = list[LighthouseBsVector]
-
 class LighthouseBsVectors(list):
+    """A list of 4 LighthouseBsVector, one for each sensor.
+       LighthouseBsVectors is essentially the same as list[LighthouseBsVector]"""
+
     def projection_pair_list(self) -> npt.NDArray:
         """
         Genereate a list of projection pairs for all vectors

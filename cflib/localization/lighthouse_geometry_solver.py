@@ -131,7 +131,6 @@ class LighthouseGeometrySolver:
     cf2/bs3/sens1/ang0                                  X                  X
     cf2/bs3/sens1/ang1                                  X                  X
     ...
-
     """
 
     @classmethod
@@ -141,8 +140,8 @@ class LighthouseGeometrySolver:
         Solve for the pose of base stations and CF samples.
         The pose of the CF in sample 0 defines the global reference frame.
 
-        Iteration is terminated after a fixed number of iteration if acceptable solution
-        is found.
+        Iteration is terminated acceptable solution is found. If no solution is found after a fixed number of iterations
+        the solver is terminated. The success member of the result will indicate if a solution was found or not.
 
         :param initial_guess: Initial guess for the base stations and CF sample poses
         :param matched_samples: List of matched samples.
@@ -155,7 +154,7 @@ class LighthouseGeometrySolver:
         solution.n_cfs = len(matched_samples)
         solution.n_cfs_in_params = len(matched_samples) - 1
         solution.n_sensors = len(sensor_positions)
-        solution.bs_id_to_index, solution.bs_index_to_id = cls._crate_bs_map(initial_guess.bs_poses)
+        solution.bs_id_to_index, solution.bs_index_to_id = cls._create_bs_map(initial_guess.bs_poses)
 
         target_angles = cls._populate_target_angles(matched_samples)
         idx_agl_pr_to_bs, idx_agl_pr_to_cf, idx_agl_pr_to_sens_pos, jac_sparsity = cls._populate_indexes_and_jacobian(
@@ -330,7 +329,7 @@ class LighthouseGeometrySolver:
 
         :param bs_p_a: Poses base stations
         :param cf_p_a: Poses CFs
-        :paran sens_pos_p_a: Sensor positions
+        :param sens_pos_p_a: Sensor positions
         :return: angle pairs
 
         All lists are equally long, one entry per output angle pair
@@ -378,7 +377,7 @@ class LighthouseGeometrySolver:
         return Pose.from_rot_vec(R_vec=r_vec, t_vec=t)
 
     @classmethod
-    def _crate_bs_map(cls, initial_guess_bs_poses: dict[int, Pose]) -> tuple[dict[int, int], dict[int, int]]:
+    def _create_bs_map(cls, initial_guess_bs_poses: dict[int, Pose]) -> tuple[dict[int, int], dict[int, int]]:
         """
         We might have gaps in the list of base station ids that is used in the system, use an index instead
         when refering to a base station. This method creates dictionaries to go from index to base station id,
@@ -427,7 +426,7 @@ class LighthouseGeometrySolver:
         solution.error_info = cls._aggregate_error_info(solution.estimated_errors)
 
     @classmethod
-    def _aggregate_error_info(cls, estimated_errors: list[dict[int, float]]):
+    def _aggregate_error_info(cls, estimated_errors: list[dict[int, float]]) -> dict[str, float]:
         error_per_bs = {}
         errors = []
         for sample_errors in estimated_errors:

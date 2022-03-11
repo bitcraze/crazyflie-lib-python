@@ -36,6 +36,7 @@ class Pose:
 
     _NO_ROTATION_MTX = np.identity(3)
     _NO_ROTATION_VCT = np.array((0.0, 0.0, 0.0))
+    _NO_ROTATION_QUAT = np.array((0.0, 0.0, 0.0, 0.0))
     _ORIGIN = np.array((0.0, 0.0, 0.0))
 
     def __init__(self, R_matrix: npt.ArrayLike = _NO_ROTATION_MTX, t_vec: npt.ArrayLike = _ORIGIN) -> None:
@@ -52,6 +53,19 @@ class Pose:
         """
         return Pose(Rotation.from_rotvec(R_vec).as_matrix(), t_vec)
 
+    @classmethod
+    def from_quat(cls, R_quat: npt.ArrayLike = _NO_ROTATION_QUAT, t_vec: npt.ArrayLike = _ORIGIN) -> 'Pose':
+        """
+        Create a Pose from a quaternion and translation vector
+        """
+        return Pose(Rotation.from_quat(R_quat).as_matrix(), t_vec)
+
+    def scale(self, scale) -> None:
+        """
+        quiet
+        """
+        self._t_vec = self._t_vec * scale
+
     @property
     def rot_matrix(self) -> npt.NDArray:
         """
@@ -65,6 +79,13 @@ class Pose:
         Get the rotation vector of the pose
         """
         return Rotation.from_matrix(self._R_matrix).as_rotvec()
+
+    @property
+    def rot_quat(self) -> npt.NDArray:
+        """
+        Get the quaternion of the pose
+        """
+        return Rotation.from_matrix(self._R_matrix).as_quat()
 
     @property
     def translation(self) -> npt.NDArray:
@@ -159,3 +180,5 @@ class LhDeck4SensorPositions:
         (-_sensor_distance_length / 2, -_sensor_distance_width / 2, 0.0),
         (_sensor_distance_length / 2, _sensor_distance_width / 2, 0.0),
         (_sensor_distance_length / 2, -_sensor_distance_width / 2, 0.0)])
+
+    diagonal_distance = np.sqrt(_sensor_distance_length ** 2 + _sensor_distance_length ** 2)

@@ -29,9 +29,10 @@ from cflib.localization.lighthouse_types import Pose
 
 
 class LighthouseSystemAligner:
+    """This class is used to align a lighthouse system to a few sampled positions"""
     @classmethod
     def align(cls, origin: npt.ArrayLike, x_axis: list[npt.ArrayLike], xy_plane: list[npt.ArrayLike],
-              bs_poses: dict[int, Pose]) -> dict[int, Pose]:
+              bs_poses: dict[int, Pose]) -> tuple[dict[int, Pose], Pose]:
         """
         Align a coordinate system with the physical world. Finds the transform from the
         current reference frame to one that is aligned with measured positions, and transforms base station
@@ -42,7 +43,7 @@ class LighthouseSystemAligner:
                        reference frame
         :param x_axis: One or more positions in the desired XY-plane (Z=0) in the current reference frame
         :param bs_poses: a dictionary with the base station poses in the current reference frame
-        :return: a dictionary with the base station poses in the desired reference frame
+        :return: a dictionary with the base station poses in the desired reference frame and the transformation
         """
         raw_transformation = cls._find_transformation(origin, x_axis, xy_plane)
         transformation = cls._de_flip_transformation(raw_transformation, x_axis, bs_poses)
@@ -51,7 +52,7 @@ class LighthouseSystemAligner:
         for bs_id, pose in bs_poses.items():
             result[bs_id] = transformation.rotate_translate_pose(pose)
 
-        return result
+        return result, transformation
 
     @classmethod
     def _find_transformation(cls, origin: npt.ArrayLike, x_axis: list[npt.ArrayLike],

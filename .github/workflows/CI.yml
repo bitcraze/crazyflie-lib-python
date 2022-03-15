@@ -12,6 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Check and build
-      run: docker run --rm -v ${PWD}:/module bitcraze/builder ./tools/build/build 
+    - name: Checkout repo
+      uses: actions/checkout@v2
+
+    - name: Build
+      run: docker run --rm -v ${PWD}:/module bitcraze/builder ./tools/build/build
+
+    - name: Build docs
+      run: docker run --rm -v ${PWD}:/module bitcraze/web-builder ./tools/build-docs/build-docs

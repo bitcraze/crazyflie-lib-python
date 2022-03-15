@@ -198,8 +198,8 @@ class LighthouseInitialEstimator:
                     best1 = solution_1
                     best2 = solution_2
 
-        if min_dist > 0.5:
-            print('large error:', min_dist)
+        # if min_dist > 0.5:
+        #     print('large error:', min_dist)
 
         return best1, best2
 

@@ -73,7 +73,7 @@ class TestLighthouseSystemAligner(LighthouseTestBase):
         bs_poses = {bs_id: Pose.from_rot_vec(t_vec=(1.0, 0.0, 1.0))}
 
         # Test
-        actual = LighthouseSystemAligner.align(origin, x_axis, xy_plane, bs_poses)
+        actual, transform = LighthouseSystemAligner.align(origin, x_axis, xy_plane, bs_poses)
 
         # Assert
         self.assertPosesAlmostEqual(Pose.from_rot_vec(
@@ -90,7 +90,7 @@ class TestLighthouseSystemAligner(LighthouseTestBase):
         expected = Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi), t_vec=(0.0, 0.0, 1.0))
 
         # Test
-        actual = LighthouseSystemAligner.align(origin, x_axis, xy_plane, bs_poses)
+        actual, transform = LighthouseSystemAligner.align(origin, x_axis, xy_plane, bs_poses)
 
         # Assert
         self.assertPosesAlmostEqual(expected, actual[bs_id])
@@ -109,7 +109,7 @@ class TestLighthouseSystemAligner(LighthouseTestBase):
         }
 
         # Test
-        actual = LighthouseSystemAligner.align(origin, x_axis, xy_plane, bs_poses)
+        actual, transform = LighthouseSystemAligner.align(origin, x_axis, xy_plane, bs_poses)
 
         # Assert
         self.assertVectorsAlmostEqual((-1.0, 0.0, 1.0), actual[1].translation, places=1)

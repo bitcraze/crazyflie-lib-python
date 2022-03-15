@@ -34,7 +34,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
     def setUp(self):
         self.fixtures = LighthouseFixtures()
 
-    def test_that_one_bs_pose_is_found(self):
+    def test_that_one_bs_pose_raises_exception(self):
         # Fixture
         # CF_ORIGIN is used in the first sample and will define the global reference frame
         bs_id = 3
@@ -43,10 +43,9 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         ]
 
         # Test
-        actual = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
-
         # Assert
-        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual.bs_poses[bs_id], places=3)
+        with self.assertRaises(Exception):
+            LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
 
     def test_that_two_bs_poses_in_same_sample_are_found(self):
         # Fixture
@@ -161,6 +160,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         bs_id0 = 3
         bs_id1 = 1
         bs_id2 = 2
+        bs_id3 = 4
         samples = [
             LhCfPoseSample(angles_calibrated={
                 bs_id0: self.fixtures.angles_cf_origin_bs0,
@@ -168,6 +168,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
             }),
             LhCfPoseSample(angles_calibrated={
                 bs_id2: self.fixtures.angles_cf1_bs2,
+                bs_id3: self.fixtures.angles_cf2_bs2,
             }),
         ]
 

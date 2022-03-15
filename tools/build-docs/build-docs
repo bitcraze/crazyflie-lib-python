@@ -6,7 +6,7 @@ scriptDir=$(dirname $0)
 cflibDir=$scriptDir/../../cflib
 apiRefDir=$scriptDir/../../docs/api
 templateDir=$apiRefDir/template
-tempDir=$scriptDir/.tmp
+tempDir=$scriptDir/../../.tmp
 
 mkdir -p $apiRefDir
 mkdir -p $tempDir
@@ -25,13 +25,13 @@ export PYTHONPATH=$PYTHONPATH:$scriptDir/.local/lib/python3.7/site-packages
 # The rewriting of HOME is a hack to make this work in a bare-bone Docker
 # environment.
 #
-python3 -m pip show cflib || {  # this will run if cflib is not found
-    HOME=$scriptDir pip3 install --user --upgrade pip
-    HOME=$scriptDir pip3 install --user -e $scriptDir/../../
-}
+
+# Make a temporary install in the temp dir
+HOME=$tempDir pip3 install --user --upgrade pip
+HOME=$tempDir pip3 install --user -e $scriptDir/../../
 
 # Generate documentation
-pdoc3 --force $cflibDir --output-dir $tempDir --template-dir $templateDir
+HOME=$tempDir pdoc3 --force $cflibDir --output-dir $tempDir --template-dir $templateDir
 
 # Modify the generated content to fit our file tree
 ## Rename root file that will be included in another md file

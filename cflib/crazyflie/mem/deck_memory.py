@@ -55,7 +55,7 @@ class DeckMemory:
 
     def contains(self, address):
         max = self._base_address + self.MEMORY_MAX_SIZE
-        return address >= self._base_address and address <= max
+        return address >= self._base_address and address < max
 
     def write(self, address, data, write_complete_cb, write_failed_cb=None, progress_cb=None):
         """Write a block of binary data to the deck"""

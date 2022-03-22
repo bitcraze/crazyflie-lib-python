@@ -55,7 +55,7 @@ class DeckMemory:
 
     def contains(self, address):
         max = self._base_address + self.MEMORY_MAX_SIZE
-        return address >= self._base_address and address <= max
+        return address >= self._base_address and address < max
 
     def write(self, address, data, write_complete_cb, write_failed_cb=None, progress_cb=None):
         """Write a block of binary data to the deck"""
@@ -144,7 +144,7 @@ class DeckMemoryManager(MemoryElement):
     SIZE_OF_VERSION = 1
     SIZE_OF_INFO_SECTION = SIZE_OF_VERSION + MAX_NR_OF_DECKS * SIZE_OF_DECK_MEM_INFO
     INFO_SECTION_ADDRESS = 0
-    SUPPORTED_VERSION = 1
+    SUPPORTED_VERSION = 2
 
     def __init__(self, id, type, size, mem_handler):
         """Initialize deck memory manager"""
@@ -220,7 +220,7 @@ class DeckMemoryManager(MemoryElement):
 
         version = struct.unpack('<B', data[0:1])[0]
         if version != self.SUPPORTED_VERSION:
-            logger.error('Version ' + version + ' not supported')
+            logger.error(f'Version {version} not supported')
         else:
             for i in range(self.MAX_NR_OF_DECKS):
                 deck_memory = DeckMemory(self)

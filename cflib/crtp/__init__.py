@@ -32,6 +32,7 @@ from .radiodriver import RadioDriver
 from .serialdriver import SerialDriver
 from .udpdriver import UdpDriver
 from .usbdriver import UsbDriver
+from .cpxdriver import CPXDriver
 
 __author__ = 'Bitcraze AB'
 __all__ = []
@@ -58,7 +59,7 @@ def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
     if enable_serial_driver:
         CLASSES.append(SerialDriver)
 
-    CLASSES.extend([UdpDriver, PrrtDriver])
+    CLASSES.extend([UdpDriver, PrrtDriver, CPXDriver])
 
 
 def scan_interfaces(address=None):

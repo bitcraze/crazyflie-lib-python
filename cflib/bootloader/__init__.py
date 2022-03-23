@@ -406,7 +406,7 @@ class Bootloader:
                 # Check that we want to flash this deck
                 deck_target = [t for t in targets if t == Target('deck', deck.name, 'fw')]
                 if (not flash_all_targets) and len(deck_target) == 0:
-                    print(f'Skipping {deck.name}')
+                    print(f'Skipping {deck.name}, not in the target list')
                     continue
 
                 # Check that we have an artifact for this deck
@@ -420,36 +420,55 @@ class Bootloader:
                     self.progress_cb(f'Updating deck {deck.name}', 0)
 
                 # Test and wait for the deck to be started
+                timeout_time = time.time() + 5
                 while not deck.is_started:
+                    if time.time() > timeout_time:
+                        raise RuntimeError(f"Deck {deck.name} did not start")
                     print('Deck not yet started ...')
-                    time.sleep(500)
+                    time.sleep(0.5)
                     deck = mgr.query_decks()[deck_index]
 
-                # Run a brunch of sanity checks ...
+                # Supports upgrades?
                 if not deck.supports_fw_upgrade:
                     print(f'Deck {deck.name} does not support firmware update, skipping!')
                     continue
 
-                if not deck.is_fw_upgrade_required:
-                    print(f'Deck {deck.name} firmware up to date, skipping')
-                    continue
+                # Reset to bootloader mode, if supported
+                if deck.supports_reset_to_bootloader:
+                    print(f'Deck {deck.name}, reset to bootloader')
+                    deck.reset_to_bootloader()
 
-                if not deck.is_bootloader_active:
-                    print(f'Error: Deck {deck.name} bootloader not active, skipping!')
-                    continue
+                    time.sleep(0.1)
+                    deck = mgr.query_decks()[deck_index]
+                else:
+                    # Is an upgrade required?
+                    if not deck.is_fw_upgrade_required:
+                        print(f'Deck {deck.name} firmware up to date, skipping')
+                        continue
+
+                # Wait for bootloader to be ready
+                timeout_time = time.time() + 5
+                while not deck.is_bootloader_active:
+                    if time.time() > timeout_time:
+                        raise RuntimeError(f"Deck {deck.name} did not enter bootloader mode")
+                    print(f'Error: Deck {deck.name} bootloader not active yet...')
+                    time.sleep(0.5)
+                    deck = mgr.query_decks()[deck_index]
 
                 progress_cb = self.progress_cb
                 if not progress_cb:
                     def progress_cb(msg: str, percent: int):
                         frames = ['|', '/', '-', '\\']
                         frame = frames[int(percent) % 4]
-                        print('{} {}% {}'.format(frame, percent, msg))
+                        print(f'{frame} {percent}% {msg}')
 
+                # Flash the new firmware
+                deck.set_fw_new_flash_size(len(deck_artifact.content))
                 result = deck.write_sync(0, deck_artifact.content, progress_cb)
                 if result:
                     if self.progress_cb:
-                        self.progress_cb(f'Deck {deck.name} updated succesfully!', 100)
+                        self.progress_cb(f'Deck {deck.name} updated successful!', 100)
                 else:
                     if self.progress_cb:
                         self.progress_cb(f'Failed to update deck {deck.name}', int(0))
-                    raise Exception(f'Failed to update deck {deck.name}')
+                    raise RuntimeError(f'Failed to update deck {deck.name}')

@@ -31,110 +31,15 @@ import threading
 from urllib.parse import urlparse
 from zeroconf import ServiceBrowser, Zeroconf
 
+from cflib.cpx import CPX, CPXPacket, CPXTarget, CPXFunction
+from cflib.cpx.transports import SocketTransport
+
 from .crtpdriver import CRTPDriver
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 
 __author__ = 'Bitcraze AB'
 __all__ = ['CPXDriver']
-
-class CPXTarget:
-  """
-  List of CPX targets
-  """
-  STM32 = 1
-  ESP32 = 2
-  HOST = 3
-  GAP8 = 4    
-
-class CPXFunction:
-  """
-  List of CPX targets
-  """
-  SYSTEM = 1
-  CONSOLE = 2
-  CRTP = 3
-  WIFI_CTRL = 4
-  APP = 5
-  TEST = 0x0E
-  BOOTLOADER = 0x0F
-
-class CPXPacket(object):
-    """
-    A packet with routing and data
-    """
-
-    def __init__(self, function=0, destination=0, source=CPXTarget.HOST, data=bytearray(), wireHeader=None):
-        """
-        Create an empty packet with default values.
-        """
-        self.data = data
-        self.source = source
-        self.destination = destination
-        self.function = function
-        self._wireHeaderFormat = "<HBB"
-        self.length = 0
-        self.lastPacket = False
-        if wireHeader:
-            [self.length, targetsAndFlags, self.function] = struct.unpack(self._wireHeaderFormat, wireHeader)
-            self.destination = (targetsAndFlags >> 3) & 0x07
-            self.source = targetsAndFlags & 0x07
-            self.lastPacket = targetsAndFlags & 0x40 != 0
-
-    def _get_wire_data(self):
-        """Create raw data to send via the wire"""
-        raw = bytearray()
-        # This is the length excluding the 2 byte legnth
-        wireLength = len(self.data) + 2 # 2 bytes for CPX header
-        targetsAndFlags = ((self.source & 0x7) << 3) | (self.destination & 0x7)
-        if self.lastPacket:
-          targetsAndFlags |= 0x40
-        #print(self.destination)
-        #print(self.source)
-        #print(targets)
-        function = self.function & 0xFF
-        raw.extend(struct.pack(self._wireHeaderFormat, wireLength, targetsAndFlags, function))
-        raw.extend(self.data)
-        
-        # We need to handle this better...
-        if (wireLength > 1022):
-          raise "Cannot send this packet, the size is too large!"
-
-        return raw
-
-    def __str__(self):
-        """Get a string representation of the packet"""
-        return "{:02X}->{:02X}/{:02X}".format(self.source, self.destination, self.function)
-
-    wireData = property(_get_wire_data, None)
-
-class CPX(object):
-  """
-  A packet with routing and data
-  """
-
-  def __init__(self, socket):
-    self._socket = socket
-
-  def _rx_bytes(self, size):
-    data = bytearray()
-    while len(data) < size:
-      #print(size - len(data))
-      data.extend(self._socket.recv(size-len(data)))
-    return data
-
-  def send(self, packet):
-    self._socket.send(packet.wireData)
-
-  def receive(self):
-    header = self._rx_bytes(4)
-    packet = CPXPacket(wireHeader=header)
-    packet.data = self._rx_bytes(packet.length - 2) # remove routing info here
-    return packet
-
-  def transaction(self, packet):
-    self.send(packet)
-    return self.receive()
 
 # For each scan the driver is re-initialized, if we do ZeroConf inside
 # the driver init we will not have time to find any devices, so start
@@ -180,22 +85,18 @@ class CPXDriver(CRTPDriver):
 
         parse = urlparse(uri.split(" ")[0])
 
-        print("Connecting to socket on {}:{}...".format(parse.hostname, parse.port))
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.connect((parse.hostname, parse.port))
-
         self.in_queue = queue.Queue()
 
-        self._cpx = CPX(self._socket)
+        self.cpx = CPX(SocketTransport(parse.hostname, parse.port))
 
-        self._thread = _CPXReceiveThread(self._cpx, self.in_queue,
+        self._thread = _CPXReceiveThread(self.cpx, self.in_queue,
                                          linkErrorCallback)
         self._thread.start()
 
 
-        self._cpx.send(CPXPacket(destination=CPXTarget.STM32,
-                                 function=CPXFunction.SYSTEM,
-                                 data=[0x10, 0x01]))
+        self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
+                                      function=CPXFunction.SYSTEM,
+                                      data=[0x10, 0x01]))
 
     def receive_packet(self, time=0):
         if time == 0:
@@ -216,9 +117,9 @@ class CPXDriver(CRTPDriver):
 
     def send_packet(self, pk):
         raw = (pk.header,) + struct.unpack('B' * len(pk.data), pk.data)
-        self._cpx.send(CPXPacket(destination=CPXTarget.STM32,
-                                 function=CPXFunction.CRTP,
-                                 data=raw))
+        self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
+                                      function=CPXFunction.CRTP,
+                                      data=raw))
 
     def close(self):
         """ Close the link. """
@@ -227,13 +128,13 @@ class CPXDriver(CRTPDriver):
 
         # Close the socket
         try:
-            self._socket.close()
-            self._socket = None
+            self._cpx.close()
+            self._cpx = None
 
         except Exception as e:
             logger.info('Could not close {}'.format(e))
             pass
-        self._cpx = None
+        self.cpx = None
 
     def get_name(self):
         return 'cpx'
@@ -272,7 +173,7 @@ class _CPXReceiveThread(threading.Thread):
             try:
                 # Block until a packet is available though the socket
                 # CPX receive will only return full packets
-                cpxPacket = self._cpx.receive()
+                cpxPacket = self._cpx.receivePacket(CPXFunction.CRTP)
                 data = struct.unpack('B' * len(cpxPacket.data), cpxPacket.data)
                 if len(data) > 0:
                     pk = CRTPPacket(data[0],

@@ -263,7 +263,7 @@ class DeckMemoryManager(MemoryElement):
 
         version = struct.unpack('<B', data[0:1])[0]
         if version != self.SUPPORTED_VERSION:
-            logger.error(f'Version {version} not supported')
+            logger.error(f'Deck memory version {version} not supported')
         else:
             for i in range(self.MAX_NR_OF_DECKS):
                 deck_memory = DeckMemory(self, self.COMMAND_SECTION_ADDRESS + i * self.SIZE_OF_COMMAND_SECTION)

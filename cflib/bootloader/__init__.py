@@ -384,6 +384,14 @@ class Bootloader:
 
         return identifier
 
+
+    def console_callback(self, text: str):
+        '''A callback to run when we get console text from Crazyflie'''
+        # We do not add newlines to the text received, we get them from the
+        # Crazyflie at appropriate places.
+        print(text, end='')
+
+
     def _flash_deck(self, artifacts: List[FlashArtifact], targets: List[Target]):
         flash_all_targets = len(targets) == 0
 
@@ -391,6 +399,9 @@ class Bootloader:
             self.progress_cb('Detecting deck to be updated', 0)
 
         with SyncCrazyflie(self.clink, cf=Crazyflie()) as scf:
+            # Uncomment to enable console logs from the CF. Useful when debuging deck flashing.
+            # scf.cf.console.receivedChar.add_callback(self.console_callback)
+
             deck_mems = scf.cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
             deck_mems_count = len(deck_mems)
             if deck_mems_count == 0:

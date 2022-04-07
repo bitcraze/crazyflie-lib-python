@@ -55,7 +55,7 @@ class Caller():
 
 
 class Syncer:
-    """A class to create syncronous behaviour for methods using callbacks"""
+    """A class to create synchronous behavior for methods using callbacks"""
 
     def __init__(self):
         self._event = Event()

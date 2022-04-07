@@ -394,12 +394,11 @@ class Bootloader:
 
     def _flash_deck(self, artifacts: List[FlashArtifact], targets: List[Target]):
         flash_all_targets = len(targets) == 0
-
         if self.progress_cb:
             self.progress_cb('Detecting deck to be updated', 0)
 
         with SyncCrazyflie(self.clink, cf=Crazyflie()) as scf:
-            # Uncomment to enable console logs from the CF. Useful when debuging deck flashing.
+            # Uncomment to enable console logs from the CF.
             # scf.cf.console.receivedChar.add_callback(self.console_callback)
 
             deck_mems = scf.cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
@@ -408,7 +407,15 @@ class Bootloader:
                 return
 
             mgr = deck_memory.SyncDeckMemoryManager(deck_mems[0])
-            decks = mgr.query_decks()
+            try:
+                decks = mgr.query_decks()
+            except RuntimeError as e:
+                if self.progress_cb:
+                    message = f'Failed to read decks: {str(e)}'
+                    self.progress_cb(message, 0)
+                    logger.error(message)
+                    time.sleep(2)
+                    raise RuntimeError(message)
 
             for (deck_index, deck) in decks.items():
                 if self.terminate_flashing_cb and self.terminate_flashing_cb():

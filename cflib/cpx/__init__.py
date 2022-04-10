@@ -117,9 +117,10 @@ class CPXRouter(threading.Thread):
       self._transport = transport
       self._rxQueues = {}
       self._packet_assembly = []
+      self._connected = True
 
     # Register and/or blocking calls for ports
-    def receivePacket(self, function):
+    def receivePacket(self, function, timeout=None):
 
       # Check if a queue exists, if not then create it
       # the user might have implemented new functions
@@ -127,7 +128,7 @@ class CPXRouter(threading.Thread):
         print("Creating queue for {}".format(function))
         self._rxQueues[function.value] = queue.Queue()
       
-      return self._rxQueues[function.value].get(block=True)
+      return self._rxQueues[function.value].get(block=True, timeout=timeout)
 
     def makeTransaction(self, packet):
       self.sendPacket(packet)
@@ -136,9 +137,13 @@ class CPXRouter(threading.Thread):
     def sendPacket(self, packet):
       # Do we queue here?
       self._transport.write(packet.wireData)
+
+    def transport(self):
+      self._connected = False
+      return self._transport
       
     def run(self):
-        while(1):
+        while(self._connected):
         # Read one packet from the transport
 
         # Packages might have been split up along the
@@ -146,29 +151,32 @@ class CPXRouter(threading.Thread):
         # lots of memory, so assemble full packets by looking at last
         # packet byte. Note that chunks of one packet could be mixed
         # with chunks from antother packet.
-          header = self._transport.read(4)
-          packet = CPXPacket(wireHeader=header)
-          packet.data = self._transport.read(packet.length - 2) # remove routing info here
-          #print(packet)
-        # if not packet.target in self._packet_assembly:
-        #   self._packet_assembly[packet.target][packet.function] = []
-        # else
-        #   if not packet.function in self._packet_assembly[packet.target]:
-        #     self._packet_assembly[packet.target][packet.function] = []
+          try:
+            header = self._transport.read(4)
+            packet = CPXPacket(wireHeader=header)
+            packet.data = self._transport.read(packet.length - 2) # remove routing info here
+            #print(packet)
+          # if not packet.target in self._packet_assembly:
+          #   self._packet_assembly[packet.target][packet.function] = []
+          # else
+          #   if not packet.function in self._packet_assembly[packet.target]:
+          #     self._packet_assembly[packet.target][packet.function] = []
 
-        # self._packet_assembly[packet.target][packet.function].append(packet)
+          # self._packet_assembly[packet.target][packet.function].append(packet)
 
-        # if (packet.lastPart):
-        #   # Assemble packet and send up stack
-        #   pass
-          if not packet.function.value in self._rxQueues:
-            pass
-            #print("Got packet for {}, but have no queue".format(packet.function))
-          else:
-            self._rxQueues[packet.function.value].put(packet)
-          #self._rxQueues[packet.function.value] = queue.Queue()
-          #print(self._rxQueues[packet.function.value].qsize())
-          
+          # if (packet.lastPart):
+          #   # Assemble packet and send up stack
+          #   pass
+            if not packet.function.value in self._rxQueues:
+              pass
+              #print("Got packet for {}, but have no queue".format(packet.function))
+            else:
+              self._rxQueues[packet.function.value].put(packet)
+            #self._rxQueues[packet.function.value] = queue.Queue()
+            #print(self._rxQueues[packet.function.value].qsize())
+          except Exception as e:
+            print("Exception while reading transport, link probably closed?")
+            print(e)
 
 # Public facing 
 class CPX:
@@ -177,14 +185,14 @@ class CPX:
       self._router.start()
       #self.gap8.bootloader = GAP8Bootloader(self)
 
-    def receivePacket(self, function):
+    def receivePacket(self, function, timeout=None):
       # Block on a function queue
 
       #if self._router.isUsedBySubmodule(target, function):
       #  raise ValueError("The CPX target {} and function {} is registered in a sub module".format(target, function))
 
       # Will block on queue
-      return self._router.receivePacket(function)
+      return self._router.receivePacket(function, timeout)
 
     def makeTransaction(self, packet):
       return self._router.makeTransaction(packet)
@@ -193,4 +201,4 @@ class CPX:
       self._router.sendPacket(packet)
 
     def close(self):
-      print("Should close transport connection")
+      self._router.transport().disconnect()

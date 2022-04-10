@@ -38,6 +38,9 @@ from .crtpdriver import CRTPDriver
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 
+import logging
+logger = logging.getLogger(__name__)
+
 __author__ = 'Bitcraze AB'
 __all__ = ['CPXDriver']
 
@@ -128,12 +131,14 @@ class CPXDriver(CRTPDriver):
 
         # Close the socket
         try:
-            self._cpx.close()
-            self._cpx = None
+            self.cpx.close()
+            self.cpx = None
 
         except Exception as e:
-            logger.info('Could not close {}'.format(e))
+            print(e)
+            logger.error('Could not close {}'.format(e))
             pass
+        print("Driver closed")
         self.cpx = None
 
     def get_name(self):
@@ -173,12 +178,14 @@ class _CPXReceiveThread(threading.Thread):
             try:
                 # Block until a packet is available though the socket
                 # CPX receive will only return full packets
-                cpxPacket = self._cpx.receivePacket(CPXFunction.CRTP)
+                cpxPacket = self._cpx.receivePacket(CPXFunction.CRTP, timeout=0.1)
                 data = struct.unpack('B' * len(cpxPacket.data), cpxPacket.data)
                 if len(data) > 0:
                     pk = CRTPPacket(data[0],
                                     list(data[1:]))
                     self.in_queue.put(pk)
+            except queue.Empty as e:
+              pass # This is ok
             except Exception as e:
                 import traceback
 

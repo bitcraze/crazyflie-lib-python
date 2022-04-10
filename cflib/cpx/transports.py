@@ -30,9 +30,11 @@ class SocketTransport(CPXTransport):
       print("Connecting to socket on {}:{}...".format(self._host, self._port))
       self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       self._socket.connect((self._host, self._port))
+      #self._socket.settimeout(0.1)
       print("Connected")
 
     def disconnect(self):
+      print("Closing transport")
       self._socket.close()
       self._socket = None
 
@@ -41,7 +43,7 @@ class SocketTransport(CPXTransport):
 
     def read(self, size):
       data = bytearray()
-      while len(data) < size:
+      while len(data) < size and self._socket is not None:
         data.extend(self._socket.recv(size-len(data)))
       return data
 

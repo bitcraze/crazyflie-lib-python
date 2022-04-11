@@ -448,7 +448,7 @@ class Bootloader:
                 timeout_time = time.time() + 5
                 while not deck.is_started:
                     if time.time() > timeout_time:
-                        raise RuntimeError(f"Deck {deck.name} did not start")
+                        raise RuntimeError(f'Deck {deck.name} did not start')
                     print('Deck not yet started ...')
                     time.sleep(0.5)
                     deck = mgr.query_decks()[deck_index]
@@ -475,7 +475,7 @@ class Bootloader:
                 timeout_time = time.time() + 5
                 while not deck.is_bootloader_active:
                     if time.time() > timeout_time:
-                        raise RuntimeError(f"Deck {deck.name} did not enter bootloader mode")
+                        raise RuntimeError(f'Deck {deck.name} did not enter bootloader mode')
                     print(f'Error: Deck {deck.name} bootloader not active yet...')
                     time.sleep(0.5)
                     deck = mgr.query_decks()[deck_index]

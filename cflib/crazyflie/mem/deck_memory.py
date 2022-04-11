@@ -53,7 +53,7 @@ class DeckMemory:
     ADR_FW_NEW_FLASH = 0
     ADR_COMMAND_BIT_FIELD = 4
 
-    def __init__(self, deck_memory_manager: "DeckMemoryManager", _command_base_address):
+    def __init__(self, deck_memory_manager: 'DeckMemoryManager', _command_base_address):
         self._deck_memory_manager = deck_memory_manager
         self.required_hash = None
         self.required_length = None

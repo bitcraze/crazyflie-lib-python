@@ -44,6 +44,7 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import deck_memory
 from cflib.crazyflie.mem import MemoryElement
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.utils.power_switch import PowerSwitch
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +167,15 @@ class Bootloader:
                 self.close()
                 time.sleep(3)
 
-                self._flash_deck(deck_artifacts, deck_targets)
-
-                if self.progress_cb:
-                    self.progress_cb('Deck updated! Restarting firmware.', int(100))
+                # Flash all decks and reboot after each deck
+                current_index = 0
+                while current_index != -1:
+                    current_index = self._flash_deck_incrementally(deck_artifacts, deck_targets, current_index)
+                    if self.progress_cb:
+                        self.progress_cb('Deck updated! Restarting...', int(100))
+                    if current_index != -1:
+                        PowerSwitch(self.clink).reboot_to_fw()
+                        time.sleep(3)
 
                 # Put the crazyflie back in Bootloader mode to exit the function in the same state we entered it
                 self.start_bootloader(warm_boot=True, cf=cf)
@@ -384,29 +390,49 @@ class Bootloader:
 
         return identifier
 
-    def _flash_deck(self, artifacts: List[FlashArtifact], targets: List[Target]):
-        flash_all_targets = len(targets) == 0
+    def console_callback(self, text: str):
+        '''A callback to run when we get console text from Crazyflie'''
+        # We do not add newlines to the text received, we get them from the
+        # Crazyflie at appropriate places.
+        print(text, end='')
 
+    def _flash_deck_incrementally(self, artifacts: List[FlashArtifact], targets: List[Target], start_index: int):
+        flash_all_targets = len(targets) == 0
         if self.progress_cb:
-            self.progress_cb('Detecting deck to be updated', 0)
+            self.progress_cb('Identifying deck to be updated', 0)
 
         with SyncCrazyflie(self.clink, cf=Crazyflie()) as scf:
+            # Uncomment to enable console logs from the CF.
+            # scf.cf.console.receivedChar.add_callback(self.console_callback)
+
             deck_mems = scf.cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
             deck_mems_count = len(deck_mems)
             if deck_mems_count == 0:
-                return
+                return -1
 
             mgr = deck_memory.SyncDeckMemoryManager(deck_mems[0])
-            decks = mgr.query_decks()
+            try:
+                decks = mgr.query_decks()
+            except RuntimeError as e:
+                if self.progress_cb:
+                    message = f'Failed to read decks: {str(e)}'
+                    self.progress_cb(message, 0)
+                    logger.error(message)
+                    time.sleep(2)
+                    raise RuntimeError(message)
 
             for (deck_index, deck) in decks.items():
                 if self.terminate_flashing_cb and self.terminate_flashing_cb():
                     raise Exception('Flashing terminated')
 
+                # Skip decks up to the start_index
+                if deck_index < start_index:
+                    continue
+
                 # Check that we want to flash this deck
                 deck_target = [t for t in targets if t == Target('deck', deck.name, 'fw')]
                 if (not flash_all_targets) and len(deck_target) == 0:
-                    print(f'Skipping {deck.name}')
+                    print(f'Skipping {deck.name}, not in the target list')
                     continue
 
                 # Check that we have an artifact for this deck
@@ -420,36 +446,64 @@ class Bootloader:
                     self.progress_cb(f'Updating deck {deck.name}', 0)
 
                 # Test and wait for the deck to be started
+                timeout_time = time.time() + 5
                 while not deck.is_started:
+                    if time.time() > timeout_time:
+                        raise RuntimeError(f'Deck {deck.name} did not start')
                     print('Deck not yet started ...')
-                    time.sleep(500)
+                    time.sleep(0.5)
                     deck = mgr.query_decks()[deck_index]
 
-                # Run a brunch of sanity checks ...
+                # Supports upgrades?
                 if not deck.supports_fw_upgrade:
                     print(f'Deck {deck.name} does not support firmware update, skipping!')
                     continue
 
-                if not deck.is_fw_upgrade_required:
-                    print(f'Deck {deck.name} firmware up to date, skipping')
-                    continue
+                # Reset to bootloader mode, if supported
+                if deck.supports_reset_to_bootloader:
+                    print(f'Deck {deck.name}, reset to bootloader')
+                    deck.reset_to_bootloader()
 
-                if not deck.is_bootloader_active:
-                    print(f'Error: Deck {deck.name} bootloader not active, skipping!')
-                    continue
+                    time.sleep(0.1)
+                    deck = mgr.query_decks()[deck_index]
+                else:
+                    # Is an upgrade required?
+                    if not deck.is_fw_upgrade_required:
+                        print(f'Deck {deck.name} firmware up to date, skipping')
+                        continue
+
+                # Wait for bootloader to be ready
+                timeout_time = time.time() + 5
+                while not deck.is_bootloader_active:
+                    if time.time() > timeout_time:
+                        raise RuntimeError(f'Deck {deck.name} did not enter bootloader mode')
+                    print(f'Error: Deck {deck.name} bootloader not active yet...')
+                    time.sleep(0.5)
+                    deck = mgr.query_decks()[deck_index]
 
                 progress_cb = self.progress_cb
                 if not progress_cb:
                     def progress_cb(msg: str, percent: int):
                         frames = ['|', '/', '-', '\\']
                         frame = frames[int(percent) % 4]
-                        print('{} {}% {}'.format(frame, percent, msg))
+                        print(f'{frame} {percent}% {msg}')
 
+                # Flash the new firmware
+                deck.set_fw_new_flash_size(len(deck_artifact.content))
                 result = deck.write_sync(0, deck_artifact.content, progress_cb)
                 if result:
                     if self.progress_cb:
-                        self.progress_cb(f'Deck {deck.name} updated succesfully!', 100)
+                        self.progress_cb(f'Deck {deck.name} updated successful!', 100)
                 else:
                     if self.progress_cb:
                         self.progress_cb(f'Failed to update deck {deck.name}', int(0))
-                    raise Exception(f'Failed to update deck {deck.name}')
+                    raise RuntimeError(f'Failed to update deck {deck.name}')
+
+                # We flashed a deck, return for re-boot
+                next_index = deck_index + 1
+                if next_index >= len(decks):
+                    next_index = -1
+                return next_index
+
+            # We have flashed the last deck
+            return -1

@@ -171,7 +171,8 @@ class Bootloader:
                 current_index = 0
                 while current_index != -1:
                     current_index = self._flash_deck_incrementally(deck_artifacts, deck_targets, current_index)
-                    self.progress_cb('Deck updated! Restarting...', int(100))
+                    if self.progress_cb:
+                        self.progress_cb('Deck updated! Restarting...', int(100))
                     if current_index != -1:
                         PowerSwitch(self.clink).reboot_to_fw()
                         time.sleep(3)

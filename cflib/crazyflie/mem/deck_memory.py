@@ -286,13 +286,13 @@ class DeckMemoryManager(MemoryElement):
 
         return result
 
-    def _write(self, base_address, address, data, read_complete_cb, read_failed_cb, progress_cb):
+    def _write(self, base_address, address, data, complete_cb, failed_cb, progress_cb):
         """Called from deck memory to write data"""
         if self._write_complete_cb is not None:
             raise Exception('Write operation ongoing')
 
-        self._write_complete_cb = read_complete_cb
-        self._write_failed_cb = read_failed_cb
+        self._write_complete_cb = complete_cb
+        self._write_failed_cb = failed_cb
 
         mapped_address = address + base_address
         self.mem_handler.write(self, mapped_address, data, flush_queue=True, progress_cb=progress_cb)

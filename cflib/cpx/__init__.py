@@ -132,7 +132,7 @@ class CPXRouter(threading.Thread):
 
     def makeTransaction(self, packet):
       self.sendPacket(packet)
-      return self.getPacket(packet.function)
+      return self.receivePacket(packet.function)
 
     def sendPacket(self, packet):
       # Do we queue here?

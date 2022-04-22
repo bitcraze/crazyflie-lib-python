@@ -53,7 +53,7 @@ class DeckMemory:
     ADR_FW_NEW_FLASH = 0
     ADR_COMMAND_BIT_FIELD = 4
 
-    def __init__(self, deck_memory_manager: "DeckMemoryManager", _command_base_address):
+    def __init__(self, deck_memory_manager: 'DeckMemoryManager', _command_base_address):
         self._deck_memory_manager = deck_memory_manager
         self.required_hash = None
         self.required_length = None
@@ -195,6 +195,7 @@ class DeckMemoryManager(MemoryElement):
         super(DeckMemoryManager, self).__init__(id=id, type=type, size=size, mem_handler=mem_handler)
 
         self._query_complete_cb = None
+        self._query_failed_cb = None
         self.deck_memories = {}
 
         self._read_complete_cb = None
@@ -203,13 +204,16 @@ class DeckMemoryManager(MemoryElement):
 
         self._write_complete_cb = None
         self._write_failed_cb = None
+        self._error = None
 
-    def query_decks(self, query_complete_cb):
+    def query_decks(self, query_complete_cb, query_failed_cb=None):
         if self._query_complete_cb is not None:
             raise Exception('Query ongoing')
 
+        self._error = None
         self.deck_memories = {}
         self._query_complete_cb = query_complete_cb
+        self._query_failed_cb = query_failed_cb
         self.mem_handler.read(self, self.INFO_SECTION_ADDRESS, self.SIZE_OF_INFO_SECTION)
 
     def _read(self, base_address, address, length, read_complete_cb, read_failed_cb):
@@ -228,10 +232,16 @@ class DeckMemoryManager(MemoryElement):
         """Callback when new memory data has been fetched"""
         if mem.id == self.id:
             if addr == self.INFO_SECTION_ADDRESS:
-                self.deck_memories = self._parse_info_section(data)
-                tmp_cb = self._query_complete_cb
-                self._clear_query_cb()
-                tmp_cb(self.deck_memories)
+                try:
+                    self.deck_memories = self._parse_info_section(data)
+                    tmp_cb = self._query_complete_cb
+                    self._clear_query_cb()
+                    tmp_cb(self.deck_memories)
+                except RuntimeError as e:
+                    tmp_cb = self._query_failed_cb
+                    self._clear_query_cb()
+                    if tmp_cb:
+                        tmp_cb(str(e))
             else:
                 tmp_cb = self._read_complete_cb
                 self._clear_read_cb()
@@ -253,6 +263,7 @@ class DeckMemoryManager(MemoryElement):
 
     def _clear_query_cb(self):
         self._query_complete_cb = None
+        self._query_failed_cb = None
 
     def _clear_read_cb(self):
         self._read_complete_cb = None
@@ -263,7 +274,7 @@ class DeckMemoryManager(MemoryElement):
 
         version = struct.unpack('<B', data[0:1])[0]
         if version != self.SUPPORTED_VERSION:
-            logger.error(f'Version {version} not supported')
+            raise RuntimeError(f'Deck memory version {version} not supported')
         else:
             for i in range(self.MAX_NR_OF_DECKS):
                 deck_memory = DeckMemory(self, self.COMMAND_SECTION_ADDRESS + i * self.SIZE_OF_COMMAND_SECTION)
@@ -275,13 +286,13 @@ class DeckMemoryManager(MemoryElement):
 
         return result
 
-    def _write(self, base_address, address, data, read_complete_cb, read_failed_cb, progress_cb):
+    def _write(self, base_address, address, data, complete_cb, failed_cb, progress_cb):
         """Called from deck memory to write data"""
         if self._write_complete_cb is not None:
             raise Exception('Write operation ongoing')
 
-        self._write_complete_cb = read_complete_cb
-        self._write_failed_cb = read_failed_cb
+        self._write_complete_cb = complete_cb
+        self._write_failed_cb = failed_cb
 
         mapped_address = address + base_address
         self.mem_handler.write(self, mapped_address, data, flush_queue=True, progress_cb=progress_cb)
@@ -321,6 +332,9 @@ class SyncDeckMemoryManager:
 
     def query_decks(self):
         syncer = Syncer()
-        self._deck_memory_manager.query_decks(syncer.success_cb)
+        self._deck_memory_manager.query_decks(syncer.success_cb, syncer.failure_cb)
         syncer.wait()
-        return syncer.success_args[0]
+        if syncer.is_success:
+            return syncer.success_args[0]
+
+        raise RuntimeError(syncer.failure_args[0])

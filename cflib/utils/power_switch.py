@@ -34,6 +34,8 @@ class PowerSwitch:
     BOOTLOADER_CMD_ALLOFF = 0x01
     BOOTLOADER_CMD_SYSOFF = 0x02
     BOOTLOADER_CMD_SYSON = 0x03
+    BOOTLOADER_CMD_RESET_INIT = 0xFF
+    BOOTLOADER_CMD_RESET = 0xF0
 
     def __init__(self, uri):
         self.uri = uri
@@ -72,13 +74,23 @@ class PowerSwitch:
         time.sleep(1)
         self.stm_power_up()
 
+    def reboot_to_fw(self):
+        """Reboot the platform and start in firmware mode"""
+        self._send(self.BOOTLOADER_CMD_RESET_INIT)
+        self._send(self.BOOTLOADER_CMD_RESET, [1])
+
+    def reboot_to_bootloader(self):
+        """Reboot the platform and start the bootloader"""
+        self._send(self.BOOTLOADER_CMD_RESET_INIT)
+        self._send(self.BOOTLOADER_CMD_RESET, [0])
+
     def close(self):
         if self.link:
             self.link.close()
 
-    def _send(self, cmd):
+    def _send(self, cmd, data=[]):
         if not self.link:
-            packet = [0xf3, 0xfe, cmd]
+            packet = [0xf3, 0xfe, cmd] + data
 
             cr = RadioManager.open(devid=self.devid)
             cr.set_channel(self.channel)
@@ -103,7 +115,7 @@ class PowerSwitch:
         else:
 
             # send command (will be repeated until acked)
-            pk = CRTPPacket(0xFF, [0xfe, cmd])
+            pk = CRTPPacket(0xFF, [0xfe, cmd] + data)
             self.link.send_packet(pk)
             # wait up to 1s
             pk = self.link.receive_packet(0.1)

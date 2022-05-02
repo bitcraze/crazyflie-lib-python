@@ -41,6 +41,8 @@ received by the Crazyflie before this script is executed.
 
 2. 2 or more base stations
 '''
+from __future__ import annotations
+
 import logging
 import time
 from threading import Event

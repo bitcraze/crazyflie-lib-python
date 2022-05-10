@@ -56,9 +56,9 @@ if __name__ == '__main__':
         # Get LED memory and write to it
         mem = cf.mem.get_mems(MemoryElement.TYPE_DRIVER_LED)
         if len(mem) > 0:
-            mem[0].leds[0].set(r=0,   g=100, b=0)
-            mem[0].leds[3].set(r=0,   g=0,   b=100)
-            mem[0].leds[6].set(r=100, g=0,   b=0)
+            mem[0].leds[0].set(r=0, g=100, b=0)
+            mem[0].leds[3].set(r=0, g=0, b=100)
+            mem[0].leds[6].set(r=100, g=0, b=0)
             mem[0].leds[9].set(r=100, g=100, b=100)
             mem[0].write_data(None)
 

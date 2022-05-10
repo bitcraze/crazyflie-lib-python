@@ -191,12 +191,12 @@ class TunerControlCF:
               'position PID controller: Kp: ' +
               str(self.pid_gui.scale_Kp.get()) +
               ', Ki: ' + str(self.pid_gui.scale_Ki.get()) +
-              ', Kd: '+str(self.pid_gui.scale_Kd.get()))
-        cf.param.set_value(self.unit_choice+'CtlPid.'+self.axis_choice +
+              ', Kd: ' + str(self.pid_gui.scale_Kd.get()))
+        cf.param.set_value(self.unit_choice + 'CtlPid.' + self.axis_choice +
                            'Kp', self.pid_gui.scale_Kp.get())
-        cf.param.set_value(self.unit_choice+'CtlPid.'+self.axis_choice +
+        cf.param.set_value(self.unit_choice + 'CtlPid.' + self.axis_choice +
                            'Ki', self.pid_gui.scale_Ki.get())
-        cf.param.set_value(self.unit_choice+'CtlPid.'+self.axis_choice +
+        cf.param.set_value(self.unit_choice + 'CtlPid.' + self.axis_choice +
                            'Kd', self.pid_gui.scale_Kd.get())
         cf.param.set_value('posCtlPid.xVelMax', self.pid_gui.scale_vMax.get())
         cf.param.set_value('posCtlPid.yVelMax', self.pid_gui.scale_vMax.get())
@@ -240,11 +240,11 @@ class TunerControlCF:
         # print(sp_history)
         self.pid_gui.draw_plot(time_history, pos_history, sp_history)
         if self.axis_choice == 'z':
-            self.commander.go_to(0, 0, -1*STEP_SIZE, 0, 1.0, relative=True)
+            self.commander.go_to(0, 0, -1 * STEP_SIZE, 0, 1.0, relative=True)
         elif self.axis_choice == 'x':
-            self.commander.go_to(-1*STEP_SIZE, 0, 0, 0, 1.0, relative=True)
+            self.commander.go_to(-1 * STEP_SIZE, 0, 0, 0, 1.0, relative=True)
         elif self.axis_choice == 'y':
-            self.commander.go_to(0, -1*STEP_SIZE, 0, 0, 1.0, relative=True)
+            self.commander.go_to(0, -1 * STEP_SIZE, 0, 0, 1.0, relative=True)
         else:
             print('WRONG CHOICE?!?!')
             self.stop_gui()
@@ -256,7 +256,7 @@ class TunerControlCF:
     # parameter update
     def change_param_axis_callback(self, value_axis):
         #
-        print(self.unit_choice + 'CtlPid.'+value_axis)
+        print(self.unit_choice + 'CtlPid.' + value_axis)
 
         groupname = self.unit_choice + 'CtlPid'
         self.cf.param.remove_update_callback(
@@ -277,9 +277,9 @@ class TunerControlCF:
             group=groupname, name=value_axis +
             'Kd', cb=self.param_updated_callback_Kd)
 
-        self.cf.param.request_param_update(groupname+'.'+value_axis+'Kp')
-        self.cf.param.request_param_update(groupname+'.'+value_axis+'Ki')
-        self.cf.param.request_param_update(groupname+'.'+value_axis+'Kd')
+        self.cf.param.request_param_update(groupname + '.' + value_axis + 'Kp')
+        self.cf.param.request_param_update(groupname + '.' + value_axis + 'Ki')
+        self.cf.param.request_param_update(groupname + '.' + value_axis + 'Kd')
         time.sleep(0.1)
 
         self.update_scale_info()
@@ -311,13 +311,13 @@ class TunerControlCF:
             group=groupname_new, name=self.axis_choice +
             'Kd', cb=self.param_updated_callback_Kd)
 
-        print(groupname_new+'.'+self.axis_choice+'Kp')
+        print(groupname_new + '.' + self.axis_choice + 'Kp')
         self.cf.param.request_param_update(
-            groupname_new+'.'+self.axis_choice+'Kp')
+            groupname_new + '.' + self.axis_choice + 'Kp')
         self.cf.param.request_param_update(
-            groupname_new+'.'+self.axis_choice+'Ki')
+            groupname_new + '.' + self.axis_choice + 'Ki')
         self.cf.param.request_param_update(
-            groupname_new+'.'+self.axis_choice+'Kd')
+            groupname_new + '.' + self.axis_choice + 'Kd')
         time.sleep(0.1)
 
         self.update_scale_info()

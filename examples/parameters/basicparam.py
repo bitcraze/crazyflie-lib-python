@@ -125,6 +125,8 @@ class ParamExample:
             self._cf.param.set_value('pid_attitude.pitch_kd',
                                      '{:.2f}'.format(pkd))
 
+            self._cf.param.request_param_update('pid_attitude.pitch_kd')
+
     def _a_pitch_kd_callback(self, name, value):
         """Callback for pid_attitude.pitch_kd"""
         print('Readback: {0}={1}'.format(name, value))

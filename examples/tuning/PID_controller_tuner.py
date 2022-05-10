@@ -61,7 +61,7 @@ class TunerGUI:
         self.master = master
         self.master.title('PID tuner Crazyflie')
 
-        self.figplot = plt.Figure(figsize=(5, 4), dpi=100)
+        self.figplot = plt.Figure(figsize=(2, 1), dpi=100)
         self.ax2 = self.figplot.add_subplot(111)
         self.line2 = FigureCanvasTkAgg(self.figplot, self.master)
         self.line2.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -191,7 +191,7 @@ class TunerControlCF:
               'position PID controller: Kp: ' +
               str(self.pid_gui.scale_Kp.get()) +
               ', Ki: ' + str(self.pid_gui.scale_Ki.get()) +
-              ', Kd: '+str(self.pid_gui.scale_Ki.get()))
+              ', Kd: '+str(self.pid_gui.scale_Kd.get()))
         cf.param.set_value(self.unit_choice+'CtlPid.'+self.axis_choice +
                            'Kp', self.pid_gui.scale_Kp.get())
         cf.param.set_value(self.unit_choice+'CtlPid.'+self.axis_choice +

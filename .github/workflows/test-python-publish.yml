@@ -32,7 +32,7 @@ jobs:
     - name: Build package
       run: python -m build
     - name: Publish package to TestPyPI
-      uses: pypa/gh-action-pypi-publish@release/v1.5.0
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: ${{ secrets.PYPI_USERNAME }}
         password: ${{ secrets.PYPI_PASSWORD }}

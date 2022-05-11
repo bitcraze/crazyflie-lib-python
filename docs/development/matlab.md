@@ -4,14 +4,15 @@ page_id: matlab
 ---
 
 
-Using Matlab with the Crazyflie API is easy -- you just need to install
-the python 'matlab engine' and then can access all matlab commands
+To use the Python cflib with matlab, you will need to install the python 'matlab engine' and then can access all matlab commands
 directly from python.
 
-Prerequisites
+*Note that these are old instructions and they might not work anymore**
+
+Tried with
 -------------
 
-1.  MATLAB 2014b or later
+1.  MATLAB 2014b
 2.  64 bit python 2.7, 3.3 or 3.4
 3.  The Crazyflie API
 

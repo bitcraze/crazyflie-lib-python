@@ -14,7 +14,7 @@ See below sections for more platform-specific requirements.
  ```
 ### Install cflib from source
  ```
- cd crazyflie-lib-pyhon
+ cd crazyflie-lib-python
  pip install -e .
  ```
 

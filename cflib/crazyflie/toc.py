@@ -200,7 +200,7 @@ class TocFetcher:
             if (self.requested_index < (self.nbr_of_items - 1)):
                 logger.debug('[%d]: More variables, requesting index %d',
                              self.port, self.requested_index + 1)
-                self.requested_index = self.requested_index + 1
+                self.requested_index += 1
                 self._request_toc_element(self.requested_index)
             else:  # No more variables in TOC
                 self._toc_cache.insert(self._crc, self.toc.toc)

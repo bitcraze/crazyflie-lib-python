@@ -36,7 +36,7 @@ def fp16_to_float(float16):
             return int(s << 31)
         else:
             while not (f & 0x00000400):
-                f = f << 1
+                f <<= 1
                 e -= 1
             e += 1
             f &= ~0x00000400
@@ -47,7 +47,7 @@ def fp16_to_float(float16):
         else:
             return int((s << 31) | 0x7f800000 | (f << 13))
 
-    e = e + (127 - 15)
-    f = f << 13
+    e += 127 - 15
+    f <<= 13
     result = int((s << 31) | (e << 23) | f)
     return struct.unpack('f', struct.pack('I', result))[0]

@@ -89,18 +89,18 @@ class CfUsb:
                 self.dev = devices[devid]
             except Exception:
                 self.dev = None
-    
-        try: # configuration might already be confgiured by composite VCP, try claim interface
+
+        try:  # configuration might already be confgiured by composite VCP, try claim interface
             usb.util.claim_interface(self.dev, 0)
         except Exception:
-            try: 
-                self.dev.set_configuration() #it was not, then set configuration
+            try:
+                self.dev.set_configuration()  # it was not, then set configuration
             except Exception:
                 if self.dev:
                     if platform.system() == 'Linux':
                         self.dev.reset()
                         self.dev.set_configuration()
-            
+
         self.handle = self.dev
         self.version = float(
             '{0:x}.{1:x}'.format(self.dev.bcdDevice >> 8,

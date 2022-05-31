@@ -338,10 +338,10 @@ class Param():
             else:
                 pk.data = struct.pack('<B', varid)
 
-            try:
-                value_nr = int(value)
-            except ValueError:
+            if element.pytype == '<f' or element.pytype == '<d':
                 value_nr = float(value)
+            else:
+                value_nr = int(value)
 
             pk.data += struct.pack(element.pytype, value_nr)
             self.param_updater.request_param_setvalue(pk)

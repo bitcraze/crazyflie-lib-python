@@ -22,7 +22,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Simple example that scans for available Crazyflies and lists them.
+Simple example that scans for available Crazyflies with a certain address and lists them.
 """
 import cflib.crtp
 
@@ -30,7 +30,8 @@ import cflib.crtp
 cflib.crtp.init_drivers()
 
 print('Scanning interfaces for Crazyflies...')
-available = cflib.crtp.scan_interfaces()
+available = cflib.crtp.scan_interfaces(address=int('E7E7E7E7E7', 16)
+                                       )
 print('Crazyflies found:')
 for i in available:
     print(i[0])

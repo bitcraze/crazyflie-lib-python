@@ -30,6 +30,7 @@ import cflib.crtp  # noqa
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import LighthouseMemHelper
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.utils import uri_helper
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -67,7 +68,7 @@ class ReadMem:
 
 if __name__ == '__main__':
     # URI to the Crazyflie to connect to
-    uri = 'radio://0/80'
+    uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()

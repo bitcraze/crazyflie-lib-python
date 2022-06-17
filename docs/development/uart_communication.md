@@ -16,7 +16,7 @@ If you are connecting to a Raspberry Pi look for the UART pins there connect the
 
 ## Crazyflie Firmware
 
-Typically the Crazyflie expects control commands from Radio or Bluetooth and also sends its feedback there. To change this to UART, the firmware has to be compiled with the `UART2_LINK=1` flag (e.g. `make UART2_LINK=1`) and flashed to the Crazyflie.
+Typically the Crazyflie expects control commands from Radio or Bluetooth and also sends its feedback there. To change this to UART, the firmware has to be compiled with the `communication->CRTP_OVER_UART2` kbuild config enabled. 
 
 ## Controlling Device
 

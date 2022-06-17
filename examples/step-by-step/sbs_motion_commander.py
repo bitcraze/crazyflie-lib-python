@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
         logconf.start()
 
-        # take_off_simple(scf)
+        take_off_simple(scf)
         # move_linear_simple(scf)
         # move_box_limit(scf)
-        # logconf.stop()
+        logconf.stop()

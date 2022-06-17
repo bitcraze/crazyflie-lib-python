@@ -90,15 +90,21 @@ class CfUsb:
             except Exception:
                 self.dev = None
 
-        if self.dev:
-            if platform.system() == 'Linux':
-                self.dev.reset()
+        try:  # configuration might already be confgiured by composite VCP, try claim interface
+            usb.util.claim_interface(self.dev, 0)
+        except Exception:
+            try:
+                self.dev.set_configuration()  # it was not, then set configuration
+            except Exception:
+                if self.dev:
+                    if platform.system() == 'Linux':
+                        self.dev.reset()
+                        self.dev.set_configuration()
 
-            self.dev.set_configuration(1)
-            self.handle = self.dev
-            self.version = float(
-                '{0:x}.{1:x}'.format(self.dev.bcdDevice >> 8,
-                                     self.dev.bcdDevice & 0x0FF))
+        self.handle = self.dev
+        self.version = float(
+            '{0:x}.{1:x}'.format(self.dev.bcdDevice >> 8,
+                                 self.dev.bcdDevice & 0x0FF))
 
     def get_serial(self):
         # The signature for get_string has changed between versions to 1.0.0b1,

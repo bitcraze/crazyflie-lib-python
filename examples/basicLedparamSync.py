@@ -66,9 +66,9 @@ if __name__ == '__main__':
         # Set fade time i seconds
         cf.param.set_value('ring.fadeTime', '1.0')
         # Set the RGB values in one uint32 0xRRGGBB
-        cf.param.set_value('ring.fadeColor', '0x0000A0')
+        cf.param.set_value('ring.fadeColor', int('0000A0', 16))
         time.sleep(1)
-        cf.param.set_value('ring.fadeColor', '0x00A000')
+        cf.param.set_value('ring.fadeColor', int('00A000', 16))
         time.sleep(1)
-        cf.param.set_value('ring.fadeColor', '0xA00000')
+        cf.param.set_value('ring.fadeColor', int('A00000', 16))
         time.sleep(1)

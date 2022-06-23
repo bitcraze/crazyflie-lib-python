@@ -30,10 +30,14 @@ import logging
 import queue
 import re
 import threading
+import struct
 
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
+
+from cflib.cpx import CPX, CPXPacket, CPXTarget, CPXFunction
+from cflib.cpx.transports import UARTTransport
 
 found_serial = True
 try:
@@ -47,20 +51,6 @@ __all__ = ['SerialDriver']
 
 logger = logging.getLogger(__name__)
 
-MTU = 32
-START_BYTE1 = 0xbc
-START_BYTE2 = 0xcf
-SYSLINK_RADIO_RAW = 0x00
-
-
-def compute_cksum(list):
-    cksum0, cksum1 = 0, 0
-    for i in range(len(list)):
-        cksum0 = (cksum0 + list[i]) & 0xff
-        cksum1 = (cksum1 + cksum0) & 0xff
-    return bytearray([cksum0, cksum1])
-
-
 class SerialDriver(CRTPDriver):
 
     def __init__(self):
@@ -72,6 +62,7 @@ class SerialDriver(CRTPDriver):
         self.out_queue = None
         self._receive_thread = None
         self._send_thread = None
+        self.needs_resending = False
         logger.info('Initialized serial driver.')
 
     def connect(self, uri, linkQualityCallback, linkErrorCallback):
@@ -84,9 +75,7 @@ class SerialDriver(CRTPDriver):
         if not uri_data:
             raise Exception('Invalid serial URI')
 
-        if not found_serial:
-            raise Exception('PySerial package is missing')
-
+        # Move to Serial transport?
         device_name = uri_data.group(1)
         devices = self.get_devices()
         if device_name not in devices:
@@ -99,25 +88,29 @@ class SerialDriver(CRTPDriver):
 
         # Prepare the inter-thread communication queue
         self.in_queue = queue.Queue()
-        self.out_queue = queue.Queue(1)
 
-        self.ser = serial.Serial(device, 512000, timeout=1)
+        self.cpx = CPX(UARTTransport(device, 576000))
 
-        # Launch the comm thread
-        self._receive_thread = _SerialReceiveThread(
-            self.ser, self.in_queue, linkQualityCallback, linkErrorCallback)
-        self._receive_thread.start()
-        self._send_thread = _SerialSendThread(
-            self.ser, self.out_queue, linkQualityCallback, linkErrorCallback)
-        self._send_thread.start()
+        self._thread = _CPXReceiveThread(self.cpx, self.in_queue,
+                                         linkErrorCallback)
+        self._thread.start()
+
+        # Switch the link bridge to CPX in the Crazyflie
+        self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
+                                      function=CPXFunction.SYSTEM,
+                                      data=[0x10, 0x01]))
+        # Force client connect to true
+        self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
+                                      function=CPXFunction.SYSTEM,
+                                      data=[0x20, 0x01]))
+        
+        # TODO! These should be reset again!
 
     def send_packet(self, pk):
-        try:
-            self.out_queue.put(pk, True, 2)
-        except queue.Full:
-            if self.link_error_callback:
-                self.link_error_callback(
-                    'RadioDriver: Could not send packet to copter')
+        raw = (pk.header,) + struct.unpack('B' * len(pk.data), pk.data)
+        self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
+                                      function=CPXFunction.CRTP,
+                                      data=raw))
 
     def receive_packet(self, wait=0):
         try:
@@ -138,21 +131,30 @@ class SerialDriver(CRTPDriver):
         return 'serial'
 
     def scan_interface(self, address):
+        print("Scanning serial")
         if found_serial:
+            print("Found serial")
             devices_names = self.get_devices().keys()
+            print(devices_names)
             return [('serial://' + x, '') for x in devices_names]
         else:
             return []
 
     def close(self):
-        self._receive_thread.stop()
-        self._send_thread.stop()
+        """ Close the link. """
+        # Stop the comm thread
+        self._thread.stop()
+
+        # Close the socket
         try:
-            self._receive_thread.join()
-            self._send_thread.join()
-        except Exception:
+            self.cpx.close()
+            self.cpx = None
+
+        except Exception as e:
+            print(e)
+            logger.error('Could not close {}'.format(e))
             pass
-        self.ser.close()
+        print("Driver closed")
 
     def get_devices(self):
         result = {}
@@ -166,121 +168,48 @@ class SerialDriver(CRTPDriver):
 
         return result
 
+class _CPXReceiveThread(threading.Thread):
+    """
+    Radio link receiver thread used to read data from the
+    Socket. """
 
-class _SerialReceiveThread(threading.Thread):
-
-    def __init__(self, ser, inQueue, link_quality_callback,
-                 link_error_callback):
+    def __init__(self, cpx, inQueue, link_error_callback):
         """ Create the object """
         threading.Thread.__init__(self)
-        self.ser = ser
+        self._cpx = cpx
         self.in_queue = inQueue
-        self._stop = False
+        self.sp = False
         self.link_error_callback = link_error_callback
 
     def stop(self):
         """ Stop the thread """
-        self._stop = True
+        self.sp = True
+        try:
+            self.join()
+        except Exception:
+            pass
 
     def run(self):
         """ Run the receiver thread """
-        READ_END = bytes([START_BYTE1, START_BYTE2])
-        received = bytearray(MTU + 4)
-        received_header = memoryview(received)[0:2]
-        while not self._stop:
+
+        while (True):
+            if (self.sp):
+                break
             try:
-                r = self.ser.read_until(READ_END)[-2:]
-                if len(r) != 2:
-                    continue
-
-                if r[0] != START_BYTE1 or r[1] != START_BYTE2:
-                    continue
-
-                r = self.ser.readinto(received_header)
-                if r != 2:
-                    continue
-
-                if not (0 < received_header[1] <= MTU):
-                    continue
-
-                expected = received_header[1] + 2
-
-                received_data_chk = memoryview(received)[2:2+expected]
-                r = self.ser.readinto(received_data_chk)
-                if r != expected:
-                    continue
-
-                # NOTE: end is (expected - 2) as the length of the data +2 for
-                # the header bytes
-                cksum = compute_cksum(memoryview(received)[:expected])
-                if cksum[0] != received_data_chk[-2] or \
-                        cksum[1] != received_data_chk[-1]:
-                    continue
-
-                pk = CRTPPacket(received[2], received[3:expected])
-                self.in_queue.put(pk)
-
+                # Block until a packet is available though the socket
+                # CPX receive will only return full packets
+                cpxPacket = self._cpx.receivePacket(CPXFunction.CRTP, timeout=1)
+                data = struct.unpack('B' * cpxPacket.length, cpxPacket.data)
+                if len(data) > 0:
+                    pk = CRTPPacket(data[0],
+                                    list(data[1:]))
+                    self.in_queue.put(pk)
+            except queue.Empty as e:
+              pass # This is ok
             except Exception as e:
                 import traceback
-                if self.link_error_callback:
-                    self.link_error_callback(
-                        'Error communicating with the Crazyflie!\n'
-                        'Exception:%s\n\n%s' % (e, traceback.format_exc()))
 
-
-class _SerialSendThread(threading.Thread):
-
-    def __init__(self, ser, outQueue, link_quality_callback,
-                 link_error_callback):
-        """ Create the object """
-        threading.Thread.__init__(self)
-        self.ser = ser
-        self.out_queue = outQueue
-        self._stop = False
-        self.link_error_callback = link_error_callback
-
-    def stop(self):
-        """ Stop the thread """
-        self._stop = True
-
-    def run(self):
-        """ Run the sender thread """
-        out_data = bytearray(MTU + 6)
-        out_data[0:3] = bytearray(
-            [START_BYTE1, START_BYTE2, SYSLINK_RADIO_RAW])
-
-        empty_packet = CRTPPacket(header=0xFF)
-        empty_packet_data_length = 0
-        empty_packet_data = bytearray(7)
-        empty_packet_data[0:5] = bytearray(
-            [START_BYTE1, START_BYTE2, SYSLINK_RADIO_RAW, 0x01,
-             empty_packet.header])
-        empty_packet_data[5:7] = compute_cksum(empty_packet_data[2:5])
-
-        while not self._stop:
-            try:
-                pk = self.out_queue.get(True, timeout=0.0003)
-                data = pk.data
-                len_data = len(data)
-                end_of_payload = 5 + len_data
-
-                out_data[3] = len_data + 1
-                out_data[4] = pk.header
-                out_data[5:end_of_payload] = data
-                out_data[end_of_payload:end_of_payload +
-                         2] = compute_cksum(out_data[2:end_of_payload])
-
-                written = self.ser.write(out_data[0:end_of_payload + 2])
-
-            except queue.Empty:
-                pk = empty_packet
-                len_data = empty_packet_data_length
-                written = self.ser.write(empty_packet_data)
-
-            if written != len_data + 7:
-                if self.link_error_callback:
-                    self.link_error_callback(
-                        'SerialDriver: Could only send {:d}B bytes of {:d}B '
-                        'packet to Crazyflie'.format(
-                            written, len_data + 7)
-                    )
+                self.link_error_callback(
+                    'Error communicating with the Crazyflie\n'
+                    'Exception:%s\n\n%s' % (e,
+                                            traceback.format_exc()))

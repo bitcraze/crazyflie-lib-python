@@ -63,7 +63,7 @@ class CPXPacket(object):
     A packet with routing and data
     """
 
-    def __init__(self, function=0, destination=0, source=CPXTarget.HOST, data=bytearray(), wireHeader=None):
+    def __init__(self, function=0, destination=0, source=CPXTarget.HOST, data=bytearray()):
         """
         Create an empty packet with default values.
         """
@@ -71,22 +71,14 @@ class CPXPacket(object):
         self.source = source
         self.destination = destination
         self.function = function
-        self._wireHeaderFormat = "<HBB"
-        self.length = 0
+        self.length = len(data)
         self.lastPacket = False
-        if wireHeader:
-            [self.length, targetsAndFlags, self.function] = struct.unpack(self._wireHeaderFormat, wireHeader)
-            
-            self.source = CPXTarget((targetsAndFlags >> 3) & 0x07)
-            self.destination = CPXTarget(targetsAndFlags & 0x07)
-            self.lastPacket = targetsAndFlags & 0x40 != 0
-            self.function = CPXFunction(self.function)
 
     def _get_wire_data(self):
         """Create raw data to send via the wire"""
         raw = bytearray()
         # This is the length excluding the 2 byte legnth
-        wireLength = len(self.data) + 2 # 2 bytes for CPX header
+        #wireLength = len(self.data) + 2 # 2 bytes for CPX header
         targetsAndFlags = ((self.source.value & 0x7) << 3) | (self.destination.value & 0x7)
         if self.lastPacket:
           targetsAndFlags |= 0x40
@@ -94,20 +86,29 @@ class CPXPacket(object):
         #print(self.source)
         #print(targets)
         function = self.function.value & 0xFF
-        raw.extend(struct.pack(self._wireHeaderFormat, wireLength, targetsAndFlags, function))
+        raw.extend(struct.pack("<BB", targetsAndFlags, function))
         raw.extend(self.data)
         
         # We need to handle this better...
-        if (wireLength > 1022):
-          raise "Cannot send this packet, the size is too large!"
+        #if (wireLength > 1022):
+        #  raise "Cannot send this packet, the size is too large!"
 
         return raw
+
+    def _set_wire_data(self, data):
+        [targetsAndFlags, self.function] = struct.unpack("<BB", data[0:2])
+        self.source = CPXTarget((targetsAndFlags >> 3) & 0x07)
+        self.destination = CPXTarget(targetsAndFlags & 0x07)
+        self.lastPacket = targetsAndFlags & 0x40 != 0
+        self.function = CPXFunction(self.function)
+        self.data = data[2:]
+        self.length = len(self.data)
 
     def __str__(self):
         """Get a string representation of the packet"""
         return "{}->{}/{} (size={} bytes)".format(self.source, self.destination, self.function, self.length)
 
-    wireData = property(_get_wire_data, None)
+    wireData = property(_get_wire_data, _set_wire_data)
 
 # Internal here, route to modules and from public facing API
 class CPXRouter(threading.Thread):
@@ -127,7 +128,7 @@ class CPXRouter(threading.Thread):
       if not function.value in self._rxQueues:
         print("Creating queue for {}".format(function))
         self._rxQueues[function.value] = queue.Queue()
-      
+
       return self._rxQueues[function.value].get(block=True, timeout=timeout)
 
     def makeTransaction(self, packet):
@@ -136,7 +137,7 @@ class CPXRouter(threading.Thread):
 
     def sendPacket(self, packet):
       # Do we queue here?
-      self._transport.write(packet.wireData)
+      self._transport.writePacket(packet)
 
     def transport(self):
       self._connected = False
@@ -152,9 +153,10 @@ class CPXRouter(threading.Thread):
         # packet byte. Note that chunks of one packet could be mixed
         # with chunks from antother packet.
           try:
-            header = self._transport.read(4)
-            packet = CPXPacket(wireHeader=header)
-            packet.data = self._transport.read(packet.length - 2) # remove routing info here
+            packet = self._transport.readPacket()
+            #header = self._transport.read(4)
+            #packet = CPXPacket(wireHeader=header)
+            #packet.data = self._transport.read(packet.length - 2) # remove routing info here
             #print(packet)
           # if not packet.target in self._packet_assembly:
           #   self._packet_assembly[packet.target][packet.function] = []
@@ -177,6 +179,8 @@ class CPXRouter(threading.Thread):
           except Exception as e:
             print("Exception while reading transport, link probably closed?")
             print(e)
+            import traceback
+            print(traceback.format_exc())
 
 # Public facing 
 class CPX:

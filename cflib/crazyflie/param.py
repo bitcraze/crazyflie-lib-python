@@ -537,8 +537,7 @@ class _ExtendedTypeFetcher(Thread):
             pk = CRTPPacket()
             pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
 
-            pk.data = struct.pack('<BH',
-                                  MISC_GET_EXTENDED_TYPE, element.ident)
+            pk.data = struct.pack('<BH', MISC_GET_EXTENDED_TYPE, element.ident)
             self.request_queue.put(pk)
 
     def _close(self):

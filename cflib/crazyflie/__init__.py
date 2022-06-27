@@ -85,8 +85,7 @@ class Crazyflie():
         self.link_established = Caller()
         # Called when the user requests a connection
         self.connection_requested = Caller()
-        # Called when the link is established and the TOCs (that are not
-        # cached) have been downloaded
+        # Called when the link is established and the TOCs (that are not cached) have been downloaded
         self.connected = Caller()
         # Called when the the link is established and all data, including parameters have been downloaded
         self.fully_connected = Caller()
@@ -143,14 +142,11 @@ class Crazyflie():
         self.link_established.add_callback(
             lambda uri: logger.info('Callback->Connected to [%s]', uri))
         self.connection_lost.add_callback(
-            lambda uri, errmsg: logger.info(
-                'Callback->Connection lost to [%s]: %s', uri, errmsg))
+            lambda uri, errmsg: logger.info('Callback->Connection lost to [%s]: %s', uri, errmsg))
         self.connection_failed.add_callback(
-            lambda uri, errmsg: logger.info(
-                'Callback->Connected failed to [%s]: %s', uri, errmsg))
+            lambda uri, errmsg: logger.info('Callback->Connected failed to [%s]: %s', uri, errmsg))
         self.connection_requested.add_callback(
-            lambda uri: logger.info(
-                'Callback->Connection initialized[%s]', uri))
+            lambda uri: logger.info('Callback->Connection initialized[%s]', uri))
         self.connected.add_callback(
             lambda uri: logger.info('Callback->Connection setup finished [%s]', uri))
         self.fully_connected.add_callback(

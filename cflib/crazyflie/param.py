@@ -203,13 +203,6 @@ class Param():
                 self.values[element.group] = {}
             self.values[element.group][element.name] = s
 
-            # Once all the parameters are updated call the
-            # callback for "everything updated"
-            if self._check_if_all_updated() and not self.is_updated:
-                self.is_updated = True
-                self._initialized.set()
-                self.all_updated.call()
-
             logger.debug('Updated parameter [%s]' % complete_name)
             if complete_name in self.param_update_callbacks:
                 self.param_update_callbacks[complete_name].call(
@@ -218,6 +211,13 @@ class Param():
                 self.group_update_callbacks[element.group].call(
                     complete_name, s)
             self.all_update_callback.call(complete_name, s)
+
+            # Once all the parameters are updated call the
+            # callback for "everything updated"
+            if self._check_if_all_updated() and not self.is_updated:
+                self.is_updated = True
+                self._initialized.set()
+                self.all_updated.call()
         else:
             logger.debug('Variable id [%d] not found in TOC', var_id)
 

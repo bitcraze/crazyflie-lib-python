@@ -61,27 +61,26 @@ trajectory = [
 class Uploader:
     def __init__(self):
         self._is_done = False
-        self._sucess = True
+        self._success = True
 
     def upload(self, trajectory_mem):
         print('Uploading data')
-        trajectory_mem.write_data(self._upload_done,
-                                  write_failed_cb=self._upload_failed)
+        trajectory_mem.write_data(self._upload_done, write_failed_cb=self._upload_failed)
 
         while not self._is_done:
             time.sleep(0.2)
 
-        return self._sucess
+        return self._success
 
     def _upload_done(self, mem, addr):
         print('Data uploaded')
         self._is_done = True
-        self._sucess = True
+        self._success = True
 
     def _upload_failed(self, mem, addr):
         print('Data upload failed')
         self._is_done = True
-        self._sucess = False
+        self._success = False
 
 
 def wait_for_position_estimator(scf):

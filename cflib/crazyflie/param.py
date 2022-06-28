@@ -152,11 +152,11 @@ class Param():
         self.all_update_callback = Caller()
         self.param_updater = None
 
-        self.param_updater = _ParamUpdater(
-            self.cf, self._useV2, self._param_updated)
+        self.param_updater = _ParamUpdater(self.cf, self._useV2, self._param_updated)
         self.param_updater.start()
 
         self.cf.disconnected.add_callback(self._disconnected)
+        self.cf.connection_requested.add_callback(self._connection_requested)
 
         self.all_updated = Caller()
         self.is_updated = False
@@ -277,11 +277,19 @@ class Param():
                                  refresh_done, toc_cache)
         toc_fetcher.start()
 
+    def _connection_requested(self, uri):
+        # Reset the internal state on connect to make sure we have a clean state
+        self.is_updated = False
+        self.toc = Toc()
+        self.values = {}
+        self._initialized.clear()
+
     def _disconnected(self, uri):
         """Disconnected callback from Crazyflie API"""
         self.param_updater.close()
-        self.is_updated = False
-        self._initialized.clear()
+
+        # Do not clear self.is_updated here as we might get spurious parameter updates later
+
         # Clear all values from the previous Crazyflie
         self.toc = Toc()
         self.values = {}

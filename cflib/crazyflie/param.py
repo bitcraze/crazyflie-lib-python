@@ -152,11 +152,11 @@ class Param():
         self.all_update_callback = Caller()
         self.param_updater = None
 
-        self.param_updater = _ParamUpdater(
-            self.cf, self._useV2, self._param_updated)
+        self.param_updater = _ParamUpdater(self.cf, self._useV2, self._param_updated)
         self.param_updater.start()
 
         self.cf.disconnected.add_callback(self._disconnected)
+        self.cf.connection_requested.add_callback(self._connection_requested)
 
         self.all_updated = Caller()
         self.is_updated = False
@@ -203,13 +203,6 @@ class Param():
                 self.values[element.group] = {}
             self.values[element.group][element.name] = s
 
-            # Once all the parameters are updated call the
-            # callback for "everything updated"
-            if self._check_if_all_updated() and not self.is_updated:
-                self.is_updated = True
-                self._initialized.set()
-                self.all_updated.call()
-
             logger.debug('Updated parameter [%s]' % complete_name)
             if complete_name in self.param_update_callbacks:
                 self.param_update_callbacks[complete_name].call(
@@ -218,6 +211,13 @@ class Param():
                 self.group_update_callbacks[element.group].call(
                     complete_name, s)
             self.all_update_callback.call(complete_name, s)
+
+            # Once all the parameters are updated call the
+            # callback for "everything updated"
+            if self._check_if_all_updated() and not self.is_updated:
+                self.is_updated = True
+                self._initialized.set()
+                self.all_updated.call()
         else:
             logger.debug('Variable id [%d] not found in TOC', var_id)
 
@@ -277,11 +277,19 @@ class Param():
                                  refresh_done, toc_cache)
         toc_fetcher.start()
 
+    def _connection_requested(self, uri):
+        # Reset the internal state on connect to make sure we have a clean state
+        self.is_updated = False
+        self.toc = Toc()
+        self.values = {}
+        self._initialized.clear()
+
     def _disconnected(self, uri):
         """Disconnected callback from Crazyflie API"""
         self.param_updater.close()
-        self.is_updated = False
-        self._initialized.clear()
+
+        # Do not clear self.is_updated here as we might get spurious parameter updates later
+
         # Clear all values from the previous Crazyflie
         self.toc = Toc()
         self.values = {}
@@ -316,8 +324,11 @@ class Param():
         """
         Set the value for the supplied parameter.
         """
-        if not self._initialized.wait(timeout=60):
-            raise Exception('Connection timed out')
+        if not self._initialized.isSet():
+            if self.cf.is_called_by_incoming_handler_thread():
+                raise Exception('Can not set parameter from callback until fully connected.')
+            if not self._initialized.wait(timeout=60):
+                raise Exception('Connection timed out')
 
         element = self.toc.get_element_by_complete_name(complete_name)
 
@@ -351,8 +362,11 @@ class Param():
         Read a value for the supplied parameter. This can block for a period
         of time if the parameter values have not been fetched yet.
         """
-        if not self._initialized.wait(timeout=60):
-            raise Exception('Connection timed out')
+        if not self._initialized.isSet():
+            if self.cf.is_called_by_incoming_handler_thread():
+                raise Exception('Can not get parameter from callback until fully connected.')
+            if not self._initialized.wait(timeout=60):
+                raise Exception('Connection timed out')
 
         [group, name] = complete_name.split('.')
         return self.values[group][name]
@@ -537,8 +551,7 @@ class _ExtendedTypeFetcher(Thread):
             pk = CRTPPacket()
             pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
 
-            pk.data = struct.pack('<BH',
-                                  MISC_GET_EXTENDED_TYPE, element.ident)
+            pk.data = struct.pack('<BH', MISC_GET_EXTENDED_TYPE, element.ident)
             self.request_queue.put(pk)
 
     def _close(self):

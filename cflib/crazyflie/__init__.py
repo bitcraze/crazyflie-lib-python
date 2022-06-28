@@ -34,6 +34,7 @@ import datetime
 import logging
 import time
 from collections import namedtuple
+from threading import current_thread
 from threading import Lock
 from threading import Thread
 from threading import Timer
@@ -85,9 +86,11 @@ class Crazyflie():
         self.link_established = Caller()
         # Called when the user requests a connection
         self.connection_requested = Caller()
-        # Called when the link is established and the TOCs (that are not
-        # cached) have been downloaded
+        # Called when the link is established and the TOCs (that are not cached) have been downloaded
         self.connected = Caller()
+        # Called when the the link is established and all data, including parameters have been downloaded
+        self.fully_connected = Caller()
+
         # Called if establishing of the link fails (i.e times out)
         self.connection_failed = Caller()
         # Called for every packet received
@@ -131,6 +134,8 @@ class Crazyflie():
 
         self.connected_ts = None
 
+        self.param.all_updated.add_callback(self._all_parameters_updated)
+
         # Connect callbacks to logger
         self.disconnected.add_callback(
             lambda uri: logger.info('Callback->Disconnected from [%s]', uri))
@@ -138,17 +143,15 @@ class Crazyflie():
         self.link_established.add_callback(
             lambda uri: logger.info('Callback->Connected to [%s]', uri))
         self.connection_lost.add_callback(
-            lambda uri, errmsg: logger.info(
-                'Callback->Connection lost to [%s]: %s', uri, errmsg))
+            lambda uri, errmsg: logger.info('Callback->Connection lost to [%s]: %s', uri, errmsg))
         self.connection_failed.add_callback(
-            lambda uri, errmsg: logger.info(
-                'Callback->Connected failed to [%s]: %s', uri, errmsg))
+            lambda uri, errmsg: logger.info('Callback->Connected failed to [%s]: %s', uri, errmsg))
         self.connection_requested.add_callback(
-            lambda uri: logger.info(
-                'Callback->Connection initialized[%s]', uri))
+            lambda uri: logger.info('Callback->Connection initialized[%s]', uri))
         self.connected.add_callback(
-            lambda uri: logger.info(
-                'Callback->Connection setup finished [%s]', uri))
+            lambda uri: logger.info('Callback->Connection setup finished [%s]', uri))
+        self.fully_connected.add_callback(
+            lambda uri: logger.info('Callback->Connection completed [%s]', uri))
 
     def _disconnected(self, link_uri):
         """ Callback when disconnected."""
@@ -180,6 +183,11 @@ class Crazyflie():
         """Called when the log TOC has been fully updated"""
         logger.info('Log TOC finished updating')
         self.mem.refresh(self._mems_updated_cb)
+
+    def _all_parameters_updated(self):
+        """Called when all parameters have been updated"""
+        logger.info('All parameters updated')
+        self.fully_connected.call(self.link_uri)
 
     def _link_error_cb(self, errmsg):
         """Called from the link driver when there's an error"""
@@ -346,6 +354,9 @@ class Crazyflie():
             self.link.send_packet(pk)
             self.packet_sent.call(pk)
         self._send_lock.release()
+
+    def is_called_by_incoming_handler_thread(self):
+        return current_thread() == self.incoming
 
 
 _CallbackContainer = namedtuple('CallbackConstainer',

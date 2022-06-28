@@ -6,7 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2016 Bitcraze AB
+#  Copyright (C) 2016-2022 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -159,14 +159,14 @@ class SyncCrazyflie:
         if self._disconnect_event:
             self._disconnect_event.set()
 
-    def _all_params_updated(self):
+    def _all_params_updated(self, link_uri):
         self._params_updated_event.set()
 
     def _add_callbacks(self):
         self.cf.connected.add_callback(self._connected)
         self.cf.connection_failed.add_callback(self._connection_failed)
         self.cf.disconnected.add_callback(self._disconnected)
-        self.cf.param.all_updated.add_callback(self._all_params_updated)
+        self.cf.fully_connected.add_callback(self._all_params_updated)
 
     def _remove_callbacks(self):
         def remove_callback(container, callback):
@@ -178,4 +178,4 @@ class SyncCrazyflie:
         remove_callback(self.cf.connected, self._connected)
         remove_callback(self.cf.connection_failed, self._connection_failed)
         remove_callback(self.cf.disconnected, self._disconnected)
-        remove_callback(self.cf.param.all_updated, self._all_params_updated)
+        remove_callback(self.cf.fully_connected, self._all_params_updated)

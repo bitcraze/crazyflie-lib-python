@@ -26,7 +26,6 @@ from test.support.asyncCallbackCaller import AsyncCallbackCaller
 from unittest.mock import MagicMock
 
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie import Param
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 from cflib.utils.callbacks import Caller
@@ -41,6 +40,7 @@ class SyncCrazyflieTest(unittest.TestCase):
         self.cf_mock.connected = Caller()
         self.cf_mock.connection_failed = Caller()
         self.cf_mock.disconnected = Caller()
+        self.cf_mock.fully_connected = Caller()
 
         self.cf_mock.open_link = AsyncCallbackCaller(
             cb=self.cf_mock.connected,
@@ -54,11 +54,6 @@ class SyncCrazyflieTest(unittest.TestCase):
             delay=0.2
         )
         self.cf_mock.close_link = self.close_link_mock.trigger
-
-        # Mock the behaviour that param values are updated(downloaded) after connection
-        self.param_mock = MagicMock(spec=Param)
-        self.param_mock.all_updated = Caller()
-        self.cf_mock.param = self.param_mock
 
         # Register a callback to be called when connected. Use it to trigger a callback
         # to trigger the call to the param.all_updated() callback
@@ -233,10 +228,11 @@ class SyncCrazyflieTest(unittest.TestCase):
         self.assertEqual(0, len(self.cf_mock.connected.callbacks))
         self.assertEqual(0, len(self.cf_mock.connection_failed.callbacks))
         self.assertEqual(0, len(self.cf_mock.disconnected.callbacks))
-        self.assertEqual(0, len(self.param_mock.all_updated.callbacks))
+        self.assertEqual(0, len(self.cf_mock.fully_connected.callbacks))
 
     def _connected_callback(self, uri):
         AsyncCallbackCaller(
-            cb=self.param_mock.all_updated,
+            cb=self.cf_mock.fully_connected,
+            args=[self.uri],
             delay=0.2
         ).trigger()

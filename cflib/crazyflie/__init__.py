@@ -34,6 +34,7 @@ import datetime
 import logging
 import time
 from collections import namedtuple
+from threading import current_thread
 from threading import Lock
 from threading import Thread
 from threading import Timer
@@ -353,6 +354,9 @@ class Crazyflie():
             self.link.send_packet(pk)
             self.packet_sent.call(pk)
         self._send_lock.release()
+
+    def is_called_by_incoming_handler_thread(self):
+        return current_thread() == self.incoming
 
 
 _CallbackContainer = namedtuple('CallbackConstainer',

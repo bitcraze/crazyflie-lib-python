@@ -316,8 +316,11 @@ class Param():
         """
         Set the value for the supplied parameter.
         """
-        if not self._initialized.wait(timeout=60):
-            raise Exception('Connection timed out')
+        if not self._initialized.isSet():
+            if self.cf.is_called_by_incoming_handler_thread():
+                raise Exception('Can not set parameter from callback until fully connected.')
+            if not self._initialized.wait(timeout=60):
+                raise Exception('Connection timed out')
 
         element = self.toc.get_element_by_complete_name(complete_name)
 
@@ -351,8 +354,11 @@ class Param():
         Read a value for the supplied parameter. This can block for a period
         of time if the parameter values have not been fetched yet.
         """
-        if not self._initialized.wait(timeout=60):
-            raise Exception('Connection timed out')
+        if not self._initialized.isSet():
+            if self.cf.is_called_by_incoming_handler_thread():
+                raise Exception('Can not get parameter from callback until fully connected.')
+            if not self._initialized.wait(timeout=60):
+                raise Exception('Connection timed out')
 
         [group, name] = complete_name.split('.')
         return self.values[group][name]

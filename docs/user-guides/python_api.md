@@ -36,7 +36,7 @@ ideas for more like *udp*, *serial*, *usb*, etc\...Here are some
 examples:
 
 -   _radio://0/10/250K_ : Radio interface, USB dongle number 0, radio channel 10 and radio
-    speed 250 Kbit/s: radio://0/10/250K 
+    speed 250 Kbit/s: radio://0/10/250K
 -   _debug://0/1_ : Debug interface, id 0, channel 1
 
 ### Variables and logging
@@ -159,6 +159,8 @@ the following callbacks when events occur:
     # Called when the link is established and the TOCs (that are not cached)
     # have been downloaded
     connected = Caller()
+    # Called when the the link is established and all data, including parameters have been downloaded
+    fully_connected = Caller()
     # Called if establishing of the link fails (i.e times out)
     connection_failed = Caller()
     # Called for every packet received
@@ -258,7 +260,7 @@ functionality should be used when:
 If this is not the case then the logging framework should be used
 instead.
 
-To set a parameter you have to the connected to the Crazyflie. A
+To set a parameter you must have the connected to the Crazyflie. A
 parameter is set using:
 
 ``` python
@@ -296,6 +298,21 @@ Here\'s an example of how to use the calls.
     def param_updated_callback(name, value):
         print "%s has value %d" % (name, value)
 ```
+
+It is also possible to get the current value of a parameter (when connected) without using a callback
+``` python
+    value = get_value(complete_name)
+```
+
+Note 1: If you call `set_value()` and then directly call `get_value()` for a parameter, you might not read back the new
+value, but get the old one instead. The process is asynchronous and `get_value()` will not return the new value until
+the parameter value has propagated to the Crazyflie and back. Use the callback method if you need to be certain
+that you get the correct value after an update.
+
+Note 2: `get_value()` and `set_value()` can not be called from callbacks until the Crazyflie is fully connected.
+Most notably they can not be called from the `connected` callback as the parameter values have not been
+downloaded yet. Use the `fully_connected` callback to make sure the system is ready for parameter use. It is OK to
+call `get_value()` and `set_value()` from the `fully_connected` callback.
 
 ## Logging
 

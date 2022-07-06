@@ -42,7 +42,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 __author__ = 'Bitcraze AB'
-__all__ = ['CPXDriver']
+__all__ = ['TcpDriver']
 
 # For each scan the driver is re-initialized, if we do ZeroConf inside
 # the driver init we will not have time to find any devices, so start
@@ -69,7 +69,7 @@ class ZeroConfListener:
     def getAvailableHosts(self):
       cpxHosts = []
       for hosts in self._hosts:
-        cpxHosts.append(("cpx://{}:{}".format(hosts.server, hosts.port), hosts.properties[b"name"]))
+        cpxHosts.append(("tcp://{}:{}".format(hosts.server, hosts.port), hosts.properties[b"name"]))
       return cpxHosts
 
     def update_service(self, zeroconf, type, name):
@@ -77,13 +77,13 @@ class ZeroConfListener:
 
 persistentZeroContListener = ZeroConfListener()
 
-class CPXDriver(CRTPDriver):
+class TcpDriver(CRTPDriver):
 
     def __init__(self):
         self.needs_resending = False
 
     def connect(self, uri, linkQualityCallback, linkErrorCallback):
-        if not re.search('^cpx://', uri):
+        if not re.search('^tcp://', uri):
             raise WrongUriType('Not an UDP URI')
 
         parse = urlparse(uri.split(" ")[0])
@@ -120,6 +120,7 @@ class CPXDriver(CRTPDriver):
 
     def send_packet(self, pk):
         raw = (pk.header,) + struct.unpack('B' * len(pk.data), pk.data)
+        #print("OUT: {}".format(pk))
         self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
                                       function=CPXFunction.CRTP,
                                       data=raw))
@@ -183,6 +184,7 @@ class _CPXReceiveThread(threading.Thread):
                 if len(data) > 0:
                     pk = CRTPPacket(data[0],
                                     list(data[1:]))
+                    #print("IN: {}".format(pk))
                     self.in_queue.put(pk)
             except queue.Empty as e:
               pass # This is ok

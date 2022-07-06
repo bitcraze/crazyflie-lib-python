@@ -1,6 +1,7 @@
 
 import socket
 from threading import Lock
+import struct
 
 from . import CPXPacket
 
@@ -45,17 +46,36 @@ class SocketTransport(CPXTransport):
 
     def disconnect(self):
       print("Closing transport")
+      self._socket.shutdown(socket.SHUT_WR)
       self._socket.close()
       self._socket = None
 
-    def write(self, data):
+    def writePacket(self, packet):
+      #print("Write: {}".format(packet))
+      data = bytearray(struct.pack("H", packet.length+2))
+      data += packet.wireData
       self._socket.send(data)
 
-    def read(self, size):
+    def _readData(self, size):
       data = bytearray()
       while len(data) < size and self._socket is not None:
         data.extend(self._socket.recv(size-len(data)))
       return data
+
+    def readPacket(self):
+      size = struct.unpack("H", self._readData(2))[0]
+
+      data = self._readData(size)
+
+      packet = CPXPacket()
+      packet.wireData = data
+      #print("Read: {}".format(packet))
+
+      return packet
+
+      def __del__(self):
+          print("Socket transport is being destroyed!")
+
 
 class UARTTransport(CPXTransport):
     def __init__(self, device, baudrate):

@@ -261,6 +261,7 @@ class Crazyflie():
             self.link = None
         self._answer_patterns = {}
         self.disconnected.call(self.link_uri)
+        self.state = State.DISCONNECTED
 
     """Check if the communication link is open or not."""
 

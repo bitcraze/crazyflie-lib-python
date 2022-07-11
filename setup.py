@@ -10,7 +10,7 @@ long_description = (directory / 'README.md').read_text()
 setup(
     name='cflib',
     version='0.1.19',
-    packages=find_packages(exclude=['examples', 'tests']),
+    packages=find_packages(exclude=['examples', 'test']),
 
     description='Crazyflie python driver',
     url='https://github.com/bitcraze/crazyflie-lib-python',

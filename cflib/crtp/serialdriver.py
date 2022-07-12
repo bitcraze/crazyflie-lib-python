@@ -98,7 +98,7 @@ class SerialDriver(CRTPDriver):
         # Switch the link bridge to CPX in the Crazyflie
         self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
                                       function=CPXFunction.SYSTEM,
-                                      data=[0x10, 0x01]))
+                                      data=[0x21, 0x01]))
         # Force client connect to true
         self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
                                       function=CPXFunction.SYSTEM,

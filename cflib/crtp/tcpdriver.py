@@ -99,7 +99,7 @@ class TcpDriver(CRTPDriver):
 
         self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
                                       function=CPXFunction.SYSTEM,
-                                      data=[0x10, 0x01]))
+                                      data=[0x21, 0x01]))
 
     def receive_packet(self, time=0):
         if time == 0:

@@ -1,2 +1,1 @@
 pyusb>=1.0.0b2
-zeroconf>=0.26.1

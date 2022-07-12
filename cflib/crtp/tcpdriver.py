@@ -30,9 +30,6 @@ import struct
 import threading
 from urllib.parse import urlparse
 
-from zeroconf import ServiceBrowser
-from zeroconf import Zeroconf
-
 from .crtpdriver import CRTPDriver
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
@@ -45,42 +42,6 @@ logger = logging.getLogger(__name__)
 
 __author__ = 'Bitcraze AB'
 __all__ = ['TcpDriver']
-
-# For each scan the driver is re-initialized, if we do ZeroConf inside
-# the driver init we will not have time to find any devices, so start
-# ZeroCont at startup and keep it running all the time. The driver
-# will just query this to return discovered devices.
-persistentZeroContListener = None
-
-
-class ZeroConfListener:
-    def __init__(self):
-        self._hosts = []
-
-        zeroconf = Zeroconf()
-        ServiceBrowser(zeroconf, '_cpx._tcp.local.', self)
-
-    def remove_service(self, zeroconf, type, name):
-        print('Service %s removed' % (name,))
-        info = zeroconf.get_service_info(type, name)
-        self._hosts.remove(info)
-
-    def add_service(self, zeroconf, type, name):
-        info = zeroconf.get_service_info(type, name)
-        print('Service %s added, service info: %s' % (name, info))
-        self._hosts.append(info)
-
-    def getAvailableHosts(self):
-        cpxHosts = []
-        for hosts in self._hosts:
-            cpxHosts.append(('tcp://{}:{}'.format(hosts.server, hosts.port), hosts.properties[b'name']))
-        return cpxHosts
-
-    def update_service(self, zeroconf, type, name):
-        print('Updated service')
-
-
-persistentZeroContListener = ZeroConfListener()
 
 
 class TcpDriver(CRTPDriver):
@@ -150,7 +111,7 @@ class TcpDriver(CRTPDriver):
         return 'cpx'
 
     def scan_interface(self, address):
-        return persistentZeroContListener.getAvailableHosts()
+        return []
 
 # Transmit/receive thread
 

@@ -1,13 +1,12 @@
-
-#from cflib.cpx import CPXTarget, CPXFunction
+# from cflib.cpx import CPXTarget, CPXFunction
 
 class GAP8Bootloader:
 
-    #target = CPXTarget.GAP8
-    #function = CPXFunction.BOOTLOADER
+    # target = CPXTarget.GAP8
+    # function = CPXFunction.BOOTLOADER
 
     def __init__(self):
-        print("GAP8 bootloader module init")
+        print('GAP8 bootloader module init')
 
     # def getVersion(self):
     #   version = self._cpx.transaction(CPXPacket(destination=CPXTarget.GAP8,

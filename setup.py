@@ -38,6 +38,7 @@ setup(
         'scipy~=1.7',
         'numpy>=1.20,<1.25',
         'opencv-python-headless~=4.5.5',
+        'zeroconf>=0.26.1'
     ],
 
     # $ pip install -e .[dev]

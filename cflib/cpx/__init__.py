@@ -23,40 +23,37 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """ CPX Router and discovery"""
+import enum
 import queue
-import socket
 import struct
 import threading
-import enum
-from urllib.parse import urlparse
-from zeroconf import ServiceBrowser, Zeroconf
-from .gap8.bootloader import GAP8Bootloader
 
 __author__ = 'Bitcraze AB'
 __all__ = ['CPXRouter']
 
-print("CPX import")
 
 class CPXTarget(enum.Enum):
-  """
-  List of CPX targets
-  """
-  STM32 = 1
-  ESP32 = 2
-  HOST = 3
-  GAP8 = 4    
+    """
+    List of CPX targets
+    """
+    STM32 = 1
+    ESP32 = 2
+    HOST = 3
+    GAP8 = 4
+
 
 class CPXFunction(enum.Enum):
-  """
-  List of CPX targets
-  """
-  SYSTEM = 1
-  CONSOLE = 2
-  CRTP = 3
-  WIFI_CTRL = 4
-  APP = 5
-  TEST = 0x0E
-  BOOTLOADER = 0x0F
+    """
+    List of CPX targets
+    """
+    SYSTEM = 1
+    CONSOLE = 2
+    CRTP = 3
+    WIFI_CTRL = 4
+    APP = 5
+    TEST = 0x0E
+    BOOTLOADER = 0x0F
+
 
 class CPXPacket(object):
     """
@@ -77,26 +74,19 @@ class CPXPacket(object):
     def _get_wire_data(self):
         """Create raw data to send via the wire"""
         raw = bytearray()
-        # This is the length excluding the 2 byte legnth
-        #wireLength = len(self.data) + 2 # 2 bytes for CPX header
+
         targetsAndFlags = ((self.source.value & 0x7) << 3) | (self.destination.value & 0x7)
         if self.lastPacket:
-          targetsAndFlags |= 0x40
-        #print(self.destination)
-        #print(self.source)
-        #print(targets)
+            targetsAndFlags |= 0x40
+
         function = self.function.value & 0xFF
-        raw.extend(struct.pack("<BB", targetsAndFlags, function))
+        raw.extend(struct.pack('<BB', targetsAndFlags, function))
         raw.extend(self.data)
-        
-        # We need to handle this better...
-        #if (wireLength > 1022):
-        #  raise "Cannot send this packet, the size is too large!"
 
         return raw
 
     def _set_wire_data(self, data):
-        [targetsAndFlags, self.function] = struct.unpack("<BB", data[0:2])
+        [targetsAndFlags, self.function] = struct.unpack('<BB', data[0:2])
         self.source = CPXTarget((targetsAndFlags >> 3) & 0x07)
         self.destination = CPXTarget(targetsAndFlags & 0x07)
         self.lastPacket = targetsAndFlags & 0x40 != 0
@@ -106,103 +96,83 @@ class CPXPacket(object):
 
     def __str__(self):
         """Get a string representation of the packet"""
-        return "{}->{}/{} (size={} bytes)".format(self.source, self.destination, self.function, self.length)
+        return '{}->{}/{} (size={} bytes)'.format(self.source, self.destination, self.function, self.length)
 
     wireData = property(_get_wire_data, _set_wire_data)
 
-# Internal here, route to modules and from public facing API
+
 class CPXRouter(threading.Thread):
-    
+
     def __init__(self, transport):
-      threading.Thread.__init__(self)
-      self._transport = transport
-      self._rxQueues = {}
-      self._packet_assembly = []
-      self._connected = True
+        threading.Thread.__init__(self)
+        self._transport = transport
+        self._rxQueues = {}
+        self._packet_assembly = []
+        self._connected = True
 
     # Register and/or blocking calls for ports
     def receivePacket(self, function, timeout=None):
 
-      # Check if a queue exists, if not then create it
-      # the user might have implemented new functions
-      if not function.value in self._rxQueues:
-        print("Creating queue for {}".format(function))
-        self._rxQueues[function.value] = queue.Queue()
+        # Check if a queue exists, if not then create it
+        # the user might have implemented new functions
+        if function.value not in self._rxQueues:
+            print('Creating queue for {}'.format(function))
+            self._rxQueues[function.value] = queue.Queue()
 
-      return self._rxQueues[function.value].get(block=True, timeout=timeout)
+        return self._rxQueues[function.value].get(block=True, timeout=timeout)
 
     def makeTransaction(self, packet):
-      self.sendPacket(packet)
-      return self.receivePacket(packet.function)
+        self.sendPacket(packet)
+        return self.receivePacket(packet.function)
 
     def sendPacket(self, packet):
-      # Do we queue here?
-      self._transport.writePacket(packet)
+        self._transport.writePacket(packet)
 
     def transport(self):
-      self._connected = False
-      return self._transport
-      
+        self._connected = False
+        return self._transport
+
     def run(self):
         while(self._connected):
-        # Read one packet from the transport
+            # Read one packet from the transport
 
-        # Packages might have been split up along the
-        # way, due to MTU limitations on links. But here we have
-        # lots of memory, so assemble full packets by looking at last
-        # packet byte. Note that chunks of one packet could be mixed
-        # with chunks from antother packet.
-          try:
-            packet = self._transport.readPacket()
-            #header = self._transport.read(4)
-            #packet = CPXPacket(wireHeader=header)
-            #packet.data = self._transport.read(packet.length - 2) # remove routing info here
-            #print(packet)
-          # if not packet.target in self._packet_assembly:
-          #   self._packet_assembly[packet.target][packet.function] = []
-          # else
-          #   if not packet.function in self._packet_assembly[packet.target]:
-          #     self._packet_assembly[packet.target][packet.function] = []
+            # Packages might have been split up along the
+            # way, we should re-assemble here
+            try:
+                packet = self._transport.readPacket()
 
-          # self._packet_assembly[packet.target][packet.function].append(packet)
+                if packet.function.value not in self._rxQueues:
+                    pass
+                else:
+                    self._rxQueues[packet.function.value].put(packet)
+            except Exception as e:
+                print('Exception while reading transport, link probably closed?')
+                print(e)
+                import traceback
+                print(traceback.format_exc())
 
-          # if (packet.lastPart):
-          #   # Assemble packet and send up stack
-          #   pass
-            if not packet.function.value in self._rxQueues:
-              pass
-              #print("Got packet for {}, but have no queue".format(packet.function))
-            else:
-              self._rxQueues[packet.function.value].put(packet)
-            #self._rxQueues[packet.function.value] = queue.Queue()
-            #print(self._rxQueues[packet.function.value].qsize())
-          except Exception as e:
-            print("Exception while reading transport, link probably closed?")
-            print(e)
-            import traceback
-            print(traceback.format_exc())
+# Public facing
 
-# Public facing 
+
 class CPX:
     def __init__(self, transport):
-      self._router = CPXRouter(transport)
-      self._router.start()
-      #self.gap8.bootloader = GAP8Bootloader(self)
+        self._router = CPXRouter(transport)
+        self._router.start()
 
     def receivePacket(self, function, timeout=None):
-      # Block on a function queue
+        # Block on a function queue
 
-      #if self._router.isUsedBySubmodule(target, function):
-      #  raise ValueError("The CPX target {} and function {} is registered in a sub module".format(target, function))
+        # if self._router.isUsedBySubmodule(target, function):
+        #  raise ValueError("The CPX target {} and function {} is registered in a sub module".format(target, function))
 
-      # Will block on queue
-      return self._router.receivePacket(function, timeout)
+        # Will block on queue
+        return self._router.receivePacket(function, timeout)
 
     def makeTransaction(self, packet):
-      return self._router.makeTransaction(packet)
+        return self._router.makeTransaction(packet)
 
     def sendPacket(self, packet):
-      self._router.sendPacket(packet)
+        self._router.sendPacket(packet)
 
     def close(self):
-      self._router.transport().disconnect()
+        self._router.transport().disconnect()

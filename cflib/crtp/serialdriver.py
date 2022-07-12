@@ -29,19 +29,20 @@ run high-speed CRTP with the Crazyflie. The UART can be run at 2Mbit.
 import logging
 import queue
 import re
-import threading
 import struct
+import threading
 
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
-from cflib.crtp.crtpdriver import CRTPDriver
-
-from cflib.cpx import CPX, CPXPacket, CPXTarget, CPXFunction
+from cflib.cpx import CPX
+from cflib.cpx import CPXFunction
+from cflib.cpx import CPXPacket
+from cflib.cpx import CPXTarget
 from cflib.cpx.transports import UARTTransport
+from cflib.crtp.crtpdriver import CRTPDriver
 
 found_serial = True
 try:
-    import serial
     import serial.tools.list_ports as list_ports
 except ImportError:
     found_serial = False
@@ -50,6 +51,7 @@ __author__ = 'Bitcraze AB'
 __all__ = ['SerialDriver']
 
 logger = logging.getLogger(__name__)
+
 
 class SerialDriver(CRTPDriver):
 
@@ -103,7 +105,7 @@ class SerialDriver(CRTPDriver):
         self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
                                       function=CPXFunction.SYSTEM,
                                       data=[0x20, 0x01]))
-        
+
         # TODO! These should be reset again!
 
     def send_packet(self, pk):
@@ -131,9 +133,9 @@ class SerialDriver(CRTPDriver):
         return 'serial'
 
     def scan_interface(self, address):
-        print("Scanning serial")
+        print('Scanning serial')
         if found_serial:
-            print("Found serial")
+            print('Found serial')
             devices_names = self.get_devices().keys()
             print(devices_names)
             return [('serial://' + x, '') for x in devices_names]
@@ -154,7 +156,7 @@ class SerialDriver(CRTPDriver):
             print(e)
             logger.error('Could not close {}'.format(e))
             pass
-        print("Driver closed")
+        print('Driver closed')
 
     def get_devices(self):
         result = {}
@@ -167,6 +169,7 @@ class SerialDriver(CRTPDriver):
             result[name] = port.device
 
         return result
+
 
 class _CPXReceiveThread(threading.Thread):
     """
@@ -204,8 +207,8 @@ class _CPXReceiveThread(threading.Thread):
                     pk = CRTPPacket(data[0],
                                     list(data[1:]))
                     self.in_queue.put(pk)
-            except queue.Empty as e:
-              pass # This is ok
+            except queue.Empty:
+                pass  # This is ok
             except Exception as e:
                 import traceback
 

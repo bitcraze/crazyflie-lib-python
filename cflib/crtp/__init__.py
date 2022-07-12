@@ -30,9 +30,9 @@ from .exceptions import WrongUriType
 from .prrtdriver import PrrtDriver
 from .radiodriver import RadioDriver
 from .serialdriver import SerialDriver
+from .tcpdriver import TcpDriver
 from .udpdriver import UdpDriver
 from .usbdriver import UsbDriver
-from .tcpdriver import TcpDriver
 
 __author__ = 'Bitcraze AB'
 __all__ = []

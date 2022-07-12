@@ -23,22 +23,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """ CRTP CPX Driver. Tunnel CRTP over CPX to the Crazyflie STM32 """
+import logging
 import queue
 import re
-import socket
 import struct
 import threading
 from urllib.parse import urlparse
-from zeroconf import ServiceBrowser, Zeroconf
 
-from cflib.cpx import CPX, CPXPacket, CPXTarget, CPXFunction
-from cflib.cpx.transports import SocketTransport
+from zeroconf import ServiceBrowser
+from zeroconf import Zeroconf
 
 from .crtpdriver import CRTPDriver
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
-
-import logging
+from cflib.cpx import CPX
+from cflib.cpx import CPXFunction
+from cflib.cpx import CPXPacket
+from cflib.cpx import CPXTarget
+from cflib.cpx.transports import SocketTransport
 logger = logging.getLogger(__name__)
 
 __author__ = 'Bitcraze AB'
@@ -49,33 +51,37 @@ __all__ = ['TcpDriver']
 # ZeroCont at startup and keep it running all the time. The driver
 # will just query this to return discovered devices.
 persistentZeroContListener = None
+
+
 class ZeroConfListener:
     def __init__(self):
         self._hosts = []
 
         zeroconf = Zeroconf()
-        browser = ServiceBrowser(zeroconf, "_cpx._tcp.local.", self)
+        ServiceBrowser(zeroconf, '_cpx._tcp.local.', self)
 
     def remove_service(self, zeroconf, type, name):
-        print("Service %s removed" % (name,))
+        print('Service %s removed' % (name,))
         info = zeroconf.get_service_info(type, name)
         self._hosts.remove(info)
 
     def add_service(self, zeroconf, type, name):
         info = zeroconf.get_service_info(type, name)
-        print("Service %s added, service info: %s" % (name, info))
+        print('Service %s added, service info: %s' % (name, info))
         self._hosts.append(info)
-    
+
     def getAvailableHosts(self):
-      cpxHosts = []
-      for hosts in self._hosts:
-        cpxHosts.append(("tcp://{}:{}".format(hosts.server, hosts.port), hosts.properties[b"name"]))
-      return cpxHosts
+        cpxHosts = []
+        for hosts in self._hosts:
+            cpxHosts.append(('tcp://{}:{}'.format(hosts.server, hosts.port), hosts.properties[b'name']))
+        return cpxHosts
 
     def update_service(self, zeroconf, type, name):
-      print("Updated service")
+        print('Updated service')
+
 
 persistentZeroContListener = ZeroConfListener()
+
 
 class TcpDriver(CRTPDriver):
 
@@ -86,7 +92,7 @@ class TcpDriver(CRTPDriver):
         if not re.search('^tcp://', uri):
             raise WrongUriType('Not an UDP URI')
 
-        parse = urlparse(uri.split(" ")[0])
+        parse = urlparse(uri.split(' ')[0])
 
         self.in_queue = queue.Queue()
 
@@ -95,7 +101,6 @@ class TcpDriver(CRTPDriver):
         self._thread = _CPXReceiveThread(self.cpx, self.in_queue,
                                          linkErrorCallback)
         self._thread.start()
-
 
         self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
                                       function=CPXFunction.SYSTEM,
@@ -120,7 +125,6 @@ class TcpDriver(CRTPDriver):
 
     def send_packet(self, pk):
         raw = (pk.header,) + struct.unpack('B' * len(pk.data), pk.data)
-        #print("OUT: {}".format(pk))
         self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,
                                       function=CPXFunction.CRTP,
                                       data=raw))
@@ -139,7 +143,7 @@ class TcpDriver(CRTPDriver):
             print(e)
             logger.error('Could not close {}'.format(e))
             pass
-        print("Driver closed")
+        print('Driver closed')
         self.cpx = None
 
     def get_name(self):
@@ -149,6 +153,8 @@ class TcpDriver(CRTPDriver):
         return persistentZeroContListener.getAvailableHosts()
 
 # Transmit/receive thread
+
+
 class _CPXReceiveThread(threading.Thread):
     """
     Radio link receiver thread used to read data from the
@@ -184,10 +190,9 @@ class _CPXReceiveThread(threading.Thread):
                 if len(data) > 0:
                     pk = CRTPPacket(data[0],
                                     list(data[1:]))
-                    #print("IN: {}".format(pk))
                     self.in_queue.put(pk)
-            except queue.Empty as e:
-              pass # This is ok
+            except queue.Empty:
+                pass  # This is ok
             except Exception as e:
                 import traceback
 

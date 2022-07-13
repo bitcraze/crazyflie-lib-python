@@ -105,6 +105,7 @@ class CPXRouter(threading.Thread):
 
     def __init__(self, transport):
         threading.Thread.__init__(self)
+        self.daemon = True
         self._transport = transport
         self._rxQueues = {}
         self._packet_assembly = []

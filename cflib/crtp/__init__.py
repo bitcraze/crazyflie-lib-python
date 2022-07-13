@@ -30,6 +30,7 @@ from .exceptions import WrongUriType
 from .prrtdriver import PrrtDriver
 from .radiodriver import RadioDriver
 from .serialdriver import SerialDriver
+from .tcpdriver import TcpDriver
 from .udpdriver import UdpDriver
 from .usbdriver import UsbDriver
 
@@ -58,7 +59,7 @@ def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
     if enable_serial_driver:
         CLASSES.append(SerialDriver)
 
-    CLASSES.extend([UdpDriver, PrrtDriver])
+    CLASSES.extend([UdpDriver, PrrtDriver, TcpDriver])
 
 
 def scan_interfaces(address=None):

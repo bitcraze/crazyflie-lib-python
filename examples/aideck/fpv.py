@@ -45,20 +45,17 @@ For the example to run the following hardware is needed:
  * AI deck 1.1
 """
 import logging
-import math
+import struct
 import sys
 import threading
-import traceback
-import struct
 
 import numpy as np
 
 import cflib.crtp
+from cflib.cpx import CPXFunction
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.utils import uri_helper
-
-from cflib.cpx import CPXPacket, CPXFunction, CPXTarget
 
 try:
     from sip import setapi
@@ -67,7 +64,7 @@ try:
 except ImportError:
     pass
 
-from PyQt5 import QtCore, QtWidgets, QtGui, Qt
+from PyQt5 import QtCore, QtWidgets, QtGui
 
 logging.basicConfig(level=logging.INFO)
 
@@ -75,30 +72,33 @@ URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 CAM_HEIGHT = 244
 CAM_WIDTH = 324
+# Set the speed factor for moving and rotating
+SPEED_FACTOR = 0.3
 
 if len(sys.argv) > 1:
     URI = sys.argv[1]
 
+
 class ImageDownloader(threading.Thread):
-  def __init__(self, cpx, cb):
-      threading.Thread.__init__(self)
-      self.daemon = True
-      self._cpx = cpx
-      self._cb = cb
+    def __init__(self, cpx, cb):
+        threading.Thread.__init__(self)
+        self.daemon = True
+        self._cpx = cpx
+        self._cb = cb
 
-  def run(self):
-      while True:
-        p = self._cpx.receivePacket(CPXFunction.APP)
-        [magic, width, height, depth, format, size] = struct.unpack('<BHHBBI', p.data[0:11])
-        if (magic == 0xBC):
-          imgStream = bytearray()
-          while len(imgStream) < size:
+    def run(self):
+        while True:
             p = self._cpx.receivePacket(CPXFunction.APP)
-            imgStream.extend(p.data)
+            [magic, width, height, depth, format, size] = struct.unpack('<BHHBBI', p.data[0:11])
+            if (magic == 0xBC):
+                imgStream = bytearray()
+                while len(imgStream) < size:
+                    p = self._cpx.receivePacket(CPXFunction.APP)
+                    imgStream.extend(p.data)
 
-          bayer_img = np.frombuffer(imgStream, dtype=np.uint8)
-          self._cb(bayer_img)
-          
+                bayer_img = np.frombuffer(imgStream, dtype=np.uint8)
+                self._cb(bayer_img)
+
 
 class MainWindow(QtWidgets.QWidget):
 
@@ -108,26 +108,50 @@ class MainWindow(QtWidgets.QWidget):
         self.setWindowTitle('Crazyflie / AI deck FPV demo')
 
         self.mainLayout = QtWidgets.QVBoxLayout()
-        
+
         self.image_frame = QtWidgets.QLabel()
-        self.mainLayout.addWidget(self.image_frame)     
-        
+        self.mainLayout.addWidget(self.image_frame)
+
         self.gridLayout = QtWidgets.QGridLayout()
-        self.gridLayout.addWidget(QtWidgets.QLabel("Position (X/Y/Z)"), 0, 0, 1, 1, QtCore.Qt.AlignLeft);
-        self.gridLayout.addWidget(QtWidgets.QLabel("Pose (roll/pitch/yaw)"), 1, 0, 1, 1, QtCore.Qt.AlignLeft);
+        self.gridLayout.addWidget(QtWidgets.QLabel('Position (X/Y/Z)'), 0, 0, 1, 1, QtCore.Qt.AlignLeft)
+        self.gridLayout.addWidget(QtWidgets.QLabel('Pose (roll/pitch/yaw)'), 1, 0, 1, 1, QtCore.Qt.AlignLeft)
 
         self.labels = {
-          "stateEstimate.x": {"widget": QtWidgets.QLabel("X"), "x_grid": 0, "y_grid": 1, "alignment": QtCore.Qt.AlignLeft},
-          "stateEstimate.y": {"widget": QtWidgets.QLabel("Y"), "x_grid": 0, "y_grid": 2, "alignment": QtCore.Qt.AlignLeft},
-          "stateEstimate.z": {"widget": QtWidgets.QLabel("Z"), "x_grid": 0, "y_grid": 3, "alignment": QtCore.Qt.AlignLeft},
-          "stabilizer.roll": {"widget": QtWidgets.QLabel("roll"), "x_grid": 1, "y_grid": 1, "alignment": QtCore.Qt.AlignLeft},
-          "stabilizer.pitch": {"widget": QtWidgets.QLabel("pitch"), "x_grid": 1, "y_grid": 2, "alignment": QtCore.Qt.AlignLeft},
-          "stabilizer.yaw": {"widget": QtWidgets.QLabel("yaw"), "x_grid": 1, "y_grid": 3, "alignment": QtCore.Qt.AlignLeft}
+            'stateEstimate.x': {
+                'widget': QtWidgets.QLabel('X'),
+                'x_grid': 0, 'y_grid': 1,
+                'alignment': QtCore.Qt.AlignLeft
+            },
+            'stateEstimate.y': {
+                'widget': QtWidgets.QLabel('Y'),
+                'x_grid': 0, 'y_grid': 2,
+                'alignment': QtCore.Qt.AlignLeft
+            },
+            'stateEstimate.z': {
+                'widget': QtWidgets.QLabel('Z'),
+                'x_grid': 0, 'y_grid': 3,
+                'alignment': QtCore.Qt.AlignLeft
+            },
+            'stabilizer.roll': {
+                'widget': QtWidgets.QLabel('roll'),
+                'x_grid': 1, 'y_grid': 1,
+                'alignment': QtCore.Qt.AlignLeft
+            },
+            'stabilizer.pitch': {
+                'widget': QtWidgets.QLabel('pitch'),
+                'x_grid': 1, 'y_grid': 2,
+                'alignment': QtCore.Qt.AlignLeft
+            },
+            'stabilizer.yaw': {
+                'widget': QtWidgets.QLabel('yaw'),
+                'x_grid': 1, 'y_grid': 3,
+                'alignment': QtCore.Qt.AlignLeft
+            }
         }
 
         for name in self.labels:
-          w = self.labels[name]
-          self.gridLayout.addWidget(w["widget"], w["x_grid"], w["y_grid"], 1, 1, w["alignment"]);
+            w = self.labels[name]
+            self.gridLayout.addWidget(w['widget'], w['x_grid'], w['y_grid'], 1, 1, w['alignment'])
 
         self.mainLayout.addLayout(self.gridLayout)
 
@@ -144,26 +168,26 @@ class MainWindow(QtWidgets.QWidget):
         self.cf.open_link(URI)
 
         if not self.cf.link:
-            print("Could not connect to Crazyflie")
+            print('Could not connect to Crazyflie')
             sys.exit(1)
-        
-        if not hasattr(self.cf.link,'cpx'):
-            print("Not connecting with WiFi")
+
+        if not hasattr(self.cf.link, 'cpx'):
+            print('Not connecting with WiFi')
             self.cf.close_link()
         else:
-          self._imgDownload = ImageDownloader(self.cf.link.cpx, self.updateImage)
-          self._imgDownload.start()
+            self._imgDownload = ImageDownloader(self.cf.link.cpx, self.updateImage)
+            self._imgDownload.start()
 
-          self.hover = {'x': 0.0, 'y': 0.0, 'z': 0.0, 'yaw': 0.0, 'height': 0.3}
+            self.hover = {'x': 0.0, 'y': 0.0, 'z': 0.0, 'yaw': 0.0, 'height': 0.3}
 
-          self.hoverTimer = QtCore.QTimer()
-          self.hoverTimer.timeout.connect(self.sendHoverCommand)
-          self.hoverTimer.setInterval(100)
-          self.hoverTimer.start()
+            self.hoverTimer = QtCore.QTimer()
+            self.hoverTimer.timeout.connect(self.sendHoverCommand)
+            self.hoverTimer.setInterval(100)
+            self.hoverTimer.start()
 
     def updateImage(self, image):
-      i = QtGui.QImage(image, CAM_WIDTH, CAM_HEIGHT, QtGui.QImage.Format_Grayscale8).scaled(324*2, 244*2)
-      self.image_frame.setPixmap(QtGui.QPixmap.fromImage(i))
+        i = QtGui.QImage(image, CAM_WIDTH, CAM_HEIGHT, QtGui.QImage.Format_Grayscale8).scaled(324*2, 244*2)
+        self.image_frame.setPixmap(QtGui.QPixmap.fromImage(i))
 
     def keyPressEvent(self, event):
         if (not event.isAutoRepeat()):
@@ -250,11 +274,12 @@ class MainWindow(QtWidgets.QWidget):
 
     def pos_data(self, timestamp, data, logconf):
         for name in data:
-          self.labels[name]["widget"].setText("{:.02f}".format(data[name]))
+            self.labels[name]['widget'].setText('{:.02f}'.format(data[name]))
 
     def closeEvent(self, event):
         if (self.cf is not None):
             self.cf.close_link()
+
 
 if __name__ == '__main__':
     appQt = QtWidgets.QApplication(sys.argv)

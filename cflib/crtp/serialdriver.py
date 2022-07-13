@@ -106,8 +106,6 @@ class SerialDriver(CRTPDriver):
                                       function=CPXFunction.SYSTEM,
                                       data=[0x20, 0x01]))
 
-        # TODO! These should be reset again!
-
     def send_packet(self, pk):
         raw = (pk.header,) + struct.unpack('B' * len(pk.data), pk.data)
         self.cpx.sendPacket(CPXPacket(destination=CPXTarget.STM32,

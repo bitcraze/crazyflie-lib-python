@@ -528,4 +528,3 @@ to be used with a positioning system such as LPS, the lighthouse or a mocap syst
             # The Crazyflie lands when leaving this "with" section
         # When leaving this "with" section, the connection is automatically closed
 ```
-

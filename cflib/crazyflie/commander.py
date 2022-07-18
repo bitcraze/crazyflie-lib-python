@@ -63,10 +63,10 @@ class Commander():
     def send_setpoint(self, roll, pitch, yawrate, thrust):
         """
         Send a new control setpoint for roll/pitch/yaw_Rate/thrust to the copter.
-        
+
         The meaning of these values is depended on the mode of the RPYT commander in the firmware
         Default settings are Roll, pitch, yawrate and thrust
-        
+
         roll,  pitch are in degrees
         yawrate is in degrees/s
         thrust is an integer value ranging from 10001 (next to no power) to 60000 (full power)

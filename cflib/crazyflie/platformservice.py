@@ -58,15 +58,9 @@ class PlatformService():
         """
         self._cf = crazyflie
 
-        self._cf.add_port_callback(CRTPPort.PLATFORM,
-                                   self._platform_callback)
-        self._cf.add_port_callback(CRTPPort.LINKCTRL,
-                                   self._crt_service_callback)
+        self._cf.add_port_callback(CRTPPort.PLATFORM, self._platform_callback)
+        self._cf.add_port_callback(CRTPPort.LINKCTRL, self._crt_service_callback)
 
-        # Request protocol version.
-        # The semaphore makes sure that other module will wait for the version
-        # to be received before using it.
-        self._has_protocol_version = False
         self._protocolVersion = -1
         self._callback = None
 
@@ -104,26 +98,29 @@ class PlatformService():
         pk.set_header(CRTPPort.LINKCTRL, LINKSERVICE_SOURCE)
         pk.data = (0,)
         self._cf.send_packet(pk)
+        logger.info("Request _request_protocol_version()")
 
     def _crt_service_callback(self, pk):
         if pk.channel == LINKSERVICE_SOURCE:
+            logger.info("_crt_service_callback")
             # If the sink contains a magic string, get the protocol version,
             # otherwise -1
             if pk.data[:18].decode('utf8') == 'Bitcraze Crazyflie':
                 pk = CRTPPacket()
                 pk.set_header(CRTPPort.PLATFORM, VERSION_COMMAND)
                 pk.data = (VERSION_GET_PROTOCOL, )
+                logger.info("Request protocol version")
                 self._cf.send_packet(pk)
             else:
                 self._protocolVersion = -1
-                logger.info('Protocol version: {}'.format(
-                    self.get_protocol_version()))
+                logger.info('Protocol version (crt): {}'.format(self.get_protocol_version()))
                 self._callback()
 
     def _platform_callback(self, pk):
-        if pk.channel == VERSION_COMMAND and \
-                pk.data[0] == VERSION_GET_PROTOCOL:
-            self._protocolVersion = pk.data[1]
-            logger.info('Protocol  version: {}'.format(
-                self.get_protocol_version()))
-            self._callback()
+        if pk.channel == VERSION_COMMAND :
+            logger.info("_platform_callback")
+
+            if pk.data[0] == VERSION_GET_PROTOCOL:
+                self._protocolVersion = pk.data[1]
+                logger.info('Protocol version (platform): {}'.format(self.get_protocol_version()))
+                self._callback()

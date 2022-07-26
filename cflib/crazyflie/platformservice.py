@@ -98,18 +98,18 @@ class PlatformService():
         pk.set_header(CRTPPort.LINKCTRL, LINKSERVICE_SOURCE)
         pk.data = (0,)
         self._cf.send_packet(pk)
-        logger.info("Request _request_protocol_version()")
+        logger.debug("Request _request_protocol_version()")
 
     def _crt_service_callback(self, pk):
         if pk.channel == LINKSERVICE_SOURCE:
-            logger.info("_crt_service_callback")
+            logger.debug("_crt_service_callback")
             # If the sink contains a magic string, get the protocol version,
             # otherwise -1
             if pk.data[:18].decode('utf8') == 'Bitcraze Crazyflie':
                 pk = CRTPPacket()
                 pk.set_header(CRTPPort.PLATFORM, VERSION_COMMAND)
                 pk.data = (VERSION_GET_PROTOCOL, )
-                logger.info("Request protocol version")
+                logger.debug("Request protocol version")
                 self._cf.send_packet(pk)
             else:
                 self._protocolVersion = -1
@@ -118,7 +118,7 @@ class PlatformService():
 
     def _platform_callback(self, pk):
         if pk.channel == VERSION_COMMAND :
-            logger.info("_platform_callback")
+            logger.debug("_platform_callback")
 
             if pk.data[0] == VERSION_GET_PROTOCOL:
                 self._protocolVersion = pk.data[1]

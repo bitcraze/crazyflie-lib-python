@@ -16,7 +16,9 @@ If you are connecting to a Raspberry Pi look for the UART pins there connect the
 
 ## Crazyflie Firmware
 
-Typically the Crazyflie expects control commands from Radio or Bluetooth and also sends its feedback there. To change this to UART, the firmware has to be compiled with the `Expansion deck configuration->Support CRTP over UART2` and `Expansion deck configuration->crtpOverUART2` kbuild config enabled. 
+Typically the Crazyflie expects control commands from Radio or Bluetooth and also sends its feedback there. To change this to UART, the crazyflie-firmware has to be compiled with the following [kbuild configurations](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/development/kbuild/) with `make menuconfig`
+* `Expansion deck configuration`-> `Force load specified custom deck driver`->fill in `cpxOverUART2`
+* `Expansion deck configuration`->`Support wired external host using CPX on UART`-> include in build with `y`
 
 ## Controlling Device
 

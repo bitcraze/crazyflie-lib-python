@@ -1,5 +1,5 @@
 ---
-title: The Crazyflie Python API
+title: The Crazyflie Python API explanation
 page_id: python_api
 ---
 
@@ -10,9 +10,12 @@ the API that it implements.
 
 If you are interested in more details look in the PyDoc in the code or:
 
--   Communication protocol for
+-  Communication protocol for
     [logging](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/crtp_log/) or
     [parameters](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/crtp_parameters/)
+- [Automated documentation for Python API](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/)
+- Examples: See the [example folder of the repository](https://github.com/bitcraze/crazyflie-lib-python/tree/master/examples).
+
 
 ## Structure of the library
 
@@ -35,8 +38,8 @@ Currently only *radio* and *debug* interfaces are used but there\'s
 ideas for more like *udp*, *serial*, *usb*, etc\...Here are some
 examples:
 
--   _radio://0/10/250K_ : Radio interface, USB dongle number 0, radio channel 10 and radio
-    speed 250 Kbit/s: radio://0/10/250K
+-   _radio://0/10/2M : Radio interface, USB dongle number 0, radio channel 10 and radio
+    speed 2 Mbit/s: radio://0/10/2M
 -   _debug://0/1_ : Debug interface, id 0, channel 1
 
 ### Variables and logging
@@ -212,13 +215,7 @@ The control setpoints are not implemented as parameters, instead they
 have a special API.
 
 ``` python
-    send_setpoint(roll, pitch, yaw, thrust):
-        """
-        Send a new control set-point for roll/pitch/yaw/thust to the copter
-
-        The arguments roll/pitch/yaw/trust is the new set-points that should
-        be sent to the copter
-        """
+    def send_setpoint(self, roll, pitch, yawrate, thrust):
 ```
 
 To send a new control set-point use the following:
@@ -531,7 +528,3 @@ to be used with a positioning system such as LPS, the lighthouse or a mocap syst
             # The Crazyflie lands when leaving this "with" section
         # When leaving this "with" section, the connection is automatically closed
 ```
-
-## Examples
-
-The see the [example folder of the repository](https://github.com/bitcraze/crazyflie-lib-python/tree/master/examples).

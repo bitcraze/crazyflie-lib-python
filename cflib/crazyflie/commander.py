@@ -60,12 +60,16 @@ class Commander():
         """
         self._x_mode = enabled
 
-    def send_setpoint(self, roll, pitch, yaw, thrust):
+    def send_setpoint(self, roll, pitch, yawrate, thrust):
         """
-        Send a new control setpoint for roll/pitch/yaw/thrust to the copter
+        Send a new control setpoint for roll/pitch/yaw_Rate/thrust to the copter.
 
-        The arguments roll/pitch/yaw/trust is the new setpoints that should
-        be sent to the copter
+        The meaning of these values is depended on the mode of the RPYT commander in the firmware
+        Default settings are Roll, pitch, yawrate and thrust
+
+        roll,  pitch are in degrees
+        yawrate is in degrees/s
+        thrust is an integer value ranging from 10001 (next to no power) to 60000 (full power)
         """
         if thrust > 0xFFFF or thrust < 0:
             raise ValueError('Thrust must be between 0 and 0xFFFF')
@@ -75,7 +79,7 @@ class Commander():
 
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER
-        pk.data = struct.pack('<fffH', roll, -pitch, yaw, thrust)
+        pk.data = struct.pack('<fffH', roll, -pitch, yawrate, thrust)
         self._cf.send_packet(pk)
 
     def send_stop_setpoint(self):
@@ -89,7 +93,7 @@ class Commander():
 
     def send_velocity_world_setpoint(self, vx, vy, vz, yawrate):
         """
-        Send Velocity in the world frame of reference setpoint.
+        Send Velocity in the world frame of reference setpoint with yawrate commands
 
         vx, vy, vz are in m/s
         yawrate is in degrees/s
@@ -103,9 +107,12 @@ class Commander():
     def send_zdistance_setpoint(self, roll, pitch, yawrate, zdistance):
         """
         Control mode where the height is send as an absolute setpoint (intended
-        to be the distance to the surface under the Crazflie).
+        to be the distance to the surface under the Crazflie), while giving roll,
+        pitch and yaw rate commands
 
-        Roll, pitch, yawrate are defined as degrees, degrees, degrees/s
+        roll, pitch are in degrees
+        yawrate is in degrees/s
+        zdistance is in meters
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
@@ -116,10 +123,12 @@ class Commander():
     def send_hover_setpoint(self, vx, vy, yawrate, zdistance):
         """
         Control mode where the height is send as an absolute setpoint (intended
-        to be the distance to the surface under the Crazflie).
+        to be the distance to the surface under the Crazflie), while giving x, y velocity
+        commands in body-fixed coordinates.
 
-        vx and vy are in m/s
+        vx,  vy are in m/s
         yawrate is in degrees/s
+        zdistance is in meters
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
@@ -129,10 +138,10 @@ class Commander():
 
     def send_position_setpoint(self, x, y, z, yaw):
         """
-        Control mode where the position is sent as absolute x,y,z coordinate in
+        Control mode where the position is sent as absolute (world) x,y,z coordinate in
         meter and the yaw is the absolute orientation.
 
-        x and y are in m
+        x, y, z are in m
         yaw is in degrees
         """
         pk = CRTPPacket()

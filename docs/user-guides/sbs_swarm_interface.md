@@ -94,6 +94,8 @@ def light_check(scf):
 uris = {
     'radio://0/20/2M/E7E7E7E701',
     'radio://0/20/2M/E7E7E7E702',
+    'radio://0/20/2M/E7E7E7E703',
+    'radio://0/20/2M/E7E7E7E704',
     # Add more URIs if you want more copters in the swarm
 }
 

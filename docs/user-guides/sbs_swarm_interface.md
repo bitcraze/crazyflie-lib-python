@@ -474,4 +474,4 @@ if __name__ == '__main__':
 You’re done! The full code of this tutorial can be found in the example/step-by-step/ folder.
 
 # What is next ?
-Now you are able to control a swarm of Crazyflies and you can experiment with different behaviors for each one of them while maintaining the functionality,simplicity of working with just one since the parallelism is handled internally and you can just focus on creating awesome applications!.For more examples and inspiration on the Swarm functionality, you can check out the `examples/swarm/` folder of the cflib.
+Now you are able to control a swarm of Crazyflies and you can experiment with different behaviors for each one of them while maintaining the functionality,simplicity of working with just one since the parallelism is handled internally and you can just focus on creating awesome applications! For more examples and inspiration on the Swarm functionality, you can check out the `examples/swarm/` folder of the cflib.

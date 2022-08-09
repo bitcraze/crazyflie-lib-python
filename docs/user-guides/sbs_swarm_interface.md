@@ -3,7 +3,7 @@ title: "Step-by-Step: Swarm Interface"
 page_id: sbs_swarm_interface
 ---
 
-Here we will go through step-by-step how to interface with a swarm of crazyflies and make all the copters of the swarm hover and fly simultaneously in a square shape using the `Swarm()` class of the cflib.For this tutorial you will need a swarm (2 or more) of crazyflies with the latest firmware version installed and a positioning system (Flowdeck,Lighthouse,LPS etc.) that is able to provide data for the position estimation of the crazyflies.
+Here we will go through step-by-step how to interface with a swarm of crazyflies and make all the copters of the swarm hover and fly simultaneously in a square shape using the `Swarm()` class of the cflib.For this tutorial you will need a swarm (2 or more) of crazyflies with the latest firmware version installed and a global positioning system (Lighthouse,LPS or MoCap) that is able to provide data for the position estimation of the crazyflies. You can also use the Flowdeck but keep in mind that you should command relative movements of each Crazyflie and due to its nature it may lead to accumulative errors and unexpected behavior over time.
 
 # Prerequisites
 
@@ -16,7 +16,7 @@ We will assume that you already know this before you start with the tutorial:
 
 # Get the script started
 
-Since you should have installed cflib in the previous step by step tutorial, you are all ready to got now. Open up an new python script called `swarm_rectangle.py`. First you will start by adding the following import to the script:
+Since you should have installed cflib in the previous step by step tutorial, you are all ready to got now. Open up a new python script called `swarm_rectangle.py`. First you will start by adding the following import to the script:
 
 ```python
 import time
@@ -39,36 +39,36 @@ if __name__ == '__main__':
     with Swarm(uris, factory=factory) as swarm:
 ```
 
-This will import all the necessary modules and open the necessary links for communication with all the Crazyflies of the swarms.`Swarm` is a wrapper class which facilitates the execution of functions given by the user for each copter and can execute them in parallel or sequentially.Each Crazyflie is treated as a `SyncCrazyflie` instance and as the first argument in swarm wide actions.There is no need to worry about threads since they are handled internally.To reduce connection time,the factory is chosen to be instance of the `CachedCfFactory` class that will cache the Crazyflie objects in the `./cache` directory .
+This will import all the necessary modules and open the necessary links for communication with all the Crazyflies of the swarms. `Swarm` is a wrapper class which facilitates the execution of functions given by the user for each copter and can execute them in parallel or sequentially. Each Crazyflie is treated as a `SyncCrazyflie` instance and as the first argument in swarm wide actions. There is no need to worry about threads since they are handled internally. To reduce connection time,the factory is chosen to be instance of the `CachedCfFactory` class that will cache the Crazyflie objects in the `./cache` directory.
 
 The radio addresses of the copters are defined in the `uris` list and you can add more if you want to.
 
 # Step 1: Light Check
 
-In order to verify everything is setup and working properly a light check will be performed.During this check,all the copters will light up red for a short period of time and then return to normal.
+In order to verify everything is setup and working properly a light check will be performed. During this check, all the copters will light up red for a short period of time and then return to normal.
 This is achieved by setting the parameter `led.bitmask` to 255 which results to all the LED's of each copter light up simultaneously.
 
-Add the helper functions `activateBitMask`,`deactivateBitMask` and the function`lightCheck` above `__main__`:
+Add the helper functions `activate_led_bit_mask`,`deactivate_led_bit_mask` and the function`light_check` above `__main__`:
 ```python
-def activateBitMask(scf):
+def activate_led_bit_mask(scf):
  scf.cf.param.set_value('led.bitmask', 255)
 
-def deactivateBitMask(scf):
+def deactivate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 0)
 
-def lightCheck(scf):
+def light_check(scf):
     activateBitMask(scf)
     time.sleep(2)
     deactivateBitMask(scf)
 ```
-`lightCheck` will light up a copter red for 2 seconds and then return them to normal.
+`light_check` will light up a copter red for 2 seconds and then return them to normal.
 
 Below `... Swarm(...)`  in `__main__`, execute the light check for each copter:
 
 ```python
     swarm.parallel_safe(light_check)
 ```
-The `lightCheck()` is going to be called through the `parallel_safe()` method which will execute it for for all Crazyflies in the swarm, in parallel. One thread per Crazyflie is started to execute the function. The threads are joined at the end and if one or more of the threads raised an exception this function will also raise an exception.
+The `light_check()` is going to be called through the `parallel_safe()` method which will execute it for for all Crazyflies in the swarm, in parallel. One thread per Crazyflie is started to execute the function. The threads are joined at the end and if one or more of the threads raised an exception this function will also raise an exception.
 
 ```python
 import time
@@ -78,16 +78,16 @@ from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
 
 
-def activate_bit_mask(scf):
+def activate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 255)
 
-def deactivate_bit_mask(scf):
+def deactivate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 0)
 
 def light_check(scf):
-    activate_bit_mask(scf)
+    activate_led_bit_mask(scf)
     time.sleep(2)
-    deactivate_bit_mask(scf)
+    deactivate_led_bit_mask(scf)
     time.sleep(2)
 
 
@@ -109,7 +109,7 @@ if __name__ == '__main__':
 If everything is working properly, you can move to the next step .
 
 # Step 2: Security Before Flying
-Before executing any take off and flight maneuvers, the copters need to make sure that they have a precise enough position estimation.Otherwise it will take off anyway and it is very likely to crash. This is done through `reset_estimators()` by resetting the internal position estimator of each copter and waiting until the variance of the position estimation drops below a certain threshold. 
+Before executing any take off and flight maneuvers, the copters need to make sure that they have a precise enough position estimation. Otherwise it will take off anyway and it is very likely to crash. This is done through `reset_estimators()` by resetting the internal position estimator of each copter and waiting until the variance of the position estimation drops below a certain threshold. 
 ```python
 with Swarm(uris, factory=factory) as swarm:
         swarm.parallel_safe(lightCheck)
@@ -117,7 +117,7 @@ with Swarm(uris, factory=factory) as swarm:
 ```
 
 # Step 3: Taking off and Landing Sequentially
-Now we are going to execute the fist take off and landing using the high level commander.The high level commander is a class that handles all the high level commands like takeoff,landing,hover,go to position, and others.You first need to enable it through the `commander.enHighLevel` parameter and then execute the take off and land commands through the below functions:
+Now we are going to execute the fist take off and landing using the high level commander. The high level commander is a class that handles all the high level commands like takeoff, landing, hover, go to position and others. You first need to enable it through the `commander.enHighLevel` parameter and then execute the take off and land commands through the below functions:
 ```python
 def activate_high_level_commander(scf):
     scf.cf.param.set_value('commander.enHighLevel', '1')
@@ -159,10 +159,10 @@ from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
 
 
-def activate_bit_mask(scf):
+def activate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 255)
 
-def deactivate_bit_mask(scf):
+def deactivate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 0)
 
 def light_check(scf):
@@ -211,7 +211,7 @@ if __name__ == '__main__':
         swarm.parallel_safe(activate_high_level_commander)
         swarm.sequential(hover_sequence)
 ```
-After executing it you will see all copters performing the light check and then each copter take off ,hover and land.This process is repeated for all copters in the swarm. 
+After executing it you will see all copters performing the light check and then each copter take off , hover and land. This process is repeated for all copters in the swarm. 
 
 # Step 4: Taking off and Landing in Sync
 If you want to take off and land in sync, you can use the `parallel_safe()` method of the `Swarm` class.
@@ -263,10 +263,10 @@ from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
 
 
-def activate_bit_mask(scf):
+def activate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 255)
 
-def deactivate_bit_mask(scf):
+def deactivate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 0)
 
 def light_check(scf):
@@ -318,7 +318,7 @@ args_dict = {
 }
 ```
 
-where the key is the radio address of the copter and the value is a list of optional arguments.In this way you can differentiate the behavior of each copter and execute different actions based on the copter and its particular parameters.
+where the key is the radio address of the copter and the value is a list of optional arguments. In this way you can differentiate the behavior of each copter and execute different actions based on the copter and its particular parameters.
 
 
 In this example, the copters will be placed in a square shape as shown below (pay attention to the order of the Crazyflies) and each one of them will execute different relative movements.
@@ -404,10 +404,10 @@ from cflib.crazyflie.swarm import Swarm
 from cflib.crazyflie import syncCrazyflie
 
 
-def activate_bit_mask(scf):
+def activate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 255)
 
-def deactivate_bit_mask(scf):
+def deactivate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 0)
 
 def light_check(scf):
@@ -428,17 +428,21 @@ def run_square_sequence(scf):
 
 uris = ...
 
-# The layout of the positions:
-#          ^ Y
-#   0      |       1
-#          |
-#          +------> X 
-#
-#   3              2
+# The layout of the positions (1m apart from each other):
+#   <------ 1 m ----->
+#   0                1
+#          ^              ^
+#          |Y             |
+#          |              |
+#          +------> X    1 m
+#                         |
+#                         |
+#   3               2     .
 
-h = 0.0
-x0, y0 = +0.5, +0.5
-x1, y1 = -0.5, -0.5
+
+h = 0.0 # remain constant height similar to take off height
+x0, y0 = +1.0, +1.0
+x1, y1 = -1.0, -1.0
 
 #    x   y   z  time
 sequence0 = ...
@@ -471,7 +475,7 @@ if __name__ == '__main__':
         swarm.parallel_safe(land)
 ```
 
-You’re done! The full code of this tutorial can be found in the example/step-by-step/ folder.
+You’re done! The full code of this tutorial can be found in the `example/step-by-step/` folder.
 
 # What is next ?
-Now you are able to control a swarm of Crazyflies and you can experiment with different behaviors for each one of them while maintaining the functionality,simplicity of working with just one since the parallelism is handled internally and you can just focus on creating awesome applications! For more examples and inspiration on the Swarm functionality, you can check out the `examples/swarm/` folder of the cflib.
+Now you are able to control a swarm of Crazyflies and you can experiment with different behaviors for each one of them while maintaining the functionality, simplicity of working with just one since the parallelism is handled internally and you can just focus on creating awesome applications! For more examples and inspiration on the Swarm functionality, you can check out the `examples/swarm/` folder of the cflib.

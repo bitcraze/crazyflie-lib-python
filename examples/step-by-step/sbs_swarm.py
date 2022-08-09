@@ -29,18 +29,18 @@ from cflib.crazyflie.swarm import Swarm
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
 
-def activate_bit_mask(scf: SyncCrazyflie):
+def activate_led_bit_mask(scf: SyncCrazyflie):
     scf.cf.param.set_value('led.bitmask', 255)
 
 
-def deactivate_bit_mask(scf: SyncCrazyflie):
+def deactivate_led_bit_mask(scf: SyncCrazyflie):
     scf.cf.param.set_value('led.bitmask', 0)
 
 
 def light_check(scf: SyncCrazyflie):
-    activate_bit_mask(scf)
+    activate_led_bit_mask(scf)
     time.sleep(2)
-    deactivate_bit_mask(scf)
+    deactivate_led_bit_mask(scf)
     time.sleep(2)
 
 
@@ -135,8 +135,8 @@ sequence3 = [
 seq_args = {
     uris[0]: [sequence0],
     uris[1]: [sequence1],
-    # uris[2]: [sequence2],
-    # uris[3]: [sequence3],
+    uris[2]: [sequence2],
+    uris[3]: [sequence3],
 }
 
 

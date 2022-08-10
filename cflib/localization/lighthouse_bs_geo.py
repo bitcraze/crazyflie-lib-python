@@ -24,9 +24,14 @@ Functionality to handle base station geometry in the lighthouse poistioning syst
 """
 import math
 
-import cv2 as cv
 import numpy as np
-
+import pkg_resources
+installed = {pkg.key for pkg in pkg_resources.working_set}
+if {'opencv-python-headless'} - installed:
+    OPENCV_INSTALLED = False
+else:
+    import cv2 as cv
+    OPENCV_INSTALLED = True
 
 class LighthouseBsGeoEstimator:
     """
@@ -35,6 +40,10 @@ class LighthouseBsGeoEstimator:
     """
 
     def __init__(self):
+        if OPENCV_INSTALLED is False:
+            raise Exception('OpenCV is not installed. To use this function,' + 
+                            'do "pip3 install opencv-python-headless"')
+
         self._directions = {
             self._hash_sensor_order([2, 0, 1, 3]): math.radians(0),
             self._hash_sensor_order([2, 0, 3, 1]): math.radians(25),

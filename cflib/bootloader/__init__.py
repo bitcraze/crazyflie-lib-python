@@ -144,7 +144,7 @@ class Bootloader:
                 content = open(filename, 'br').read()
                 artifacts = [FlashArtifact(content, targets[0])]
             else:
-                raise(Exception('Cannot flash a .bin to more than one target!'))
+                raise (Exception('Cannot flash a .bin to more than one target!'))
 
         # Separate artifacts for flash and decks
         flash_artifacts = [a for a in artifacts if a.target.platform == platform]

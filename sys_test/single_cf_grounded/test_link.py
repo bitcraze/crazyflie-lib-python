@@ -145,7 +145,7 @@ class TestLink(TestSingleCfGrounded):
         self.assertIsNone(None, error)
 
     def build_data(self, i, packet_size):
-        assert(packet_size % 4 == 0)
+        assert (packet_size % 4 == 0)
         repeats = packet_size // 4
         return struct.pack('<' + 'I'*repeats, *[i]*repeats)
 

@@ -105,7 +105,7 @@ class _SharedRadioInstance():
         self._datarate = dr
 
     def send_packet(self, data: List[int]) -> crazyradio._radio_ack:
-        assert(self._opened)
+        assert (self._opened)
         self._cmd_queue.put((self._instance_id,
                              _RadioCommands.SEND_PACKET,
                              (self._channel,
@@ -116,13 +116,13 @@ class _SharedRadioInstance():
         return ack
 
     def set_arc(self, arc):
-        assert(self._opened)
+        assert (self._opened)
         self._cmd_queue.put((self._instance_id,
                              _RadioCommands.SET_ARC,
                              arc))
 
     def scan_selected(self, selected, packet):
-        assert(self._opened)
+        assert (self._opened)
         self._cmd_queue.put((self._instance_id,
                              _RadioCommands.SCAN_SELECTED,
                              (self._datarate, self._address,
@@ -130,7 +130,7 @@ class _SharedRadioInstance():
         return self._rsp_queue.get()
 
     def scan_channels(self, start: int, stop: int, packet: Iterable[int]):
-        assert(self._opened)
+        assert (self._opened)
         self._cmd_queue.put((self._instance_id,
                              _RadioCommands.SCAN_CHANNELS,
                              (self._datarate, self._address,
@@ -138,7 +138,7 @@ class _SharedRadioInstance():
         return self._rsp_queue.get()
 
     def close(self):
-        assert(self._opened)
+        assert (self._opened)
         self._cmd_queue.put((self._instance_id, _RadioCommands.STOP, None))
         self._opened = False
 

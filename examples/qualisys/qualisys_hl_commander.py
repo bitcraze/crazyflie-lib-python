@@ -93,7 +93,7 @@ class QtmWrapper(Thread):
 
     async def _life_cycle(self):
         await self._connect()
-        while(self._stay_open):
+        while (self._stay_open):
             await asyncio.sleep(1)
         await self._close()
 

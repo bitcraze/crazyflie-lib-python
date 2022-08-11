@@ -134,7 +134,7 @@ class CPXRouter(threading.Thread):
         return self._transport
 
     def run(self):
-        while(self._connected):
+        while (self._connected):
             # Read one packet from the transport
 
             # Packages might have been split up along the

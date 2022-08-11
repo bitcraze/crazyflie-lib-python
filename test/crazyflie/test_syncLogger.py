@@ -202,7 +202,7 @@ class SyncLoggerTest(unittest.TestCase):
         # Fixture
 
         # Test
-        with(SyncLogger(self.cf_mock, self.log_config_mock)) as sut:
+        with (SyncLogger(self.cf_mock, self.log_config_mock)) as sut:
             # Assert
             self.assertTrue(sut.is_connected())
 

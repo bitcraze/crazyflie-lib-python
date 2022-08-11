@@ -58,9 +58,9 @@ def mat_run(U, Q, hEstMethod='DLT'):
         print('hEstMethod Error')
 
     # Inputs shape checking
-    assert(U.shape[0] == 2 or U.shape[0] == 3)
-    assert(U.shape[1] == Q.shape[1])
-    assert(Q.shape[0] == 2)
+    assert (U.shape[0] == 2 or U.shape[0] == 3)
+    assert (U.shape[1] == Q.shape[1])
+    assert (Q.shape[0] == 2)
 
     n = U.shape[1]
     modelDims = U.shape[0]

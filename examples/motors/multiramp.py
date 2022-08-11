@@ -110,5 +110,5 @@ if __name__ == '__main__':
     # Connect the two Crazyflies and ramps them up-down
     le0 = MotorRampExample('radio://0/70/2M')
     le1 = MotorRampExample('radio://1/80/250K')
-    while(le0.connected or le1.connected):
+    while (le0.connected or le1.connected):
         time.sleep(0.1)

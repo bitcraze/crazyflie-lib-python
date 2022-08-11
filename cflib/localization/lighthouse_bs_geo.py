@@ -33,6 +33,7 @@ else:
     import cv2 as cv
     OPENCV_INSTALLED = True
 
+
 class LighthouseBsGeoEstimator:
     """
     This class is used to estimate the geometry (position and attitude)
@@ -41,7 +42,7 @@ class LighthouseBsGeoEstimator:
 
     def __init__(self):
         if OPENCV_INSTALLED is False:
-            raise Exception('OpenCV is not installed. To use this function,' + 
+            raise Exception('OpenCV is not installed. To use this function,' +
                             'do "pip3 install opencv-python-headless"')
 
         self._directions = {

@@ -51,7 +51,7 @@ This is achieved by setting the parameter `led.bitmask` to 255 which results to 
 Add the helper functions `activate_led_bit_mask`,`deactivate_led_bit_mask` and the function`light_check` above `__main__`:
 ```python
 def activate_led_bit_mask(scf):
- scf.cf.param.set_value('led.bitmask', 255)
+    scf.cf.param.set_value('led.bitmask', 255)
 
 def deactivate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 0)
@@ -117,11 +117,8 @@ with Swarm(uris, factory=factory) as swarm:
 ```
 
 # Step 3: Taking off and Landing Sequentially
-Now we are going to execute the fist take off and landing using the high level commander. The high level commander is a class that handles all the high level commands like takeoff, landing, hover, go to position and others. You first need to enable it through the `commander.enHighLevel` parameter and then execute the take off and land commands through the below functions:
-```python
-def activate_high_level_commander(scf):
-    scf.cf.param.set_value('commander.enHighLevel', '1')
-    
+Now we are going to execute the fist take off and landing using the high level commander. The high level commander (more information [here](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/sensor-to-control/commanders_setpoints/#high-level-commander)) is a class that handles all the high level commands like takeoff, landing, hover, go to position and others. The high level commander is usually preferred since it needs less communication and provides more autonomy on the Crazyflie. It is always on, but just in a lower priority so you just need to execute the take off and land commands through the below functions:
+```python  
 def take_off(scf):
     commander= scf.cf.high_level_commander
 
@@ -141,12 +138,9 @@ def hover_sequence(scf):
     land(scf)
 ```
 
-Notice that after landing, the high level commander is disabled again.
-
 Initially , we want only one copter at a time executing the hover_sequence so it is going to be called through the `sequential()` method of the `Swarm` in the following way:
 
 ```python
-swarm.parallel_safe(activate_high_level_commander)
 swarm.sequential(hover_sequence)
 ```
 Leading to the following code:
@@ -170,9 +164,6 @@ def light_check(scf):
     time.sleep(2)
     deactivateBitMask(scf)
     time.sleep(2)
-
-def activate_high_level_commander(scf):
-    scf.cf.param.set_value('commander.enHighLevel', '1')
 
 def take_off(scf):
     commander= scf.cf.high_level_commander
@@ -208,7 +199,6 @@ if __name__ == '__main__':
         swarm.parallel_safe(lightCheck)
         swarm.reset_estimators()
         
-        swarm.parallel_safe(activate_high_level_commander)
         swarm.sequential(hover_sequence)
 ```
 After executing it you will see all copters performing the light check and then each copter take off , hover and land. This process is repeated for all copters in the swarm. 
@@ -272,9 +262,6 @@ def deactivate_led_bit_mask(scf):
 def light_check(scf):
     ...
 
-def activate_high_level_commander(scf):
-    scf.cf.param.set_value('commander.enHighLevel', '1')
-
 def take_off(scf):
     ...
 
@@ -299,8 +286,6 @@ if __name__ == '__main__':
         print('Connected to  Crazyflies')
         swarm.parallel_safe(light_check)
         swarm.reset_estimators()
-        
-        swarm.parallel_safe(activate_high_level_commander)
         
         swarm.parallel_safe(take_off)
         swarm.parallel_safe(run_square_sequence)
@@ -413,9 +398,6 @@ def deactivate_led_bit_mask(scf):
 def light_check(scf):
     ...
 
-def activate_high_level_commander(scf):
-    scf.cf.param.set_value('commander.enHighLevel', '1')
-
 def take_off(scf):
     ...
 
@@ -467,7 +449,6 @@ if __name__ == '__main__':
         swarm.parallel_safe(light_check)
 
         swarm.reset_estimators()
-        swarm.parallel_safe(activate_high_level_commander)
         
         swarm.parallel_safe(take_off)
         swarm.parallel_safe(run_square_sequence)

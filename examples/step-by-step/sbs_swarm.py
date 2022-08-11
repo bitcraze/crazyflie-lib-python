@@ -44,10 +44,6 @@ def light_check(scf: SyncCrazyflie):
     time.sleep(2)
 
 
-def activate_high_level_commander(scf: SyncCrazyflie):
-    scf.cf.param.set_value('commander.enHighLevel', '1')
-
-
 def take_off(scf: SyncCrazyflie):
     commander = scf.cf.high_level_commander
 
@@ -164,7 +160,6 @@ if __name__ == '__main__':
 
         swarm.reset_estimators()
         print('Estimators have been reset')
-        swarm.parallel_safe(activate_high_level_commander)
 
         swarm.parallel_safe(take_off)
         # swarm.parallel_safe(run_square_sequence)

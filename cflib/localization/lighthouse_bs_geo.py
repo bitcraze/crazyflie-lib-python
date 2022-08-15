@@ -39,6 +39,7 @@ class LighthouseBsGeoEstimator:
     This class is used to estimate the geometry (position and attitude)
     of a lighthouse base station, given angles measured using a lighthouse deck.
     """
+
     def __init__(self):
 
         self._lighthouse_bs_geo_estimator_available = True

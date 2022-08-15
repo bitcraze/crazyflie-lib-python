@@ -104,7 +104,7 @@ class LighthouseBsGeoEstimator:
             raise Exception('OpenCV is not installed. To use this function,' +
                             'do "pip3 install opencv-python-headless"' +
                             ' and restart the cfclient')
-        
+
         guess_yaw = self._find_initial_yaw_guess(bs_vectors)
         rvec_guess, tvec_guess = self._convert_yaw_to_open_cv(guess_yaw)
         rw_ocv, tw_ocv = self._estimate_pose_by_pnp(bs_vectors, rvec_guess, tvec_guess)

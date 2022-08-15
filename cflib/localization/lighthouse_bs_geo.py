@@ -42,9 +42,9 @@ class LighthouseBsGeoEstimator:
 
     def __init__(self):
 
-        self._lighthouse_bs_geo_estimator_available = True
+        self._estimator_available = True
         if OPENCV_INSTALLED is False:
-            self._lighthouse_bs_geo_estimator_available = False
+            self._estimator_available = False
 
         self._directions = {
             self._hash_sensor_order([2, 0, 1, 3]): math.radians(0),
@@ -87,8 +87,8 @@ class LighthouseBsGeoEstimator:
         # Sanity check maximum pos
         self._sanity_max_pos = 10
 
-    def is_lighthouse_bs_geo_estimator_available(self):
-        return self._lighthouse_bs_geo_estimator_available
+    def is_available(self):
+        return self._estimator_available
 
     def estimate_geometry(self, bs_vectors):
         """

@@ -24,8 +24,14 @@ Functionality to handle base station geometry in the lighthouse poistioning syst
 """
 import math
 
-import cv2 as cv
 import numpy as np
+import pkg_resources
+installed = {pkg.key for pkg in pkg_resources.working_set}
+if {'opencv-python-headless'} - installed:
+    OPENCV_INSTALLED = False
+else:
+    import cv2 as cv
+    OPENCV_INSTALLED = True
 
 
 class LighthouseBsGeoEstimator:
@@ -35,6 +41,11 @@ class LighthouseBsGeoEstimator:
     """
 
     def __init__(self):
+
+        self._estimator_available = True
+        if OPENCV_INSTALLED is False:
+            self._estimator_available = False
+
         self._directions = {
             self._hash_sensor_order([2, 0, 1, 3]): math.radians(0),
             self._hash_sensor_order([2, 0, 3, 1]): math.radians(25),
@@ -76,6 +87,9 @@ class LighthouseBsGeoEstimator:
         # Sanity check maximum pos
         self._sanity_max_pos = 10
 
+    def is_available(self):
+        return self._estimator_available
+
     def estimate_geometry(self, bs_vectors):
         """
         Estimate the full pose of a base station based on angles from the 4 sensors
@@ -86,6 +100,12 @@ class LighthouseBsGeoEstimator:
         :return rot_bs_in_cf_coord: Rotation matrix of the BS in the CFs coordinate system
         :return pos_bs_in_cf_coord: Position vector of the BS in the CFs coordinate system
         """
+
+        if OPENCV_INSTALLED is False:
+            raise Exception('OpenCV is not installed. To use this function,' +
+                            'do "pip3 install opencv-python-headless"' +
+                            ' and restart the cfclient')
+
         guess_yaw = self._find_initial_yaw_guess(bs_vectors)
         rvec_guess, tvec_guess = self._convert_yaw_to_open_cv(guess_yaw)
         rw_ocv, tw_ocv = self._estimate_pose_by_pnp(bs_vectors, rvec_guess, tvec_guess)

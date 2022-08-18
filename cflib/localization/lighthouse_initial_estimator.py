@@ -37,8 +37,11 @@ class LighthouseInitialEstimator:
     calculations.
     """
 
+    OUTLIER_DETECTION_ERROR = 0.5
+
     @classmethod
-    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike) -> LhBsCfPoses:
+    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike) -> tuple(
+            LhBsCfPoses, list[LhCfPoseSample]):
         """
         Make a rough estimate of the poses of all base stations and CF poses found in the samples.
 
@@ -47,14 +50,16 @@ class LighthouseInitialEstimator:
 
         :param matched_samples: A list of samples with lighthouse angles.
         :param sensor_positions: An array with the sensor positions on the lighthouse deck (3D, CF ref frame)
-        :return: a
+        :return: an estimate of base station and Crazyflie poses, as well as a cleaned version of matched_samples where
+                 outliers are removed.
         """
 
         bs_positions = cls._find_solutions(matched_samples, sensor_positions)
         # bs_positions is a map from bs-id-pair to position, where the position is the position of the second
         # bs, as seen from the first bs (in the first bs ref frame).
 
-        bs_poses_ref_cfs = cls._angles_to_poses(matched_samples, sensor_positions, bs_positions)
+        bs_poses_ref_cfs, cleaned_matched_samples = cls._angles_to_poses(
+            matched_samples, sensor_positions, bs_positions)
 
         # Use the first CF pose as the global reference frame. The pose of the first base station (as estimated by ippe)
         # is used as the "true" position (reference)
@@ -74,7 +79,7 @@ class LighthouseInitialEstimator:
         # Now that we have estimated the base station poses, estimate the poses of the CF in all the samples
         cf_poses = cls._estimate_cf_poses(bs_poses_ref_cfs, bs_poses)
 
-        return LhBsCfPoses(bs_poses, cf_poses)
+        return LhBsCfPoses(bs_poses, cf_poses), cleaned_matched_samples
 
     @classmethod
     def _find_solutions(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike
@@ -146,7 +151,8 @@ class LighthouseInitialEstimator:
 
     @classmethod
     def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike,
-                         bs_positions: dict[tuple(int, int), npt.NDArray]) -> list[dict[int, Pose]]:
+                         bs_positions: dict[tuple(int, int), npt.NDArray]) -> tuple(list[dict[int, Pose]],
+                                                                                    list[LhCfPoseSample]):
         """
         Estimate the base station poses in the Crazyflie reference frames, for each sample.
 
@@ -156,9 +162,12 @@ class LighthouseInitialEstimator:
         :param matched_samples: List of samples
         :param sensor_positions: Positions of the sensors on the lighthouse deck (CF ref frame)
         :param bs_positions: Dictionary of base station positions (other base station ref frame)
-        :return: A list of dictionaries from base station to Pose of all base stations, for each sample
+        :return: A list of dictionaries from base station to Pose of all base stations, for each sample, as well as
+                 a version of the matched_samples where outliers are removed
         """
         result: list[dict[int, Pose]] = []
+
+        cleaned_matched_samples: list[LhCfPoseSample] = []
 
         for sample in matched_samples:
             solutions: dict[int, tuple[Pose, Pose]] = {}
@@ -171,14 +180,24 @@ class LighthouseInitialEstimator:
             poses: dict[int, Pose] = {}
             ids = sorted(solutions.keys())
             first = ids[0]
+
             for other in ids[1:]:
                 pair = (first, other)
                 expected = bs_positions[pair]
-                poses[first], poses[other] = cls._choose_solutions(solutions[first], solutions[other], expected)
 
-            result.append(poses)
+                firstPose, otherPose = cls._choose_solutions(solutions[first], solutions[other], expected)
+                if firstPose is not None:
+                    poses[first] = firstPose
+                    poses[other] = otherPose
+                else:
+                    poses = None
+                    break
 
-        return result
+            if poses is not None:
+                result.append(poses)
+                cleaned_matched_samples.append(sample)
+
+        return result, cleaned_matched_samples
 
     @classmethod
     def _choose_solutions(cls, solutions_1: tuple[Pose, Pose], solutions_2: tuple[Pose, Pose],
@@ -198,8 +217,8 @@ class LighthouseInitialEstimator:
                     best1 = solution_1
                     best2 = solution_2
 
-        # if min_dist > 0.5:
-        #     print('large error:', min_dist)
+        if min_dist > cls.OUTLIER_DETECTION_ERROR:
+            return None, None
 
         return best1, best2
 

@@ -312,7 +312,8 @@ def open_baduanjin_sound_p2():
     os.startfile('p2_1_2.mp3')
 
 def open_baduanjin_sound_p3():
-    os.startfile('p3_1_2.mp3')
+    # os.startfile('p3_1_2.mp3')
+    os.startfile('p3_1_2.mp4')
 
 
 # # Feedback Section

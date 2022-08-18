@@ -10,7 +10,7 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E703'
+uri_1 = 'radio://0/80/2M/E7E7E7E701'
 
 f = open("pim.txt", "rt")
 data = f.read()
@@ -306,34 +306,34 @@ if __name__ == '__main__':
         time.sleep(3)
 
 
-    # # # Movement no.2 (MotionCommander)
-    #     # Declaring feedback threads for movement no.2
-    #     baduanjin_sound_thread_p2 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p2, args=()) 
+    # # Movement no.2 (MotionCommander)
+        # Declaring feedback threads for movement no.2
+        baduanjin_sound_thread_p2 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p2, args=()) 
         
-    #     # Starting threads for movement no.2
-    #     baduanjin_sound_thread_p2.start()
+        # Starting threads for movement no.2
+        baduanjin_sound_thread_p2.start()
 
-    #     # Perform the movement
-    #     move_baduanjin_mc_p2(scf_1)
+        # Perform the movement
+        move_baduanjin_mc_p2(scf_1)
         
-    #     # Threads join
-    #     baduanjin_sound_thread_p2.join()
+        # Threads join
+        baduanjin_sound_thread_p2.join()
 
 
 
-    # # Movement no.3 (MotionCommander)
-        # Declaring feedback threads for movement no.3
-        baduanjin_sound_thread_p3 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p3, args=()) 
+    # # # # Movement no.3 (MotionCommander)
+    #     # Declaring feedback threads for movement no.3
+    #     baduanjin_sound_thread_p3 = threading.Thread(name='P2-Baduanjin-Sound-Thread', target=open_baduanjin_sound_p3, args=()) 
         
     
-        # Starting threads for movement no.3
-        baduanjin_sound_thread_p3.start()
+    #     # Starting threads for movement no.3
+    #     baduanjin_sound_thread_p3.start()
  
-        # Perform the movement
-        move_baduanjin_mc_p3(scf_1)
+    #     # Perform the movement
+    #     move_baduanjin_mc_p3(scf_1)
 
-        # Threads join  
-        baduanjin_sound_thread_p3.join()
+    #     # Threads join  
+    #     baduanjin_sound_thread_p3.join()
         
         
 

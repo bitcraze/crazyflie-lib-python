@@ -212,14 +212,16 @@ def estimate_geometry(origin: LhCfPoseSample,
                       samples: list[LhCfPoseSample]) -> dict[int, Pose]:
     """Estimate the geometry of the system based on samples recorded by a Crazyflie"""
     matched_samples = [origin] + x_axis + xy_plane + LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
-    initial_guess = LighthouseInitialEstimator.estimate(matched_samples, LhDeck4SensorPositions.positions)
+    initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(
+        matched_samples, LhDeck4SensorPositions.positions)
 
     print('Initial guess base stations at:')
     print_base_stations_poses(initial_guess.bs_poses)
-    visualize(initial_guess.cf_poses, initial_guess.bs_poses.values())
-    print(f'{len(matched_samples)} samples will be used')
 
-    solution = LighthouseGeometrySolver.solve(initial_guess, matched_samples, LhDeck4SensorPositions.positions)
+    print(f'{len(cleaned_matched_samples)} samples will be used')
+    visualize(initial_guess.cf_poses, initial_guess.bs_poses.values())
+
+    solution = LighthouseGeometrySolver.solve(initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions)
     if not solution.success:
         print('Solution did not converge, it might not be good!')
 

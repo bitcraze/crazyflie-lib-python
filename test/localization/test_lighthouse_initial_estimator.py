@@ -60,7 +60,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         ]
 
         # Test
-        actual = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
 
         # Assert
         self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual.bs_poses[bs_id0], places=3)
@@ -89,7 +89,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         ]
 
         # Test
-        actual = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
 
         # Assert
         self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual.bs_poses[bs_id0], places=3)
@@ -120,7 +120,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         ]
 
         # Test
-        actual = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
 
         # Assert
         self.assertPosesAlmostEqual(self.fixtures.CF_ORIGIN_POSE, actual.cf_poses[0], places=3)
@@ -145,7 +145,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         ]
 
         # Test
-        actual = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
 
         # Assert
         self.assertPosesAlmostEqual(

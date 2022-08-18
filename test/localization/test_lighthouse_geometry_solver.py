@@ -44,11 +44,12 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
             }),
         ]
 
-        initial_guess = LighthouseInitialEstimator.estimate(matched_samples, LhDeck4SensorPositions.positions)
+        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples,
+                                                                                     LhDeck4SensorPositions.positions)
 
         # Test
         actual = LighthouseGeometrySolver.solve(
-            initial_guess, matched_samples, LhDeck4SensorPositions.positions)
+            initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions)
 
         # Assert
         bs_poses = actual.bs_poses
@@ -77,11 +78,12 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
             }),
         ]
 
-        initial_guess = LighthouseInitialEstimator.estimate(matched_samples, LhDeck4SensorPositions.positions)
+        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples,
+                                                                                     LhDeck4SensorPositions.positions)
 
         # Test
         actual = LighthouseGeometrySolver.solve(
-            initial_guess, matched_samples, LhDeck4SensorPositions.positions)
+            initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions)
 
         # Assert
         bs_poses = actual.bs_poses

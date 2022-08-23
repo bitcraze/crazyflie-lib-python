@@ -8,6 +8,7 @@
     - {page_id: python_api}
     - {page_id: sbs_connect_log_param}
     - {page_id: sbs_motion_commander}
+    - {page_id: sbs_swarm_interface}
 - title: Functional areas
   subs:
     - {page_id: crazyradio_lib}

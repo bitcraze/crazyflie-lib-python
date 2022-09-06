@@ -53,6 +53,10 @@ rigid_body_name = 'cf'
 # True: send position and orientation; False: send position only
 send_full_pose = False
 
+# When using full pose, the estimator can be sensitive to noise in the orientation data when yaw is close to +/- 90
+# degrees. If this is a problem, increase orientation_std_dev a bit. The default value in the firmware is 4.5e-3.
+orientation_std_dev = 8.0e-3
+
 # The trajectory to fly
 # See https://github.com/whoenig/uav_trajectories for a tool to generate
 # trajectories
@@ -253,6 +257,9 @@ def reset_estimator(cf):
     # time.sleep(1)
     wait_for_position_estimator(cf)
 
+def adjust_orientation_sensitivity(cf):
+    cf.param.set_value('locSrv.extQuatStdDev', orientation_std_dev)
+
 
 def activate_kalman_estimator(cf):
     cf.param.set_value('stabilizer.estimator', '2')
@@ -316,6 +323,7 @@ if __name__ == '__main__':
         qtm_wrapper.on_pose = lambda pose: send_extpose_rot_matrix(
             cf, pose[0], pose[1], pose[2], pose[3])
 
+        adjust_orientation_sensitivity(cf)
         activate_kalman_estimator(cf)
         activate_high_level_commander(cf)
         # activate_mellinger_controller(cf)

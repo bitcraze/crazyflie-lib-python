@@ -34,6 +34,7 @@ import xml.etree.cElementTree as ET
 from threading import Thread
 
 import qtm
+from scipy.spatial.transform import Rotation
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -51,7 +52,7 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 rigid_body_name = 'cf'
 
 # True: send position and orientation; False: send position only
-send_full_pose = False
+send_full_pose = True
 
 # When using full pose, the estimator can be sensitive to noise in the orientation data when yaw is close to +/- 90
 # degrees. If this is a problem, increase orientation_std_dev a bit. The default value in the firmware is 4.5e-3.
@@ -235,16 +236,10 @@ def send_extpose_rot_matrix(cf, x, y, z, rot):
     rotaton matrix. This is going to be forwarded to the Crazyflie's
     position estimator.
     """
-    qw = _sqrt(1 + rot[0][0] + rot[1][1] + rot[2][2]) / 2
-    qx = _sqrt(1 + rot[0][0] - rot[1][1] - rot[2][2]) / 2
-    qy = _sqrt(1 - rot[0][0] + rot[1][1] - rot[2][2]) / 2
-    qz = _sqrt(1 - rot[0][0] - rot[1][1] + rot[2][2]) / 2
-
-    # Normalize the quaternion
-    ql = math.sqrt(qx ** 2 + qy ** 2 + qz ** 2 + qw ** 2)
+    quat = Rotation.from_matrix(rot).as_quat()
 
     if send_full_pose:
-        cf.extpos.send_extpose(x, y, z, qx / ql, qy / ql, qz / ql, qw / ql)
+        cf.extpos.send_extpose(x, y, z, quat[0], quat[1], quat[2], quat[3])
     else:
         cf.extpos.send_extpos(x, y, z)
 
@@ -256,6 +251,7 @@ def reset_estimator(cf):
 
     # time.sleep(1)
     wait_for_position_estimator(cf)
+
 
 def adjust_orientation_sensitivity(cf):
     cf.param.set_value('locSrv.extQuatStdDev', orientation_std_dev)

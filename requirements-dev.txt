@@ -1,6 +1,0 @@
--e .
-
-coverage
-mock
-pre-commit
-tox

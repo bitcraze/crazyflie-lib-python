@@ -34,13 +34,14 @@ a synchronous API by wrapping the asynchronous classes, see the
 All communication links are identified using an URI build up of the
 following: InterfaceType://InterfaceId/InterfaceChannel/InterfaceSpeed
 
-Currently only *radio* and *debug* interfaces are used but there\'s
-ideas for more like *udp*, *serial*, *usb*, etc\...Here are some
-examples:
+Currently we have *radio*, *serial*, *usb*, *debug*, *udp* interfaces are used. Here are some examples:
 
 -   _radio://0/10/2M : Radio interface, USB dongle number 0, radio channel 10 and radio
     speed 2 Mbit/s: radio://0/10/2M
 -   _debug://0/1_ : Debug interface, id 0, channel 1
+- _usb://0_ : USB cable to microusb port, id 0
+- _serial://ttyAMA0_ : Serial port, id ttyAMA0
+- _tcp://aideck-AABBCCDD.local:5000_ : TCP network connection, Name: aideck-AABBCCDD.local, port 5000
 
 ### Variables and logging
 

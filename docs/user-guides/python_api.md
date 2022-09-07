@@ -261,7 +261,7 @@ If your Crazyflie has a positioning system (LPS, flowdeck, MoCap, Lighthouse), y
 send_hover_setpoint(self, vx, vy, yawrate, zdistance)
 ```
 
-Check out the [automated API documentation](/documentation/repository/crazyflie-lib-python/master/api/cflib/crazyflie/commander/) for the Crazyflie cflib's commander frame work to find out what other functions you can use.
+Check out the [automated API documentation](/docs/api/cflib/crazyflie/commander.md) for the Crazyflie cflib's commander frame work to find out what other functions you can use.
 
 ## Parameters
 

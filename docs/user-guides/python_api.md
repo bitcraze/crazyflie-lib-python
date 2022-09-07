@@ -77,7 +77,7 @@ The library supports reading and writing parameters at run-time to the
 firmware. This is intended to be used for data that is not continuously
 being changed by the firmware, like setting regulation parameters and
 reading out if the power-on self-tests passed. Parameters should only
-change in the firmware when being set from the host (cfclient or a cflib script) or during start-up. 
+change in the firmware when being set from the host (cfclient or a cflib script) or during start-up.
 
 The library doesn\'t continuously update the parameter values, this
 should only be done once after connecting. After each write to a
@@ -95,7 +95,7 @@ The parameters should be used in the following way:
 -   For each write all the callbacks registered for this parameter will
     be called back
 
-There is an exception for experimental support to change the parameter from within [firmware's app layer](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/userguides/app_layer/#internal-log-and-param-system). However do mind that this functionality is not according to the design of the parameters framework so that the host might not be updated correctly on the parameter change. 
+There is an exception for experimental support to change the parameter from within [firmware's app layer](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/userguides/app_layer/#internal-log-and-param-system). However do mind that this functionality is not according to the design of the parameters framework so that the host might not be updated correctly on the parameter change.
 
 ### Variable and parameter names
 
@@ -255,7 +255,7 @@ kicks-in.
 
 ### Other commander setpoints sending
 
-If your Crazyflie has a positioning system (LPS, flowdeck, MoCap, Lighthouse), you can also send velocity or position setpoints, like for instance:
+If your Crazyflie has a positioning system (Loco, flowdeck, MoCap, Lighthouse), you can also send velocity or position setpoints, like for instance:
 
 ```
 send_hover_setpoint(self, vx, vy, yawrate, zdistance)
@@ -535,7 +535,7 @@ movements that are blocking until the motion is finished.
 
 The PositionHlCommander uses the high level commander in the Crazyflie and is
 based on a global coordinate system and absolute positions. It is intended
-to be used with a positioning system such as LPS, the lighthouse or a mocap system.
+to be used with a positioning system such as Loco, the lighthouse or a mocap system.
 
 ``` python
     with SyncCrazyflie(URI) as scf:

@@ -34,13 +34,14 @@ a synchronous API by wrapping the asynchronous classes, see the
 All communication links are identified using an URI build up of the
 following: InterfaceType://InterfaceId/InterfaceChannel/InterfaceSpeed
 
-Currently only *radio* and *debug* interfaces are used but there\'s
-ideas for more like *udp*, *serial*, *usb*, etc\...Here are some
-examples:
+Currently we have *radio*, *serial*, *usb*, *debug*, *udp* interfaces are used. Here are some examples:
 
 -   _radio://0/10/2M : Radio interface, USB dongle number 0, radio channel 10 and radio
     speed 2 Mbit/s: radio://0/10/2M
 -   _debug://0/1_ : Debug interface, id 0, channel 1
+- _usb://0_ : USB cable to microusb port, id 0
+- _serial://ttyAMA0_ : Serial port, id ttyAMA0
+- _tcp://aideck-AABBCCDD.local:5000_ : TCP network connection, Name: aideck-AABBCCDD.local, port 5000
 
 ### Variables and logging
 
@@ -76,12 +77,14 @@ The library supports reading and writing parameters at run-time to the
 firmware. This is intended to be used for data that is not continuously
 being changed by the firmware, like setting regulation parameters and
 reading out if the power-on self-tests passed. Parameters should only
-change in the firmware when being set from the host or during start-up.
+change in the firmware when being set from the host (cfclient or a cflib script) or during start-up.
+
 The library doesn\'t continuously update the parameter values, this
 should only be done once after connecting. After each write to a
 parameter the firmware will send back the updated value and this will be
-forwarded to callbacks registered for reading this parameter. The
-parameters should be used in the following way:
+forwarded to callbacks registered for reading this parameter.
+
+The parameters should be used in the following way:
 
 -   Register parameter updated callbacks at any time in your application
 -   Connect to your Crazyflie (this will download the parameter TOC)
@@ -91,6 +94,8 @@ parameters should be used in the following way:
     firmware
 -   For each write all the callbacks registered for this parameter will
     be called back
+
+There is an exception for experimental support to change the parameter from within [firmware's app layer](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/userguides/app_layer/#internal-log-and-param-system). However do mind that this functionality is not according to the design of the parameters framework so that the host might not be updated correctly on the parameter change.
 
 ### Variable and parameter names
 
@@ -200,7 +205,7 @@ object:
 ``` python
     crazyflie = Crazyflie()
     crazyflie.connected.add_callback(crazyflie_connected)
-    crazyflie.open_link("radio://0/10/250K")
+    crazyflie.open_link("radio://0/10/2M")
 ```
 
 Then you can use the following to close the link again:
@@ -209,10 +214,12 @@ Then you can use the following to close the link again:
     crazyflie.close_link()
 ```
 
-## Sending control setpoints
+## Sending control setpoints with the commander framework
 
 The control setpoints are not implemented as parameters, instead they
 have a special API.
+
+### Attitude Setpoints
 
 ``` python
     def send_setpoint(self, roll, pitch, yawrate, thrust):
@@ -245,6 +252,16 @@ intended to avoid flyaway when connecting a gamepad. You must send
 one command with thrust = 0 in order to unlock the command. This
 unlock procedure needs to be repeated if the watchdog describe above
 kicks-in.
+
+### Other commander setpoints sending
+
+If your Crazyflie has a positioning system (Loco, flowdeck, MoCap, Lighthouse), you can also send velocity or position setpoints, like for instance:
+
+```
+send_hover_setpoint(self, vx, vy, yawrate, zdistance)
+```
+
+Check out the [automated API documentation](/docs/api/cflib/crazyflie/commander.md) for the Crazyflie cflib's commander frame work to find out what other functions you can use.
 
 ## Parameters
 
@@ -301,12 +318,12 @@ It is also possible to get the current value of a parameter (when connected) wit
     value = get_value(complete_name)
 ```
 
-Note 1: If you call `set_value()` and then directly call `get_value()` for a parameter, you might not read back the new
+>**Note 1** If you call `set_value()` and then directly call `get_value()` for a parameter, you might not read back the new
 value, but get the old one instead. The process is asynchronous and `get_value()` will not return the new value until
 the parameter value has propagated to the Crazyflie and back. Use the callback method if you need to be certain
 that you get the correct value after an update.
 
-Note 2: `get_value()` and `set_value()` can not be called from callbacks until the Crazyflie is fully connected.
+>**Note 2**: `get_value()` and `set_value()` can not be called from callbacks until the Crazyflie is fully connected.
 Most notably they can not be called from the `connected` callback as the parameter values have not been
 downloaded yet. Use the `fully_connected` callback to make sure the system is ready for parameter use. It is OK to
 call `get_value()` and `set_value()` from the `fully_connected` callback.
@@ -491,7 +508,7 @@ and SyncCrazyflie instances. To get the log values, iterate the instance.
 
 ### MotionCommander
 
-The MotionCommander is intended to simplify basic autonomous flight. The Crazyflie takes off
+The MotionCommander class is intended to simplify basic autonomous flight, where the motion control is done from the host computer. The Crazyflie takes off
 when entering the "with" section, and lands when exiting. It has functions for basic
 movements that are blocking until the motion is finished.
 
@@ -512,13 +529,13 @@ system, all positions are relative. It is mainly intended to be used with a Flow
 
 ### PositionHlCommander
 
-The PositionHlCommander is intended to simplify basic autonomous flight. The Crazyflie takes off
+The PositionHlCommander is intended to simplify basic autonomous flight, where all the high level commands exists inside the Crazyflie firmware. The Crazyflie takes off
 when entering the "with" section, and lands when exiting. It has functions for basic
 movements that are blocking until the motion is finished.
 
 The PositionHlCommander uses the high level commander in the Crazyflie and is
-based on a global coordinate system and absolute positoinins. It is inteneded
-to be used with a positioning system such as LPS, the lighthouse or a mocap system.
+based on a global coordinate system and absolute positions. It is intended
+to be used with a positioning system such as Loco, the lighthouse or a mocap system.
 
 ``` python
     with SyncCrazyflie(URI) as scf:

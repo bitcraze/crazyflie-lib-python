@@ -1,6 +1,7 @@
 ---
 title: Debugging CRTP using Wireshark
 page_id: wireshark_debugging
+redirect:  /wireshark/wireshark/
 ---
 
 Wireshark is a free and open-source packet analyzer. It is used for network troubleshooting, analysis, software and communications protocol development, and education. It makes analyzing what is going on with packet based protocols easier.

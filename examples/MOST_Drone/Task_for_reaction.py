@@ -8,7 +8,7 @@ from cflib.positioning.motion_commander import MotionCommander
 
 
 # URI to the Crazyflie to connect to
-uri = 'radio://0/80/2M/E7E7E7E701'
+uri = 'radio://0/80/2M/E7E7E7E705'
 
 
 f = open("conditions.txt", "rt")
@@ -26,14 +26,16 @@ fly_out_z = float(data_split[5]) # Fly out position in z-axis (unit: m)
 
 def drone_move_mc(scf): # default take-off height = 0.3 m
     
+    t_init = time.time()
+
     with MotionCommander(scf) as mc:
 
-        t_init = time.time()
-        print("start to takeoff")   
+        t_take_off = time.time() - t_init
+        print("start taking off at ", t_take_off)   
     
         ## Go up: h0 meter (at the eyes level)
-        mc.up(h0 - 0.3, velocity=0.3)
-
+        mc.up(h0 - 0.45, velocity=0.3)
+        
         # time.sleep(1)
 
         # mc.left(0.4)
@@ -53,10 +55,11 @@ def drone_move_mc(scf): # default take-off height = 0.3 m
 
         # Timestamp before flying out
         t_fo = time.time() - t_init
-        # print("t fly out: ", t_fo)
+        print("t fly out: ", t_fo)
 
         ## Fly out
         mc.move_distance(fly_out_x, fly_out_y, fly_out_z, velocity=V_fly_out) 
+        # mc.up(fly_out_z, velocity=V_fly_out)
 
         t_f1 = time.time() - t_init
         print("t after fly out: ", t_f1)
@@ -65,7 +68,6 @@ def drone_move_mc(scf): # default take-off height = 0.3 m
         
         ## Delay 2 sec before landing
         time.sleep(1)
-
 
     
 

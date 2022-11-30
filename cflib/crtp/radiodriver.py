@@ -42,12 +42,10 @@ from queue import Queue
 from threading import Semaphore
 from threading import Thread
 from typing import Any
-from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import Union
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 

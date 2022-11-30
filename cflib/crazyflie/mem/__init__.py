@@ -29,7 +29,9 @@ Enables access to the Crazyflie memory subsystem.
 import errno
 import logging
 import struct
+import time
 from threading import Lock
+from threading import Timer
 
 from .deck_memory import DeckMemoryManager
 from .i2c_element import I2CElement
@@ -87,15 +89,31 @@ class _ReadRequest:
 
         self._current_addr = addr
 
-    def start(self):
+        self._latest_read_time = 0.0
+
+    def start(self, now: float):
         """Start the fetching of the data"""
-        self._request_new_chunk()
+        self._request_new_chunk(now)
 
-    def resend(self):
+    def resend(self, now: float):
         logger.debug('Sending write again...')
-        self._request_new_chunk()
+        self._request_new_chunk(now)
 
-    def _request_new_chunk(self):
+    def has_timed_out(self, now: float, operation_time_out: float) -> bool:
+        """Check if this request has taken too long
+
+        Args:
+            now (float): current time
+            operation_time_out (float): maximum acceptable time for the operation
+
+        Returns:
+            bool: True if the operation has been going on for too long
+        """
+        if self._latest_read_time == 0.0:
+            return False
+        return (now - self._latest_read_time) > operation_time_out
+
+    def _request_new_chunk(self, now: float):
         """
         Called to request a new chunk of data to be read from the Crazyflie
         """
@@ -113,8 +131,9 @@ class _ReadRequest:
         pk.data = struct.pack('<BIB', self.mem.id, self._current_addr, new_len)
         reply = struct.unpack('<BBBBB', pk.data[:-1])
         self.cf.send_packet(pk, expected_reply=reply, timeout=1)
+        self._latest_read_time = now
 
-    def add_data(self, addr, data):
+    def add_data(self, addr, data, now: float):
         """Callback when data is received from the Crazyflie"""
         data_len = len(data)
         if not addr == self._current_addr:
@@ -128,7 +147,7 @@ class _ReadRequest:
         self._current_addr += data_len
 
         if self._bytes_left > 0:
-            self._request_new_chunk()
+            self._request_new_chunk(now)
             return False
         else:
             return True
@@ -159,17 +178,32 @@ class _WriteRequest:
         self._sent_reply = None
 
         self._addr_add = 0
+        self._latest_write_time = 0.0
 
-    def start(self):
+    def start(self, now: float):
         """Start the fetching of the data"""
-        self._write_new_chunk()
+        self._write_new_chunk(now)
 
-    def resend(self):
+    def resend(self, now: float):
         logger.debug('Sending write again...')
-        self.cf.send_packet(
-            self._sent_packet, expected_reply=self._sent_reply, timeout=1)
+        self.cf.send_packet(self._sent_packet, expected_reply=self._sent_reply, timeout=1)
+        self._latest_write_time = now
 
-    def _write_new_chunk(self):
+    def has_timed_out(self, now: float, operation_time_out: float) -> bool:
+        """Check if this request has taken too long
+
+        Args:
+            now (float): current time
+            operation_time_out (float): maximum acceptable time for the operation
+
+        Returns:
+            bool: True if the operation has been going on for too long
+        """
+        if self._latest_write_time == 0.0:
+            return False
+        return (now - self._latest_write_time) > operation_time_out
+
+    def _write_new_chunk(self, now: float):
         """
         Called to request a new chunk of data to be read from the Crazyflie
         """
@@ -194,6 +228,7 @@ class _WriteRequest:
         pk.data += struct.pack('B' * len(data), *data)
         self._sent_packet = pk
         self.cf.send_packet(pk, expected_reply=reply, timeout=1)
+        self._latest_write_time = now
 
         self._addr_add = len(data)
         self._bytes_left -= self._addr_add
@@ -206,7 +241,7 @@ class _WriteRequest:
 
         return 'Writing to memory'
 
-    def write_done(self, addr):
+    def write_done(self, addr, now: float):
         """Callback when data is received from the Crazyflie"""
         if not addr == self._current_addr:
             logger.warning(
@@ -221,7 +256,7 @@ class _WriteRequest:
 
         if len(self._data) > 0:
             self._current_addr += self._addr_add
-            self._write_new_chunk()
+            self._write_new_chunk(now)
             return False
         else:
             logger.debug('This write request is done')
@@ -242,6 +277,9 @@ class Memory():
         errno.EEXIST: 'Block already exists'
     }
 
+    TIMEOUT_CHECK_INTERVAL = 0.5
+    MEM_OPERATION_TIMEOUT = 3.0
+
     def __init__(self, crazyflie=None):
         """Instantiate class and connect callbacks"""
         self.cf = crazyflie
@@ -250,6 +288,8 @@ class Memory():
         self._write_requests_lock = Lock()
 
         self._clear_state()
+
+        self._start_timeout_check_timer()
 
     def _clear_state(self):
         self.mems = []
@@ -262,7 +302,9 @@ class Memory():
         self.mem_write_cb = Caller()
         self.mem_write_failed_cb = Caller()
 
-        self._refresh_callback = None
+        self._clear_refresh_callbacks()
+        self._chan_info_latest_packet_time = 0.0
+
         self._fetch_id = 0
         self.nbr_of_mems = 0
         self._ow_mem_fetch_index = 0
@@ -271,6 +313,13 @@ class Memory():
         self._write_requests = {}
         self._ow_mems_left_to_update = []
         self._getting_count = False
+
+    def _clear_refresh_callbacks(self):
+        self._refresh_callback = None
+        self._refresh_failed_callback = None
+
+    def _start_timeout_check_timer(self):
+        Timer(interval=self.TIMEOUT_CHECK_INTERVAL, function=self._handle_timeouts).start()
 
     def _mem_update_done(self, mem):
         """
@@ -285,7 +334,7 @@ class Memory():
         if len(self._ow_mems_left_to_update) == 0:
             if self._refresh_callback:
                 self._refresh_callback()
-                self._refresh_callback = None
+                self._clear_refresh_callbacks()
 
     def get_mem(self, id):
         """Fetch the memory with the supplied id"""
@@ -326,7 +375,8 @@ class Memory():
                 memory.id][:1]
         self._write_requests[memory.id].append(wreq)
         if len(self._write_requests[memory.id]) == 1:
-            wreq.start()
+            now = time.time()
+            wreq.start(now)
         self._write_requests_lock.release()
 
         return True
@@ -342,13 +392,15 @@ class Memory():
         rreq = _ReadRequest(memory, addr, length, self.cf)
         self._read_requests[memory.id] = rreq
 
-        rreq.start()
+        now = time.time()
+        rreq.start(now)
 
         return True
 
-    def refresh(self, refresh_done_callback):
+    def refresh(self, refresh_done_callback, failed_cb=None):
         """Start fetching all the detected memories"""
         self._refresh_callback = refresh_done_callback
+        self._refresh_failed_callback = failed_cb
         self._fetch_id = 0
         for m in self.mems:
             try:
@@ -366,6 +418,7 @@ class Memory():
         pk.set_header(CRTPPort.MEM, CHAN_INFO)
         pk.data = (CMD_INFO_NBR,)
         self.cf.send_packet(pk, expected_reply=(CMD_INFO_NBR,))
+        self._chan_info_latest_packet_time = time.time()
 
     def _disconnected(self, uri):
         """The link to the Crazyflie has been broken. Reset state"""
@@ -385,6 +438,7 @@ class Memory():
             self._handle_chan_read(cmd, payload)
 
     def _handle_chan_info(self, cmd, payload):
+        self._chan_info_latest_packet_time = 0.0
         if cmd == CMD_INFO_NBR:
             self._handle_cmd_info_nbr(payload)
         if cmd == CMD_INFO_DETAILS:
@@ -403,8 +457,11 @@ class Memory():
                 pk.set_header(CRTPPort.MEM, CHAN_INFO)
                 pk.data = (CMD_INFO_DETAILS, 0)
                 self.cf.send_packet(pk, expected_reply=(CMD_INFO_DETAILS, 0))
+                self._chan_info_latest_packet_time = time.time()
         else:
-            self._refresh_callback()
+            if self._refresh_callback:
+                self._refresh_callback()
+                self._clear_refresh_callbacks()
 
     def _handle_cmd_info_details(self, payload):
         # Did we get a good reply, otherwise try again:
@@ -417,7 +474,7 @@ class Memory():
             self.nbr_of_mems = 1
             if self._refresh_callback:
                 self._refresh_callback()
-                self._refresh_callback = None
+                self._clear_refresh_callbacks()
             return
 
         # Create information about a new memory
@@ -502,6 +559,7 @@ class Memory():
             pk.set_header(CRTPPort.MEM, CHAN_INFO)
             pk.data = (CMD_INFO_DETAILS, self._fetch_id)
             self.cf.send_packet(pk, expected_reply=(CMD_INFO_DETAILS, self._fetch_id))
+            self._chan_info_latest_packet_time = time.time()
         else:
             logger.debug('Done getting all the memories, start reading the OWs')
             ows = self.get_mems(MemoryElement.TYPE_1W)
@@ -512,7 +570,7 @@ class Memory():
             if len(ows) == 0:
                 if self._refresh_callback:
                     self._refresh_callback()
-                    self._refresh_callback = None
+                    self._clear_refresh_callbacks()
 
     def _handle_chan_write(self, cmd, payload):
         id = cmd
@@ -525,7 +583,8 @@ class Memory():
             do_call_fail_cb = False
             wreq = self._write_requests[id][0]
             if status == 0:
-                if wreq.write_done(addr):
+                now = time.time()
+                if wreq.write_done(addr, now):
                     # self._write_requests.pop(id, None)
                     # Remove the first item
                     self._write_requests[id].pop(0)
@@ -563,11 +622,61 @@ class Memory():
             logger.debug('READING: We are still interested in request for mem {}'.format(id))
             rreq = self._read_requests[id]
             if status == 0:
-                if rreq.add_data(addr, payload[5:]):
+                now = time.time()
+                if rreq.add_data(addr, payload[5:], now):
                     self._read_requests.pop(id, None)
                     self.mem_read_cb.call(rreq.mem, rreq.addr, rreq.data)
             else:
                 logger.debug('Status {}: read failed.'.format(status))
                 self._read_requests.pop(id, None)
-                self.mem_read_failed_cb.call(
-                    rreq.mem, rreq.addr, rreq.data)
+                self.mem_read_failed_cb.call(rreq.mem, rreq.addr, rreq.data)
+
+    def _handle_timeouts(self):
+        now = time.time()
+        self._handle_read_timeouts(now)
+        self._handle_write_timeouts(now)
+        self._handle_chan_info_timeouts(now)
+        self._start_timeout_check_timer()
+
+    def _handle_read_timeouts(self, now):
+        timeout_read_requests = []
+
+        for mem_id, rreq in self._read_requests.items():
+            if rreq.has_timed_out(now, self.MEM_OPERATION_TIMEOUT):
+                timeout_read_requests.append((mem_id, rreq))
+
+        for mem_id, rreq in timeout_read_requests:
+            self._read_requests.pop(mem_id)
+
+        for mem_id, rreq in timeout_read_requests:
+            logger.error(f'Timeout when reading mapped memory {mem_id}, addr: {rreq.addr}')
+            self.mem_read_failed_cb.call(rreq.mem, rreq.addr, rreq.data)
+
+    def _handle_write_timeouts(self, now):
+        timeout_write_requests = []
+
+        self._write_requests_lock.acquire()
+        for mem_id, wreqs in self._write_requests.items():
+            if len(wreqs) > 0:
+                wreq = wreqs[0]
+                if wreq.has_timed_out(now, self.MEM_OPERATION_TIMEOUT):
+                    timeout_write_requests.append((mem_id, wreq))
+
+                    # Remove from list and start next if it exists
+                    wreqs.pop(0)
+                    if len(wreqs) > 0:
+                        wreqs[0].start()
+        self._write_requests_lock.release()
+
+        for mem_id, wreq in timeout_write_requests:
+            logger.error(f'Timeout when writing mapped memory {mem_id}, addr: {wreq.addr}')
+            self.mem_write_failed_cb.call(wreq.mem, wreq.addr)
+
+    def _handle_chan_info_timeouts(self, now):
+        if self._chan_info_latest_packet_time > 0.0:
+            if (now - self._chan_info_latest_packet_time) > self.MEM_OPERATION_TIMEOUT:
+                self._chan_info_latest_packet_time = 0.0
+                logger.error(f'Timeout when getting memory information')
+                if self._refresh_failed_callback:
+                    self._refresh_failed_callback()
+                self._clear_refresh_callbacks()

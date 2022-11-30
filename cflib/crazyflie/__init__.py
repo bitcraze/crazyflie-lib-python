@@ -179,10 +179,27 @@ class Crazyflie():
         logger.info('Memories finished updating')
         self.param.refresh_toc(self._param_toc_updated_cb, self._toc_cache)
 
+    def _mems_update_failed_cb(self):
+        """Called when the memory update have failed"""
+        logger.error('Memories failed to update')
+
+        errmsg = 'Mapped memories could not be accessed'
+
+        if (self.link is not None):
+            self.link.close()
+        self.link = None
+        if (self.state == State.INITIALIZED):
+            self.connection_failed.call(self.link_uri, errmsg)
+        if (self.state == State.CONNECTED or
+                self.state == State.SETUP_FINISHED):
+            self.disconnected.call(self.link_uri)
+            self.connection_lost.call(self.link_uri, errmsg)
+        self.state = State.DISCONNECTED
+
     def _log_toc_updated_cb(self):
         """Called when the log TOC has been fully updated"""
         logger.info('Log TOC finished updating')
-        self.mem.refresh(self._mems_updated_cb)
+        self.mem.refresh(self._mems_updated_cb, failed_cb=self._mems_update_failed_cb)
 
     def _all_parameters_updated(self):
         """Called when all parameters have been updated"""

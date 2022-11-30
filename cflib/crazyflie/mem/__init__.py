@@ -676,7 +676,7 @@ class Memory():
         if self._chan_info_latest_packet_time > 0.0:
             if (now - self._chan_info_latest_packet_time) > self.MEM_OPERATION_TIMEOUT:
                 self._chan_info_latest_packet_time = 0.0
-                logger.error(f'Timeout when getting memory information')
+                logger.error('Timeout when getting memory information')
                 if self._refresh_failed_callback:
                     self._refresh_failed_callback()
                 self._clear_refresh_callbacks()

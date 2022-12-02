@@ -256,6 +256,8 @@ class Memory():
         # Called when new memories have been added
         self.mem_added_cb = Caller()
 
+        self._clear_refresh_callbacks()
+
         # Called to signal completion of read or write
         self.mem_read_cb = Caller()
         self.mem_read_failed_cb = Caller()
@@ -263,6 +265,7 @@ class Memory():
         self.mem_write_failed_cb = Caller()
 
         self._refresh_callback = None
+        self._refresh_failed_callback = None
         self._fetch_id = 0
         self.nbr_of_mems = 0
         self._ow_mem_fetch_index = 0
@@ -271,6 +274,10 @@ class Memory():
         self._write_requests = {}
         self._ow_mems_left_to_update = []
         self._getting_count = False
+
+    def _clear_refresh_callbacks(self):
+        self._refresh_callback = None
+        self._refresh_failed_callback = None
 
     def _mem_update_done(self, mem):
         """
@@ -285,7 +292,7 @@ class Memory():
         if len(self._ow_mems_left_to_update) == 0:
             if self._refresh_callback:
                 self._refresh_callback()
-                self._refresh_callback = None
+                self._clear_refresh_callbacks()
 
     def get_mem(self, id):
         """Fetch the memory with the supplied id"""
@@ -346,9 +353,10 @@ class Memory():
 
         return True
 
-    def refresh(self, refresh_done_callback):
+    def refresh(self, refresh_done_callback, refresh_failed_cb=None):
         """Start fetching all the detected memories"""
         self._refresh_callback = refresh_done_callback
+        self._refresh_failed_callback = refresh_failed_cb
         self._fetch_id = 0
         for m in self.mems:
             try:
@@ -369,7 +377,31 @@ class Memory():
 
     def _disconnected(self, uri):
         """The link to the Crazyflie has been broken. Reset state"""
+        self._call_all_failed_callbacks()
         self._clear_state()
+
+    def _call_all_failed_callbacks(self):
+        # Read requests
+        read_requests = list(self._read_requests.values())
+        self._read_requests.clear()
+        for rreq in read_requests:
+            self.mem_read_failed_cb.call(rreq.mem, rreq.addr, rreq.data)
+
+        # Write requests
+        write_requests = []
+        self._write_requests_lock.acquire()
+        for requests in self._write_requests.values():
+            write_requests += requests
+        self._write_requests.clear()
+        self._write_requests_lock.release()
+
+        for wreq in write_requests:
+            self.mem_write_failed_cb.call(wreq.mem, wreq.addr)
+
+        # Info
+        if self._refresh_failed_callback:
+            self._refresh_failed_callback()
+            self._clear_refresh_callbacks()
 
     def _new_packet_cb(self, packet):
         """Callback for newly arrived packets for the memory port"""
@@ -404,7 +436,9 @@ class Memory():
                 pk.data = (CMD_INFO_DETAILS, 0)
                 self.cf.send_packet(pk, expected_reply=(CMD_INFO_DETAILS, 0))
         else:
-            self._refresh_callback()
+            if self._refresh_callback:
+                self._refresh_callback()
+                self._clear_refresh_callbacks()
 
     def _handle_cmd_info_details(self, payload):
         # Did we get a good reply, otherwise try again:
@@ -417,7 +451,7 @@ class Memory():
             self.nbr_of_mems = 1
             if self._refresh_callback:
                 self._refresh_callback()
-                self._refresh_callback = None
+                self._clear_refresh_callbacks()
             return
 
         # Create information about a new memory
@@ -488,8 +522,7 @@ class Memory():
                 self.mem_write_cb.add_callback(mem._write_done)
                 self.mem_write_failed_cb.add_callback(mem._write_failed)
             else:
-                mem = MemoryElement(id=mem_id, type=mem_type,
-                                    size=mem_size, mem_handler=self)
+                mem = MemoryElement(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
                 logger.debug(mem)
             self.mems.append(mem)
             self.mem_added_cb.call(mem)
@@ -512,7 +545,7 @@ class Memory():
             if len(ows) == 0:
                 if self._refresh_callback:
                     self._refresh_callback()
-                    self._refresh_callback = None
+                    self._clear_refresh_callbacks()
 
     def _handle_chan_write(self, cmd, payload):
         id = cmd
@@ -569,5 +602,4 @@ class Memory():
             else:
                 logger.debug('Status {}: read failed.'.format(status))
                 self._read_requests.pop(id, None)
-                self.mem_read_failed_cb.call(
-                    rreq.mem, rreq.addr, rreq.data)
+                self.mem_read_failed_cb.call(rreq.mem, rreq.addr, rreq.data)

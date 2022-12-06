@@ -131,7 +131,7 @@ class Bootloader:
     def get_target(self, target_id):
         return self._cload.request_info_update(target_id)
 
-    def flash(self, filename: str, targets: List[Target], cf=None):
+    def flash(self, filename: str, targets: List[Target], cf=None, enable_console_log: Optional[bool] = False):
         # Separate flash targets from decks
         platform = self._get_platform_id()
         flash_targets = [t for t in targets if t.platform == platform]
@@ -170,7 +170,8 @@ class Bootloader:
                 # Flash all decks and reboot after each deck
                 current_index = 0
                 while current_index != -1:
-                    current_index = self._flash_deck_incrementally(deck_artifacts, deck_targets, current_index)
+                    current_index = self._flash_deck_incrementally(deck_artifacts, deck_targets, current_index,
+                                                                   enable_console_log=enable_console_log)
                     if self.progress_cb:
                         self.progress_cb('Deck updated! Restarting...', int(100))
                     if current_index != -1:
@@ -198,7 +199,8 @@ class Bootloader:
                    targets: Optional[Tuple[str, ...]] = None,
                    info_cb: Optional[Callable[[int, TargetTypes], NoReturn]] = None,
                    progress_cb: Optional[Callable[[str, int], NoReturn]] = None,
-                   terminate_flash_cb: Optional[Callable[[], bool]] = None):
+                   terminate_flash_cb: Optional[Callable[[], bool]] = None,
+                   enable_console_log: Optional[bool] = False):
         """
         Flash .zip or bin .file to list of targets.
         Reset to firmware when done.
@@ -218,7 +220,7 @@ class Bootloader:
             info_cb(self.protocol_version, connected)
 
         if filename is not None:
-            self.flash(filename, targets, cf)
+            self.flash(filename, targets, cf, enable_console_log=enable_console_log)
             self.reset_to_firmware()
 
     def _get_flash_artifacts_from_zip(self, filename):
@@ -396,14 +398,15 @@ class Bootloader:
         # Crazyflie at appropriate places.
         print(text, end='')
 
-    def _flash_deck_incrementally(self, artifacts: List[FlashArtifact], targets: List[Target], start_index: int):
+    def _flash_deck_incrementally(self, artifacts: List[FlashArtifact], targets: List[Target], start_index: int,
+                                  enable_console_log: Optional[bool] = False):
         flash_all_targets = len(targets) == 0
         if self.progress_cb:
             self.progress_cb('Identifying deck to be updated', 0)
 
         with SyncCrazyflie(self.clink, cf=Crazyflie()) as scf:
-            # Uncomment to enable console logs from the CF.
-            # scf.cf.console.receivedChar.add_callback(self.console_callback)
+            if enable_console_log:
+                scf.cf.console.receivedChar.add_callback(self.console_callback)
 
             deck_mems = scf.cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
             deck_mems_count = len(deck_mems)
@@ -498,6 +501,10 @@ class Bootloader:
                     if self.progress_cb:
                         self.progress_cb(f'Failed to update deck {deck.name}', int(0))
                     raise RuntimeError(f'Failed to update deck {deck.name}')
+
+                if enable_console_log:
+                    # Wait a bit to let the console log print
+                    time.sleep(4)
 
                 # We flashed a deck, return for re-boot
                 next_index = deck_index + 1

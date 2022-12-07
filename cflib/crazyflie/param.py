@@ -33,6 +33,7 @@ import errno
 import logging
 import struct
 from collections import namedtuple
+from queue import Empty
 from queue import Queue
 from threading import Event
 from threading import Lock
@@ -556,13 +557,17 @@ class _ExtendedTypeFetcher(Thread):
 
     def _close(self):
         # First empty the queue from all packets
-        while not self.request_queue.empty():
-            self.request_queue.get()
+        try:
+            while True:
+                self.request_queue.get(block=False)
+        except Empty:
+            pass
+
         # Then force an unlock of the mutex if we are waiting for a packet
         # we didn't get back due to a disconnect for example.
         try:
             self._lock.release()
-        except Exception:
+        except RuntimeError:
             pass
 
     def run(self):
@@ -595,13 +600,17 @@ class _ParamUpdater(Thread):
 
     def close(self):
         # First empty the queue from all packets
-        while not self.request_queue.empty():
-            self.request_queue.get()
+        try:
+            while True:
+                self.request_queue.get(block=False)
+        except Empty:
+            pass
+
         # Then force an unlock of the mutex if we are waiting for a packet
         # we didn't get back due to a disconnect for example.
         try:
             self.wait_lock.release()
-        except Exception:
+        except RuntimeError:
             pass
 
     def request_param_setvalue(self, pk):

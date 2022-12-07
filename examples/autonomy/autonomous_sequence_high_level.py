@@ -62,31 +62,6 @@ figure8 = [
 ]
 
 
-class Uploader:
-    def __init__(self):
-        self._is_done = False
-        self._success = True
-
-    def upload(self, trajectory_mem):
-        print('Uploading data')
-        trajectory_mem.write_data(self._upload_done, write_failed_cb=self._upload_failed)
-
-        while not self._is_done:
-            time.sleep(0.2)
-
-        return self._success
-
-    def _upload_done(self, mem, addr):
-        print('Data uploaded')
-        self._is_done = True
-        self._success = True
-
-    def _upload_failed(self, mem, addr):
-        print('Data upload failed')
-        self._is_done = True
-        self._success = False
-
-
 def wait_for_position_estimator(scf):
     print('Waiting for estimator to find position...')
 
@@ -158,7 +133,7 @@ def upload_trajectory(cf, trajectory_id, trajectory):
         trajectory_mem.trajectory.append(Poly4D(duration, x, y, z, yaw))
         total_duration += duration
 
-    upload_result = Uploader().upload(trajectory_mem)
+    upload_result = trajectory_mem.write_data_sync()
     if not upload_result:
         print('Upload failed, aborting!')
         sys.exit(1)

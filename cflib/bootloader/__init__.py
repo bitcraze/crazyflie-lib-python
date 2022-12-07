@@ -504,7 +504,7 @@ class Bootloader:
 
                 if enable_console_log:
                     # Wait a bit to let the console log print
-                    time.sleep(4)
+                    time.sleep(6)
 
                 # We flashed a deck, return for re-boot
                 next_index = deck_index + 1

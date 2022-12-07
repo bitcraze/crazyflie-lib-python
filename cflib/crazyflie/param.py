@@ -33,7 +33,8 @@ import errno
 import logging
 import struct
 from collections import namedtuple
-from queue import Queue, Empty
+from queue import Empty
+from queue import Queue
 from threading import Event
 from threading import Lock
 from threading import Thread

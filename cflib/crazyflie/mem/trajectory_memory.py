@@ -24,6 +24,7 @@ import math
 import struct
 
 from .memory_element import MemoryElement
+from cflib.utils.callbacks import Syncer
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +184,7 @@ class TrajectoryMemory(MemoryElement):
         Write trajectory data to the Crazyflie.
         The trajectory in self.trajectory is written to the Crazyflie.
         By default the trajectory is written to address 0 of the Crazyflie trajectory memory, but it is possible to
-        use a different address. This can be interesting if you want to define more than one trajectory but requires
+        use a different address. This can be interesting if you want to define more than one trajectory but it requires
         careful handling of the addresses to avoid overwriting trajectories and staying within the trajectory memory.
 
         @param write_finished_cb A callback that is called when the write trajectory is uploaded.
@@ -200,6 +201,19 @@ class TrajectoryMemory(MemoryElement):
 
         self.mem_handler.write(self, start_addr, data, flush_queue=True)
         return len(data)
+
+    def write_data_sync(self, start_addr=0x00):
+        """
+        Same functionality as write_data() but synchronous (blocking)
+
+        Args:
+            start_addr (hexadecimal, optional): The address in the trajectory memory to upload the trajectory to.
+            Defaults to 0x00.
+        """
+        syncer = Syncer()
+        self.write_data(syncer.success_cb, write_failed_cb=syncer.failure_cb, start_addr=start_addr)
+        syncer.wait()
+        return syncer.is_success
 
     def write_done(self, mem, addr):
         if self._write_finished_cb and mem.id == self.id:

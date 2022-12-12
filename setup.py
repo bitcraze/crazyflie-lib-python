@@ -9,7 +9,7 @@ long_description = (directory / 'README.md').read_text()
 
 setup(
     name='cflib',
-    version='0.1.20.1',
+    version='0.1.21',
     packages=find_packages(exclude=['examples', 'test']),
 
     description='Crazyflie python driver',

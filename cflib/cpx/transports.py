@@ -140,7 +140,9 @@ class UARTTransport(CPXTransport):
                 else:
                     data = self._serial.read(size)  # Size is excluding start (0xFF) and checksum at end
                     crc = self._serial.read(1)
-                    if self._calcXORchecksum(data) != crc:
+                    # CRC includes start and size
+                    calculated_crc = self._calcXORchecksum(bytes([start, size]) + data)
+                    if calculated_crc != ord(crc):
                         print('CRC error!')
                     # Send CTS
                     self._serial.write([0xFF, 0x00])

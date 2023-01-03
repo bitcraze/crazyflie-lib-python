@@ -13,6 +13,7 @@ If you are connecting to a Raspberry Pi look for the UART pins there connect the
 
 - Crazyflie TX2 -- Raspberry Pi RX
 - Crazyflie RX2 -- Raspberry Pi TX
+- Crazyflie Gdn -- Raspberry Pi Gdn (if not both connected to same powersource)
 
 ## Crazyflie Firmware
 
@@ -71,15 +72,19 @@ URI = 'serial://ttyAMA0'
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
+def console_callback(text: str):
+    print(text, end='')
+    
 if __name__ == '__main__':
     # Initialize the low-level drivers including the serial driver
     cflib.crtp.init_drivers(enable_serial_driver=True)
 
     with SyncCrazyflie(URI) as scf:
-        # We take off when the commander is created
-        with MotionCommander(scf) as mc:
-            print('Taking off!')
-            time.sleep(0.1)
-            # We land when the MotionCommander goes out of scope
-            print('Landing!')
+        print('[host] Connected, use ctrl-c to quit.')
+        while True:
+            time.sleep(1)
 ```
+
+## Troubleshooting
+
+If you see the a `CRC error` when running the script, make sure to install the cflib from source. 

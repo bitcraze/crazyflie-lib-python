@@ -54,7 +54,7 @@ Once everything is set up you should be able to control the Crazyflie via UART.
 Add the parameter `enable_serial_driver=True` to `cflib.crtp.init_drivers()` and connect to the Crazyflie using a serial URI.
 The serial URI has the form `serial://<name>` (e.g. `serial://ttyAMA0`, `serial://ttyUSB5`) or if the OS of the controlling device does not provide the name `serial://<device>` (e.g. `serial:///dev/ttyAMA0`).
 
-The following script might give an idea on how a first test of the setup might look like.
+The following script might give an idea on how a first test of the setup might look like to print the console output of the Crazyflie on the Raspberry pi
 
 ```python
 #!/usr/bin/env python3
@@ -63,6 +63,7 @@ import logging
 import time
 
 import cflib.crtp
+from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
 
@@ -78,6 +79,8 @@ def console_callback(text: str):
 if __name__ == '__main__':
     # Initialize the low-level drivers including the serial driver
     cflib.crtp.init_drivers(enable_serial_driver=True)
+    cf = Crazyflie(rw_cache='./cache')
+    cf.console.receivedChar.add_callback(console_callback)
 
     with SyncCrazyflie(URI) as scf:
         print('[host] Connected, use ctrl-c to quit.')
@@ -87,4 +90,5 @@ if __name__ == '__main__':
 
 ## Troubleshooting
 
-If you see the a `CRC error` when running the script, make sure to install the cflib from source. 
+* If you see the a `CRC error` when running the script, make sure to install the cflib from source. 
+* If the script hangs with connecting, restart the crazyflie

@@ -54,7 +54,7 @@ Once everything is set up you should be able to control the Crazyflie via UART.
 Add the parameter `enable_serial_driver=True` to `cflib.crtp.init_drivers()` and connect to the Crazyflie using a serial URI.
 The serial URI has the form `serial://<name>` (e.g. `serial://ttyAMA0`, `serial://ttyUSB5`) or if the OS of the controlling device does not provide the name `serial://<device>` (e.g. `serial:///dev/ttyAMA0`).
 
-The following script might give an idea on how a first test of the setup might look like to print the console output of the Crazyflie on the Raspberry pi
+The following script might give an idea on how a first test of the setup might look like to print the log variables of the Crazyflie on the Raspberry pi
 
 ```python
 #!/usr/bin/env python3
@@ -65,13 +65,11 @@ import time
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-from cflib.positioning.motion_commander import MotionCommander
+from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie.syncLogger import SyncLogger
 
 # choose the serial URI that matches the setup serial device
 URI = 'serial://ttyAMA0'
-
-# Only output errors from the logging framework
-logging.basicConfig(level=logging.ERROR)
 
 def console_callback(text: str):
     print(text, end='')
@@ -81,11 +79,27 @@ if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_serial_driver=True)
     cf = Crazyflie(rw_cache='./cache')
     cf.console.receivedChar.add_callback(console_callback)
+    
+    lg_stab = LogConfig(name='Stabilizer', period_in_ms=10)
+    lg_stab.add_variable('stabilizer.roll', 'float')
+    lg_stab.add_variable('stabilizer.pitch', 'float')
+    lg_stab.add_variable('stabilizer.yaw', 'float')
+
 
     with SyncCrazyflie(URI) as scf:
         print('[host] Connected, use ctrl-c to quit.')
-        while True:
-            time.sleep(1)
+        with SyncLogger(scf, lg_stab) as logger:
+            endTime = time.time() + 10
+            for log_entry in logger:
+                timestamp = log_entry[0]
+                data = log_entry[1]
+                logconf_name = log_entry[2]
+
+                print('[%d][%s]: %s' % (timestamp, logconf_name, data))
+
+                if time.time() > endTime:
+                    break
+
 ```
 
 ## Troubleshooting

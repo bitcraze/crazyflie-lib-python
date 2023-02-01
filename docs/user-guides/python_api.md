@@ -66,7 +66,7 @@ following way:
 
 There\'s a few limitations that needs to be taken into account:
 
--   The maximum byte lenght for a log packet is of 26 bytes. This for
+-   The maximum byte length for a log packet is of 26 bytes. This for
     for example allows to log 6 floats and one uint16_t (6*4 + 2 bytes)
     in a single packet.
 -   The minimum period of a for a log configuration is multiples of 10ms
@@ -237,14 +237,14 @@ To send a new control set-point use the following:
 
 Thrust is an integer value ranging from 10001 (next to no power) to
 60000 (full power). It corresponds to the mean thrust that will be
-appied to the motors. There is a battery compensation algorythm
+applied to the motors. There is a battery compensation algorithm
 applied to make the thrust mostly independent of battery voltage.
-Roll/pitch are in degree and yarate in degree/seconds.
+Roll/pitch are in degree and yawrate in degree/seconds.
 
 This command will set the attitude controller setpoint for the next
 500ms. After 500ms without net setpoint, the Crazyflie will apply a
 setpoint with the same thrust but with roll/pitch/yawrate = 0, this
-will make the Crazyflie stop accelerate. After 2secons without new
+will make the Crazyflie stop accelerate. After 2 seconds without new
 setpoint the Crazyflie will cut power to the motors.
 
 Note that this command implements a motor lock mechanism that is
@@ -428,12 +428,12 @@ The logging cannot be started until your are connected to a Crazyflie:
         print "Error when logging %s" % logconf.name
 ```
 
-The values of log varibles are transferred from the Crazyflie using CRTP
-packets, where all varibles belonging to one logging configuration are
-transfered in the same packet. A CRTP packet has a maximum data size of
+The values of log variables are transferred from the Crazyflie using CRTP
+packets, where all variables belonging to one logging configuration are
+transferred in the same packet. A CRTP packet has a maximum data size of
 30 bytes, which sets an upper limit to the number of variables that
 can be used in one logging configuration. If the desired log variables
-do not fit in one logging configuration, a second cofiguration may
+do not fit in one logging configuration, a second configuration may
 be added.
 
 ``` python
@@ -442,7 +442,7 @@ be added.
 
 ## Synchronous API
 
-The synchronous classes are wrappers around the asynchronouse API, where the asynchronous
+The synchronous classes are wrappers around the asynchronous API, where the asynchronous
 calls/callbacks are replaced with blocking calls. The synchronous API does not
 provide the full flexibility of the asynchronous API, but is useful when writing
 small scripts for logging for instance.
@@ -453,12 +453,12 @@ exiting it, for instance a connection or take off/landing of a Crazyflie.
 
 ### SyncCrazyflie
 
-The SyncCrazyflie class wrapps a Crazyflie instance and mainly simplifies connect/disconnect.
+The SyncCrazyflie class wraps a Crazyflie instance and mainly simplifies connect/disconnect.
 
 Basic usage
 ``` python
     with SyncCrazyflie(uri) as scf:
-        # A Crazyflie instance is created and is now connected. If the connection failes,
+        # A Crazyflie instance is created and is now connected. If the connection fails,
         # an exception is raised.
 
         # The underlying crazyflie object can be accessed through the cf member

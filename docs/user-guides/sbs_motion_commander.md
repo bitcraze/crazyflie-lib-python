@@ -155,7 +155,7 @@ The reason for the crazyflie to immediately take off, is that the motion command
 
 ## Changing the height
 
-Currently the motion commander had 0.3 meters height as default but this can ofcourse be changed.
+Currently the motion commander had 0.3 meters height as default but this can of course be changed.
 
 Change the  following line in `take_off_simple(...)`:
 ```python
@@ -257,7 +257,7 @@ Now we are going to add a turn into it. Replace the content under motion command
         time.sleep(1)
 ```
 
-Try to run the script again. Now you can see the crazyflie take off, go forward, turn 180 degrees and go forward again to its initial position.  The `mc.back()` needed to be replaced with the forward since the motion commander sends the velocity setpoints in the __body fixed coordinated__ system. This means that the commands forward will go forward to whereever the current heading (the front) of the crazyflie points to.
+Try to run the script again. Now you can see the crazyflie take off, go forward, turn 180 degrees and go forward again to its initial position.  The `mc.back()` needed to be replaced with the forward since the motion commander sends the velocity setpoints in the __body fixed coordinated__ system. This means that the commands forward will go forward to wherever the current heading (the front) of the crazyflie points to.
 
 Double check if your code code is still correct:
 

@@ -25,7 +25,7 @@ Bezier curves. The output from this script is intended to be pasted into the
 autonomous_sequence_high_level.py example.
 
 This code uses Bezier curves of degree 7, that is with 8 control points.
-See https://en.wikipedia.org/wiki/B%C3%A9zier_curve
+See https://en.wikipedia.org/wiki/Bézier_curve
 
 All coordinates are (x, y, z, yaw)
 """

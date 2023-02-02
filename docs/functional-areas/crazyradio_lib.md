@@ -128,7 +128,7 @@ None
 |  -------------| --------------------------------------------------------|
 |  Parameters   | (bool) active|
 |  Returns      | None|
-|  Description  | Enable or disable the continious carrier mode. In continious carrier the Crazyradio transmit a constant sinus at the currently set frequency (channel) and power. This is a test mode that can affect other 2.4GHz devices (ex. wifi) it should only be used in a lab for test purposes.|
+|  Description  | Enable or disable the continuous carrier mode. In continuous carrier the Crazyradio transmit a constant sinus at the currently set frequency (channel) and power. This is a test mode that can affect other 2.4GHz devices (ex. wifi) it should only be used in a lab for test purposes.|
 
 ##### scan\_channels(self, start, stop, packet)
 

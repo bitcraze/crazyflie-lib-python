@@ -411,7 +411,7 @@ Then add the following to the `def simple_param_async(...)` function:
     time.sleep(1)
 
 ```
-The sleep function is to give the script a bit more time to wait for the Crazyflies response and not lose the connection immediatly.
+The sleep function is to give the script a bit more time to wait for the Crazyflies response and not lose the connection immediately.
 
 If you would like to test out the script now already, replace `simple_log_async(...)` with `simple_param_async(scf, group, name)` and run the script. You can see that it will print out the variable name and value:
 `The crazyflie has parameter stabilizer.estimator set at number: 1`
@@ -436,7 +436,7 @@ What it can't do is to set a Read Only (RO) parameter, only Read Write (RW) para
 
 ## Finishing and running the script
 
-It is usually good practice to put the parameter setting back to where it came from, since after disconnecting the Crazyflie, the parameter will still be set. Only after physcially restarting the Crazyflie the parameter will reset to its default setting as defined in the firmware.
+It is usually good practice to put the parameter setting back to where it came from, since after disconnecting the Crazyflie, the parameter will still be set. Only after physically restarting the Crazyflie the parameter will reset to its default setting as defined in the firmware.
 
 So finish the `simple_param_async(...)` function by adding the next few lines:
 ```python

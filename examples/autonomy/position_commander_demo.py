@@ -75,7 +75,7 @@ def land_on_elevated_surface():
             # fly onto a landing platform at non-zero height (ex: from floor to desk, etc)
             pc.forward(1.0)
             pc.left(1.0)
-            # land() will be called on context exit, gradually lowering to default_lanidng_height, then stoppig motors
+            # land() will be called on context exit, gradually lowering to default_landing_height, then stopping motors
 
 
 def simple_sequence():

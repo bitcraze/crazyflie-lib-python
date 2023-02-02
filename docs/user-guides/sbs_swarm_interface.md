@@ -109,7 +109,7 @@ if __name__ == '__main__':
 If everything is working properly, you can move to the next step .
 
 # Step 2: Security Before Flying
-Before executing any take off and flight maneuvers, the copters need to make sure that they have a precise enough position estimation. Otherwise it will take off anyway and it is very likely to crash. This is done through `reset_estimators()` by resetting the internal position estimator of each copter and waiting until the variance of the position estimation drops below a certain threshold.
+Before executing any take off and flight manoeuvres, the copters need to make sure that they have a precise enough position estimation. Otherwise it will take off anyway and it is very likely to crash. This is done through `reset_estimators()` by resetting the internal position estimator of each copter and waiting until the variance of the position estimation drops below a certain threshold.
 ```python
 with Swarm(uris, factory=factory) as swarm:
         swarm.parallel_safe(lightCheck)

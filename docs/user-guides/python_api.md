@@ -3,14 +3,14 @@ title: The Crazyflie Python API explanation
 page_id: python_api
 ---
 
-In order to easily use and control the Crazyflie there\'s an library
+In order to easily use and control the Crazyflie there\'s a library
 made in Python that gives high-level functions and hides the details.
 This page contains generic information about how to use this library and
 the API that it implements.
 
 If you are interested in more details look in the PyDoc in the code or:
 
--  Communication protocol for
+- Communication protocol for
     [logging](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/crtp_log/) or
     [parameters](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/crtp_parameters/)
 - [Automated documentation for Python API](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/)
@@ -25,20 +25,20 @@ will be called when the link is opened. The library doesn\'t contain any
 threads or locks that will keep the application running, it\'s up to the
 application that is using the library to do this.
 
-There are a few synchronous wrappers for selected classes that creates
+There are a few synchronous wrappers for selected classes that create
 a synchronous API by wrapping the asynchronous classes, see the
 [Synchronous API section](#synchronous-api)
 
 ### Uniform Resource Identifier (URI)
 
-All communication links are identified using an URI build up of the
+All communication links are identified using an URI built up of the
 following: InterfaceType://InterfaceId/InterfaceChannel/InterfaceSpeed
 
-Currently we have *radio*, *serial*, *usb*, *debug*, *udp* interfaces are used. Here are some examples:
+Currently we have *radio*, *serial*, *usb*, *debug*, *udp* interfaces. Here are some examples:
 
--   _radio://0/10/2M : Radio interface, USB dongle number 0, radio channel 10 and radio
+- _radio://0/10/2M_ : Radio interface, USB dongle number 0, radio channel 10 and radio
     speed 2 Mbit/s: radio://0/10/2M
--   _debug://0/1_ : Debug interface, id 0, channel 1
+- _debug://0/1_ : Debug interface, id 0, channel 1
 - _usb://0_ : USB cable to microusb port, id 0
 - _serial://ttyAMA0_ : Serial port, id ttyAMA0
 - _tcp://aideck-AABBCCDD.local:5000_ : TCP network connection, Name: aideck-AABBCCDD.local, port 5000
@@ -61,13 +61,13 @@ following way:
     are in the TOC)
 -   After checking that the configuration is valid, set up callbacks for
     the data in your application and start the log configuration
--   Each time the firmware sends data back to the host the callback will
-    the called with a time-stamp and the data
+-   Each time the firmware sends data back to the host, the callback will
+    be called with a time-stamp and the data
 
-There\'s a few limitations that needs to be taken into account:
+There\'s are few limitations that need to be taken into account:
 
--   The maximum byte length for a log packet is of 26 bytes. This for
-    for example allows to log 6 floats and one uint16_t (6*4 + 2 bytes)
+-   The maximum length for a log packet is 26 bytes. This, for
+    for example, allows to log 6 floats and one uint16_t (6\*4 + 2 bytes)
     in a single packet.
 -   The minimum period of a for a log configuration is multiples of 10ms
 
@@ -76,7 +76,7 @@ There\'s a few limitations that needs to be taken into account:
 The library supports reading and writing parameters at run-time to the
 firmware. This is intended to be used for data that is not continuously
 being changed by the firmware, like setting regulation parameters and
-reading out if the power-on self-tests passed. Parameters should only
+reading out if the power-on self-tests passed. Parameters should only be
 change in the firmware when being set from the host (cfclient or a cflib script) or during start-up.
 
 The library doesn\'t continuously update the parameter values, this
@@ -100,10 +100,10 @@ There is an exception for experimental support to change the parameter from with
 ### Variable and parameter names
 
 All names of parameters and log variables use the same structure:
-`group.name`
+`group.name`.
 
 The group should be used to bundle together logical groups, like
-everything that has to do with the stabilizer should be in the group
+everything that deals with the stabilizer should be in the group
 `stabilizer`.
 
 There\'s a limit of 28 chars in total and here are some examples:
@@ -152,7 +152,7 @@ be used. Enable it in the call to `init_drivers()`
 
 ## Connection- and link-callbacks
 
-Operations on the link and connection will return directly and will call
+Operations on the link and connection will return immediately and will call
 the following callbacks when events occur:
 
 ``` python
@@ -199,7 +199,7 @@ available interfaces (currently the debug and radio interface).
         print "Interface with URI [%s] found and name/comment [%s]" % (i[0], i[1])
 ```
 
-Opening and closing a communication link is doing by using the Crazyflie
+Opening and closing a communication link is done by using the Crazyflie
 object:
 
 ``` python
@@ -231,7 +231,7 @@ To send a new control set-point use the following:
     roll    = 0.0
     pitch   = 0.0
     yawrate = 0
-    thrust  = 0
+    thrust  = 10001
     crazyflie.commander.send_setpoint(roll, pitch, yawrate, thrust)
 ```
 
@@ -239,18 +239,18 @@ Thrust is an integer value ranging from 10001 (next to no power) to
 60000 (full power). It corresponds to the mean thrust that will be
 applied to the motors. There is a battery compensation algorithm
 applied to make the thrust mostly independent of battery voltage.
-Roll/pitch are in degree and yawrate in degree/seconds.
+Roll/pitch are in degree and yawrate is in degree/seconds.
 
 This command will set the attitude controller setpoint for the next
-500ms. After 500ms without net setpoint, the Crazyflie will apply a
+500ms. After 500ms without next setpoint, the Crazyflie will apply a
 setpoint with the same thrust but with roll/pitch/yawrate = 0, this
-will make the Crazyflie stop accelerate. After 2 seconds without new
-setpoint the Crazyflie will cut power to the motors.
+will make the Crazyflie stop accelerating. After 2 seconds without new
+setpoint the Crazyflie will cut power from the motors.
 
 Note that this command implements a motor lock mechanism that is
 intended to avoid flyaway when connecting a gamepad. You must send
 one command with thrust = 0 in order to unlock the command. This
-unlock procedure needs to be repeated if the watchdog describe above
+unlock procedure needs to be repeated if the watchdog described above
 kicks-in.
 
 ### Other commander setpoints sending
@@ -261,7 +261,7 @@ If your Crazyflie has a positioning system (Loco, flowdeck, MoCap, Lighthouse), 
 send_hover_setpoint(self, vx, vy, yawrate, zdistance)
 ```
 
-Check out the [automated API documentation](/docs/api/cflib/crazyflie/commander.md) for the Crazyflie cflib's commander frame work to find out what other functions you can use.
+Check out the [automated API documentation](/docs/api/cflib/crazyflie/commander.md) for the Crazyflie cflib's commander framework to find out what other functions you can use.
 
 ## Parameters
 
@@ -274,7 +274,7 @@ functionality should be used when:
 If this is not the case then the logging framework should be used
 instead.
 
-To set a parameter you must have the connected to the Crazyflie. A
+To set a parameter you must be connected to the Crazyflie. A
 parameter is set using:
 
 ``` python
@@ -292,7 +292,7 @@ Crazyflie).
 ``` python
     add_update_callback(group, name=None, cb=None)
         """
-        Add a callback for a specific parameter name or group. If not name is specified then
+        Add a callback for a specific parameter name or group. If name is not specified then
         all parameters in the group will trigger the callback. This callback will be executed
         when a new value is read from the Crazyflie.
         """
@@ -356,11 +356,11 @@ The API to create and get information from LogConfig:
     add_variable(name, fetch_as=None)
         """Add a new variable to the configuration.
 
-        name - Complete name of the variable in the form group.name
+        name - Full name of the variable in the form group.name
         fetch_as - String representation of the type the variable should be
                    fetched as (i.e uint8_t, float, FP16, etc)
 
-        If no fetch_as type is supplied, then the stored as type will be used
+        If no fetch_as type is supplied, then the stored type will be used
         (i.e the type of the fetched variable is the same as it's stored in the
         Crazyflie)."""
 
@@ -404,7 +404,7 @@ internal type to transferred type before transfers:
 -   uint8\_t and int8\_t
 -   uint16\_t and int16\_t
 -   uint32\_t and int32\_t
--   FP16: 16bit version of floating point, allows to pack more variable
+-   FP16: 16bit version of floating point, allows to pack more variables
     in one packet at the expense of precision.
 
 The logging cannot be started until your are connected to a Crazyflie:
@@ -445,7 +445,7 @@ be added.
 The synchronous classes are wrappers around the asynchronous API, where the asynchronous
 calls/callbacks are replaced with blocking calls. The synchronous API does not
 provide the full flexibility of the asynchronous API, but is useful when writing
-small scripts for logging for instance.
+small scripts, for logging for instance.
 
 The synchronous API uses the python Context manager concept, that is the ```with``` keyword.
 A resource is allocated when entering a ```with``` section and automatically released when
@@ -508,7 +508,7 @@ and SyncCrazyflie instances. To get the log values, iterate the instance.
 
 ### MotionCommander
 
-The MotionCommander class is intended to simplify basic autonomous flight, where the motion control is done from the host computer. The Crazyflie takes off
+The MotionCommander class is intended to simplify basic autonomous flight, where the motion control is done from the host computer. The Crazyflie takes off and makes
 when entering the "with" section, and lands when exiting. It has functions for basic
 movements that are blocking until the motion is finished.
 
@@ -529,7 +529,7 @@ system, all positions are relative. It is mainly intended to be used with a Flow
 
 ### PositionHlCommander
 
-The PositionHlCommander is intended to simplify basic autonomous flight, where all the high level commands exists inside the Crazyflie firmware. The Crazyflie takes off
+The PositionHlCommander is intended to simplify basic autonomous flight, where all the high level commands exist inside the Crazyflie firmware. The Crazyflie takes off
 when entering the "with" section, and lands when exiting. It has functions for basic
 movements that are blocking until the motion is finished.
 

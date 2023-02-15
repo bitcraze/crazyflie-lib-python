@@ -43,17 +43,6 @@ class TestPositionHlCommander(unittest.TestCase):
 
         self.sut = PositionHlCommander(self.cf_mock)
 
-    def test_that_the_hi_level_commander_is_activated_on_creation(
-            self, sleep_mock):
-        # Fixture
-
-        # Test
-
-        # Assert
-        self.param_mock.set_value.assert_has_calls([
-            call('commander.enHighLevel', '1')
-        ])
-
     def test_that_controller_is_selected_on_creation(
             self, sleep_mock):
         # Fixture

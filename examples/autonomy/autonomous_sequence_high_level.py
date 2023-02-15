@@ -111,10 +111,6 @@ def reset_estimator(cf):
     wait_for_position_estimator(cf)
 
 
-def activate_high_level_commander(cf):
-    cf.param.set_value('commander.enHighLevel', '1')
-
-
 def activate_mellinger_controller(cf):
     cf.param.set_value('stabilizer.controller', '2')
 
@@ -161,7 +157,6 @@ if __name__ == '__main__':
         cf = scf.cf
         trajectory_id = 1
 
-        activate_high_level_commander(cf)
         # activate_mellinger_controller(cf)
         duration = upload_trajectory(cf, trajectory_id, figure8)
         print('The sequence is {:.1f} seconds long'.format(duration))

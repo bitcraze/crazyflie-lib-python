@@ -174,7 +174,6 @@ class TunerControlCF:
         self.update_scale_info()
 
         self.commander = cf.high_level_commander
-        self.cf.param.set_value('commander.enHighLevel', '1')
         self.take_off(STANDARD_HEIGHT)
 
     def update_scale_info(self):

@@ -24,6 +24,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import struct
 
+from math import sqrt
 
 # Code from davidejones at https://gamedev.stackexchange.com/a/28756
 def fp16_to_float(float16):
@@ -51,3 +52,29 @@ def fp16_to_float(float16):
     f <<= 13
     result = int((s << 31) | (e << 23) | f)
     return struct.unpack('f', struct.pack('I', result))[0]
+
+
+
+# compress a quaternion, see quatcompress.h in firmware
+# input: q = [x,y,z,w], output: 32-bit number
+def compress_quaternion(qx, qy, qz, qw):
+
+    q = [qx, qy, qz, qw]
+
+    i_largest = 0
+    for i in range(1, 4):
+        if abs(q[i]) > abs(q[i_largest]):
+            i_largest = i
+    
+    negate = q[i_largest] < 0
+
+    comp = i_largest
+    m_sqrt_2 = 1.0 / np.sqrt(2)
+
+    for i in range(0,4):
+        if i != i_largest:
+            negbit = (q[i] < 0) ^ negate
+            mag = ((1 << 9) - 1) * (abs(q[i]) / m_sqrt_2) * 0.5
+            comp = (comp << 10) | (negbit << 9) | mag
+
+    return comp

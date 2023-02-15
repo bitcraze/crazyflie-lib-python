@@ -29,6 +29,7 @@ import struct
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
+from cflib.utils.encoding import compress_quaternion
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Commander']
@@ -37,6 +38,7 @@ TYPE_STOP = 0
 TYPE_VELOCITY_WORLD = 1
 TYPE_ZDISTANCE = 2
 TYPE_HOVER = 5
+TYPE_FULL_STATE = 6
 TYPE_POSITION = 7
 
 
@@ -134,6 +136,28 @@ class Commander():
         pk.port = CRTPPort.COMMANDER_GENERIC
         pk.data = struct.pack('<Bffff', TYPE_HOVER,
                               vx, vy, yawrate, zdistance)
+        self._cf.send_packet(pk)
+
+    def send_full_state_setpoint(self, x, y, z, vx, vy, vz, ax, ay, az, qx, qy, qz, qw, rollrate, pitchrate, yawrate):
+        """
+        Control mode where the position, velocity, acceleration, orientation, angular
+        velocity are sent as absolute (world) values.
+
+        x, y, z are in m
+        vx, vy, vz are in m/s
+        ax, ay, az are in m/s^2
+        qx, qy, qz, qw are the quaternion components of the orientation
+        rollrate, pitchrate, yawrate are in degrees/s
+        """
+
+        pk = CRTPPacket()
+        pk.port = CRTPPort.COMMANDER_GENERIC
+        pk.data = struct.pack('<BIIIIIIIIIHIII', TYPE_FULL_STATE,
+                                int(x*1000), int(y*1000), int(z*1000),
+                                int(vx*1000), int(vy*1000), int(vz*1000),
+                                int(ax*1000), int(ay*1000), int(az*1000),
+                                compress_quaternion(qx, qy, qz, qw),
+                                int(rollrate*1000), int(pitchrate*1000), int(yawrate*1000))
         self._cf.send_packet(pk)
 
     def send_position_setpoint(self, x, y, z, yaw):

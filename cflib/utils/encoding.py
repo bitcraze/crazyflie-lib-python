@@ -25,6 +25,7 @@
 import struct
 
 from math import sqrt
+import numpy as np
 
 # Code from davidejones at https://gamedev.stackexchange.com/a/28756
 def fp16_to_float(float16):
@@ -75,6 +76,6 @@ def compress_quaternion(qx, qy, qz, qw):
         if i != i_largest:
             negbit = (q[i] < 0) ^ negate
             mag = ((1 << 9) - 1) * (abs(q[i]) / m_sqrt_2) * 0.5
-            comp = (comp << 10) | (negbit << 9) | mag
+            comp = (comp << 10) | (negbit << 9) | int(mag)
 
     return comp

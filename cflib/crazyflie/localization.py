@@ -32,7 +32,7 @@ import struct
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
-from cflib.utils.fp16 import fp16_to_float
+from cflib.utils.encoding import fp16_to_float
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Localization', 'LocalizationPacket']

@@ -25,6 +25,7 @@
 Used for sending full state control setpoints to the Crazyflie
 """
 import time
+import logging
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -33,6 +34,7 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.utils import uri_helper
 import math
+from cflib.crazyflie.log import LogConfig
 
 
 
@@ -128,10 +130,13 @@ def start_position_printing(scf):
 def run_sequence(scf):
     cf = scf.cf
 
+    # Set to mellinger controller
+    # cf.param.set_value('stabilizer.controller', '2')
+
     # quaternion from roll pitch yaw
     roll = 0.0
     pitch = 0.0
-    yaw = 0.0
+    yaw = 0.0 #20.0*math.pi/180.0
     q = quaternion_from_euler(roll, pitch, yaw)
     print('takeoff')
     cf.commander.send_full_state_setpoint(0.0,0.0,1.0,
@@ -162,10 +167,28 @@ def run_sequence(scf):
     # since the message queue is not flushed before closing
     time.sleep(0.1)
 
-
+def _stab_log_data(timestamp, data, logconf):
+    print('roll: {}, pitch: {}, yaw: {}'.format(data['controller.roll'],
+                                                data['controller.pitch'],
+                                                data['controller.yaw']))
+    print('ctrltarget.x: {}, ctrltarget.y: {}, ctrltarget.z: {}'.format(data['ctrltarget.x'],
+                                                                        data['ctrltarget.y'],
+                                                                        data['ctrltarget.z']))
 if __name__ == '__main__':
     cflib.crtp.init_drivers()
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-        reset_estimator(scf)
+        _lg_stab = LogConfig(name='Stabilizer', period_in_ms=500)
+        _lg_stab.add_variable('controller.roll', 'float')
+        _lg_stab.add_variable('controller.pitch', 'float')
+        _lg_stab.add_variable('controller.yaw', 'float')
+        _lg_stab.add_variable('ctrltarget.x', 'float')
+        _lg_stab.add_variable('ctrltarget.y', 'float')
+        _lg_stab.add_variable('ctrltarget.z', 'float')
+
+        scf.cf.log.add_config(_lg_stab)
+        _lg_stab.data_received_cb.add_callback(_stab_log_data)
+        _lg_stab.start()
+
+        #reset_estimator(scf)
         run_sequence(scf)

@@ -25,6 +25,7 @@
 import struct
 
 from math import sqrt
+import numpy as np
 
 # Code from davidejones at https://gamedev.stackexchange.com/a/28756
 def fp16_to_float(float16):
@@ -53,28 +54,42 @@ def fp16_to_float(float16):
     result = int((s << 31) | (e << 23) | f)
     return struct.unpack('f', struct.pack('I', result))[0]
 
-
+# decompress a quaternion, see quatcompress.h in firmware
+# input: 32-bit number, output q = [x,y,z,w]
+def decompress_quaternion(comp):
+    q = np.zeros(4)
+    mask = (1 << 9) - 1
+    i_largest = comp >> 30
+    sum_squares = 0
+    for i in range(3, -1, -1):
+        if i != i_largest:
+            mag = comp & mask
+            negbit = (comp >> 9) & 0x1
+            comp = comp >> 10
+            q[i] = mag / mask / np.sqrt(2)
+            if negbit == 1:
+                q[i] = -q[i]
+            sum_squares += q[i] * q[i]
+    q[i_largest] = np.sqrt(1.0 - sum_squares)
+    return q
 
 # compress a quaternion, see quatcompress.h in firmware
-# input: q = [x,y,z,w], output: 32-bit number
+# input: 32-bit number, output q = [x,y,z,w]
 def compress_quaternion(qx, qy, qz, qw):
-
     q = [qx, qy, qz, qw]
-
     i_largest = 0
     for i in range(1, 4):
         if abs(q[i]) > abs(q[i_largest]):
             i_largest = i
-    
     negate = q[i_largest] < 0
 
-    comp = i_largest
-    m_sqrt_2 = 1.0 / sqrt(2)
+    M_SQRT1_2 = 1.0 / np.sqrt(2)
 
-    for i in range(0,4):
+    comp = i_largest
+    for i in range(4):
         if i != i_largest:
             negbit = (q[i] < 0) ^ negate
-            mag = ((1 << 9) - 1) * (abs(q[i]) / m_sqrt_2) * 0.5
-            comp = (comp << 10) | (negbit << 9) | int(mag)
+            mag = int(((1 << 9) - 1) * (abs(q[i]) / M_SQRT1_2) + 0.5)
+            comp = (comp << 10) | (negbit << 9) | mag
 
     return comp

@@ -70,7 +70,7 @@ def compress_quaternion(qx, qy, qz, qw):
     negate = q[i_largest] < 0
 
     comp = i_largest
-    m_sqrt_2 = 1.0 / np.sqrt(2)
+    m_sqrt_2 = 1.0 / sqrt(2)
 
     for i in range(0,4):
         if i != i_largest:

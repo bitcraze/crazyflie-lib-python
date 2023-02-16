@@ -152,7 +152,7 @@ class Commander():
 
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
-        pk.data = struct.pack('<BIIIIIIIIIHIII', TYPE_FULL_STATE,
+        pk.data = struct.pack('<Bhhhhhhhhhihhh', TYPE_FULL_STATE,
                                 int(x*1000), int(y*1000), int(z*1000),
                                 int(vx*1000), int(vy*1000), int(vz*1000),
                                 int(ax*1000), int(ay*1000), int(az*1000),

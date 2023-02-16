@@ -25,7 +25,6 @@
 import struct
 
 from math import sqrt
-import numpy as np
 
 # Code from davidejones at https://gamedev.stackexchange.com/a/28756
 def fp16_to_float(float16):

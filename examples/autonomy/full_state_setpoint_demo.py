@@ -49,10 +49,10 @@ def quaternion_from_euler(roll, pitch, yaw):
     sr = math.sin(roll * 0.5)
 
     q = [0] * 4
-    q[0] = cy * cp * cr + sy * sp * sr
-    q[1] = cy * cp * sr - sy * sp * cr
-    q[2] = sy * cp * sr + cy * sp * cr
-    q[3] = sy * cp * cr - cy * sp * sr
+    q[0] = sr * cp * cy - cr * sp * sy
+    q[1] = cr * sp * cy + sr * cp * sy
+    q[2] = cr * cp * sy - sr * sp * cy
+    q[3] = cr * cp * cy + sr * sp * sy
 
     return q
 
@@ -133,16 +133,22 @@ def run_sequence(scf):
     pitch = 0.0
     yaw = 0.0
     q = quaternion_from_euler(roll, pitch, yaw)
-
-    cf.commander.send_full_state_setpoint(0.0,1.0,0.0,
+    print('takeoff')
+    cf.commander.send_full_state_setpoint(0.0,0.0,1.0,
                                           0.0,0.0,0.0,
                                           0.0,0.0,0.0,
                                           q[0],q[1],q[2],q[3],
                                           0.0,0.0,0.0)
                                                                                   
     time.sleep(2.0)
-
-    cf.commander.send_full_state_setpoint(0.0,0.2,0.0,
+    cf.commander.send_full_state_setpoint(0.0,0.0,1.0,
+                                        0.0,0.0,0.0,
+                                        0.0,0.0,0.0,
+                                        q[0],q[1],q[2],q[3],
+                                        0.0,0.0,0.0)
+    time.sleep(2.0)
+    print('land')
+    cf.commander.send_full_state_setpoint(0.0,0.0,0.2,
                                           0.0,0.0,0.0,
                                           0.0,0.0,0.0,
                                           q[0],q[1],q[2],q[3],

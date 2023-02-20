@@ -44,6 +44,7 @@ TYPE_POSITION = 7
 
 TYPE_META_COMMAND_NOTIFY_SETPOINT_STOP = 0
 
+
 class Commander():
     """
     Used for sending control setpoints to the Crazyflie

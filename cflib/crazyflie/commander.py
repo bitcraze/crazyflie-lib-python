@@ -88,8 +88,8 @@ class Commander():
 
     def send_notify_setpoint_stop(self, remain_valid_milliseconds=0):
         """
-           Sends a packet so that the priority of the current setpoint to the lowest non-disabled value,
-           so any new setpoint regardless of source will overwrite it.        
+        Sends a packet so that the priority of the current setpoint to the lowest non-disabled value,
+        so any new setpoint regardless of source will overwrite it.        
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC

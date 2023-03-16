@@ -18,6 +18,9 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v3
 
+    - name: python version
+      run: python --version
+
     - name: Build
       run: docker run --rm -v ${PWD}:/module bitcraze/builder ./tools/build/build
 

@@ -10,7 +10,7 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E701'
+uri_1 = 'radio://0/80/2M/E7E7E7E702'
 
 f = open("pim.txt", "rt")
 data = f.read()

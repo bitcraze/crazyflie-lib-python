@@ -5,3 +5,4 @@ Forearm length:0.4m (*Forearm length=elbow to fingertips)
 2)Left:forearm*130% = 0.52
 3)Right:Arm=0.7
 4)Up:forearm*80%
+5)Front

@@ -34,7 +34,6 @@ __all__ = ['CPXRouter']
 logger = logging.getLogger(__name__)
 
 
-
 class CPXTarget(enum.Enum):
     """
     List of CPX targets

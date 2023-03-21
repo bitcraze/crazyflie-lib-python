@@ -24,12 +24,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """ CPX Router and discovery"""
 import enum
+import logging
 import queue
 import struct
 import threading
 
 __author__ = 'Bitcraze AB'
 __all__ = ['CPXRouter']
+logger = logging.getLogger(__name__)
 
 
 class CPXTarget(enum.Enum):
@@ -59,6 +61,7 @@ class CPXPacket(object):
     """
     A packet with routing and data
     """
+    CPX_VERSION = 0
 
     def __init__(self, function=0, destination=0, source=CPXTarget.HOST, data=bytearray()):
         """
@@ -68,6 +71,7 @@ class CPXPacket(object):
         self.source = source
         self.destination = destination
         self.function = function
+        self.version = self.CPX_VERSION
         self.length = len(data)
         self.lastPacket = False
 
@@ -79,18 +83,22 @@ class CPXPacket(object):
         if self.lastPacket:
             targetsAndFlags |= 0x40
 
-        function = self.function.value & 0xFF
-        raw.extend(struct.pack('<BB', targetsAndFlags, function))
+        functionAndVersion = (self.function.value & 0x3F) | ((self.version & 0x3) << 6)
+        raw.extend(struct.pack('<BB', targetsAndFlags, functionAndVersion))
         raw.extend(self.data)
 
         return raw
 
     def _set_wire_data(self, data):
-        [targetsAndFlags, self.function] = struct.unpack('<BB', data[0:2])
+        [targetsAndFlags, functionAndVersion] = struct.unpack('<BB', data[0:2])
+        self.version = (functionAndVersion >> 6) & 0x3
+        if self.version != self.CPX_VERSION:
+            logging.error(f'Unsupported CPX version {self.version} instead of {self.CPX_VERSION}')
+            raise RuntimeError(f'Unsupported CPX version {self.version} instead of {self.CPX_VERSION}')
         self.source = CPXTarget((targetsAndFlags >> 3) & 0x07)
         self.destination = CPXTarget(targetsAndFlags & 0x07)
         self.lastPacket = targetsAndFlags & 0x40 != 0
-        self.function = CPXFunction(self.function)
+        self.function = CPXFunction(functionAndVersion & 0x3F)
         self.data = data[2:]
         self.length = len(self.data)
 

@@ -14,7 +14,7 @@ class WallFollowingMultiranger():
         FIND_CORNER = 8
 
     def __init__(self, ref_distance_from_wall=0.0,
-                 max_forward_speed=0.5,
+                 max_forward_speed=0.2,
                  max_turn_rate=0.5,
                  direction=1.0,
                  first_run=False,
@@ -23,11 +23,11 @@ class WallFollowingMultiranger():
                  around_corner_back_track=False,
                  state_start_time=0.0,
                  ranger_value_buffer=0.2,
-                 angle_value_buffer=0.1,
+                 angle_value_buffer=0.01,
                  ranger_threshold_lost=0.3,
                  in_corner_angle=0.8,
                  wait_for_measurement_seconds=1.0,
-                 state_wf=StateWF.FORWARD):
+                 init_state=StateWF.FORWARD):
 
         self.ref_distance_from_wall = ref_distance_from_wall
         self.max_forward_speed = max_forward_speed
@@ -45,7 +45,7 @@ class WallFollowingMultiranger():
         self.wait_for_measurement_seconds = wait_for_measurement_seconds
 
         self.first_run = True
-        self.state_wf = state_wf
+        self.state_wf = init_state
         self.time_now = 0.0
 
     def logic_is_close_to(self, real_value, checked_value, margin):
@@ -79,13 +79,13 @@ class WallFollowingMultiranger():
             cmd_ang_w = 0
         return cmd_vel_y, cmd_ang_w
 
-    def command_hover(self, ref_rate):
+    def command_hover(self):
         cmd_vel_x = 0.0
         cmd_vel_y = 0.0
         cmd_ang_w = 0.0
         return cmd_vel_x, cmd_vel_y, cmd_ang_w
 
-    def command_forward_along_wall(self, ref_rate, range):
+    def command_forward_along_wall(self, range):
         cmd_vel_x = self.max_forward_speed
         cmd_vel_y = 0
         check_distance_wall = self.logic_is_close_to(self.ref_distance_from_wall, range, 0.1)
@@ -99,6 +99,7 @@ class WallFollowingMultiranger():
     def command_turn_around_corner_and_adjust(self, radius, range):
         cmd_vel_x = self.max_forward_speed
         cmd_ang_w = self.direction * (-1 * cmd_vel_x / radius)
+        cmd_vel_y = 0.0
         check_distance_wall = self.logic_is_close_to(self.ref_distance_from_wall, range, 0.1)
         if not check_distance_wall:
             if range > self.ref_distance_from_wall:
@@ -130,6 +131,8 @@ class WallFollowingMultiranger():
             self.around_corner_back_track = False
             self.first_run = False
 
+        print(self.state_wf)
+
         # Handle state transitions
         match self.state_wf:
             case self.StateWF.FORWARD:
@@ -154,11 +157,13 @@ class WallFollowingMultiranger():
                     self.prev_heading = current_heading
                     self.state_wf = self.transition(self.StateWF.FIND_CORNER)
             case self.StateWF.TURN_TO_ALIGN_TO_WALL:
+                print(self.wall_angle)
+                print(current_heading - self.prev_heading)
                 align_wall_check = self.logic_is_close_to(
-                    current_heading - self.prev_heading, self.wall_angle, self.angle_value_buffer)
+                    self.wraptopi(current_heading - self.prev_heading), self.wall_angle, self.angle_value_buffer)
                 if align_wall_check:
-                    self.state_wf = self.transition(self.StateWF.FOLLOW_WALL)
-            case self.StateWF.FOLLOW_WALL:
+                    self.state_wf = self.transition(self.StateWF.FORWARD_ALONG_WALL)
+            case self.StateWF.FORWARD_ALONG_WALL:
                 # If side range is out of reach,
                 #    end of the wall is reached
                 if side_range > self.ref_distance_from_wall + self.ranger_threshold_lost:
@@ -168,6 +173,11 @@ class WallFollowingMultiranger():
                 if front_range < self.ref_distance_from_wall + self.ranger_value_buffer:
                     self.prev_heading = current_heading
                     self.state_wf = self.transition(self.StateWF.ROTATE_IN_CORNER)
+            case self.StateWF.ROTATE_AROUND_WALL:
+                if front_range < self.ref_distance_from_wall + self.ranger_value_buffer:
+                    self.state_wf = self.transition(self.StateWF.TURN_TO_FIND_WALL)
+
+
             case self.StateWF.ROTATE_IN_CORNER:
                 if front_range > self.ref_distance_from_wall + self.ranger_value_buffer:
                     self.state_wf = self.transition(self.StateWF.TURN_TO_FIND_WALL)
@@ -208,7 +218,7 @@ class WallFollowingMultiranger():
                 # if side range is larger than preffered distance from wall
                 if side_range > self.ref_distance_from_wall + self.ranger_threshold_lost:
                     # check if scanning already occured
-                    if self.wraptopi(math.abs(self.current_heading - self.prev_heading)) > \
+                    if self.wraptopi(math.fabs(current_heading - self.prev_heading)) > \
                             self.in_corner_angle:
                         self.around_corner_back_track = True
                     # turn and adjust distance to corner from that point
@@ -222,7 +232,7 @@ class WallFollowingMultiranger():
                         cmd_vel_x_temp = 0.0
                 else:
                     # continue to turn around corner
-                    self.prev_heading = self.current_heading
+                    self.prev_heading = current_heading
                     self.around_corner_back_track = False
                     cmd_vel_x_temp, cmd_vel_y_temp, cmd_ang_w_temp = \
                         self.command_turn_around_corner_and_adjust(

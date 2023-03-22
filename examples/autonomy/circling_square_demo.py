@@ -33,18 +33,16 @@ import sys
 import time
 
 import numpy as np
+
 import cflib.crtp
-from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.high_level_commander import HighLevelCommander
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.mem import CompressedSegment
 from cflib.crazyflie.mem import CompressedStart
 from cflib.crazyflie.mem import MemoryElement
-from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-from cflib.crazyflie.syncLogger import SyncLogger
-from cflib.utils import uri_helper
 from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
+from cflib.crazyflie.syncLogger import SyncLogger
 
 URI1 = 'radio://0/60/2M/E7E7E7E710'
 URI2 = 'radio://0/60/2M/E7E7E7E711'
@@ -56,18 +54,19 @@ URI7 = 'radio://0/60/2M/E7E7E7E716'
 URI8 = 'radio://0/60/2M/E7E7E7E717'
 
 # The trajectory to fly
-a = 0.55 # where the Beizer curve control point should be https://spencermortensen.com/articles/bezier-circle/
-h = 1.0 # [m] how high we should fly 
-t = 2.0 # seconds per step, one circle has 4 steps
-r1 = 1.0 # [m] the radius at which the first half of the drones are 
-r2 = np.sqrt(2.0) # [m] the radius at which every second other drone is
-loops = 2 # how many loops we should fly
-color_move_factor = 3 # magic factor which defines how fast the colors move
+a = 0.55  # where the Beizer curve control point should be https://spencermortensen.com/articles/bezier-circle/
+h = 1.0  # [m] how high we should fly
+t = 2.0  # seconds per step, one circle has 4 steps
+r1 = 1.0  # [m] the radius at which the first half of the drones are
+r2 = np.sqrt(2.0)  # [m] the radius at which every second other drone is
+loops = 2  # how many loops we should fly
+color_move_factor = 3  # magic factor which defines how fast the colors move
+
 
 def rotate_beizer_node(xl, yl, alpha):
     x_rot = []
     y_rot = []
-    for x,y in zip(xl,yl):
+    for x, y in zip(xl, yl):
         x_rot.append(x*np.cos(alpha) - y*np.sin(alpha))
         y_rot.append(x*np.sin(alpha) + y*np.cos(alpha))
     return x_rot, y_rot
@@ -152,6 +151,7 @@ def upload_trajectory(cf, trajectory_id, trajectory):
 
     return total_duration
 
+
 def turn_off_leds(scf):
     # Set solid color effect
     scf.cf.param.set_value('ring.effect', '7')
@@ -160,13 +160,14 @@ def turn_off_leds(scf):
     scf.cf.param.set_value('ring.solidGreen', '0')
     scf.cf.param.set_value('ring.solidBlue', '0')
 
+
 def run_sequence(scf, alpha, r):
     commander = scf.cf.high_level_commander
     trajectory_id = 1
     duration = 4*t
     commander.takeoff(h, 2.0)
     time.sleep(3.0)
-    x_start, y_start = rotate_beizer_node([r],[0.0], alpha)
+    x_start, y_start = rotate_beizer_node([r], [0.0], alpha)
     commander.go_to(x_start[0], y_start[0], h, 0.0, 2.0)
     time.sleep(3.0)
     relative = False
@@ -187,23 +188,25 @@ def run_sequence(scf, alpha, r):
     scf.cf.param.set_value('ring.solidRed', '0')
     scf.cf.param.set_value('ring.solidGreen', '0')
     scf.cf.param.set_value('ring.solidBlue', '0')
-    time.sleep(20) # sleep long enough to be sure to have turned off leds
+    time.sleep(20)  # sleep long enough to be sure to have turned off leds
     commander.stop()
 
+
 def create_trajectory(alpha, r):
-    x_start, y_start = rotate_beizer_node([r],[0.0], alpha)
+    x_start, y_start = rotate_beizer_node([r], [0.0], alpha)
     beizer_point_1_x, beizer_point_1_y = rotate_beizer_node([r, r*a, 0.0], [r*a, r, r], alpha)
     beizer_point_2_x, beizer_point_2_y = rotate_beizer_node([-r*a, -r, -r], [r, r*a, 0.0], alpha)
     beizer_point_3_x, beizer_point_3_y = rotate_beizer_node([-r, -r*a, 0.0], [-r*a, -r, -r], alpha)
     beizer_point_4_x, beizer_point_4_y = rotate_beizer_node([r*a, r, r], [-r, -r*a, 0.0], alpha)
     trajectory = [
-    CompressedStart(x_start[0], y_start[0], h, 0.0),
-    CompressedSegment(t, beizer_point_1_x, beizer_point_1_y, [h], []),
-    CompressedSegment(t, beizer_point_2_x, beizer_point_2_y, [h], []),
-    CompressedSegment(t, beizer_point_3_x, beizer_point_3_y, [h], []),
-    CompressedSegment(t, beizer_point_4_x, beizer_point_4_y, [h], []),
+        CompressedStart(x_start[0], y_start[0], h, 0.0),
+        CompressedSegment(t, beizer_point_1_x, beizer_point_1_y, [h], []),
+        CompressedSegment(t, beizer_point_2_x, beizer_point_2_y, [h], []),
+        CompressedSegment(t, beizer_point_3_x, beizer_point_3_y, [h], []),
+        CompressedSegment(t, beizer_point_4_x, beizer_point_4_y, [h], []),
     ]
     return trajectory
+
 
 def upload_trajectories(scf, alpha, r):
     trajectory_id = 1
@@ -216,14 +219,14 @@ if __name__ == '__main__':
     uris = [URI1, URI2, URI3, URI4, URI5, URI6, URI7, URI8]
     # uris = [URI1, URI5]
     position_params = {
-        URI1:[0.0,r1], 
-        URI2:[3.14/4,r2], 
-        URI3:[3.14/2,r1], 
-        URI4:[3.14/4*3,r2], 
-        URI5:[3.14,r1], 
-        URI6:[3.14/4*5,r2], 
-        URI7:[3.14/4*6,r1], 
-        URI8:[3.14/4*7,r2]}
+        URI1: [0.0, r1],
+        URI2: [3.14/4, r2],
+        URI3: [3.14/2, r1],
+        URI4: [3.14/4*3, r2],
+        URI5: [3.14, r1],
+        URI6: [3.14/4*5, r2],
+        URI7: [3.14/4*6, r1],
+        URI8: [3.14/4*7, r2]}
 
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:

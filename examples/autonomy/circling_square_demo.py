@@ -6,7 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2018 Bitcraze AB
+#  Copyright (C) 2023 Bitcraze AB
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -177,7 +177,7 @@ def run_sequence(scf, alpha, r):
         start_time = time.time()
         end_time = start_time + duration
         while True:
-            color_angle = alpha + ((time.time() - start_time_leds)/duration)*2.0*3.14*color_move_factor
+            color_angle = alpha + ((time.time() - start_time_leds)/duration)*2.0*np.pi*color_move_factor
             scf.cf.param.set_value('ring.solidRed', np.cos(color_angle)*127 + 127)
             scf.cf.param.set_value('ring.solidGreen', 128 - np.cos(color_angle)*127)
             scf.cf.param.set_value('ring.solidBlue', '0')
@@ -220,13 +220,13 @@ if __name__ == '__main__':
     # uris = [URI1, URI5]
     position_params = {
         URI1: [0.0, r1],
-        URI2: [3.14/4, r2],
-        URI3: [3.14/2, r1],
-        URI4: [3.14/4*3, r2],
-        URI5: [3.14, r1],
-        URI6: [3.14/4*5, r2],
-        URI7: [3.14/4*6, r1],
-        URI8: [3.14/4*7, r2]}
+        URI2: [np.pi/4, r2],
+        URI3: [np.pi/2, r1],
+        URI4: [np.pi/4*3, r2],
+        URI5: [np.pi, r1],
+        URI6: [np.pi/4*5, r2],
+        URI7: [np.pi/4*6, r1],
+        URI8: [np.pi/4*7, r2]}
 
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:

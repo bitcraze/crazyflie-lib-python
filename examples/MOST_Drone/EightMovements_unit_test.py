@@ -3,11 +3,19 @@ import cflib.crtp
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.positioning.motion_commander import MotionCommander
 from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E701'
+uri_1 = 'radio://0/80/2M/E7E7E7E706'
+
+init_H = float(0.7)  # Initial drone's height; unit: m
+final_H = float(1.0)  # Final drone's height; unit: m
+max_leg_raising = float(0.3)  # maximum leg raising; unit: m
+init_Vel = 0.5  # Initial velocity
+task_Vel = 0.3  # on-task velocity
+
 
 position_estimate_1 = [0, 0, 0]
 
@@ -20,6 +28,28 @@ def log_pos_callback_1(uri_1, timestamp, data, logconf_1):
     position_estimate_1[2] = data['kalman.stateZ']
     print("{}: {} is at pos: ({}, {}, {})".format(timestamp, uri_1, position_estimate_1[0], position_estimate_1[1],
                                             position_estimate_1[2]))
+
+
+# # Crazyflie Motion Section
+
+def drone_guide_mc(scf): # default take-off height = 0.3 m
+
+    with MotionCommander(scf) as mc:
+        mc.up(init_H, velocity=init_Vel)
+        time.sleep(2)
+
+        for i in range(1,9):
+            print("Round: ", i)
+
+            # mc.up(max_leg_raising, velocity=task_Vel)
+            # time.sleep(0.8)
+            # mc.down(max_leg_raising, velocity=task_Vel)
+            # time.sleep(1.5)
+
+            mc.move_distance(0.4, 0, 0.4, velocity=task_Vel)
+            time.sleep(0.8)
+            mc.move_distance(-0.4, 0, -0.4, velocity=task_Vel)
+            time.sleep(1.5)
 
 
 if __name__ == '__main__':
@@ -38,8 +68,10 @@ if __name__ == '__main__':
 
         logconf_1.start()
         
+        # Perform the drone guiding task
+        drone_guide_mc(scf_1)
 
-        time.sleep(100)
+        time.sleep(5)
 
         logconf_1.stop()
 

@@ -319,38 +319,38 @@ def open_baduanjin_sound_p3():
 
 def position_state_change_p2(event1, event2):
     print("position thread p2 start")
-    while not event2.is_set():
+    while not event2.is_set(): # the drone hasn't finished the guiding yet
         # if abs((position_estimate_2[1])-position_estimate_1[1]) > d_th or abs((position_estimate_3[1])-position_estimate_1[1]) > d_th:
         #     # print("---Wrist Sensor is outbounded---")
         #     event1.set()
         if abs((position_estimate_2[1])-position_estimate_1[1]) < d_th or abs((position_estimate_3[1])-position_estimate_1[1]) < d_th:
-            event1.clear()
+            event1.clear()   # WS1 is still in the threshold range
             # print("Hello!!!!")
         
         else:
-            event1.set()
+            event1.set()  # WS1 is out of the threshold range
             # print("It's me!!!!!")
             # event1.clear()
 
 def position_state_change_p3(event1, event2):
     print("position thread p3 start")
-    while not event2.is_set():
+    while not event2.is_set(): # the drone hasn't finished the guiding yet
         # if abs((position_estimate_2[2]+0.2)-position_estimate_1[2]) > d_th or abs((position_estimate_3[2]+0.2)-position_estimate_1[2]) > d_th:
         #     # print("---Wrist Sensor is outbounded---")
         #     event1.set()
         if abs((position_estimate_2[2]+0.2)-position_estimate_1[2]) < d_th or abs((position_estimate_3[2]+0.3)-position_estimate_1[2]) < d_th:
-            event1.clear()
+            event1.clear() # WS2 is still in the threshold range
             # print("Hello _Pim!!!!")
         
         else:
-            event1.set()
+            event1.set()  # WS2 is out of the threshold range
             # print("It's Pam!!!!!")
             # event1.clear()
 
 def sound_feedback(event1, event2):
     print("sound thread started")
-    while not event2.is_set():
-        if event1.isSet()==True:
+    while not event2.is_set(): # the drone hasn't finished the guiding yet
+        if event1.isSet()==True:   # Either WS1 or WS2 is out of the threshold range
             print("Beep!!")
             frequency = 2500  # Set Frequency To 2500 Hertz
             duration = 500  # Set Duration To 250 ms == 0.25 second

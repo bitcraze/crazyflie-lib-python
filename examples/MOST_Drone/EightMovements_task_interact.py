@@ -100,6 +100,8 @@ def sound_feedback(event1, event2):
             
         time.sleep(0.1)
 
+# using other sounds, see in:  https://www.geeksforgeeks.org/python-winsound-module/
+
 
 if __name__ == '__main__':
 

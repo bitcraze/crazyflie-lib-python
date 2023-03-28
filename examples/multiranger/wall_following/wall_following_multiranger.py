@@ -30,6 +30,8 @@ Helper class for the wall following demo
 
 from enum import Enum
 import math
+
+
 class WallFollowingMultiranger():
     class StateWF(Enum):
         FORWARD = 1
@@ -205,7 +207,6 @@ class WallFollowingMultiranger():
                 if front_range < self.ref_distance_from_wall + self.ranger_value_buffer:
                     self.state_wf = self.transition(self.StateWF.TURN_TO_FIND_WALL)
 
-
             case self.StateWF.ROTATE_IN_CORNER:
                 check_heading_corner = self.logic_is_close_to(math.fabs(self.wrap_to_pi(current_heading-self.prev_heading)),
                                                               self.in_corner_angle, self.angle_value_buffer)
@@ -266,7 +267,7 @@ class WallFollowingMultiranger():
                     self.around_corner_back_track = False
                     cmd_vel_x_temp, cmd_vel_y_temp, cmd_ang_w_temp = \
                         self.command_turn_around_corner_and_adjust(
-                        self.ref_distance_from_wall, side_range)
+                            self.ref_distance_from_wall, side_range)
             case self.StateWF.ROTATE_IN_CORNER:
                 cmd_vel_x_temp, cmd_ang_w_temp = self.command_turn(self.max_turn_rate)
                 cmd_vel_y_temp = 0.0

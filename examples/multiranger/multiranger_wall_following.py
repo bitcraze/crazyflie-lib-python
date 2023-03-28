@@ -61,8 +61,8 @@ if len(sys.argv) > 1:
 logging.basicConfig(level=logging.ERROR)
 
 wall_following = WallFollowingMultiranger(
-    angle_value_buffer= 0.1, ref_distance_from_wall = 0.3,
-    max_forward_speed = 0.3, init_state = WallFollowingMultiranger.StateWF.FORWARD)
+    angle_value_buffer=0.1, ref_distance_from_wall=0.3,
+    max_forward_speed=0.3, init_state=WallFollowingMultiranger.StateWF.FORWARD)
 
 
 if __name__ == '__main__':
@@ -101,7 +101,7 @@ if __name__ == '__main__':
                         #     direction = -1 turning right and follow wall with left-range
                         #    direction = 1 turning left and follow wall with right-range
                         direction = -1
-                        side_range = multiranger.left # Get range in milimeters
+                        side_range = multiranger.left  # Get range in milimeters
 
                         if front_range is None:
                             front_range = 999
@@ -112,9 +112,10 @@ if __name__ == '__main__':
 
                         # get velocity commands and current state from wall following state machine
                         velocity_x, velocity_y, yaw_rate, state_wf = wall_following.wall_follower(
-                            front_range, side_range,actual_yaw_rad,-1,time.time())
+                            front_range, side_range, actual_yaw_rad, -1, time.time())
 
-                        print('velocity_x', velocity_x, 'velocity_y', velocity_y, 'yaw_rate', yaw_rate, 'state_wf', state_wf)
+                        print('velocity_x', velocity_x, 'velocity_y', velocity_y,
+                              'yaw_rate', yaw_rate, 'state_wf', state_wf)
 
                         # convert yaw_rate from rad to deg
                         # the negative sign is because of this ticket: https://github.com/bitcraze/crazyflie-lib-python/issues/389

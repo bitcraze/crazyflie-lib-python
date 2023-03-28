@@ -50,7 +50,7 @@ from cflib.utils.multiranger import Multiranger
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncLogger import SyncLogger
 
-from wall_following.wall_following import WallFollowingMultiranger
+from wall_following.wall_following import WallFollowing
 
 URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                         velocity_x = 0.0
                         velocity_y = 0.0
                         yaw_rate = 0.0
-                        state_wf = WallFollowingMultiranger.StateWF.HOVER
+                        state_wf = WallFollowing.StateWF.HOVER
 
                         # Get Yaw
                         log_entry = logger.next()

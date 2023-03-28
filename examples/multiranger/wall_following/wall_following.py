@@ -32,7 +32,7 @@ from enum import Enum
 import math
 
 
-class WallFollowingMultiranger():
+class WallFollowing():
     class StateWF(Enum):
         FORWARD = 1
         HOVER = 2

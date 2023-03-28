@@ -39,7 +39,6 @@ For the example to run the following hardware is needed:
 import logging
 import sys
 import time
-import keyboard
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -99,6 +98,11 @@ if __name__ == '__main__':
                         if front_range is None:
                             front_range = 999
 
+                        # get top range in milimeters
+                        top_range = multiranger.up
+                        if top_range is None:
+                            top_range = 999
+                        
                         # choose here the direction that you want the wall following to turn to
                         #     direction = -1 turning right and follow wall with left-range
                         #    direction = 1 turning left and follow wall with right-range
@@ -123,5 +127,5 @@ if __name__ == '__main__':
                             velocity_x, velocity_y, 0, rate_yaw=yaw_rate_deg)
 
                         # if spacebar is pressed, stop the demo
-                        if keyboard.is_pressed('space'):
+                        if top_range < 0.2:
                             keep_flying = False

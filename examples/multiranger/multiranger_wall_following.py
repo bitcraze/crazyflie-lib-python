@@ -50,7 +50,7 @@ from cflib.utils.multiranger import Multiranger
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncLogger import SyncLogger
 
-from wall_following.wall_following_multiranger import WallFollowingMultiranger
+from wall_following.wall_following import WallFollowingMultiranger
 
 URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 

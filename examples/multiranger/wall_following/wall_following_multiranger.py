@@ -1,7 +1,35 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+#     ||          ____  _ __
+#  +------+      / __ )(_) /_______________ _____  ___
+#  | 0xBC |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
+#  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
+#   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
+#
+#  Copyright (C) 2023 Bitcraze AB
+#
+#  Crazyflie Python Library
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU General Public License
+#  as published by the Free Software Foundation; either version 2
+#  of the License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+
+"""
+Helper class for the wall following demo
+"""
+
 from enum import Enum
 import math
-
-
 class WallFollowingMultiranger():
     class StateWF(Enum):
         FORWARD = 1
@@ -134,6 +162,9 @@ class WallFollowingMultiranger():
         # Handle state transitions
         match self.state_wf:
             case self.StateWF.FORWARD:
+                print('front', front_range)
+                print('ref_distance_from_wall', self.ref_distance_from_wall)
+                print('buffer', self.ranger_value_buffer)
                 if front_range < self.ref_distance_from_wall + self.ranger_value_buffer:
                     self.state_wf = self.transition(self.StateWF.TURN_TO_FIND_WALL)
             case self.StateWF.HOVER:
@@ -157,6 +188,7 @@ class WallFollowingMultiranger():
             case self.StateWF.TURN_TO_ALIGN_TO_WALL:
                 align_wall_check = self.logic_is_close_to(
                     self.wrap_to_pi(current_heading - self.prev_heading), self.wall_angle, self.angle_value_buffer)
+                print(self.wrap_to_pi(current_heading - self.prev_heading), self.wall_angle)
                 if align_wall_check:
                     self.state_wf = self.transition(self.StateWF.FORWARD_ALONG_WALL)
             case self.StateWF.FORWARD_ALONG_WALL:

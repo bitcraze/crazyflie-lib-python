@@ -22,7 +22,6 @@
 #  GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 """
 Example script that makes the Crazyflie follow a wall
 
@@ -40,16 +39,16 @@ import logging
 import sys
 import time
 
+from wall_following.wall_following import WallFollowing
+
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
+from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.utils import uri_helper
 from cflib.utils.multiranger import Multiranger
-from cflib.crazyflie.log import LogConfig
-from cflib.crazyflie.syncLogger import SyncLogger
-
-from wall_following.wall_following import WallFollowing
 
 URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
@@ -102,7 +101,7 @@ if __name__ == '__main__':
                         top_range = multiranger.up
                         if top_range is None:
                             top_range = 999
-                        
+
                         # choose here the direction that you want the wall following to turn to
                         #     direction = -1 turning right and follow wall with left-range
                         #    direction = 1 turning left and follow wall with right-range

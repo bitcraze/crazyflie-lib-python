@@ -60,9 +60,9 @@ if len(sys.argv) > 1:
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-wall_following = WallFollowingMultiranger(
+wall_following = WallFollowing(
     angle_value_buffer=0.1, ref_distance_from_wall=0.3,
-    max_forward_speed=0.3, init_state=WallFollowingMultiranger.StateWF.FORWARD)
+    max_forward_speed=0.3, init_state=WallFollowing.StateWF.FORWARD)
 
 
 if __name__ == '__main__':
@@ -94,21 +94,18 @@ if __name__ == '__main__':
                         actual_yaw = data['stabilizer.yaw']
                         actual_yaw_rad = actual_yaw * 3.1415 / 180
 
-                        # get from range in milimieters
+                        # get front range in milimeters
                         front_range = multiranger.front
+                        if front_range is None:
+                            front_range = 999
 
                         # choose here the direction that you want the wall following to turn to
                         #     direction = -1 turning right and follow wall with left-range
                         #    direction = 1 turning left and follow wall with right-range
                         direction = -1
                         side_range = multiranger.left  # Get range in milimeters
-
-                        if front_range is None:
-                            front_range = 999
-                        if right_range is None:
-                            right_range = 999
-                        if left_range is None:
-                            left_range = 999
+                        if side_range is None:
+                            side_range = 999
 
                         # get velocity commands and current state from wall following state machine
                         velocity_x, velocity_y, yaw_rate, state_wf = wall_following.wall_follower(
@@ -118,7 +115,8 @@ if __name__ == '__main__':
                               'yaw_rate', yaw_rate, 'state_wf', state_wf)
 
                         # convert yaw_rate from rad to deg
-                        # the negative sign is because of this ticket: https://github.com/bitcraze/crazyflie-lib-python/issues/389
+                        # the negative sign is because of this ticket:
+                        #    https://github.com/bitcraze/crazyflie-lib-python/issues/389
                         yaw_rate_deg = -1*yaw_rate * 180 / 3.1415
 
                         motion_commander.start_linear_motion(

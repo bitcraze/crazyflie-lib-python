@@ -208,8 +208,9 @@ class WallFollowing():
                     self.state_wf = self.transition(self.StateWF.TURN_TO_FIND_WALL)
 
             case self.StateWF.ROTATE_IN_CORNER:
-                check_heading_corner = self.logic_is_close_to(math.fabs(self.wrap_to_pi(current_heading-self.prev_heading)),
-                                                              self.in_corner_angle, self.angle_value_buffer)
+                check_heading_corner = self.logic_is_close_to(
+                    math.fabs(self.wrap_to_pi(current_heading-self.prev_heading)),
+                    self.in_corner_angle, self.angle_value_buffer)
                 if check_heading_corner:
                     self.state_wf = self.transition(self.StateWF.TURN_TO_FIND_WALL)
             case self.StateWF.FIND_CORNER:

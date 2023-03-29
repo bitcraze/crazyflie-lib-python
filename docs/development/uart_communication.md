@@ -13,6 +13,7 @@ If you are connecting to a Raspberry Pi look for the UART pins there connect the
 
 - Crazyflie TX2 -- Raspberry Pi RX
 - Crazyflie RX2 -- Raspberry Pi TX
+- Crazyflie Gdn -- Raspberry Pi Gdn (if not both connected to same powersource)
 
 ## Crazyflie Firmware
 
@@ -53,7 +54,7 @@ Once everything is set up you should be able to control the Crazyflie via UART.
 Add the parameter `enable_serial_driver=True` to `cflib.crtp.init_drivers()` and connect to the Crazyflie using a serial URI.
 The serial URI has the form `serial://<name>` (e.g. `serial://ttyAMA0`, `serial://ttyUSB5`) or if the OS of the controlling device does not provide the name `serial://<device>` (e.g. `serial:///dev/ttyAMA0`).
 
-The following script might give an idea on how a first test of the setup might look like.
+The following script might give an idea on how a first test of the setup might look like to print the log variables of the Crazyflie on the Raspberry pi
 
 ```python
 #!/usr/bin/env python3
@@ -62,24 +63,46 @@ import logging
 import time
 
 import cflib.crtp
+from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-from cflib.positioning.motion_commander import MotionCommander
+from cflib.crazyflie.log import LogConfig
+from cflib.crazyflie.syncLogger import SyncLogger
 
 # choose the serial URI that matches the setup serial device
 URI = 'serial://ttyAMA0'
 
-# Only output errors from the logging framework
-logging.basicConfig(level=logging.ERROR)
-
+def console_callback(text: str):
+    print(text, end='')
+    
 if __name__ == '__main__':
     # Initialize the low-level drivers including the serial driver
     cflib.crtp.init_drivers(enable_serial_driver=True)
+    cf = Crazyflie(rw_cache='./cache')
+    cf.console.receivedChar.add_callback(console_callback)
+    
+    lg_stab = LogConfig(name='Stabilizer', period_in_ms=10)
+    lg_stab.add_variable('stabilizer.roll', 'float')
+    lg_stab.add_variable('stabilizer.pitch', 'float')
+    lg_stab.add_variable('stabilizer.yaw', 'float')
+
 
     with SyncCrazyflie(URI) as scf:
-        # We take off when the commander is created
-        with MotionCommander(scf) as mc:
-            print('Taking off!')
-            time.sleep(0.1)
-            # We land when the MotionCommander goes out of scope
-            print('Landing!')
+        print('[host] Connected, use ctrl-c to quit.')
+        with SyncLogger(scf, lg_stab) as logger:
+            endTime = time.time() + 10
+            for log_entry in logger:
+                timestamp = log_entry[0]
+                data = log_entry[1]
+                logconf_name = log_entry[2]
+
+                print('[%d][%s]: %s' % (timestamp, logconf_name, data))
+
+                if time.time() > endTime:
+                    break
+
 ```
+
+## Troubleshooting
+
+* If you see the a `CRC error` when running the script, make sure to install the cflib from source. 
+* If the script hangs with connecting, restart the crazyflie

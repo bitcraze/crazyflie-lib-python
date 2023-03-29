@@ -6,6 +6,9 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  schedule:
+    # Weekly build to make sure dependencies are OK
+    - cron:  '30 16 * * 6'
 
 jobs:
   build:
@@ -13,7 +16,7 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Build
       run: docker run --rm -v ${PWD}:/module bitcraze/builder ./tools/build/build

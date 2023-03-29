@@ -12,7 +12,10 @@ jobs:
       image: python:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
+      - name: python version
+        run: python --version
 
       - name: install lib
         run: pip install -e .
@@ -23,7 +26,10 @@ jobs:
       image: python:3.7
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
+      - name: python version
+        run: python --version
 
       - name: install lib
         run: pip install -e .

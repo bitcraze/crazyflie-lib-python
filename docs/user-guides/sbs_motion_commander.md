@@ -5,7 +5,7 @@ page_id: sbs_motion_commander
 
 Here we will go through step-by-step how to make your crazyflie move based on a motion script. For the first part of this tutorial, you just need the crazyflie and the flowdeck. For the second part, it would be handy to have the multiranger present.
 
-# Prerequisites
+## Prerequisites
 
 We will assume that you already know this before you start with the tutorial:
 
@@ -13,7 +13,7 @@ We will assume that you already know this before you start with the tutorial:
 * Followed the [crazyflie getting started guide](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/) and [the connecting, logging and parameters tutorial](/docs/user-guides/sbs_connect_log_param.md).
 
 
-# Get the script started
+## Get the script started
 
 Since you should have installed cflib in the previous step by step tutorial, you are all ready to got now. Open up an new python script called `motion_flying.py`. First you will start by adding the following import to the script:
 
@@ -48,7 +48,7 @@ This probably all looks pretty familiar, except for one thing line, namely:
 
 This imports the motion commander, which is pretty much a wrapper around the position setpoint frame work of the crazyflie. You probably have unknowingly experienced this a when trying out the assist modes in this [tutorial with the flowdeck in the cfclient](https://www.bitcraze.io/documentation/tutorials/getting-started-with-flow-deck/)
 
-# Step 1: Security before flying
+## Step 1: Security before flying
 
 Since this tutorial won't be a table top tutorial like last time, but an actual flying one, we need to put some securities in place. The flowdeck or any other positioning deck that you are using, should be correctly attached to the crazyflie. If it is not, it will try to fly anyway without a good position estimate and for sure is going to crash.
 
@@ -125,7 +125,7 @@ if __name__ == '__main__':
 
 ```
 
-# Step 2: Take off function
+## Step 2: Take off function
 
 So now we are going to start up the SyncCrazyflie and start a function in the `__main__` function:
 
@@ -153,9 +153,9 @@ If you run the python script, you will see the crazyflie connect and immediately
 
 The reason for the crazyflie to immediately take off, is that the motion commander if intialized with a take off function that will already start sending position setpoints to the crazyflie. Once the script goes out of the instance, the motion commander instance will close with a land function.
 
-## Changing the height
+### Changing the height
 
-Currently the motion commander had 0.3 meters height as default but this can ofcourse be changed.
+Currently the motion commander had 0.3 meters height as default but this can of course be changed.
 
 Change the  following line in `take_off_simple(...)`:
 ```python
@@ -227,7 +227,7 @@ if __name__ == '__main__':
 
 ```
 
-# Step 3 Go Forward, Turn and Go back
+## Step 3 Go Forward, Turn and Go back
 
 So now we know how to take off, so the second step is to move in a direction! Start a new function above `def take_off_simple(scf)`:
 
@@ -257,7 +257,7 @@ Now we are going to add a turn into it. Replace the content under motion command
         time.sleep(1)
 ```
 
-Try to run the script again. Now you can see the crazyflie take off, go forward, turn 180 degrees and go forward again to its initial position.  The `mc.back()` needed to be replaced with the forward since the motion commander sends the velocity setpoints in the __body fixed coordinated__ system. This means that the commands forward will go forward to whereever the current heading (the front) of the crazyflie points to.
+Try to run the script again. Now you can see the crazyflie take off, go forward, turn 180 degrees and go forward again to its initial position.  The `mc.back()` needed to be replaced with the forward since the motion commander sends the velocity setpoints in the __body fixed coordinated__ system. This means that the commands forward will go forward to wherever the current heading (the front) of the crazyflie points to.
 
 Double check if your code code is still correct:
 
@@ -315,7 +315,7 @@ if __name__ == '__main__':
         move_linear_simple(scf)
 ```
 
-# Step 4: Logging while flying
+## Step 4: Logging while flying
 
 When the motion commander commands have been executed, the script stops and the crazyflie lands... however that is a bit boring. Maybe you would like for it to keep flying and responding certain elements in the mean time!
 
@@ -429,11 +429,11 @@ if __name__ == '__main__':
 
 ```
 
-# Step 5: Combine logging and motion commander
+## Step 5: Combine logging and motion commander
 
 There is a reason why we put the position_estimate to catch the positions from the log, since we would like to now do something with it!
 
-## Back and forth with limits
+### Back and forth with limits
 Lets start with a new function above `move_linear_simple(scf)`:
 
 ```python
@@ -539,7 +539,7 @@ if __name__ == '__main__':
         logconf.stop()
 ```
 
-## Bouncing in a bounding box
+### Bouncing in a bounding box
 
 Let's take it up a notch! Replace the content in the while loop with the following:
 ```python
@@ -669,6 +669,6 @@ if __name__ == '__main__':
 You're done! The full code of this tutorial can be found in the example/step-by-step/ folder.
 
 
-# What is next ?
+## What is next ?
 
 Now you are able to send velocity commands to the Crazyflie and react upon logging and parameters variables, so one step closer to writing your own application with the Crazyflie python library! Check out the motion_commander_demo.py in the example folder of the cflib if you would like to see what the commander can do.

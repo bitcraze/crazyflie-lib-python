@@ -169,12 +169,12 @@ class TrajectoryMemory(MemoryElement):
         # elements in the same trajectory.
         self.trajectory = []
 
-    # Deprecated. replaced by self.trajectory
+    # Deprecated (removed after August 2023). replaced by self.trajectory
     @property
     def poly4Ds(self):
         return self.trajectory
 
-    # Deprecated. replaced by self.trajectory
+    # Deprecated (removed after August 2023). replaced by self.trajectory
     @poly4Ds.setter
     def poly4Ds(self, trajectory):
         self.trajectory = trajectory

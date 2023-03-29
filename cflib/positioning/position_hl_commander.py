@@ -74,7 +74,6 @@ class PositionHlCommander:
         self._controller = controller
 
         self._activate_controller()
-        self._activate_high_level_commander()
         self._hl_commander = self._cf.high_level_commander
 
         self._x = x
@@ -277,9 +276,6 @@ class PositionHlCommander:
         :return: (x, y, z)
         """
         return self._x, self._y, self._z
-
-    def _activate_high_level_commander(self):
-        self._cf.param.set_value('commander.enHighLevel', '1')
 
     def _activate_controller(self):
         if self._controller is not None:

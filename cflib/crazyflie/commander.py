@@ -33,11 +33,16 @@ from cflib.crtp.crtpstack import CRTPPort
 __author__ = 'Bitcraze AB'
 __all__ = ['Commander']
 
+SET_SETPOINT_CHANNEL = 0
+META_COMMAND_CHANNEL = 1
+
 TYPE_STOP = 0
 TYPE_VELOCITY_WORLD = 1
 TYPE_ZDISTANCE = 2
 TYPE_HOVER = 5
 TYPE_POSITION = 7
+
+TYPE_META_COMMAND_NOTIFY_SETPOINT_STOP = 0
 
 
 class Commander():
@@ -82,6 +87,18 @@ class Commander():
         pk.data = struct.pack('<fffH', roll, -pitch, yawrate, thrust)
         self._cf.send_packet(pk)
 
+    def send_notify_setpoint_stop(self, remain_valid_milliseconds=0):
+        """
+        Sends a packet so that the priority of the current setpoint to the lowest non-disabled value,
+        so any new setpoint regardless of source will overwrite it.
+        """
+        pk = CRTPPacket()
+        pk.port = CRTPPort.COMMANDER_GENERIC
+        pk.channel = META_COMMAND_CHANNEL
+        pk.data = struct.pack('<BI', TYPE_META_COMMAND_NOTIFY_SETPOINT_STOP,
+                              remain_valid_milliseconds)
+        self._cf.send_packet(pk)
+
     def send_stop_setpoint(self):
         """
         Send STOP setpoing, stopping the motors and (potentially) falling.
@@ -100,6 +117,7 @@ class Commander():
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
+        pk.channel = SET_SETPOINT_CHANNEL
         pk.data = struct.pack('<Bffff', TYPE_VELOCITY_WORLD,
                               vx, vy, vz, yawrate)
         self._cf.send_packet(pk)
@@ -116,6 +134,7 @@ class Commander():
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
+        pk.channel = SET_SETPOINT_CHANNEL
         pk.data = struct.pack('<Bffff', TYPE_ZDISTANCE,
                               roll, pitch, yawrate, zdistance)
         self._cf.send_packet(pk)
@@ -132,6 +151,7 @@ class Commander():
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
+        pk.channel = SET_SETPOINT_CHANNEL
         pk.data = struct.pack('<Bffff', TYPE_HOVER,
                               vx, vy, yawrate, zdistance)
         self._cf.send_packet(pk)
@@ -146,6 +166,7 @@ class Commander():
         """
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
+        pk.channel = SET_SETPOINT_CHANNEL
         pk.data = struct.pack('<Bffff', TYPE_POSITION,
                               x, y, z, yaw)
         self._cf.send_packet(pk)

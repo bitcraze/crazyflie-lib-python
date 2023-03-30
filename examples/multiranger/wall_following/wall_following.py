@@ -24,6 +24,11 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 Helper class for the wall following demo
+
+This is a python port of c-based app layer example from the Crazyflie-firmware
+found here https://github.com/bitcraze/crazyflie-firmware/tree/master/examples/
+demos/app_wall_following_demo
+
 """
 import math
 from enum import Enum
@@ -161,9 +166,6 @@ class WallFollowing():
         # Handle state transitions
         match self.state_wf:
             case self.StateWF.FORWARD:
-                print('front', front_range)
-                print('ref_distance_from_wall', self.ref_distance_from_wall)
-                print('buffer', self.ranger_value_buffer)
                 if front_range < self.ref_distance_from_wall + self.ranger_value_buffer:
                     self.state_wf = self.transition(self.StateWF.TURN_TO_FIND_WALL)
             case self.StateWF.HOVER:
@@ -187,7 +189,6 @@ class WallFollowing():
             case self.StateWF.TURN_TO_ALIGN_TO_WALL:
                 align_wall_check = self.logic_is_close_to(
                     self.wrap_to_pi(current_heading - self.prev_heading), self.wall_angle, self.angle_value_buffer)
-                print(self.wrap_to_pi(current_heading - self.prev_heading), self.wall_angle)
                 if align_wall_check:
                     self.state_wf = self.transition(self.StateWF.FORWARD_ALONG_WALL)
             case self.StateWF.FORWARD_ALONG_WALL:

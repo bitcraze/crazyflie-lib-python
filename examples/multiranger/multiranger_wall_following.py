@@ -27,7 +27,10 @@ Example script that makes the Crazyflie follow a wall
 
 This examples uses the Flow and Multi-ranger decks to measure distances
 in all directions and do wall following. Straight walls with corners
-are advised to have in the test environment
+are advised to have in the test environment.
+This is a python port of c-based app layer example from the Crazyflie-firmware
+found here https://github.com/bitcraze/crazyflie-firmware/tree/master/examples/
+demos/app_wall_following_demo
 
 For the example to run the following hardware is needed:
  * Crazyflie 2.0

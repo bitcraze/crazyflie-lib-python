@@ -38,7 +38,7 @@ def drone_guide_mc(scf): # default take-off height = 0.3 m
         mc.up(init_H, velocity=init_Vel)
         time.sleep(2)
 
-        for i in range(1,9):
+        for i in range(1,5):
             print("Round: ", i)
 
             # mc.up(max_leg_raising, velocity=task_Vel)

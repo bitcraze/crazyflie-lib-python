@@ -52,7 +52,7 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
         mc.up(init_H, velocity=init_Vel)
         time.sleep(2)
 
-        for i in range(1,6):
+        for i in range(1,5):
             print("Round: ", i)
 
             # mc.up(max_leg_raising, velocity=task_Vel)
@@ -63,13 +63,14 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
             mc.move_distance(0.4, 0, 0.4, velocity=task_Vel)  # moving up
             time.sleep(0.8)
 
-            if event1.isSet()==True:  # subject reaches the target point
-                print("Target was reached!")
-                mc.move_distance(-0.4, 0, -0.4, velocity=task_Vel)  # moving back
-            else:
+            while event1.isSet()==False:
                 mc.stop()
-           
+                time.sleep(1.5)
+
+            print("Target was reached!")
+            mc.move_distance(-0.4, 0, -0.4, velocity=task_Vel)  # moving back
             time.sleep(1.5)
+           
 
         # set the event for turning off the sound feedback process
         event2.set()
@@ -144,7 +145,7 @@ if __name__ == '__main__':
             sound_thread.start()
 
             # Perform the drone guiding task
-            drone_guide_mc(scf_1, e2)
+            drone_guide_mc(scf_1, e1, e2)
             
             # Threads join
             pos_state_thread.join()

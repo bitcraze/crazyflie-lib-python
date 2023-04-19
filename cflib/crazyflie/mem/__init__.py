@@ -31,6 +31,8 @@ import logging
 import struct
 from threading import Lock
 
+from .multiranger_memory import MultirangerMemory
+from .paa3905_memory import PAA3905Memory
 from .deck_memory import DeckMemoryManager
 from .i2c_element import I2CElement
 from .led_driver_memory import LEDDriverMemory
@@ -521,6 +523,16 @@ class Memory():
                 self.mem_read_failed_cb.add_callback(mem._new_data_failed)
                 self.mem_write_cb.add_callback(mem._write_done)
                 self.mem_write_failed_cb.add_callback(mem._write_failed)
+            elif mem_type == MemoryElement.TYPE_DECK_MULTIRANGER:
+                mem = MultirangerMemory(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
+                logger.debug(mem)
+                self.mem_read_cb.add_callback(mem.new_data)
+                self.mem_read_failed_cb.add_callback(mem.read_failed)
+            elif mem_type == MemoryElement.TYPE_DECK_PAA3905:
+                mem = PAA3905Memory(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
+                logger.debug(mem)
+                self.mem_read_cb.add_callback(mem.new_data)
+                self.mem_read_failed_cb.add_callback(mem.read_failed)
             else:
                 mem = MemoryElement(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
                 logger.debug(mem)

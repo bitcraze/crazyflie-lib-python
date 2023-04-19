@@ -23,11 +23,10 @@
 Example of how to read the memory from the multiranger
 """
 import logging
-from threading import Event
 import time
+from threading import Event
+
 import matplotlib.pyplot as plt
-import numpy as np
-import random
 
 import cflib.crtp  # noqa
 from cflib.crazyflie import Crazyflie
@@ -52,24 +51,24 @@ class ReadMem:
                 raise Exception('Unexpected nr of memories found:', count)
 
             mem = mems[0]
-            
+
             data = [[0 for x in range(35)] for y in range(35)]
             im = plt.imshow(data, cmap='gray', vmin=0, vmax=255, origin='upper')
-                          
+
             start_time = time.time()
             for frames in range(100):
                 data = mem.read_data_sync()
                 im.set_data(data)
                 plt.pause(0.01)
-           
-             
+
             end_time = time.time()
-            print("FPS: {}".format(100/(end_time - start_time)))
+            print('FPS: {}'.format(100/(end_time - start_time)))
             time.sleep(5)
-                
+
+
 if __name__ == '__main__':
     # URI to the Crazyflie to connect to
-#    uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+    #    uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
     uri = uri_helper.uri_from_env(default='usb://0')
 
     # Initialize the low-level drivers

@@ -20,7 +20,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 import logging
-import struct
 
 from .memory_element import MemoryElement
 from cflib.utils.callbacks import Syncer
@@ -33,7 +32,7 @@ class PAA3905Memory(MemoryElement):
 
     def __init__(self, id, type, size, mem_handler):
         super(PAA3905Memory, self).__init__(id=id, type=type, size=size,
-                                              mem_handler=mem_handler)
+                                            mem_handler=mem_handler)
         self._read_finished_cb = None
 
     def new_data(self, mem, addr, data):
@@ -43,9 +42,9 @@ class PAA3905Memory(MemoryElement):
             image_matrix = []
             for i in range(35):
                 image_matrix.append(data[i*35:i*35+35])
-            
+
             self._read_finished_cb(addr, image_matrix)
-                
+
     def read_data(self, read_finished_cb):
         """Read image data from PAA3905"""
         self._read_finished_cb = read_finished_cb
@@ -60,7 +59,7 @@ class PAA3905Memory(MemoryElement):
             return syncer.success_args[1]
         else:
             return None
-        
+
     def read_failed(self, mem, addr):
         if mem.id == self.id:
             logger.debug('Read failed')

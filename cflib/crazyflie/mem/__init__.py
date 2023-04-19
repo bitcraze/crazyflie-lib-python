@@ -31,8 +31,6 @@ import logging
 import struct
 from threading import Lock
 
-from .multiranger_memory import MultirangerMemory
-from .paa3905_memory import PAA3905Memory
 from .deck_memory import DeckMemoryManager
 from .i2c_element import I2CElement
 from .led_driver_memory import LEDDriverMemory
@@ -45,7 +43,9 @@ from .loco_memory import LocoMemory
 from .loco_memory_2 import LocoMemory2
 from .memory_element import MemoryElement
 from .memory_tester import MemoryTester
+from .multiranger_memory import MultirangerMemory
 from .ow_element import OWElement
+from .paa3905_memory import PAA3905Memory
 from .trajectory_memory import CompressedSegment
 from .trajectory_memory import CompressedStart
 from .trajectory_memory import Poly4D

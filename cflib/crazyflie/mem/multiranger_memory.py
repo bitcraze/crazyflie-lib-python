@@ -33,7 +33,7 @@ class MultirangerMemory(MemoryElement):
 
     def __init__(self, id, type, size, mem_handler):
         super(MultirangerMemory, self).__init__(id=id, type=type, size=size,
-                                              mem_handler=mem_handler)
+                                                mem_handler=mem_handler)
         self._read_finished_cb = None
 
     def new_data(self, mem, addr, data):
@@ -43,9 +43,9 @@ class MultirangerMemory(MemoryElement):
             zone_matrix = []
             for i in range(8):
                 zone_matrix.append(unpacked_data[i*8:i*8+8])
-            
+
             self._read_finished_cb(addr, zone_matrix)
-                
+
     def read_data(self, read_finished_cb):
         """Write the saved LED-ring data to the Crazyflie"""
         self._read_finished_cb = read_finished_cb
@@ -60,7 +60,7 @@ class MultirangerMemory(MemoryElement):
             return syncer.success_args[1]
         else:
             return None
-        
+
     def read_failed(self, mem, addr):
         if mem.id == self.id:
             logger.debug('Read failed')

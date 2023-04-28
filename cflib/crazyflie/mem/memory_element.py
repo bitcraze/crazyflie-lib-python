@@ -38,6 +38,8 @@ class MemoryElement(object):
     TYPE_DRIVER_LEDTIMING = 0x17
     TYPE_APP = 0x18
     TYPE_DECK_MEMORY = 0x19
+    TYPE_DECK_MULTIRANGER = 0x1A
+    TYPE_DECK_PAA3905 = 0x1B
 
     def __init__(self, id, type, size, mem_handler):
         """Initialize the element with default values"""

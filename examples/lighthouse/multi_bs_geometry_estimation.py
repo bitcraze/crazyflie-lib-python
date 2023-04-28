@@ -366,7 +366,7 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
 
         if file_name:
             write_to_file(file_name, origin, x_axis, xy_plane, samples)
-            print('Wrote data to file {file_name}')
+            print(f'Wrote data to file {file_name}')
 
         print('Step 6. Estimating geometry...')
         bs_poses = estimate_geometry(origin, x_axis, xy_plane, samples)

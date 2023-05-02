@@ -38,9 +38,9 @@ For the example to run the following hardware is needed:
  * Flow deck
  * Multiranger deck
 """
-
 import logging
 import time
+from math import degrees
 
 from wall_following.wall_following import WallFollowing
 
@@ -53,14 +53,14 @@ from cflib.positioning.motion_commander import MotionCommander
 from cflib.utils import uri_helper
 from cflib.utils.multiranger import Multiranger
 
-from math import degrees
+URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E704')
 
-URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 def handle_range_measurement(range):
     if range is None:
         range = 999
     return range
+
 
 if __name__ == '__main__':
     # Initialize the low-level drivers
@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
                         # choose here the direction that you want the wall following to turn to
                         wall_following_direction = WallFollowing.WallFollowingDirection.RIGHT
-                        side_range = left_range  
+                        side_range = left_range
 
                         # get velocity commands and current state from wall following state machine
                         velocity_x, velocity_y, yaw_rate, state_wf = wall_following.wall_follower(

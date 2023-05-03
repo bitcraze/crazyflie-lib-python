@@ -424,7 +424,12 @@ class Bootloader:
                     time.sleep(2)
                     raise RuntimeError(message)
 
-            for (deck_index, deck) in decks.items():
+            # The decks dictionary uses the deck index as the key. Note that all indexes might not be present as some
+            # decks do not support memory operations. decks.keys() might return the set {2, 4}.
+
+            for deck_index in sorted(decks.keys()):
+                deck = decks[deck_index]
+
                 if self.terminate_flashing_cb and self.terminate_flashing_cb():
                     raise Exception('Flashing terminated')
 
@@ -508,8 +513,6 @@ class Bootloader:
 
                 # We flashed a deck, return for re-boot
                 next_index = deck_index + 1
-                if next_index >= len(decks):
-                    next_index = -1
                 return next_index
 
             # We have flashed the last deck

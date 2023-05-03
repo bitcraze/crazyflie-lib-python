@@ -182,9 +182,10 @@ class DeckMemoryManager(MemoryElement):
     """
 
     MAX_NR_OF_DECKS = 4
+    MAX_NR_OF_DECK_MEM_INFOS = MAX_NR_OF_DECKS * 2
     SIZE_OF_DECK_MEM_INFO = 0x20
     SIZE_OF_VERSION = 1
-    SIZE_OF_INFO_SECTION = SIZE_OF_VERSION + MAX_NR_OF_DECKS * SIZE_OF_DECK_MEM_INFO
+    SIZE_OF_INFO_SECTION = SIZE_OF_VERSION + MAX_NR_OF_DECK_MEM_INFOS * SIZE_OF_DECK_MEM_INFO
     INFO_SECTION_ADDRESS = 0
     COMMAND_SECTION_ADDRESS = 0x1000
     SIZE_OF_COMMAND_SECTION = 0x20
@@ -276,7 +277,7 @@ class DeckMemoryManager(MemoryElement):
         if version != self.SUPPORTED_VERSION:
             raise RuntimeError(f'Deck memory version {version} not supported')
         else:
-            for i in range(self.MAX_NR_OF_DECKS):
+            for i in range(self.MAX_NR_OF_DECK_MEM_INFOS):
                 deck_memory = DeckMemory(self, self.COMMAND_SECTION_ADDRESS + i * self.SIZE_OF_COMMAND_SECTION)
                 start = self.SIZE_OF_VERSION + self.SIZE_OF_DECK_MEM_INFO * i
                 end = start + self.SIZE_OF_DECK_MEM_INFO

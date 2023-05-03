@@ -150,7 +150,7 @@ class WallFollowing():
         reference_rate and rate_yaw is defined in rad/s
         velocity_x is defined in m/s
         """
-        if side_range > wanted_distance_from_corner + 0.3:
+        if side_range > wanted_distance_from_corner + self.range_threshold_lost:
             rate_yaw = self.wall_following_direction_value * reference_rate
             velocity_y = 0.0
         else:
@@ -265,16 +265,19 @@ class WallFollowing():
             case self.StateWallFollowing.HOVER:
                 print('hover')
             case self.StateWallFollowing.TURN_TO_FIND_WALL:
+                # Turn until 45 degrees from wall such that the front and side range sensors
+                #   can detect the wall
                 side_range_check = side_range < (self.reference_distance_from_wall /
-                                                 math.cos(0.78) + self.ranger_value_buffer)
+                                                 math.cos(math.pi/4) + self.ranger_value_buffer)
                 front_range_check = front_range < (self.reference_distance_from_wall /
-                                                   math.cos(0.78) + self.ranger_value_buffer)
+                                                   math.cos(math.pi/4) + self.ranger_value_buffer)
                 if side_range_check and front_range_check:
                     self.prev_heading = current_heading
+                    # Calculate the angle to the wall
                     self.wall_angle = self.wall_following_direction_value * \
-                        (1.57 - math.atan(front_range / side_range) + self.angle_value_buffer)
+                        (math.pi/2 - math.atan(front_range / side_range) + self.angle_value_buffer)
                     self.state = self.state_transition(self.StateWallFollowing.TURN_TO_ALIGN_TO_WALL)
-                # If went too far in heading
+                # If went too far in heading and lost the wall, go to find corner.
                 if side_range < self.reference_distance_from_wall + self.ranger_value_buffer and \
                         front_range > self.reference_distance_from_wall + self.range_threshold_lost:
                     self.around_corner_back_track = False

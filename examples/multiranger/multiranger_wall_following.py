@@ -40,6 +40,8 @@ For the example to run the following hardware is needed:
 """
 import logging
 import time
+from math import degrees
+from math import radians
 
 from wall_following.wall_following import WallFollowing
 
@@ -51,10 +53,6 @@ from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.utils import uri_helper
 from cflib.utils.multiranger import Multiranger
-
-from wall_following.wall_following import WallFollowing
-
-from math import degrees, radians
 
 URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 

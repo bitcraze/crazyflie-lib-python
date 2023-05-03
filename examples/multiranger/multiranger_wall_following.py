@@ -39,8 +39,9 @@ For the example to run the following hardware is needed:
  * Multiranger deck
 """
 import logging
-import sys
 import time
+from math import degrees
+from math import radians
 
 from wall_following.wall_following import WallFollowing
 
@@ -55,20 +56,25 @@ from cflib.utils.multiranger import Multiranger
 
 URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
-if len(sys.argv) > 1:
-    URI = sys.argv[1]
 
-# Only output errors from the logging framework
-logging.basicConfig(level=logging.ERROR)
-
-wall_following = WallFollowing(
-    angle_value_buffer=0.1, ref_distance_from_wall=0.3,
-    max_forward_speed=0.3, init_state=WallFollowing.StateWF.FORWARD)
+def handle_range_measurement(range):
+    if range is None:
+        range = 999
+    return range
 
 
 if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
+
+    # Only output errors from the logging framework
+    logging.basicConfig(level=logging.ERROR)
+
+    keep_flying = True
+
+    wall_following = WallFollowing(
+        angle_value_buffer=0.1, reference_distance_from_wall=0.3,
+        max_forward_speed=0.3, init_state=WallFollowing.StateWallFollowing.FORWARD)
 
     # Setup logging to get the yaw data
     lg_stab = LogConfig(name='Stabilizer', period_in_ms=100)
@@ -80,42 +86,33 @@ if __name__ == '__main__':
             with Multiranger(scf) as multiranger:
                 with SyncLogger(scf, lg_stab) as logger:
 
-                    keep_flying = True
                     while keep_flying:
 
                         # initialize variables
                         velocity_x = 0.0
                         velocity_y = 0.0
                         yaw_rate = 0.0
-                        state_wf = WallFollowing.StateWF.HOVER
+                        state_wf = WallFollowing.StateWallFollowing.HOVER
 
                         # Get Yaw
                         log_entry = logger.next()
                         data = log_entry[1]
                         actual_yaw = data['stabilizer.yaw']
-                        actual_yaw_rad = actual_yaw * 3.1415 / 180
+                        actual_yaw_rad = radians(actual_yaw)
 
-                        # get front range in milimeters
-                        front_range = multiranger.front
-                        if front_range is None:
-                            front_range = 999
-
-                        # get top range in milimeters
-                        top_range = multiranger.up
-                        if top_range is None:
-                            top_range = 999
+                        # get front range in meters
+                        front_range = handle_range_measurement(multiranger.front)
+                        top_range = handle_range_measurement(multiranger.up)
+                        left_range = handle_range_measurement(multiranger.left)
+                        right_range = handle_range_measurement(multiranger.right)
 
                         # choose here the direction that you want the wall following to turn to
-                        #     direction = -1 turning right and follow wall with left-range
-                        #    direction = 1 turning left and follow wall with right-range
-                        direction = -1
-                        side_range = multiranger.left  # Get range in milimeters
-                        if side_range is None:
-                            side_range = 999
+                        wall_following_direction = WallFollowing.WallFollowingDirection.RIGHT
+                        side_range = left_range
 
                         # get velocity commands and current state from wall following state machine
                         velocity_x, velocity_y, yaw_rate, state_wf = wall_following.wall_follower(
-                            front_range, side_range, actual_yaw_rad, -1, time.time())
+                            front_range, side_range, actual_yaw_rad, wall_following_direction, time.time())
 
                         print('velocity_x', velocity_x, 'velocity_y', velocity_y,
                               'yaw_rate', yaw_rate, 'state_wf', state_wf)
@@ -123,11 +120,11 @@ if __name__ == '__main__':
                         # convert yaw_rate from rad to deg
                         # the negative sign is because of this ticket:
                         #    https://github.com/bitcraze/crazyflie-lib-python/issues/389
-                        yaw_rate_deg = -1*yaw_rate * 180 / 3.1415
+                        yaw_rate_deg = -1 * degrees(yaw_rate)
 
                         motion_commander.start_linear_motion(
                             velocity_x, velocity_y, 0, rate_yaw=yaw_rate_deg)
 
-                        # if spacebar is pressed, stop the demo
+                        # if top_range is activated, stop the demo
                         if top_range < 0.2:
                             keep_flying = False

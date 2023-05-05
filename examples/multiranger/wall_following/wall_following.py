@@ -34,8 +34,6 @@ demos/app_wall_following_demo
 
 Author:   Kimberly McGuire (Bitcraze AB)
 """
-
-
 import math
 from enum import Enum
 

@@ -68,7 +68,9 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 
 logging.basicConfig(level=logging.INFO)
 
-URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+# See this article [https://www.bitcraze.io/tag/fpv/] for explanation on URI's on this program. 
+# URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+URI = 'tcp://192.168.4.1:5000'
 
 CAM_HEIGHT = 244
 CAM_WIDTH = 324

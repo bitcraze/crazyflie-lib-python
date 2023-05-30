@@ -40,6 +40,7 @@ VERSION_COMMAND = 1
 APP_CHANNEL = 2
 
 PLATFORM_SET_CONT_WAVE = 0
+PLATFORM_REQUEST_ARMING = 1
 
 VERSION_GET_PROTOCOL = 0
 VERSION_GET_FIRMWARE = 1
@@ -82,7 +83,20 @@ class PlatformService():
         """
         pk = CRTPPacket()
         pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
-        pk.data = (0, enabled)
+
+        pk.data = (PLATFORM_SET_CONT_WAVE, enabled)
+        self._cf.send_packet(pk)
+
+    def send_arming_request(self, do_arm: bool):
+        """
+        Send system arm/disarm request
+
+        Args:
+            do_arm (bool): True = arm the system, False = disarm the system
+        """
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
+        pk.data = (PLATFORM_REQUEST_ARMING, do_arm)
         self._cf.send_packet(pk)
 
     def get_protocol_version(self):

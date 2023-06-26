@@ -508,6 +508,13 @@ class Log():
                 'The log configuration is too large or has an invalid '
                 'parameter')
 
+    def reset(self):
+        """
+        Reset the log system and remove all log blocks
+        """
+        self.log_blocks = []
+        self._send_reset_packet()
+
     def refresh_toc(self, refresh_done_callback, toc_cache):
         """Start refreshing the table of loggale variables"""
 
@@ -517,6 +524,9 @@ class Log():
         self._refresh_callback = refresh_done_callback
         self.toc = None
 
+        self._send_reset_packet()
+
+    def _send_reset_packet(self):
         pk = CRTPPacket()
         pk.set_header(CRTPPort.LOGGING, CHAN_SETTINGS)
         pk.data = (CMD_RESET_LOGGING,)

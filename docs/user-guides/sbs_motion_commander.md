@@ -3,7 +3,7 @@ title: "Step-by-Step: Motion Commander"
 page_id: sbs_motion_commander
 ---
 
-Here we will go through step-by-step how to make your crazyflie move based on a motion script. For the first part of this tutorial, you just need the crazyflie and the flowdeck. For the second part, it would be handy to have the multiranger present.
+Here we will go through step-by-step how to make your crazyflie move based on a motion script. For the first part of this tutorial, you just need the crazyflie and the flow deck. For the second part, it would be handy to have the multiranger present.
 
 ## Prerequisites
 
@@ -46,11 +46,11 @@ This probably all looks pretty familiar, except for one thing line, namely:
 
 `from cflib.positioning.motion_commander import MotionCommander`
 
-This imports the motion commander, which is pretty much a wrapper around the position setpoint frame work of the crazyflie. You probably have unknowingly experienced this a when trying out the assist modes in this [tutorial with the flowdeck in the cfclient](https://www.bitcraze.io/documentation/tutorials/getting-started-with-flow-deck/)
+This imports the motion commander, which is pretty much a wrapper around the position setpoint frame work of the crazyflie. You probably have unknowingly experienced this a when trying out the assist modes in this [tutorial with the flow deck in the cfclient](https://www.bitcraze.io/documentation/tutorials/getting-started-with-flow-deck/)
 
 ## Step 1: Security before flying
 
-Since this tutorial won't be a table top tutorial like last time, but an actual flying one, we need to put some securities in place. The flowdeck or any other positioning deck that you are using, should be correctly attached to the crazyflie. If it is not, it will try to fly anyway without a good position estimate and for sure is going to crash.
+Since this tutorial won't be a table top tutorial like last time, but an actual flying one, we need to put some securities in place. The flow deck that you are using, should be correctly attached to the crazyflie. If it is not, it will try to fly anyway without a good position estimate and for sure is going to crash.
 
 We want to know if the deck is correctly attached before flying, therefore we will add a callback for the `"deck.bcFlow2"` parameter. Add the following line after the `...SyncCrazyflie(...)` in `__main__`
 ```python
@@ -82,7 +82,9 @@ URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 deck_attached_event = Event()
 ```
 
-Try to run the script now, and try to see if it is able to detect that the flowdeck (or any other positioning deck), is correctly attached. Also try to remove it to see if it can detect it missing as well.
+Try to run the script now, and try to see if it is able to detect that the flow deck, is correctly attached. Also try to remove it to see if it can detect it missing as well.
+
+> Note: You can use a different positioning system and deck if you'd like, but you've got to look at a different parameter than "deck.bcFlow2". Check out other options in the [parameter list](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/params/#deck).
 
 This is the full script as we are:
 ```python
@@ -564,7 +566,7 @@ Let's take it up a notch! Replace the content in the while loop with the followi
 
 This will now start a linear motion into a certain direction, and makes the Crazyflie bounce around in a virtual box of which the size is indicated by 'BOX_LIMIT'. So before you fly make sure that you pick a box_limit small enough so that it able to fit in your flying area.
 
-**Note**: if you are using the flowdeck, it might be that the orientation of this box will seem to change. This is due to that the flowdeck is not able to provide an absolute heading estimate, which will be only based on gyroscope measurements. This will drift over time, which is accelerated if you incorporate many turns in your application. There are also reports that happens quickly when the crazyflie is still on the ground. This should not happen with MoCap or the lighthouse deck.
+**Note**: if you are using the flow deck, it might be that the orientation of this box will seem to change. This is due to that the flow deck is not able to provide an absolute heading estimate, which will be only based on gyroscope measurements. This will drift over time, which is accelerated if you incorporate many turns in your application. There are also reports that happens quickly when the crazyflie is still on the ground. This should not happen with MoCap or the lighthouse deck.
 
 
 Check out if your code still matches the full code and run the script!

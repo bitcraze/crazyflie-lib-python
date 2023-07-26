@@ -84,6 +84,8 @@ deck_attached_event = Event()
 
 Try to run the script now, and try to see if it is able to detect that the flow deck, is correctly attached. Also try to remove it to see if it can detect it missing as well.
 
+> Note: You can use a different positioning system and deck if you'd like, but you've got to look at a different parameter than "deck.bcFlow2". Check out other options in the [parameter list](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/params/#deck).
+
 This is the full script as we are:
 ```python
 import logging

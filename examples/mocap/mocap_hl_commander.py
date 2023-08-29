@@ -28,9 +28,10 @@ The script uses the high level commander to upload a trajectory to fly a figure 
 Set the uri to the radio settings of the Crazyflie and modify the
 mocap setting matching your system.
 """
-import motioncapture
 import time
 from threading import Thread
+
+import motioncapture
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -45,11 +46,11 @@ from cflib.utils import uri_helper
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 # The host name or ip address of the mocap system
-host_name = "192.168.5.21"
+host_name = '192.168.5.21'
 
 # The type of the mocap system
-# Valid options are: "vicon", "optitrack", "optitrack_closed_source", "qualisys", "nokov", "vrpn", "motionanalysis"
-mocap_system_type = "qualisys"
+# Valid options are: 'vicon', 'optitrack', 'optitrack_closed_source', 'qualisys', 'nokov', 'vrpn', 'motionanalysis'
+mocap_system_type = 'qualisys'
 
 # The name of the rigid body that represents the Crazyflie
 rigid_body_name = 'cf'
@@ -94,7 +95,7 @@ class MocapWrapper(Thread):
         self._stay_open = False
 
     def run(self):
-        mc = motioncapture.connect(mocap_system_type, {"hostname": host_name})
+        mc = motioncapture.connect(mocap_system_type, {'hostname': host_name})
         while self._stay_open:
             mc.waitForNextFrame()
             for name, obj in mc.rigidBodies.items():

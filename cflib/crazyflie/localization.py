@@ -7,7 +7,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2017-2020 Bitcraze AB
+#  Copyright (C) 2017-2023 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -32,7 +32,7 @@ import struct
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
-from cflib.utils.fp16 import fp16_to_float
+from cflib.utils.encoding import fp16_to_float
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Localization', 'LocalizationPacket']

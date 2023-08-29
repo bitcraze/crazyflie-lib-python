@@ -130,6 +130,9 @@ def run_sequence(scf, sequence, base_x, base_y, base_z, yaw):
             time.sleep(0.1)
 
     cf.commander.send_stop_setpoint()
+    # Hand control over to the high level commander to avoid timeout and locking of the Crazyflie
+    cf.commander.send_notify_setpoint_stop()
+
     # Make sure that the last packet leaves before the link is closed
     # since the message queue is not flushed before closing
     time.sleep(0.1)

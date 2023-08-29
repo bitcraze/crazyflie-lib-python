@@ -129,6 +129,8 @@ def run_sequence(scf, params):
     poshold(cf, 1, base)
 
     cf.commander.send_stop_setpoint()
+    # Hand control over to the high level commander to avoid timeout and locking of the Crazyflie
+    cf.commander.send_notify_setpoint_stop()
 
 
 if __name__ == '__main__':

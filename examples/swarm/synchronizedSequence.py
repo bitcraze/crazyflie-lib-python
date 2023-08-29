@@ -98,10 +98,6 @@ sequence = [
 ]
 
 
-def activate_high_level_commander(scf):
-    scf.cf.param.set_value('commander.enHighLevel', '1')
-
-
 def activate_mellinger_controller(scf, use_mellinger):
     controller = 1
     if use_mellinger:
@@ -185,7 +181,6 @@ if __name__ == '__main__':
     cflib.crtp.init_drivers()
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
-        swarm.parallel_safe(activate_high_level_commander)
         swarm.reset_estimators()
 
         print('Starting sequence!')

@@ -44,6 +44,7 @@ received by the Crazyflie before this script is executed.
 from __future__ import annotations
 
 import logging
+import pickle
 import time
 from threading import Event
 
@@ -206,6 +207,21 @@ def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
         plt.show()
 
 
+def write_to_file(name: str,
+                  origin: LhCfPoseSample,
+                  x_axis: list[LhCfPoseSample],
+                  xy_plane: list[LhCfPoseSample],
+                  samples: list[LhCfPoseSample]):
+    with open(name, 'wb') as handle:
+        data = (origin, x_axis, xy_plane, samples)
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_from_file(name: str):
+    with open(name, 'rb') as handle:
+        return pickle.load(handle)
+
+
 def estimate_geometry(origin: LhCfPoseSample,
                       x_axis: list[LhCfPoseSample],
                       xy_plane: list[LhCfPoseSample],
@@ -282,7 +298,12 @@ def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):
     event.wait()
 
 
-def connect_and_estimate(uri: str):
+def estimate_from_file(file_name: str):
+    origin, x_axis, xy_plane, samples = load_from_file(file_name)
+    estimate_geometry(origin, x_axis, xy_plane, samples)
+
+
+def connect_and_estimate(uri: str, file_name: str | None = None):
     """Connect to a Crazyflie, collect data and estimate the geometry of the system"""
     print(f'Step 1. Connecting to the Crazyflie on uri {uri}...')
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
@@ -343,6 +364,10 @@ def connect_and_estimate(uri: str):
         samples = record_angles_sequence(scf, recording_time_s)
         print('  Recording ended')
 
+        if file_name:
+            write_to_file(file_name, origin, x_axis, xy_plane, samples)
+            print(f'Wrote data to file {file_name}')
+
         print('Step 6. Estimating geometry...')
         bs_poses = estimate_geometry(origin, x_axis, xy_plane, samples)
         print('  Geometry estimated')
@@ -361,4 +386,12 @@ if __name__ == '__main__':
     cflib.crtp.init_drivers()
 
     uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
-    connect_and_estimate(uri)
+
+    # Set a file name to write the measurement data to file. Useful for debugging
+    file_name = None
+    # file_name = 'lh_geo_estimate_data.pickle'
+
+    connect_and_estimate(uri, file_name=file_name)
+
+    # Run the estimation on data from file instead of live measurements
+    # estimate_from_file(file_name)

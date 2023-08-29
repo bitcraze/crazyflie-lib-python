@@ -6,7 +6,7 @@ redirect:  /step-by-step/connect_log_param/
 
 On this step by step guide we will show you how to connect to your Crazyflie through the Crazyflie python library by a python script. This is the starting point for developing for the Crazyflie for off-board enabled flight.
 
-# Prerequisites
+## Prerequisites
 
 We will assume that you already know this before you start with the tutorial:
 
@@ -15,7 +15,7 @@ We will assume that you already know this before you start with the tutorial:
 * Able to connect the crazyflie to the CFClient and look at the log tabs and parameters (here is a [userguide](https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/)).
 
 
-## Install the cflib
+### Install the cflib
 
 Make sure that you have [python3](https://www.python.org), which should contain pip3. In a terminal please write the following:
 
@@ -23,9 +23,9 @@ Make sure that you have [python3](https://www.python.org), which should contain 
 
 This should have been installed if you installed the cfclient already (on a linux system), but it is always good to double check this :)
 
-# Step 1. Connecting with the crazyflie
+## Step 1. Connecting with the crazyflie
 
-## Begin the python script
+### Begin the python script
 
 Open up a python script anywhere that is convenient for you. We use Visual Studio code ourselves but you can use the Python editor IDLE3 if you want.
 
@@ -57,7 +57,7 @@ from a Crazyflie.
 class. It handles the asynchronous nature of the Crazyflie API and turns it
 into blocking function.
 
-## URI of the Crazyflie
+### URI of the Crazyflie
 
 After these imports, start the script with:
 
@@ -68,7 +68,7 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 This is the radio uri of the crazyflie, it can be set by setting the environment variable `CFLIB_URI`, if not set it uses the default. It should be probably fine but if you do not know what the uri of your Crazyfie is you can check that with an usb cable and looking at the config ([here](https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-configuration) are the instructions)
 
-## Main
+### Main
 
 Write the following in the script:
 ```python
@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
 The `syncCrazyflie` will create a synchronous Crazyflie instance with the specified link_uri. As you can see we are currently calling an non-existing function, so you will need to make that function first before you run the script.
 
-## Function for connecting with the crazyflie
+### Function for connecting with the crazyflie
 
 Start a function above the main function (but below the URI) which you call simple connect:
 
@@ -97,7 +97,7 @@ def simple_connect():
 
 
 
-## Run the script
+### Run the script
 
 Now run the script in your terminal:
 
@@ -144,7 +144,7 @@ if __name__ == '__main__':
         simple_connect()
 ```
 
-# Step 2a. Logging (synchronous)
+## Step 2a. Logging (synchronous)
 
 
 
@@ -152,7 +152,7 @@ Alright, now taking a step up. We will now add to the script means to read out l
 
 
 
-## More imports
+### More imports
 
 Now we need to add several imports on the top of the script connect_log_param.py
 
@@ -174,7 +174,7 @@ Also add the following underneath URI
 logging.basicConfig(level=logging.ERROR)
 ```
 
-## Add logging config
+### Add logging config
 
 Now we are going to define the logging configuration. So add `lg_stab` in the `__main__` function :
  ```python
@@ -194,7 +194,7 @@ Now we are going to define the logging configuration. So add `lg_stab` in the `_
 Here you will add the logs variables you would like to read out. If you are unsure how your variable is called, this can be checked by connecting to Crazyflie to the cfclient and look at the log TOC tab. If the variables don't match, you get a `KeyError` (more on that later.)
 
 
-## Make the logging function
+### Make the logging function
 
 Use the same connect_log_param.py script, and add the following function above `simple_connect()` and underneath URI:
  ```python
@@ -219,7 +219,7 @@ Now the logging instances will be inserted by adding the following after you con
 
  ```
 
-## Test the script:
+### Test the script:
 
 First change the `simple_connect()` in _main_ in `simple_log(scf, lg_stab)`. Now run the script (`python3 connect_log_param.py`) like before.
 
@@ -280,13 +280,13 @@ if __name__ == '__main__':
 
  ```
 
-# Step 2b. Logging (Asynchronous)
+## Step 2b. Logging (Asynchronous)
 
 The logging we have showed you before was in a synchronous manner, so it reads out the logging in the function directly in the loop. Eventhough the SyncLogger does not take much time in general, for application purposes it might be preferred to receive the logging variables separately from this function, in a callback independently of the main loop-rate.
 
 Here we will explain how this asynchronous logging can be set up in the script.
 
-## Start a new function
+### Start a new function
 
 Above `def simple_log(..)`, begin a new function:
 
@@ -300,7 +300,7 @@ Here you add the logging configuration to to the logging framework of the Crazyf
 
 `KeyError: 'Variable not.real not in TOC'`
 
-## Add a callback function
+### Add a callback function
 
 First we will make the callback function like follows:
 ```python
@@ -322,7 +322,7 @@ Then the log configuration would need to be started manually, and then stopped a
     logconf.stop()
 ```
 
-# Run the script
+## Run the script
 
 Make sure to replace the `simple_log(...)` to `simple_log_async(...)` in the `__main__` function. Run the script with `python3 connect_log_param.py` in a terminal and you should see several messages of the following:
 
@@ -374,7 +374,7 @@ if __name__ == '__main__':
         simple_log_async(scf, lg_stab)
 ```
 
-# Step 3. Parameters
+## Step 3. Parameters
 
 Next to logging variables, it is possible to read and set parameters settings. That can be done within the cfclient, but here we will look at how we can change the state estimator method in the python script.
 
@@ -385,7 +385,7 @@ First add the group parameter name just above `with SyncCrazyflie(...` in `__mai
     name = "estimator"
 ```
 
-## Start the function
+### Start the function
 
 Start the following function above `def log_stab_callback(...)`:
 
@@ -395,7 +395,7 @@ def simple_param_async(scf, groupstr, namestr):
     full_name = groupstr+ "." +namestr
 ```
 
-## Add the callback for parameters
+### Add the callback for parameters
 
 In a similar way as in the previous section for the Async logging, we are going to make a callback function for the parameters. Add the callback function above `def simple_param_async`:
 
@@ -417,7 +417,7 @@ If you would like to test out the script now already, replace `simple_log_async(
 `The crazyflie has parameter stabilizer.estimator set at number: 1`
 
 
-## Set a parameter
+### Set a parameter
 
 Now we will set a variable in a parameter. Add the following to the `simple_param_async(...)` function:
 
@@ -434,7 +434,7 @@ What it can't do is to set a Read Only (RO) parameter, only Read Write (RW) para
 
 `AttributeError: cpu.flash is read-only!`
 
-## Finishing and running the script
+### Finishing and running the script
 
 It is usually good practice to put the parameter setting back to where it came from, since after disconnecting the Crazyflie, the parameter will still be set. Only after physically restarting the Crazyflie the parameter will reset to its default setting as defined in the firmware.
 
@@ -517,7 +517,7 @@ The crazyflie has parameter stabilizer.estimator set at number: 1
 You're done! The full code of this tutorial can be found in the example/step-by-step/ folder.
 
 
-# What's next?
+## What's next?
 
 
  Now you know how to connect to the Crazyflie and how to retrieve the parameters and logging variables through a python script. The next step is to make the Crazyflie fly by giving it setpoints which is one step closer to making your own application!

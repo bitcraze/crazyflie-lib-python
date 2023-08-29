@@ -240,10 +240,6 @@ def activate_kalman_estimator(cf):
     cf.param.set_value('locSrv.extQuatStdDev', 0.06)
 
 
-def activate_high_level_commander(cf):
-    cf.param.set_value('commander.enHighLevel', '1')
-
-
 def activate_mellinger_controller(cf):
     cf.param.set_value('stabilizer.controller', '2')
 
@@ -296,7 +292,6 @@ if __name__ == '__main__':
 
         adjust_orientation_sensitivity(cf)
         activate_kalman_estimator(cf)
-        activate_high_level_commander(cf)
         # activate_mellinger_controller(cf)
         duration = upload_trajectory(cf, trajectory_id, figure8)
         print('The sequence is {:.1f} seconds long'.format(duration))

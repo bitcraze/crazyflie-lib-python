@@ -102,9 +102,10 @@ class CfUsb:
                         self.dev.set_configuration()
 
         self.handle = self.dev
-        self.version = float(
-            '{0:x}.{1:x}'.format(self.dev.bcdDevice >> 8,
-                                 self.dev.bcdDevice & 0x0FF))
+        if self.dev:
+            self.version = float('{0:x}.{1:x}'.format(self.dev.bcdDevice >> 8, self.dev.bcdDevice & 0x0FF))
+        else:
+            self.version = 0.0
 
     def get_serial(self):
         # The signature for get_string has changed between versions to 1.0.0b1,

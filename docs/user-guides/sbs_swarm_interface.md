@@ -5,7 +5,7 @@ page_id: sbs_swarm_interface
 
 Here we will go through step-by-step how to interface with a swarm of crazyflies and make all the copters of the swarm hover and fly simultaneously in a square shape using the `Swarm()` class of the cflib.For this tutorial you will need a swarm (2 or more) of crazyflies with the latest firmware version installed and a global positioning system (Lighthouse, Loco or MoCap) that is able to provide data for the position estimation of the crazyflies. You can also use the Flowdeck but keep in mind that you should command relative movements of each Crazyflie and due to its nature it may lead to accumulative errors and unexpected behavior over time.
 
-# Prerequisites
+## Prerequisites
 
 We will assume that you already know this before you start with the tutorial:
 
@@ -14,7 +14,7 @@ We will assume that you already know this before you start with the tutorial:
 * Read the [high level commander](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/crazyflie/high_level_commander/), [swarm](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/crazyflie/swarm/) and [SyncCrazyflie](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/crazyflie/syncCrazyflie/) documentation .
 
 
-# Get the script started
+## Get the script started
 
 Since you should have installed cflib in the previous step by step tutorial, you are all ready to got now. Open up a new python script called `swarm_rectangle.py`. First you will start by adding the following import to the script:
 
@@ -43,7 +43,7 @@ This will import all the necessary modules and open the necessary links for comm
 
 The radio addresses of the copters are defined in the `uris` list and you can add more if you want to.
 
-# Step 1: Light Check
+## Step 1: Light Check
 
 In order to verify everything is setup and working properly a light check will be performed. During this check, all the copters will light up red for a short period of time and then return to normal.
 This is achieved by setting the parameter `led.bitmask` to 255 which results to all the LED's of each copter light up simultaneously.
@@ -108,7 +108,7 @@ if __name__ == '__main__':
 ```
 If everything is working properly, you can move to the next step .
 
-# Step 2: Security Before Flying
+## Step 2: Security Before Flying
 Before executing any take off and flight manoeuvres, the copters need to make sure that they have a precise enough position estimation. Otherwise it will take off anyway and it is very likely to crash. This is done through `reset_estimators()` by resetting the internal position estimator of each copter and waiting until the variance of the position estimation drops below a certain threshold.
 ```python
 with Swarm(uris, factory=factory) as swarm:
@@ -116,7 +116,7 @@ with Swarm(uris, factory=factory) as swarm:
         swarm.reset_estimators()
 ```
 
-# Step 3: Taking off and Landing Sequentially
+## Step 3: Taking off and Landing Sequentially
 Now we are going to execute the fist take off and landing using the high level commander. The high level commander (more information [here](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/sensor-to-control/commanders_setpoints/#high-level-commander)) is a class that handles all the high level commands like takeoff, landing, hover, go to position and others. The high level commander is usually preferred since it needs less communication and provides more autonomy on the Crazyflie. It is always on, but just in a lower priority so you just need to execute the take off and land commands through the below functions:
 ```python
 def take_off(scf):
@@ -203,7 +203,7 @@ if __name__ == '__main__':
 ```
 After executing it you will see all copters performing the light check and then each copter take off , hover and land. This process is repeated for all copters in the swarm.
 
-# Step 4: Taking off and Landing in Sync
+## Step 4: Taking off and Landing in Sync
 If you want to take off and land in sync, you can use the `parallel_safe()` method of the `Swarm` class.
 
 ```python
@@ -212,7 +212,7 @@ If you want to take off and land in sync, you can use the `parallel_safe()` meth
 
 Now the same action is happening but for all the copters in parallel.
 
-# Step 5: Performing a square shape flight
+## Step 5: Performing a square shape flight
 To make the swarm fly in a square shape, we will use the go_to method of the high level commander. Each copter executes 4 relative movements to its current position covering a square shape.
 
 ```python
@@ -292,7 +292,7 @@ if __name__ == '__main__':
         swarm.parallel_safe(land)
 ```
 
-# Step 6: Performing a  flight with different arguments
+## Step 6: Performing a  flight with different arguments
 You can also feed different arguments to each Crazyflie in the swarm. This can be done by providing a dictionary `args_dict` to the `parallel_safe()`,`parallel()` and `sequential()` methods following the below format.
 
 ```python
@@ -458,5 +458,5 @@ if __name__ == '__main__':
 
 You’re done! The full code of this tutorial can be found in the `example/step-by-step/` folder.
 
-# What is next ?
+## What is next ?
 Now you are able to control a swarm of Crazyflies and you can experiment with different behaviors for each one of them while maintaining the functionality, simplicity of working with just one since the parallelism is handled internally and you can just focus on creating awesome applications! For more examples and inspiration on the Swarm functionality, you can check out the `examples/swarm/` folder of the cflib.

@@ -20,8 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import unittest
+
 import numpy as np
-from cflib.utils.encoding import compress_quaternion, decompress_quaternion
+
+from cflib.utils.encoding import compress_quaternion
+from cflib.utils.encoding import decompress_quaternion
 
 
 class EncodingTest(unittest.TestCase):

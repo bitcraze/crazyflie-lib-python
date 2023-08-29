@@ -136,27 +136,30 @@ def run_sequence(scf):
 
     print('takeoff')
     send_setpoint(cf, 4.0,
-                  [0.0, -1.0, 1.0],
+                  [0.0, 0.0, 1.0],
                   [0.0, 0.0, 0.0],
                   [0.0, 0.0, 0.0],
                   quaternion_from_euler(0.0, 0.0, 0.0),
                   0.0, 0.0, 0.0)
 
     send_setpoint(cf, 2.0,
-                  [0.0, -1.0, 1.0],
+                  [0.0, 0.0, 1.0],
                   [0.0, 0.0, 0.0],
                   [0.0, 0.0, 0.0],
-                  quaternion_from_euler(0.0, 0.0, 0.0),
+                  quaternion_from_euler(0.0, 0.0, 0.7),
                   0.0, 0.0, 0.0)
     print('land')
     send_setpoint(cf, 2.0,
-                  [0.0, -1.0, 0.2],
+                  [0.0, 0.0, 0.2],
                   [0.0, 0.0, 0.0],
                   [0.0, 0.0, 0.0],
                   quaternion_from_euler(0.0, 0.0, 0.0),
                   0.0, 0.0, 0.0)
 
     cf.commander.send_stop_setpoint()
+    # Hand control over to the high level commander to avoid timeout and locking of the Crazyflie
+    cf.commander.send_notify_setpoint_stop()
+
     # Make sure that the last packet leaves before the link is closed
     # since the message queue is not flushed before closing
     time.sleep(0.1)
@@ -171,21 +174,24 @@ def _stab_log_data(timestamp, data, logconf):
                                                                         data['ctrltarget.z']))
 
 
+def set_up_logging(scf):
+    _lg_stab = LogConfig(name='Stabilizer', period_in_ms=500)
+    _lg_stab.add_variable('controller.roll', 'float')
+    _lg_stab.add_variable('controller.pitch', 'float')
+    _lg_stab.add_variable('controller.yaw', 'float')
+    _lg_stab.add_variable('ctrltarget.x', 'float')
+    _lg_stab.add_variable('ctrltarget.y', 'float')
+    _lg_stab.add_variable('ctrltarget.z', 'float')
+
+    scf.cf.log.add_config(_lg_stab)
+    _lg_stab.data_received_cb.add_callback(_stab_log_data)
+    _lg_stab.start()
+
+
 if __name__ == '__main__':
     cflib.crtp.init_drivers()
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-        _lg_stab = LogConfig(name='Stabilizer', period_in_ms=500)
-        _lg_stab.add_variable('controller.roll', 'float')
-        _lg_stab.add_variable('controller.pitch', 'float')
-        _lg_stab.add_variable('controller.yaw', 'float')
-        _lg_stab.add_variable('ctrltarget.x', 'float')
-        _lg_stab.add_variable('ctrltarget.y', 'float')
-        _lg_stab.add_variable('ctrltarget.z', 'float')
-
-        scf.cf.log.add_config(_lg_stab)
-        _lg_stab.data_received_cb.add_callback(_stab_log_data)
-        _lg_stab.start()
-
+        # set_up_logging(scf)
         reset_estimator(scf)
         run_sequence(scf)

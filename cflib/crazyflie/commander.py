@@ -7,7 +7,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2011-2013 Bitcraze AB
+#  Copyright (C) 2011-2023 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -138,25 +138,34 @@ class Commander():
                               vx, vy, yawrate, zdistance)
         self._cf.send_packet(pk)
 
-    def send_full_state_setpoint(self, x, y, z, vx, vy, vz, ax, ay, az, qx, qy, qz, qw, rollrate, pitchrate, yawrate):
+    def send_full_state_setpoint(self, pos, vel, acc, orientation, rollrate, pitchrate, yawrate):
         """
-        Control mode where the position, velocity, acceleration, orientation, angular
+        Control mode where the position, velocity, acceleration, orientation and angular
         velocity are sent as absolute (world) values.
 
-        x, y, z are in m
-        vx, vy, vz are in m/s
-        ax, ay, az are in m/s^2
-        qx, qy, qz, qw are the quaternion components of the orientation
+        position [x, y, z] are in m
+        velocity [vx, vy, vz] are in m/s
+        acceleration [ax, ay, az] are in m/s^2
+        orientation [qx, qy, qz, qw] are the quaternion components of the orientation
         rollrate, pitchrate, yawrate are in degrees/s
         """
+        def vector_to_mm_16bit(vec):
+            return int(vec[0] * 1000), int(vec[1] * 1000), int(vec[2] * 1000)
+
+        x, y, z = vector_to_mm_16bit(pos)
+        vx, vy, vz = vector_to_mm_16bit(vel)
+        ax, ay, az = vector_to_mm_16bit(acc)
+        rr, pr, yr = vector_to_mm_16bit([rollrate, pitchrate, yawrate])
+        orient_comp = compress_quaternion(orientation)
+
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
         pk.data = struct.pack('<BhhhhhhhhhIhhh', TYPE_FULL_STATE,
-                                int(x*1000), int(y*1000), int(z*1000),
-                                int(vx*1000), int(vy*1000), int(vz*1000),
-                                int(ax*1000), int(ay*1000), int(az*1000),
-                                compress_quaternion(qx, qy, qz, qw),
-                                int(rollrate*1000), int(pitchrate*1000), int(yawrate*1000))
+                              x, y, z,
+                              vx, vy, vz,
+                              ax, ay, az,
+                              orient_comp,
+                              rr, pr, yr)
         self._cf.send_packet(pk)
 
     def send_position_setpoint(self, x, y, z, yaw):

@@ -8,13 +8,13 @@ from cflib.positioning.motion_commander import MotionCommander
 
 
 # URI to the Crazyflie to connect to
-uri = 'radio://0/80/2M/E7E7E7E708'
+uri = 'radio://0/80/2M/E7E7E7E706'
 
 
 f = open("conditions.txt", "rt")
 data = f.read()
  
-data_split = data.split() 
+data_split = data.split()
 h0 = float(data_split[0]) # Eyes level height (unit: meter)
 T_fly_out = float(data_split[1]) # Fly out time (unit: sec)
 V_fly_out = float(data_split[2]) # Fly out velocity (unit: m/s)

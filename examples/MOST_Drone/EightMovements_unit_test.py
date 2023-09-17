@@ -10,14 +10,15 @@ from cflib.crazyflie.log import LogConfig
 # URI to the Crazyflie to connect to
 uri_1 = 'radio://0/80/2M/E7E7E7E706'
 
-init_H = float(0.7)  # Initial drone's height; unit: m
-final_H = float(1.0)  # Final drone's height; unit: m
-max_leg_raising = float(0.3)  # maximum leg raising; unit: m
+init_H = float(0.3)  # Initial drone's height; unit: m
+# final_H = float(0.7)  # Final drone's height; unit: m
+
+
 init_Vel = 0.5  # Initial velocity
 task_Vel = 0.3  # on-task velocity
 
 
-position_estimate_1 = [0, 0, 0]
+position_estimate_1 = [0, 0, 0]  # Drone's pos
 
 
 # # Positioning Callback Section
@@ -38,17 +39,16 @@ def drone_guide_mc(scf): # default take-off height = 0.3 m
         mc.up(init_H, velocity=init_Vel)
         time.sleep(2)
 
-        for i in range(1,5):
+        for i in range(1,10):
             print("Round: ", i)
 
-            # mc.up(max_leg_raising, velocity=task_Vel)
-            # time.sleep(0.8)
-            # mc.down(max_leg_raising, velocity=task_Vel)
-            # time.sleep(1.5)
-
-            mc.move_distance(0.4, 0, 0.4, velocity=task_Vel)
+            ## Movement (a) Hip exten & (c) Knee flex
+            mc.move_distance(0.5, 0, 0.5, velocity=task_Vel)  # moving up-front (refers to the drone)
+            # mc.up(0.5, velocity=task_Vel)  # moving up-front (refers to the drone)
             time.sleep(0.8)
-            mc.move_distance(-0.4, 0, -0.4, velocity=task_Vel)
+
+            mc.move_distance(-0.5, 0, -0.5, velocity=task_Vel)  # moving back
+            # mc.down(0.5, velocity=task_Vel)  # moving back
             time.sleep(1.5)
 
 

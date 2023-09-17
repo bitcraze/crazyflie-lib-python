@@ -14,18 +14,18 @@ from cflib.crazyflie.log import LogConfig
 uri_1 = 'radio://0/80/2M/E7E7E7E706' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
-init_H = float(0.7)  # Initial drone's height; unit: m
-final_H = float(1.0)  # Final drone's height; unit: m
+init_H = float(0.3)  # Initial drone's height; unit: m
+# final_H = float(0.7)  # Final drone's height; unit: m
 
 ## Define the max ROM according to the movement
-max_hip_exten = float(0.58)      # for movement (a) Hip exten; unit: m
+max_hip_exten = float(0.68)      # for movement (a) Hip exten; unit: m
 max_hip_abd = float(0.58)        # for movement (b) Hip abd/add; unit: m
-max_knee_flex = float(0.53)      # for movement (c) Knee flex; unit: m
+max_knee_flex = float(0.6)      # for movement (c) Knee flex; unit: m
 max_tiptoe = float(0.35)         # for movement (d) Tiptoe; unit: m
 max_hip_knee_flex = float(0.53)  # for movement (e) Hip & knee flex; unit: m
 max_heel_to_heel = float(0.2)   # for movement (f) Heel to heel; unit: m
 
-max_ROM = max_hip_exten     # change this variable according to the selected movement
+max_ROM = max_knee_flex    # change this variable according to the selected movement
 
 
 init_Vel = 0.5  # Initial velocity
@@ -63,11 +63,12 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
         mc.up(init_H, velocity=init_Vel)
         time.sleep(2)
 
-        for i in range(1,5):
+        for i in range(1,10):
             print("Round: ", i)
 
             ## Movement (a) Hip exten & (c) Knee flex
-            mc.move_distance(0.4, 0, 0.4, velocity=task_Vel)  # moving up-front (refers to the drone)
+            # mc.move_distance(0.5, 0, 0.5, velocity=task_Vel)  # moving up-front (refers to the drone)
+            mc.up(0.5, velocity=task_Vel)  # moving up-front (refers to the drone)
             time.sleep(0.8)
 
             while event1.isSet()==False:
@@ -75,7 +76,8 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
                 time.sleep(1.5)
 
             print("Target was reached!")
-            mc.move_distance(-0.4, 0, -0.4, velocity=task_Vel)  # moving back
+            # mc.move_distance(-0.5, 0, -0.5, velocity=task_Vel)  # moving back
+            mc.down(0.5, velocity=task_Vel)  # moving back
             time.sleep(1.5)
 
 

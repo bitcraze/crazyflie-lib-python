@@ -248,7 +248,7 @@ uri = 'radio://0/80/2M/E7E7E7E7E7'
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-def simple_log(scf, logconf):
+def simple_log(scf, lg_stab):
 
     with SyncLogger(scf, lg_stab) as logger:
 

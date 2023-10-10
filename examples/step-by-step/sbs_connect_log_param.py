@@ -70,7 +70,7 @@ def simple_log_async(scf, logconf):
 
 def simple_log(scf, logconf):
 
-    with SyncLogger(scf, lg_stab) as logger:
+    with SyncLogger(scf, logconf) as logger:
 
         for log_entry in logger:
 

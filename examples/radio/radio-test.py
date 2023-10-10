@@ -9,7 +9,7 @@
     quality data, and offers good channel suggestion.
 
     This script should be used on a Crazyflie with bluetooth disabled and RSSI
-    ack packet enabled to get RSSI feedback.  To configure the Crazyflie in this
+    ack packet enabled to get RSSI feedback. To configure the Crazyflie in this
     mode build the crazyflie2-nrf-firmware with
     ```make BLE=0 CONFIG=-DRSSI_ACK_PACKET```.
     Additionally, the Crazyflie must be using the default address 0xE7E7E7E7E7.

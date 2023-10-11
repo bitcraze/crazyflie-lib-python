@@ -12,6 +12,7 @@
     ack packet enabled to get RSSI feedback. To configure the Crazyflie in this
     mode build the crazyflie2-nrf-firmware with
     ```make BLE=0 CONFIG=-DRSSI_ACK_PACKET```.
+    Additionally, the Crazyflie must be using the default address 0xE7E7E7E7E7.
     See https://github.com/bitcraze/crazyflie-lib-python/issues/131 for more
     informations.
 '''

@@ -117,6 +117,9 @@ class MotionCommander:
             self._thread = None
 
             self._cf.commander.send_stop_setpoint()
+            # Stop using low level setpoints and hand responsibility over to the high level commander to
+            # avoid time out when no setpoints are received any more
+            self._cf.commander.send_notify_setpoint_stop()
             self._is_flying = False
 
     def __enter__(self):

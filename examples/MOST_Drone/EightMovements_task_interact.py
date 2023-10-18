@@ -11,19 +11,20 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E706' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E710' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
-init_H = float(0.3)  # Initial drone's height; unit: m
+init_H = float(0.7)  # Initial drone's height; unit: m
 # final_H = float(0.7)  # Final drone's height; unit: m
 
 ## Define the max ROM according to the movement
-max_hip_exten = float(0.68)      # for movement (a) Hip exten; unit: m
-max_hip_abd = float(0.58)        # for movement (b) Hip abd/add; unit: m
-max_knee_flex = float(0.6)      # for movement (c) Knee flex; unit: m
-max_tiptoe = float(0.35)         # for movement (d) Tiptoe; unit: m
-max_hip_knee_flex = float(0.53)  # for movement (e) Hip & knee flex; unit: m
-max_heel_to_heel = float(0.2)   # for movement (f) Heel to heel; unit: m
+max_hip_exten = float(0.68)         # for movement (a) Hip exten; unit: m
+max_hip_abd = float(0.58)           # for movement (b) Hip abd/add; unit: m
+max_knee_flex = float(0.55)          # for movement (c) Knee flex; unit: m
+max_tiptoe = float(0.35)            # for movement (d) Tiptoe; unit: m
+max_hip_knee_flex = float(0.53)     # for movement (e) Hip & knee flex; unit: m
+max_heel_to_heel = float(0.2)       # for movement (f) Heel to heel; unit: m
+max_step_forward = float(0.5)       # for movement (g) Step forward; unit: m
 
 max_ROM = max_knee_flex    # change this variable according to the selected movement
 
@@ -67,8 +68,8 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
             print("Round: ", i)
 
             ## Movement (a) Hip exten & (c) Knee flex
-            # mc.move_distance(0.5, 0, 0.5, velocity=task_Vel)  # moving up-front (refers to the drone)
-            mc.up(0.5, velocity=task_Vel)  # moving up-front (refers to the drone)
+            mc.move_distance(-0.5, 0, 0.5, velocity=task_Vel)  # moving up-front (refers to the drone)
+            # mc.up(0.5, velocity=task_Vel)  # moving up (refers to the drone)
             time.sleep(0.8)
 
             while event1.isSet()==False:
@@ -76,8 +77,8 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
                 time.sleep(1.5)
 
             print("Target was reached!")
-            # mc.move_distance(-0.5, 0, -0.5, velocity=task_Vel)  # moving back
-            mc.down(0.5, velocity=task_Vel)  # moving back
+            mc.move_distance(0.5, 0, -0.5, velocity=task_Vel)  # moving back
+            # mc.down(0.5, velocity=task_Vel)  # moving back
             time.sleep(1.5)
 
 
@@ -94,7 +95,7 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
             # time.sleep(1.5)
 
 
-            # ## Movement (c) Tip-toe
+            # ## Movement (d) Tip-toe
             # mc.up(0.3, velocity=task_Vel)  # moving up
             # time.sleep(0.8)
 
@@ -120,11 +121,11 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
             # time.sleep(1.5)
 
 
-            # ## Movement (f) Heel to heel *** Be careful the step amount!! (can't be out of the LH range)
+            # ## Movement (f) Heel to heel & (g) knee raising, then step forward *** Be careful the step amount!! (can't be out of the LH range)
             # mc.forward(0.2, velocity=task_Vel)  # moving forward (refers to the drone)
             # time.sleep(1.5)
 
-            # while event1.isSet()==False:
+            # while event1.isSet()==False:    # go to the "position_state_change" --> change it to comparing the max_ROM in x or y axis
             #     mc.stop()
             #     time.sleep(1.5)
 
@@ -140,7 +141,8 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
 def position_state_change(event1, event2):
     print("position thread start")
     while not event2.is_set():  # the drone hasn't finished the guiding yet
-        if position_estimate_2[2] < max_ROM:
+        # if position_estimate_2[0] < max_ROM:   # If the current leg sensor's position doesn't reach the max ROM in x-axis
+        if position_estimate_2[2] < max_ROM:   # If the current leg sensor's position doesn't reach the max ROM in z-axis
             event1.clear()
         
         else:

@@ -18,7 +18,7 @@ init_H = float(0.7)  # Initial drone's height; unit: m
 final_H = float(1.0)  # Final drone's height; unit: m
 max_leg_raising = float(0.4)  # maximum leg raising; unit: m
 init_Vel = 0.5  # Initial velocity
-task_Vel = 0.3  # on-task velocity
+task_Vel = 0.5  # on-task velocity
 
 
 position_estimate_1 = [0, 0, 0]  # Drone's pos

@@ -62,14 +62,15 @@ WRITE_CHANNEL = 2
 MISC_CHANNEL = 3
 
 MISC_SETBYNAME = 0
+MISC_VALUE_UPDATED = 1
 MISC_GET_EXTENDED_TYPE = 2
-
-PersistentParamState = namedtuple('PersistentParamState', 'is_stored default_value stored_value')
-
 MISC_PERSISTENT_STORE = 3
 MISC_PERSISTENT_GET_STATE = 4
 MISC_PERSISTENT_CLEAR = 5
 MISC_GET_DEFAULT_VALUE = 6
+
+PersistentParamState = namedtuple('PersistentParamState', 'is_stored default_value stored_value')
+
 
 # One element entry in the TOC
 
@@ -186,32 +187,39 @@ class Param():
 
     def _param_updated(self, pk):
         """Callback with data for an updated parameter"""
+
+        # This method handles both param value packets as well as misc param updated packets
+        # The Misc packets have a command byte first and the variable id is shifted one byte
+        # Misc packets are not supported for V1
+        if pk.channel == MISC_CHANNEL:
+            id_index = 1
+        else:
+            id_index = 0
+
         if self._useV2:
-            var_id = struct.unpack('<H', pk.data[:2])[0]
+            var_id = struct.unpack('<H', pk.data[id_index:id_index + 2])[0]
         else:
             var_id = pk.data[0]
         element = self.toc.get_element_by_id(var_id)
         if element:
             if self._useV2:
-                s = struct.unpack(element.pytype, pk.data[2:])[0]
+                value = struct.unpack(element.pytype, pk.data[id_index + 2:])[0]
             else:
-                s = struct.unpack(element.pytype, pk.data[1:])[0]
-            s = s.__str__()
+                value = struct.unpack(element.pytype, pk.data[1:])[0]
+            value_s = value.__str__()
             complete_name = '%s.%s' % (element.group, element.name)
 
             # Save the value for synchronous access
             if element.group not in self.values:
                 self.values[element.group] = {}
-            self.values[element.group][element.name] = s
+            self.values[element.group][element.name] = value_s
 
             logger.debug('Updated parameter [%s]' % complete_name)
             if complete_name in self.param_update_callbacks:
-                self.param_update_callbacks[complete_name].call(
-                    complete_name, s)
+                self.param_update_callbacks[complete_name].call(complete_name, value_s)
             if element.group in self.group_update_callbacks:
-                self.group_update_callbacks[element.group].call(
-                    complete_name, s)
-            self.all_update_callback.call(complete_name, s)
+                self.group_update_callbacks[element.group].call(complete_name, value_s)
+            self.all_update_callback.call(complete_name, value_s)
 
             # Once all the parameters are updated call the
             # callback for "everything updated"
@@ -596,7 +604,7 @@ class _ParamUpdater(Thread):
         self.request_queue = Queue()
         self.cf.add_port_callback(CRTPPort.PARAM, self._new_packet_cb)
         self._should_close = False
-        self._req_param = -1
+        self._lock_pattern = None
 
     def close(self):
         # First empty the queue from all packets
@@ -627,22 +635,28 @@ class _ParamUpdater(Thread):
         """Callback for newly arrived packets"""
         if pk.channel == READ_CHANNEL or pk.channel == WRITE_CHANNEL:
             if self._useV2:
-                var_id = struct.unpack('<H', pk.data[:2])[0]
+                release_pattern = pk.data[:2]
                 if pk.channel == READ_CHANNEL:
                     pk.data = pk.data[:2] + pk.data[3:]
             else:
-                var_id = pk.data[0]
-            if (pk.channel != TOC_CHANNEL and self._req_param == var_id and
+                release_pattern = pk.data[:1]
+
+            if (pk.channel != TOC_CHANNEL and self._lock_pattern == release_pattern and
                     pk is not None):
                 self.updated_callback(pk)
-                self._req_param = -1
+                self._lock_pattern = None
                 try:
                     self.wait_lock.release()
                 except Exception:
                     pass
         elif pk.channel == MISC_CHANNEL:
-            command = struct.unpack('<H', pk.data[:2])[0]
-            if self._req_param == command:
+            command = pk.data[0]
+            if command == MISC_VALUE_UPDATED:
+                self.updated_callback(pk)
+
+            release_pattern = pk.data[:3]
+            if self._lock_pattern == release_pattern:
+                self._lock_pattern = None
                 self.wait_lock.release()
 
     def request_param_update(self, var_id):
@@ -663,12 +677,14 @@ class _ParamUpdater(Thread):
             self.wait_lock.acquire()
             if self.cf.link:
                 if self._useV2:
-                    self._req_param = struct.unpack('<H', pk.data[:2])[0]
-                    self.cf.send_packet(
-                        pk, expected_reply=(tuple(pk.data[:2])))
+                    if pk.channel == MISC_CHANNEL:
+                        self._lock_pattern = pk.data[:3]
+                    else:
+                        self._lock_pattern = pk.data[:2]
+
+                    self.cf.send_packet(pk, expected_reply=(tuple(self._lock_pattern)))
                 else:
-                    self._req_param = pk.data[0]
-                    self.cf.send_packet(
-                        pk, expected_reply=(tuple(pk.data[:1])))
+                    self._lock_pattern = pk.data[:1]
+                    self.cf.send_packet(pk, expected_reply=(tuple(pk.data[:1])))
             else:
                 self.wait_lock.release()

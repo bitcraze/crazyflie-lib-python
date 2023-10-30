@@ -3,6 +3,7 @@ import cflib.crtp
 import queue
 import threading
 import winsound
+import os
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
@@ -20,7 +21,7 @@ init_H = float(0.2)  # Initial drone's height; unit: m
 ## Define the max ROM according to the movement
 max_hip_exten = float(0.68)         # for movement (a) Hip exten; unit: m
 max_hip_abd = float(0.58)           # for movement (b) Hip abd/add; unit: m
-max_knee_flex = float(0.5)          # for movement (c) Knee flex; unit: m
+max_knee_flex = float(0.65)          # for movement (c) Knee flex; unit: m
 max_tiptoe = float(0.35)            # for movement (d) Tiptoe; unit: m
 max_hip_knee_flex = float(0.53)     # for movement (e) Hip & knee flex; unit: m
 max_heel_to_heel = float(0.2)       # for movement (f) Heel to heel; unit: m
@@ -59,28 +60,30 @@ def log_pos_callback_2(uri_2, timestamp, data, logconf_2):
 # # Crazyflie Motion Section
 
 def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
-
+# def drone_guide_mc(scf, event2):
     with MotionCommander(scf) as mc:
         mc.up(init_H, velocity=init_Vel)
         time.sleep(2)
 
         for i in range(1,5):
+            # f = open("data_1.txt", "w")
             print("Round: ", i)
+            # f.write("Round: ", i)
+            # f.write("\n")
 
             ## Movement (a) Hip exten & (c) Knee flex
-            # mc.move_distance(-0.5, 0, 0.5, velocity=task_Vel)  # moving up-front (refers to the drone)
-            mc.up(0.5, velocity=task_Vel)  # moving up (refers to the drone)
+            # mc.move_distance(-max_ROM, 0, max_ROM, velocity=task_Vel)  # moving up-front (refers to the drone)
+            mc.up(0.3, velocity=task_Vel)  # moving up (refers to the drone)
             time.sleep(0.8)
 
-            while event1.is_set()==False:
-                print("Fighting!")
+            while event1.isSet()==False:
                 mc.stop()
-                time.sleep(0.5)
+                time.sleep(1)
 
-            print("Target was reached!")
-            # mc.move_distance(0.5, 0, -0.5, velocity=task_Vel)  # moving back
-            mc.down(0.5, velocity=task_Vel)  # moving back
-            time.sleep(0.5)
+            # print("Target was reached!")
+            # mc.move_distance(max_ROM, 0, -max_ROM, velocity=task_Vel)  # moving back
+            mc.down(0.3, velocity=task_Vel)  # moving back
+            time.sleep(1.5)
 
 
             # ## Movement (b) Hip abd/add
@@ -132,7 +135,8 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
 
             # print("Target was reached!")
 
-
+        # f.close()
+        time.sleep(1)
         # set the event for turning off the sound feedback process
         event2.set()
 
@@ -142,29 +146,67 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
 def position_state_change(event1, event2):
     print("position thread start")
     while not event2.is_set():  # the drone hasn't finished the guiding yet
-        # if position_estimate_2[0] < max_ROM:   # If the current leg sensor's position doesn't reach the max ROM in x-axis
-        if position_estimate_2[2] < max_ROM:   # If the current leg sensor's position doesn't reach the max ROM in z-axis
+        # if abs((position_estimate_2[2] + init_H + 0.3)-(position_estimate_1[2])) < 0.04:  # subject is following the drone
+        if abs(position_estimate_2[2]-position_estimate_1[2]) < 0.04:
+            # print("Good!")
             event1.clear()
         
-        else:
-            event1.set() # subject reaches the target point
+        # elif {time is over 5 sec}
+        # {keep flying}
 
+        else:
+            # print("out of range")
+            event1.set()  # If the current leg sensor's position doesn't reach the drone's positioning range in z-axis
+            
+
+# In all cases, the mean and median Euclidean error of the Lighthouse positioning system are about 2-4 centimeters compared to our MoCap system as ground truth.
+# Ref: https://www.bitcraze.io/2021/05/lighthouse-positioning-accuracy/ 
+
+'''
+def sound_feedback(event1, event2):
+    print("sound thread started")
+    while not event2.is_set():  # the drone hasn't finished the guiding yet
+        if event1.is_set()==True:  # subject not follow the drone
+            print("Keep going!")
+            frequency = 2500  # Set Frequency To 2500 Hertz
+            duration = 500  # Set Duration To 250 ms == 0.25 second
+            winsound.Beep(frequency, duration)
+        else:
+            print("nothing")
+            
+        time.sleep(0.1)
+
+'''
 
 def sound_feedback(event1, event2):
     print("sound thread started")
     while not event2.is_set():  # the drone hasn't finished the guiding yet
-        if event1.is_set()==True:  # subject reaches the target point
-            print("Good Job!")
+        if event1.is_set()==True and position_estimate_2[2] < position_estimate_1[2]:  # subject not follow the drone
+            # print("Keep going!")
             frequency = 2500  # Set Frequency To 2500 Hertz
             duration = 500  # Set Duration To 250 ms == 0.25 second
             winsound.Beep(frequency, duration)
+        
+        elif event1.is_set()==True and position_estimate_2[2] > position_estimate_1[2]:  # subject not follow the drone
+            # print("Slow down a little bit")
+            winsound.PlaySound('_invalid-selection.mp3', winsound.SND_FILENAME)
+
+        # elif event1.is_set()==False and abs(position_estimate_2[2] - max_ROM) < 0.4:
+        #     # print("You did it!")
+        #     # f = open("data_1.txt", "a")
+        #     # f.write("You did it!")
+        #     # f.write("\n")
+        #     winsound.PlaySound('_short-success.mp3', winsound.SND_FILENAME)
+
         else:
             pass
             
         time.sleep(0.1)
 
-# using other sounds, see in:  https://www.geeksforgeeks.org/python-winsound-module/
 
+
+# using other sounds, see in:  https://www.geeksforgeeks.org/python-winsound-module/
+# correct sound download: https://pixabay.com/sound-effects/search/correct/ 
 
 if __name__ == '__main__':
 
@@ -208,6 +250,7 @@ if __name__ == '__main__':
 
             # Perform the drone guiding task
             drone_guide_mc(scf_1, e1, e2)
+            # drone_guide_mc(scf_1, e2)
             
             # Threads join
             pos_state_thread.join()

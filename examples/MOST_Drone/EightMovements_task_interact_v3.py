@@ -12,7 +12,7 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E704' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E710' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
 init_H = float(0.2)  # Initial drone's height; unit: m
@@ -21,13 +21,13 @@ init_H = float(0.2)  # Initial drone's height; unit: m
 ## Define the max ROM according to the movement
 max_hip_exten = float(0.68)         # for movement (a) Hip exten; unit: m
 max_hip_abd = float(0.58)           # for movement (b) Hip abd/add; unit: m
-max_knee_flex = float(0.65)          # for movement (c) Knee flex; unit: m
+max_knee_flex = float(0.5)          # for movement (c) Knee flex; unit: m
 max_tiptoe = float(0.35)            # for movement (d) Tiptoe; unit: m
 max_hip_knee_flex = float(0.53)     # for movement (e) Hip & knee flex; unit: m
 max_heel_to_heel = float(0.2)       # for movement (f) Heel to heel; unit: m
 max_step_forward = float(0.5)       # for movement (g) Step forward; unit: m
 
-max_ROM = max_knee_flex    # change this variable according to the selected movement
+max_ROM = 0.8    # change this variable according to the selected movement
 
 
 init_Vel = 0.5  # Initial velocity
@@ -59,32 +59,43 @@ def log_pos_callback_2(uri_2, timestamp, data, logconf_2):
 
 # # Crazyflie Motion Section
 
-def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
-# def drone_guide_mc(scf, event2):
+def drone_guide_mc(scf, event1, event2, event3): # default take-off height = 0.3 m
     with MotionCommander(scf) as mc:
-        mc.up(init_H, velocity=init_Vel)
-        time.sleep(2)
+        # mc.up(init_H, velocity=init_Vel)
+        # time.sleep(2)
 
         for i in range(1,5):
-            # f = open("data_1.txt", "w")
+
             print("Round: ", i)
-            # f.write("Round: ", i)
-            # f.write("\n")
 
-            ## Movement (a) Hip exten & (c) Knee flex
-            # mc.move_distance(-max_ROM, 0, max_ROM, velocity=task_Vel)  # moving up-front (refers to the drone)
-            mc.up(0.3, velocity=task_Vel)  # moving up (refers to the drone)
-            time.sleep(0.8)
+            mc.start_up(velocity=task_Vel)  # drone starts moving up
+            # time.sleep(0.5) 
 
-            # while event1.is_set()==False:
-            #     mc.stop()
-            #     time.sleep(1)
+            while position_estimate_1[2] <= max_ROM: # If the drone doesn't exceed the max ROM in z-axis
 
-            # print("Target was reached!")
-            # mc.move_distance(max_ROM, 0, -max_ROM, velocity=task_Vel)  # moving back
-            mc.down(0.3, velocity=task_Vel)  # moving back
-            time.sleep(1.5)
+                while event3.is_set()==True:  # the subject doesn't follow the drone
+                    mc.stop()
+                    # time.sleep(0.5)
+                
+                mc.start_up(velocity=task_Vel)
+                # time.sleep(0.5)
 
+            mc.stop()
+            time.sleep(1) # for subject's preparation
+
+            mc.start_down(velocity=task_Vel)  # drone starts moving down
+            # time.sleep(0.5)
+        
+            while position_estimate_1[2] > 0.3: # If the drone doesn't lower than the default take-off height (0.3 meter)
+
+                while event3.is_set()==True:  # the subject doesn't follow the drone
+                    mc.stop()
+                    # time.sleep(0.5)
+                
+                mc.start_down(velocity=task_Vel)
+                # time.sleep(0.5)
+
+            time.sleep(0.5)
 
             # ## Movement (b) Hip abd/add
             # mc.move_distance(0, 0.4, 0.4, velocity=task_Vel)  # moving up-left (refers to the drone)
@@ -135,28 +146,36 @@ def drone_guide_mc(scf, event1, event2): # default take-off height = 0.3 m
 
             # print("Target was reached!")
 
-        # f.close()
-        time.sleep(1)
+
         # set the event for turning off the sound feedback process
-        event2.set()
+        event1.set()
 
 
 # # Feedback Section
 
-def position_state_change(event1, event2):
+def position_state_change(event1, event2, event3):
     print("position thread start")
-    while not event2.is_set():  # the drone hasn't finished the guiding yet
-        # if abs((position_estimate_2[2] + init_H + 0.3)-(position_estimate_1[2])) < 0.04:  # subject is following the drone
-        if abs(position_estimate_2[2]-position_estimate_1[2]) < 0.04:
-            # print("Good!")
-            event1.clear()
+    while not event1.is_set():  # the drone hasn't finished the guiding yet
         
-        # elif {time is over 5 sec}
-        # {keep flying}
+        if position_estimate_2[2] < max_ROM: # subject hasn't reached the max ROM yet
+            # print("keep going")
+            event2.clear()
+        
+            # if abs((position_estimate_2[2] + 0.3 + init_H)-(position_estimate_1[2])) <= 0.04:  # subject follows the drone
+            if abs((position_estimate_2[2])-(position_estimate_1[2])) < 0.04:
+                # print("good job")
+                event3.clear()
+            
+            # elif abs((position_estimate_2[2] + 0.3 + init_H)-(position_estimate_1[2])) > 0.04:
+            else:
+                print("please follow the drone")
+                event3.set()
 
-        else:
-            # print("out of range")
-            event1.set()  # If the current leg sensor's position doesn't reach the drone's positioning range in z-axis
+        else:   # If the current leg sensor's position reaches the max ROM in z-axis
+            print("target reached!")
+            event2.set()
+        
+        
             
 
 # In all cases, the mean and median Euclidean error of the Lighthouse positioning system are about 2-4 centimeters compared to our MoCap system as ground truth.
@@ -178,28 +197,28 @@ def sound_feedback(event1, event2):
 
 '''
 
-def sound_feedback(event1, event2):
+def sound_feedback(event1, event2, event3):
     print("sound thread started")
-    while not event2.is_set():  # the drone hasn't finished the guiding yet
-        if event1.is_set()==True and position_estimate_2[2] < position_estimate_1[2]:  # subject not follow the drone
-            print("Keep going!")
-            frequency = 1500  # Set Frequency To 2500 Hertz
-            duration = 300  # Set Duration To 250 ms == 0.25 second
-            winsound.Beep(frequency, duration)
+    while not event1.is_set():  # the drone hasn't finished the guiding yet
         
-        elif event1.is_set()==True and position_estimate_2[2] > position_estimate_1[2]:  # subject not follow the drone
-            print("Slow down a little bit")
-            winsound.PlaySound('_invalid-selection.mp3', winsound.SND_FILENAME)
+        if event2.is_set()==False: # the subject hasn't reached the max ROM yet
 
-        # elif event1.is_set()==False and abs(position_estimate_2[2] - max_ROM) < 0.4:
-        #     # print("You did it!")
-        #     # f = open("data_1.txt", "a")
-        #     # f.write("You did it!")
-        #     # f.write("\n")
-        #     winsound.PlaySound('_short-success.mp3', winsound.SND_FILENAME)
+            if event3.is_set()==True and position_estimate_2[2] < position_estimate_1[2]:  # subject not follow the drone
+                print("Too low")
+                frequency = 1500  # Set Frequency To 2500 Hertz
+                duration = 300  # Set Duration To 250 ms == 0.25 second
+                winsound.Beep(frequency, duration)
+            
+            elif event3.is_set()==True and position_estimate_2[2] > position_estimate_1[2]:  # subject not follow the drone
+                print("Too high")
+                winsound.PlaySound('_invalid-selection.mp3', winsound.SND_FILENAME)
+            
+            else:
+                pass
 
         else:
-            pass
+            print("You did it!")
+            winsound.PlaySound('_short-success.mp3', winsound.SND_FILENAME)
             
         time.sleep(0.1)
 
@@ -212,8 +231,10 @@ if __name__ == '__main__':
 
     # # initializing the queue and event object
     q = queue.Queue(maxsize=0)
-    e1 = threading.Event()  # Checking whether the drone completes its task?
-    e2 = threading.Event()  # Checking whether the Subject reaches the target height?
+    e1 = threading.Event()  # Checking whether the drone completes its task
+    e2 = threading.Event()  # Checking whether the Subject reaches the maximum ROM
+    e3 = threading.Event()  # Checking whether the Subject follows the drone guide
+
 
     # # initializing Crazyflie 
     cflib.crtp.init_drivers(enable_debug_driver=False)
@@ -241,15 +262,15 @@ if __name__ == '__main__':
 
         # # Drone Motion (MotionCommander)
             # Declaring threads for feedback providing
-            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change, args=(e1, e2))
-            sound_thread = threading.Thread(name='Sound-Feedback-Thread', target=sound_feedback, args=(e1, e2))
+            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change, args=(e1, e2, e3))
+            sound_thread = threading.Thread(name='Sound-Feedback-Thread', target=sound_feedback, args=(e1, e2, e3))
 
             # Starting threads for drone motion
             pos_state_thread.start()
             sound_thread.start()
 
             # Perform the drone guiding task
-            drone_guide_mc(scf_1, e1, e2)
+            drone_guide_mc(scf_1, e1, e2, e3)
             # drone_guide_mc(scf_1, e2)
             
             # Threads join

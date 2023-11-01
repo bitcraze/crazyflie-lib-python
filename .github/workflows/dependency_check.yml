@@ -6,10 +6,24 @@ on:
   - cron:  '0 2 * * *'
 
 jobs:
-  python-latest:
+#  python-latest:
+#    runs-on: ubuntu-latest
+#    container:
+#      image: python:latest
+#
+#    steps:
+#      - uses: actions/checkout@v3
+#
+#      - name: python version
+#        run: python --version
+#
+#      - name: install lib
+#        run: pip install -e .
+
+  python-python311:
     runs-on: ubuntu-latest
     container:
-      image: python:latest
+      image: python:3.11
 
     steps:
       - uses: actions/checkout@v3

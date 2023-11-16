@@ -5,7 +5,10 @@ page_id: install
 
 ## Requirements
 
-This project requires Python 3.7+.
+This project requires Python 3.7 - 3.11.
+
+> Python 3.12 is not supported as it has issues with missing packages (see [this ticket](https://github.com/bitcraze/crazyflie-lib-python/issues/425))
+
 See below sections for more platform-specific requirements.
 ## Install from Source
 ### Clone  the repository

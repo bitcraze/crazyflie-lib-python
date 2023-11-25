@@ -42,7 +42,7 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
 
-URI = 'radio://0/80/2M/E7E7E7E710'
+URI = 'radio://0/80/2M/E7E7E7E705'
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -57,6 +57,7 @@ if __name__ == '__main__':
         with MotionCommander(scf) as mc:
             time.sleep(2)
 
+            '''
             # There is a set of functions that move a specific distance
             # We can move in all directions
             mc.forward(0.5, velocity=0.2)
@@ -86,10 +87,12 @@ if __name__ == '__main__':
             mc.move_distance(-1, 0.0, 0.5, velocity=0.6)
             time.sleep(1)
 
+            '''
+
             # There is also a set of functions that start a motion. The
             # Crazyflie will keep on going until it gets a new command.
 
-            # mc.start_left(velocity=0.5)
+            mc.start_left(velocity=0.5)
             # The motion is started and we can do other stuff, printing for
             # instance
             for _ in range(5):
@@ -98,5 +101,6 @@ if __name__ == '__main__':
 
             # And we can stop
             mc.stop()
+            time.sleep(1)
 
             # We land when the MotionCommander goes out of scope

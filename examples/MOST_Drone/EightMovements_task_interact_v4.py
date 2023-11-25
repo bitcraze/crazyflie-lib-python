@@ -12,10 +12,10 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E708' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E704' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
-init_H = float(0.2)  # Initial drone's height; unit: m
+init_H = float(0.4)  # Initial drone's height; unit: m
 # final_H = float(0.7)  # Final drone's height; unit: m
 
 ## Define the max ROM according to the movement
@@ -27,11 +27,12 @@ max_hip_knee_flex = float(0.53)     # for movement (e) Hip & knee flex; unit: m
 max_heel_to_heel = float(0.2)       # for movement (f) Heel to heel; unit: m
 max_step_forward = float(0.5)       # for movement (g) Step forward; unit: m
 
-max_ROM = 0.8    # change this variable according to the selected movement
+max_ROM = 1
+# max_ROM = 0.5    # change this variable according to the selected movement
+# original 0.3
 
-
-init_Vel = 0.5  # Initial velocity
-task_Vel = 0.3  # on-task velocity
+init_Vel = 0.2  # Initial velocity
+task_Vel = 0.2  # on-task velocity
 
 
 position_estimate_1 = [0, 0, 0]  # Drone's pos
@@ -61,103 +62,78 @@ def log_pos_callback_2(uri_2, timestamp, data, logconf_2):
 
 def drone_guide_mc(scf, event1, event2, event3): # default take-off height = 0.3 m
     with MotionCommander(scf) as mc:
-        # mc.up(init_H, velocity=init_Vel)
-        # time.sleep(2)
+        mc.up(init_H, velocity=init_Vel)
+        time.sleep(1)
+        print("start!!!")
 
-        for i in range(1,5):
+        for i in range(1,6):
 
             print("Round: ", i)
             
-            # mc.start_up(velocity=task_Vel)  # drone starts moving up
+            mc.start_up(velocity=task_Vel)  # drone starts moving up
             # time.sleep(0.3)
 
-            while position_estimate_1[2] < max_ROM: # If the drone doesn't exceed the max ROM in z-axis
+            # while position_estimate_1[2] <= max_ROM: # If the drone doesn't exceed the max ROM in z-axis
                 
-                mc.start_up(velocity=task_Vel)
-                time.sleep(0.3)
+            #     mc.start_up(velocity=task_Vel)
+            #     # time.sleep(0.3)
+
+            while not event2.is_set(): # the current leg sensor's position hasn't reached the max ROM in z-axis
+                
+                print("event2 is not set")
+                # mc.start_up(velocity=task_Vel)
 
                 while event3.is_set()==True:  # the subject doesn't follow the drone
                     mc.stop()
-                    time.sleep(0.3)
+                    time.sleep(0.1)
                 
-                # mc.start_up(velocity=task_Vel)
-                # time.sleep(0.3)
-            
-            print("over the range")
-            mc.stop()
-            time.sleep(0.3) # for subject's preparation
+                print("start up")
+                mc.start_up(velocity=task_Vel)
+                time.sleep(0.1)      # This line can't be blank!!!
+        
+            print("event2 is set (reached the target)") 
+            # mc.stop()
+            # time.sleep(0.1) # for subject's preparation
 
             print("start down")
             mc.start_down(velocity=task_Vel)  # drone starts moving down
-            time.sleep(0.3)
-        
-            while position_estimate_1[2] > 0.5: # If the drone doesn't lower than the default take-off height (0.3 meter)
+            # time.sleep(0.5)
+            
+            '''
+            for _ in range(5):
+                print('Doing other work')
+                time.sleep(0.2)
 
-                mc.start_down(velocity=task_Vel)
-                time.sleep(0.3)
+            # And we can stop
+            mc.stop()
+            time.sleep(1)
+
+            # while not position_estimate_1[2] <= 0.8:
+            #     mc.start_down(velocity=task_Vel)
+            
+            # print("be careful")
+            # mc.stop()
+            # time.sleep(1)
+        
+            '''
+            # while position_estimate_1[2] > max_ROM + 0.3 + init_H: # If the drone doesn't lower than the default take-off height (0.3 meter)
+            while position_estimate_1[2] > 0.3 + init_H: # If the drone doesn't lower than the default take-off height (0.3 meter) + unit_H
+                print("keep going down")
 
                 while event3.is_set()==True:  # the subject doesn't follow the drone
                     mc.stop()
-                    time.sleep(0.3)
+                    time.sleep(0.1)
                 
-                # mc.start_down(velocity=task_Vel)
-                # time.sleep(0.3)
+                mc.start_down(velocity=task_Vel)
+                time.sleep(0.1)
+            
+            print("lower than init height")
+            # mc.stop()
+            # time.sleep(0.1)
 
             print("next turn ready!")
-            mc.stop()
-            time.sleep(0.3)
-            
-
-            # ## Movement (b) Hip abd/add
-            # mc.move_distance(0, 0.4, 0.4, velocity=task_Vel)  # moving up-left (refers to the drone)
-            # time.sleep(0.8)
-
-            # while event1.isSet()==False:
-            #     mc.stop()
-            #     time.sleep(1.5)
-
-            # print("Target was reached!")
-            # mc.move_distance(0, -0.4, -0.4, velocity=task_Vel)  # moving back
-            # time.sleep(1.5)
-
-
-            # ## Movement (d) Tip-toe
-            # mc.up(0.3, velocity=task_Vel)  # moving up
-            # time.sleep(0.8)
-
-            # while event1.isSet()==False:
-            #     mc.stop()
-            #     time.sleep(1.5)
-
-            # print("Target was reached!")
-            # mc.down(0.3, velocity=task_Vel)  # moving back
-            # time.sleep(1.5)
-
-
-            # ## Movement (e) Hip & Knee flex
-            # mc.up(0.4, velocity=task_Vel)  # moving up
-            # time.sleep(0.8)
-
-            # while event1.isSet()==False:
-            #     mc.stop()
-            #     time.sleep(1.5)
-
-            # print("Target was reached!")
-            # mc.down(0.4, velocity=task_Vel)  # moving back
-            # time.sleep(1.5)
-
-
-            # ## Movement (f) Heel to heel & (g) knee raising, then step forward *** Be careful the step amount!! (can't be out of the LH range)
-            # mc.forward(0.2, velocity=task_Vel)  # moving forward (refers to the drone)
-            # time.sleep(1.5)
-
-            # while event1.isSet()==False:    # go to the "position_state_change" --> change it to comparing the max_ROM in x or y axis
-            #     mc.stop()
-            #     time.sleep(1.5)
-
-            # print("Target was reached!")
-
-
+                 
+        print("Task done")
         # set the event for turning off the sound feedback process
         event1.set()
 
@@ -172,7 +148,7 @@ def position_state_change(event1, event2, event3):
             # print("keep going")
             event2.clear()
         
-            # if abs((position_estimate_2[2] + 0.3 + init_H)-(position_estimate_1[2])) <= 0.04:  # subject follows the drone
+            # if abs((position_estimate_2[2] + 0.3 + init_H)-(position_estimate_1[2])) < 0.04:  # subject follows the drone
             if abs((position_estimate_2[2])-(position_estimate_1[2])) < 0.04:
                 # print("good job")
                 event3.clear()
@@ -185,6 +161,16 @@ def position_state_change(event1, event2, event3):
         else:   # If the current leg sensor's position reaches the max ROM in z-axis
             # print("target reached!")
             event2.set()
+
+            # if abs((position_estimate_2[2] + 0.3 + init_H)-(position_estimate_1[2])) < 0.04:  # subject follows the drone
+            if abs((position_estimate_2[2])-(position_estimate_1[2])) < 0.04:
+                # print("good job")
+                event3.clear()
+            
+            # elif abs((position_estimate_2[2] + 0.3 + init_H)-(position_estimate_1[2])) > 0.04:
+            else:
+                # print("please follow the drone")
+                event3.set()
         
         
             
@@ -213,16 +199,21 @@ def sound_feedback(event1, event2, event3):
     while not event1.is_set():  # the drone hasn't finished the guiding yet
         
         if event2.is_set()==False: # the subject hasn't reached the max ROM yet
-
+            
+            # if event3.is_set()==True and position_estimate_2[2] + 0.3 + init_H < position_estimate_1[2]:
             if event3.is_set()==True and position_estimate_2[2] < position_estimate_1[2]:  # subject not follow the drone
                 print("Too low")
                 frequency = 1500  # Set Frequency To 2500 Hertz
                 duration = 300  # Set Duration To 250 ms == 0.25 second
                 winsound.Beep(frequency, duration)
             
+            # elif event3.is_set()==True and position_estimate_2[2] + 0.3 + init_H > position_estimate_1[2]:
             elif event3.is_set()==True and position_estimate_2[2] > position_estimate_1[2]:  # subject not follow the drone
                 print("Too high")
-                winsound.PlaySound('_invalid-selection.mp3', winsound.SND_FILENAME)
+                # winsound.PlaySound('_invalid-selection.mp3', winsound.SND_FILENAME)
+                frequency = 1500  # Set Frequency To 2500 Hertz
+                duration = 300  # Set Duration To 250 ms == 0.25 second
+                winsound.Beep(frequency, duration)
             
             else:
                 pass

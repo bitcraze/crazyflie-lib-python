@@ -74,6 +74,73 @@ from cflib.utils import uri_helper
 
 REFERENCE_DIST = 1.0
 
+
+def clip1(v: float) -> float:
+    if v > 1.0:
+        return 1.0
+    if v < -1.0:
+        return -1.0
+    return v
+
+
+def lighthouseCalibrationMeasurementModelLh2(x: float, y: float, z: float, t: float, calib) -> float:
+    ax = np.arctan2(y, x)
+    r = np.sqrt(x * x + y * y)
+
+    base = ax + np.arcsin(clip1(z * np.tan(t - calib.tilt) / r))
+    compGib = -calib.gibmag * np.cos(ax + calib.gibphase)
+
+    return base - (calib.phase + compGib)
+
+
+def idealToDistortedV2(calib, ideal: list[float]) -> list[float]:
+    t30 = np.pi / 6.0
+    tan30 = np.tan(t30)
+
+    a1 = ideal[0]
+    a2 = ideal[1]
+
+    x = 1.0
+    y = np.tan((a2 + a1) / 2.0)
+    z = np.sin(a2 - a1) / (tan30 * (np.cos(a2) + np.cos(a1)))
+
+    distorted = [
+        lighthouseCalibrationMeasurementModelLh2(x, y, z, -t30, calib.sweeps[0]),
+        lighthouseCalibrationMeasurementModelLh2(x, y, z, t30, calib.sweeps[1])]
+
+    return distorted
+
+
+def lighthouseCalibrationApply(calib, rawAngles: list[float]) -> list[float]:
+    max_delta = 0.0005
+
+    # Use distorted angle as a starting point
+    estimatedAngles = rawAngles.copy()
+
+    for i in range(5):
+        currentDistortedAngles = idealToDistortedV2(calib, estimatedAngles)
+
+        delta0 = rawAngles[0] - currentDistortedAngles[0]
+        delta1 = rawAngles[1] - currentDistortedAngles[1]
+
+        estimatedAngles[0] = estimatedAngles[0] + delta0
+        estimatedAngles[1] = estimatedAngles[1] + delta1
+
+        if (abs(delta0) < max_delta and abs(delta1) < max_delta):
+            break
+
+    return estimatedAngles
+
+
+def vector_with_compensation(a1: float, a2: float, calibs, bs: int) -> LighthouseBsVector:
+    if bs in calibs:
+        angles = lighthouseCalibrationApply(calibs[bs], [a1, a2])
+    else:
+        angles[a1, a2]
+
+    return LighthouseBsVector.from_lh2(angles[0], angles[1])
+
+
 def read_angles_average_from_lh2_file(file_name: str, calibs) -> LhCfPoseSample:
     with open(file_name, 'r', encoding='utf8') as contents:
         bs_angles = {}
@@ -88,11 +155,9 @@ def read_angles_average_from_lh2_file(file_name: str, calibs) -> LhCfPoseSample:
 
     angles_calibrated = {}
     for bs, angles in bs_angles.items():
-        # TODO krri use calib data
-
         vectors = []
         for i in range(4):
-            vector = LighthouseBsVector.from_lh2(np.average(angles[i]), np.average(angles[i + 4]))
+            vector = vector_with_compensation(np.average(angles[i]), np.average(angles[i + 4]), calibs, bs)
             vectors.append(vector)
         angles_calibrated[bs] = LighthouseBsVectors(vectors)
 
@@ -108,13 +173,12 @@ def read_angles_sequence_from_lh2_file(file_name: str, calibs) -> list[LhMeasure
                 parts = line.split(',')
                 bs = int(parts[1])
                 now = float(parts[10])
-                # TODO krri use calib data
 
                 angles: LighthouseBsVectors = LighthouseBsVectors([
-                    LighthouseBsVector.from_lh2(float(parts[2]), float(parts[6])),
-                    LighthouseBsVector.from_lh2(float(parts[3]), float(parts[7])),
-                    LighthouseBsVector.from_lh2(float(parts[4]), float(parts[8])),
-                    LighthouseBsVector.from_lh2(float(parts[5]), float(parts[9]))])
+                    vector_with_compensation(float(parts[2]), float(parts[6]), calibs, bs),
+                    vector_with_compensation(float(parts[3]), float(parts[7]), calibs, bs),
+                    vector_with_compensation(float(parts[4]), float(parts[8]), calibs, bs),
+                    vector_with_compensation(float(parts[5]), float(parts[9]), calibs, bs)])
 
                 measurement = LhMeasurement(timestamp=now, base_station_id=bs, angles=angles)
                 result.append(measurement)

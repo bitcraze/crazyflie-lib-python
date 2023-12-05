@@ -55,7 +55,9 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem.lighthouse_memory import LighthouseBsGeometry
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
+from cflib.localization import LighthouseBsVector
 from cflib.localization.lighthouse_config_manager import LighthouseConfigWriter
+from cflib.localization.lighthouse_config_manager import LighthouseConfigFileManager
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
@@ -69,7 +71,55 @@ from cflib.localization.lighthouse_types import LhMeasurement
 from cflib.localization.lighthouse_types import Pose
 from cflib.utils import uri_helper
 
+
 REFERENCE_DIST = 1.0
+
+def read_angles_average_from_lh2_file(file_name: str, calibs) -> LhCfPoseSample:
+    with open(file_name, 'r', encoding='utf8') as contents:
+        bs_angles = {}
+        for line in contents.readlines():
+            if line.startswith('full-rotation'):
+                parts = line.split(',')
+                bs = int(parts[1])
+                if bs not in bs_angles:
+                    bs_angles[bs] = [[], [], [], [], [], [], [], []]
+                for i in range(8):
+                    bs_angles[bs][i].append(float(parts[2 + i]))
+
+    angles_calibrated = {}
+    for bs, angles in bs_angles.items():
+        # TODO krri use calib data
+
+        vectors = []
+        for i in range(4):
+            vector = LighthouseBsVector.from_lh2(np.average(angles[i]), np.average(angles[i + 4]))
+            vectors.append(vector)
+        angles_calibrated[bs] = LighthouseBsVectors(vectors)
+
+    return LhCfPoseSample(angles_calibrated=angles_calibrated)
+
+
+def read_angles_sequence_from_lh2_file(file_name: str, calibs) -> list[LhMeasurement]:
+    result: list[LhMeasurement] = []
+
+    with open(file_name, 'r', encoding='utf8') as contents:
+        for line in contents.readlines():
+            if line.startswith('full-rotation'):
+                parts = line.split(',')
+                bs = int(parts[1])
+                now = float(parts[10])
+                # TODO krri use calib data
+
+                angles: LighthouseBsVectors = LighthouseBsVectors([
+                    LighthouseBsVector.from_lh2(float(parts[2]), float(parts[6])),
+                    LighthouseBsVector.from_lh2(float(parts[3]), float(parts[7])),
+                    LighthouseBsVector.from_lh2(float(parts[4]), float(parts[8])),
+                    LighthouseBsVector.from_lh2(float(parts[5]), float(parts[9]))])
+
+                measurement = LhMeasurement(timestamp=now, base_station_id=bs, angles=angles)
+                result.append(measurement)
+
+    return result
 
 
 def record_angles_average(scf: SyncCrazyflie) -> LhCfPoseSample:
@@ -103,9 +153,9 @@ def record_angles_average(scf: SyncCrazyflie) -> LhCfPoseSample:
     return result
 
 
-def record_angles_sequence(scf: SyncCrazyflie, recording_time_s: float) -> list[LhCfPoseSample]:
+def record_angles_sequence(scf: SyncCrazyflie, recording_time_s: float) -> list[LhMeasurement]:
     """Record angles and return a list of the samples"""
-    result: list[LhCfPoseSample] = []
+    result: list[LhMeasurement] = []
 
     bs_seen = set()
 
@@ -179,7 +229,7 @@ def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
     """Visualize positions of base stations and Crazyflie positions"""
     # Set to True to visualize positions
     # Requires PyPlot
-    visualize_positions = False
+    visualize_positions = True
     if visualize_positions:
         import matplotlib.pyplot as plt
 
@@ -211,7 +261,7 @@ def write_to_file(name: str,
                   origin: LhCfPoseSample,
                   x_axis: list[LhCfPoseSample],
                   xy_plane: list[LhCfPoseSample],
-                  samples: list[LhCfPoseSample]):
+                  samples: list[LhMeasurement]):
     with open(name, 'wb') as handle:
         data = (origin, x_axis, xy_plane, samples)
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -225,7 +275,7 @@ def load_from_file(name: str):
 def estimate_geometry(origin: LhCfPoseSample,
                       x_axis: list[LhCfPoseSample],
                       xy_plane: list[LhCfPoseSample],
-                      samples: list[LhCfPoseSample]) -> dict[int, Pose]:
+                      samples: list[LhMeasurement]) -> dict[int, Pose]:
     """Estimate the geometry of the system based on samples recorded by a Crazyflie"""
     matched_samples = [origin] + x_axis + xy_plane + LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
     initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(
@@ -300,6 +350,15 @@ def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):
 
 def estimate_from_file(file_name: str):
     origin, x_axis, xy_plane, samples = load_from_file(file_name)
+    estimate_geometry(origin, x_axis, xy_plane, samples)
+
+
+def estimate_from_lhv2_files(origin_file: str, x_axis_file: str, xy_plane_file: str, samples_file: str, calibs_file: str):
+    geos_ignore, calibs, system_type_ignore = LighthouseConfigFileManager.read(calibs_file)
+    origin = read_angles_average_from_lh2_file(origin_file, calibs)
+    x_axis = [read_angles_average_from_lh2_file(x_axis_file, calibs)]
+    xy_plane = [read_angles_average_from_lh2_file(xy_plane_file, calibs)]
+    samples = read_angles_sequence_from_lh2_file(samples_file, calibs)
     estimate_geometry(origin, x_axis, xy_plane, samples)
 
 
@@ -391,7 +450,15 @@ if __name__ == '__main__':
     file_name = None
     # file_name = 'lh_geo_estimate_data.pickle'
 
-    connect_and_estimate(uri, file_name=file_name)
+    root_dir = '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/recodings-with-bs-1-4/'
+    estimate_from_lhv2_files(
+        root_dir + 'LH_RAW-20231130-095339-origo-rots.txt',
+        root_dir + 'LH_RAW-20231130-095359-1m-from-origo-rots.txt',
+        root_dir + 'LH_RAW-20231130-095514-random-on-floor-rots.txt',
+        root_dir + 'LH_RAW-20231130-095540-moving-around-rots.txt',
+        '/home/kristoffer/Documents/lighthouse/arena4.yaml')
+
+    # connect_and_estimate(uri, file_name=file_name)
 
     # Run the estimation on data from file instead of live measurements
     # estimate_from_file(file_name)

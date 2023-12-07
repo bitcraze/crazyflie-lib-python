@@ -64,6 +64,7 @@ from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
 from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
+from cflib.localization.lighthouse_system_aligner2 import LighthouseSystemAligner2
 from cflib.localization.lighthouse_system_scaler import LighthouseSystemScaler
 from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
@@ -136,7 +137,8 @@ def vector_with_compensation(a1: float, a2: float, calibs, bs: int) -> Lighthous
     if bs in calibs:
         angles = lighthouseCalibrationApply(calibs[bs], [a1, a2])
     else:
-        angles[a1, a2]
+        print(f"Base station {bs} not in calib data")
+        angles = [a1, a2]
 
     return LighthouseBsVector.from_lh2(angles[0], angles[1])
 
@@ -319,6 +321,7 @@ def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
         set_axes_equal(ax)
         print('Close graph window to continue')
         plt.show()
+        print('Continuing...')
 
 
 def write_to_file(name: str,
@@ -347,6 +350,13 @@ def estimate_geometry(origin: LhCfPoseSample,
 
     print('Initial guess base stations at:')
     print_base_stations_poses(initial_guess.bs_poses)
+    print('Initial guess origin: {}', initial_guess.cf_poses[0].translation)
+    print('Initial guess x-axis points at:')
+    for point in initial_guess.cf_poses[1:1 + len(x_axis)]:
+        print(point.translation)
+    print('Initial guess xy-plane points at:')
+    for point in initial_guess.cf_poses[1 + len(x_axis):1 + len(x_axis) + len(xy_plane)]:
+        print(point.translation)
 
     print(f'{len(cleaned_matched_samples)} samples will be used')
     visualize(initial_guess.cf_poses, initial_guess.bs_poses.values())
@@ -370,22 +380,42 @@ def estimate_geometry(origin: LhCfPoseSample,
     for bs_id, value in solution.error_info['bs'].items():
         print(f'    {bs_id + 1}: {value}')
 
-    # Align the solution
-    bs_aligned_poses, transformation = LighthouseSystemAligner.align(
-        origin_pos, x_axis_pos, xy_plane_pos, solution.bs_poses)
+    if False:
+        # Align the solution
+        bs_aligned_poses, transformation = LighthouseSystemAligner.align(
+            origin_pos, x_axis_pos, xy_plane_pos, solution.bs_poses)
 
-    cf_aligned_poses = list(map(transformation.rotate_translate_pose, solution.cf_poses))
+        cf_aligned_poses = list(map(transformation.rotate_translate_pose, solution.cf_poses))
 
-    # Scale the solution
-    bs_scaled_poses, cf_scaled_poses, scale = LighthouseSystemScaler.scale_fixed_point(bs_aligned_poses,
-                                                                                       cf_aligned_poses,
-                                                                                       [REFERENCE_DIST, 0, 0],
-                                                                                       cf_aligned_poses[1])
+        # Scale the solution
+        bs_scaled_poses, cf_scaled_poses, scale = LighthouseSystemScaler.scale_fixed_point(bs_aligned_poses,
+                                                                                        cf_aligned_poses,
+                                                                                        [REFERENCE_DIST, 0, 0],
+                                                                                        cf_aligned_poses[1])
+    else:
+        # Scale and align to known bs positions
+        bs_0_actual = np.array((-3.92, 0.32, 3.10))
+        bs_2_actual = np.array((3.01, 0.17, 3.10))
+        bs_11_actual = np.array((-4.95, 11.24, 2.99))
+        bs_15_actual = np.array((3.45, 14.83, 3.14))
+
+        bs_scaled_poses, cf_scaled_poses = LighthouseSystemAligner2.align(
+            [bs_0_actual, bs_2_actual, bs_11_actual, bs_15_actual],
+            [solution.bs_poses[0].translation, solution.bs_poses[2].translation, solution.bs_poses[11].translation, solution.bs_poses[15].translation],
+            solution.bs_poses, solution.cf_poses)
 
     print()
     print('Final solution:')
     print('  Base stations at:')
     print_base_stations_poses(bs_scaled_poses)
+    print('Final origin: {}', cf_scaled_poses[0].translation)
+    print('Final x-axis points at:')
+    for point in cf_scaled_poses[1:1 + len(x_axis)]:
+        print(point.translation)
+    print('Final xy-plane points at:')
+    for point in cf_scaled_poses[1 + len(x_axis):1 + len(x_axis) + len(xy_plane)]:
+        print(point.translation)
+
 
     visualize(cf_scaled_poses, bs_scaled_poses.values())
 
@@ -417,11 +447,17 @@ def estimate_from_file(file_name: str):
     estimate_geometry(origin, x_axis, xy_plane, samples)
 
 
-def estimate_from_lhv2_files(origin_file: str, x_axis_file: str, xy_plane_file: str, samples_file: str, calibs_file: str):
+def estimate_from_lhv2_files(origin_file: str, x_axis_files: list[str], xy_plane_files: list[str], samples_file: str, calibs_file: str):
     geos_ignore, calibs, system_type_ignore = LighthouseConfigFileManager.read(calibs_file)
     origin = read_angles_average_from_lh2_file(origin_file, calibs)
-    x_axis = [read_angles_average_from_lh2_file(x_axis_file, calibs)]
-    xy_plane = [read_angles_average_from_lh2_file(xy_plane_file, calibs)]
+    x_axis = []
+    for file_name in x_axis_files:
+        x_axis.append(read_angles_average_from_lh2_file(file_name, calibs))
+
+    xy_plane = []
+    for file_name in xy_plane_files:
+        xy_plane.append(read_angles_average_from_lh2_file(file_name, calibs))
+
     samples = read_angles_sequence_from_lh2_file(samples_file, calibs)
     estimate_geometry(origin, x_axis, xy_plane, samples)
 
@@ -508,19 +544,31 @@ if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
-    uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+    # uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+    uri = 'radio://0/100/2M/E7E7E7E706'
 
     # Set a file name to write the measurement data to file. Useful for debugging
     file_name = None
     # file_name = 'lh_geo_estimate_data.pickle'
 
-    root_dir = '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/recodings-with-bs-1-4/'
+    root_dir = '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/'
     estimate_from_lhv2_files(
-        root_dir + 'LH_RAW-20231130-095339-origo-rots.txt',
-        root_dir + 'LH_RAW-20231130-095359-1m-from-origo-rots.txt',
-        root_dir + 'LH_RAW-20231130-095514-random-on-floor-rots.txt',
-        root_dir + 'LH_RAW-20231130-095540-moving-around-rots.txt',
-        '/home/kristoffer/Documents/lighthouse/arena4.yaml')
+        root_dir + 'origo-rots.txt',
+        [root_dir + '1m-rots.txt'],
+        [root_dir + 'floor1-rots.txt'],
+        root_dir + 'move-rots.txt',
+        '/home/kristoffer/Documents/lighthouse/arena_all.yaml')
+
+
+    # root_dir = '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/recodings-with-bs-1-4/'
+    # estimate_from_lhv2_files(
+    #     root_dir + 'LH_RAW-20231130-095339-origo-rots.txt',
+    #     [root_dir + 'LH_RAW-20231130-095359-1m-from-origo-rots.txt'],
+    #     [root_dir + 'LH_RAW-20231130-095514-random-on-floor-rots.txt'],
+    #     root_dir + 'LH_RAW-20231130-095540-moving-around-rots.txt',
+    #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml')
+
+
 
     # connect_and_estimate(uri, file_name=file_name)
 

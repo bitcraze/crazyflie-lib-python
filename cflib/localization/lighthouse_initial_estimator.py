@@ -40,8 +40,8 @@ class LighthouseInitialEstimator:
     OUTLIER_DETECTION_ERROR = 0.5
 
     @classmethod
-    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike) -> tuple(
-            LhBsCfPoses, list[LhCfPoseSample]):
+    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike) -> tuple[
+            LhBsCfPoses, list[LhCfPoseSample]]:
         """
         Make a rough estimate of the poses of all base stations and CF poses found in the samples.
 

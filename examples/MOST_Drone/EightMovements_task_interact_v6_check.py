@@ -1,4 +1,6 @@
 import time
+import math
+import logging
 import cflib.crtp
 import queue
 import threading
@@ -12,10 +14,10 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E708' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E710' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
-init_H = float(0.4)  # Initial drone's height; unit: m
+init_H = float(0.7)  # Initial drone's height; unit: m
 # final_H = float(0.7)  # Final drone's height; unit: m
 
 ## Define the max ROM according to the movement
@@ -30,6 +32,10 @@ max_step_forward = float(0.5)       # for movement (g) Step forward; unit: m
 # max_ROM = 1
 max_ROM = 0.5    # change this variable according to the selected movement
 ori_pos = 0.3    # original leg's sensor height
+
+move_dist = max_ROM-ori_pos  # total moving distant for drone and leg's sensor
+
+start_pos_d = 0.3 + init_H   # start position for drone
 
 init_Vel = 0.3  # Initial velocity
 task_Vel = 0.2  # on-task velocity
@@ -60,78 +66,139 @@ def log_pos_callback_2(uri_2, timestamp, data, logconf_2):
 
 # # Crazyflie Motion Section
 
-def drone_guide_mc(scf, event1, event2, event3): # default take-off height = 0.3 m
+def drone_guide_mc(scf, event1, event2, event3): 
+# default take-off height = 0.3 m, take-off velocity = 0.2
     with MotionCommander(scf) as mc:
+        
+        time.sleep(0.3/0.2)
+
+        t_start = time.time()
+        print("before going up") # the drone reaches the default take-off height 0.3 m
+
         mc.up(init_H, velocity=init_Vel)
-        time.sleep(1)
+        time.sleep(1) # Hovering for 1 sec after reaching the init_H + 0.3 m
+
         print("start!!!")
 
-        for i in range(1,6):
+
+        for i in range(1,11):
+            # # record the init position of the drone in x-axis and y-axis
+            # init_x = position_estimate_1[0]
+            # init_y = position_estimate_1[1]
+            # # record the init position of the drone in z-axis (before start doing the exercise)
+            # init_z = position_estimate_1[2]
+
+            # print("init x: ", init_x)
+            # print("init y: ", init_y)
+            # print("init z: ", init_z)
+
+            # print("Initial position is recorded!")
 
             print("Round: ", i)
             
+            print("start moving up")
             mc.start_up(velocity=task_Vel)  # drone starts moving up
-            # time.sleep(0.3)
-
-            # while position_estimate_1[2] <= max_ROM: # If the drone doesn't exceed the max ROM in z-axis
-                
-            #     mc.start_up(velocity=task_Vel)
-            #     # time.sleep(0.3)
 
             while not event2.is_set(): # the current leg sensor's position hasn't reached the max ROM in z-axis
                 
-                # print("event2 is not set")
-                # mc.start_up(velocity=task_Vel)
+                print("event2 is not set")
 
-                while event3.is_set()==True:  # the subject doesn't follow the drone
+                while event3.is_set()==True and event2.is_set()==False:  # the subject doesn't follow the drone
+                    print("????????")
                     mc.stop()
                     time.sleep(0.1)
+                    # if position_estimate_1[2] - start_pos_d > move_dist:
+                    #     over_dist = position_estimate_1[2] - (start_pos_d + move_dist) 
+                    #     print("over the upper limit_1 (m): ", over_dist)
+                    #     mc.down(over_dist, velocity=over_dist/0.1)  # moving back to the start_pos_d within 0.1 second
+                    #     # time.sleep(0.5)
                 
-                # print("start up")
-                mc.start_up(velocity=task_Vel)
-                time.sleep(0.1)      # This line can't be blank!!!
+                print("moving up 5 cm/s")
+                # mc.start_up(velocity=task_Vel)
+                # time.sleep(0.05/task_Vel)    # This line can't be blank!!!
+                mc.up(0.05, velocity=task_Vel)  # optional for the above two lines
+
+                if position_estimate_1[2] - start_pos_d > move_dist:
+                    over_dist = position_estimate_1[2] - (start_pos_d + move_dist) 
+                    print("over the upper limit_2 (m): ", over_dist)
+                    mc.down(over_dist, velocity=over_dist/0.1)  # moving back to the start_pos_d within 0.1 second
+                    # time.sleep(0.5)
         
             print("event2 is set (reached the target)") 
             # mc.stop()
             # time.sleep(0.1) # for subject's preparation
 
-            print("start down")
-            mc.start_down(velocity=task_Vel)  # drone starts moving down
-            # time.sleep(0.5)
-            
-            '''
-            for _ in range(5):
-                print('Doing other work')
-                time.sleep(0.2)
 
-            # And we can stop
+            print("start moving down")
+            move_down_dist = position_estimate_1[2] - start_pos_d
+            print("move down distance (m): ", move_down_dist)
+            mc.down(move_down_dist, velocity=move_down_dist/2)  # moving back to the start_pos_d within 2 second
+            print("Ready?")
             mc.stop()
-            time.sleep(1)
+            time.sleep(1)  # hovering for 2 sec
 
-            # while not position_estimate_1[2] <= 0.8:
-            #     mc.start_down(velocity=task_Vel)
-            
-            # print("be careful")
-            # mc.stop()
-            # time.sleep(1)
-        
+
             '''
+            print("start moving down")
+            mc.start_down(velocity=task_Vel)  # drone starts moving down
+
+            # print("moving down 5 cm/s")
+            # # mc.start_down(velocity=task_Vel)  # drone starts moving down
+            # # time.sleep(0.05/task_Vel)      # This line can't be blank!!!
+            # mc.down(0.05, velocity=task_Vel) # optional for the above two lines
+            
+            # # If the drone exceeds the upper limit, then moving down
+            # while position_estimate_1[2] - start_pos_d > move_dist:
+            #     print("over the upper limit")
+            #     mc.down(0.1, velocity=0.1)
+            #     # mc.start_down(velocity=task_Vel)  # drone starts moving down
+            #     # time.sleep(0.1)
+            
+            # mc.start_down(velocity=task_Vel)  # drone starts moving down
+            # time.sleep(0.1)
+
             # while position_estimate_1[2] > max_ROM + 0.3 + init_H: # If the drone doesn't lower than the default take-off height (0.3 meter)
-            while position_estimate_1[2] > 0.3 + init_H: # If the drone doesn't lower than the default take-off height (0.3 meter) + unit_H
-                # print("keep going down")
+            while position_estimate_1[2] >= start_pos_d: # If the drone doesn't lower than the default take-off height (0.3 meter) + unit_H
+                print("not yet lower than start_pos_d ")           
 
                 while event3.is_set()==True:  # the subject doesn't follow the drone
                     mc.stop()
-                    time.sleep(0.1)
+                    time.sleep(0.5)
                 
+                print("moving down 5 cm/s")
+                # mc.start_down(velocity=task_Vel)
+                # time.sleep(0.05/task_Vel)    # This line can't be blank!!!
+                mc.down(0.05, velocity=task_Vel)  # optional for the above two lines
+
+                if position_estimate_1[2] - start_pos_d > move_dist:
+                    over_dist = position_estimate_1[2] - (start_pos_d + move_dist) 
+                    print("over the upper limit (m): ", over_dist)
+                    mc.down(over_dist, velocity=0.2)
+                    time.sleep(0.5)
+
+
+
                 mc.start_down(velocity=task_Vel)
-                time.sleep(0.1)
+                time.sleep(0.25)
             
-            print("lower than init height")
+            # mc.up(0.2, velocity=task_Vel)
+            # If the drone exceeds the upper limit, then moving down
+            while position_estimate_1[2] < 0.3 + init_H:
+                print("over the lower limit")
+                mc.up(0.1, velocity=0.1)
+                # mc.start_down(velocity=task_Vel)  # drone starts moving down
+                # time.sleep(0.1)
+            '''
+
+            print("next!!!")
             # mc.stop()
             # time.sleep(0.1)
 
             # print("next turn ready!")
+
+            # mc.move_distance(-init_x, -init_y, -init_z) # moving back to the initial position
+            # time.sleep(1)
+
                  
         print("Task done")
         # set the event for turning off the sound feedback process
@@ -148,7 +215,7 @@ def position_state_change(event1, event2, event3):
             # print("keep going")
             event2.clear()
         
-            if abs((position_estimate_2[2] - ori_pos)-(position_estimate_1[2] - 0.3 - init_H)) < 0.04:  # subject follows the drone
+            if abs((position_estimate_2[2] - ori_pos)-(position_estimate_1[2] - 0.3 - init_H)) < 0.05:  # subject follows the drone
             # if abs((position_estimate_2[2])-(position_estimate_1[2])) < 0.04:
                 # print("good job")
                 event3.clear()
@@ -162,15 +229,15 @@ def position_state_change(event1, event2, event3):
             # print("target reached!")
             event2.set()
 
-            if abs((position_estimate_2[2] - ori_pos)-(position_estimate_1[2] - 0.3 - init_H)) < 0.04:  # subject follows the drone
-            # if abs((position_estimate_2[2])-(position_estimate_1[2])) < 0.04:
-                # print("good job")
-                event3.clear()
+            # if abs((position_estimate_2[2] - ori_pos)-(position_estimate_1[2] - 0.3 - init_H)) < 0.06:  # subject follows the drone
+            # # if abs((position_estimate_2[2])-(position_estimate_1[2])) < 0.04:
+            #     # print("good job")
+            #     event3.clear()
             
-            # elif abs((position_estimate_2[2] + 0.3 + init_H)-(position_estimate_1[2])) > 0.04:
-            else:
-                # print("please follow the drone")
-                event3.set()
+            # # elif abs((position_estimate_2[2] + 0.3 + init_H)-(position_estimate_1[2])) > 0.04:
+            # else:
+            #     # print("please follow the drone")
+            #     event3.set()
         
         
             
@@ -228,6 +295,11 @@ def sound_feedback(event1, event2, event3):
 
 # using other sounds, see in:  https://www.geeksforgeeks.org/python-winsound-module/
 # correct sound download: https://pixabay.com/sound-effects/search/correct/ 
+
+
+# Only output errors from the logging framework
+logging.basicConfig(level=logging.ERROR)
+
 
 if __name__ == '__main__':
 

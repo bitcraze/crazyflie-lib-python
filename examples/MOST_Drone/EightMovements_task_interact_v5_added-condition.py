@@ -12,10 +12,10 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E708' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E710' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
-init_H = float(0.4)  # Initial drone's height; unit: m
+init_H = float(0.7)  # Initial drone's height; unit: m
 # final_H = float(0.7)  # Final drone's height; unit: m
 
 ## Define the max ROM according to the movement
@@ -28,8 +28,8 @@ max_heel_to_heel = float(0.2)       # for movement (f) Heel to heel; unit: m
 max_step_forward = float(0.5)       # for movement (g) Step forward; unit: m
 
 # max_ROM = 1
-max_ROM = 0.5    # change this variable according to the selected movement
-ori_pos = 0.3    # original leg's sensor height
+max_ROM = 0.53    # change this variable according to the selected movement
+ori_pos = 0.32    # original leg's sensor height
 
 init_Vel = 0.3  # Initial velocity
 task_Vel = 0.2  # on-task velocity
@@ -62,13 +62,30 @@ def log_pos_callback_2(uri_2, timestamp, data, logconf_2):
 
 def drone_guide_mc(scf, event1, event2, event3): # default take-off height = 0.3 m
     with MotionCommander(scf) as mc:
+
         mc.up(init_H, velocity=init_Vel)
         time.sleep(1)
         print("start!!!")
+        
+        while position_estimate_1[2] < init_H:
+            pass
 
-        for i in range(1,6):
+
+        for i in range(1,11):
+            # # record the init position of the drone in x-axis and y-axis
+            # init_x = position_estimate_1[0]
+            # init_y = position_estimate_1[1]
+            # # record the init position of the drone in z-axis (before start doing the exercise)
+            # init_z = position_estimate_1[2]
+
+            # print("init x: ", init_x)
+            # print("init y: ", init_y)
+            # print("init z: ", init_z)
+
+            # print("Initial position is recorded!")
 
             print("Round: ", i)
+            
             
             mc.start_up(velocity=task_Vel)  # drone starts moving up
             # time.sleep(0.3)
@@ -80,7 +97,7 @@ def drone_guide_mc(scf, event1, event2, event3): # default take-off height = 0.3
 
             while not event2.is_set(): # the current leg sensor's position hasn't reached the max ROM in z-axis
                 
-                # print("event2 is not set")
+                print("event2 is not set")
                 # mc.start_up(velocity=task_Vel)
 
                 while event3.is_set()==True:  # the subject doesn't follow the drone
@@ -97,41 +114,47 @@ def drone_guide_mc(scf, event1, event2, event3): # default take-off height = 0.3
 
             print("start down")
             mc.start_down(velocity=task_Vel)  # drone starts moving down
-            # time.sleep(0.5)
+            time.sleep(0.1)
             
-            '''
-            for _ in range(5):
-                print('Doing other work')
-                time.sleep(0.2)
-
-            # And we can stop
-            mc.stop()
-            time.sleep(1)
-
-            # while not position_estimate_1[2] <= 0.8:
-            #     mc.start_down(velocity=task_Vel)
+            # If the drone exceeds the upper limit, then moving down
+            while position_estimate_1[2] - 0.3 - init_H > max_ROM - ori_pos:
+                print("over the upper limit")
+                mc.down(0.1, velocity=0.1)
+                # mc.start_down(velocity=task_Vel)  # drone starts moving down
+                # time.sleep(0.1)
             
-            # print("be careful")
-            # mc.stop()
-            # time.sleep(1)
-        
-            '''
+            mc.start_down(velocity=task_Vel)  # drone starts moving down
+            time.sleep(0.1)
+
             # while position_estimate_1[2] > max_ROM + 0.3 + init_H: # If the drone doesn't lower than the default take-off height (0.3 meter)
             while position_estimate_1[2] > 0.3 + init_H: # If the drone doesn't lower than the default take-off height (0.3 meter) + unit_H
-                # print("keep going down")
+                # print("keep going down")           
 
                 while event3.is_set()==True:  # the subject doesn't follow the drone
                     mc.stop()
                     time.sleep(0.1)
                 
                 mc.start_down(velocity=task_Vel)
-                time.sleep(0.1)
+                time.sleep(0.25)
             
-            print("lower than init height")
+            # mc.up(0.2, velocity=task_Vel)
+            # If the drone exceeds the upper limit, then moving down
+            while position_estimate_1[2] < 0.3 + init_H:
+                print("over the lower limit")
+                mc.up(0.1, velocity=0.1)
+                # mc.start_down(velocity=task_Vel)  # drone starts moving down
+                # time.sleep(0.1)
+
+
+            print("next!!!")
             # mc.stop()
             # time.sleep(0.1)
 
             # print("next turn ready!")
+
+            # mc.move_distance(-init_x, -init_y, -init_z) # moving back to the initial position
+            # time.sleep(1)
+
                  
         print("Task done")
         # set the event for turning off the sound feedback process
@@ -148,7 +171,7 @@ def position_state_change(event1, event2, event3):
             # print("keep going")
             event2.clear()
         
-            if abs((position_estimate_2[2] - ori_pos)-(position_estimate_1[2] - 0.3 - init_H)) < 0.04:  # subject follows the drone
+            if abs((position_estimate_2[2] - ori_pos)-(position_estimate_1[2] - 0.3 - init_H)) < 0.06:  # subject follows the drone
             # if abs((position_estimate_2[2])-(position_estimate_1[2])) < 0.04:
                 # print("good job")
                 event3.clear()
@@ -162,7 +185,7 @@ def position_state_change(event1, event2, event3):
             # print("target reached!")
             event2.set()
 
-            if abs((position_estimate_2[2] - ori_pos)-(position_estimate_1[2] - 0.3 - init_H)) < 0.04:  # subject follows the drone
+            if abs((position_estimate_2[2] - ori_pos)-(position_estimate_1[2] - 0.3 - init_H)) < 0.06:  # subject follows the drone
             # if abs((position_estimate_2[2])-(position_estimate_1[2])) < 0.04:
                 # print("good job")
                 event3.clear()

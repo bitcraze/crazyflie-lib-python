@@ -470,7 +470,7 @@ Add `BOX_LIMIT = 0.5` underneath the definition of the `DEFAULT_HEIGHT = 0.5`.
 
 Run the script and you will see that the crazyflie will start moving back and forth until you hit ctrl+c. It changes its command based on the logging input, which is the state estimate x and y position. Once it indicates that it reached the border of the 'virtual' limit, it will change it's direction.
 
-You probably also noticed that we are using `mc.start_back()` and `mc.start_forward()` instead of the `mc.forward(0.5)` and `mc.back(0.5)` used in the previous steps. The main difference is that the *mc.forward* and *mc.back* are **blocking** functions that won't continue the code until the distance has been reached. The *mc.start_...()* will start the crazyflie in a direction and will not stop until the `mc.stop()` is given, which is given automatically when the motion commander instance is exited. That is why this is nice functions to use in reactive scenarios like these.
+You probably also noticed that we are using `mc.start_back()` and `mc.start_forward()` instead of the `mc.forward(0.5)` and `mc.back(0.5)` used in the previous steps. The main difference is that the *mc.forward* and *mc.back* are **blocking** functions that won't continue the code until the distance has been reached. The *mc.start_...()* will start the crazyflie in a direction and will not stop until the `mc.stop()` is given, which is done automatically when the motion commander instance is exited. That is why these are nice functions to use in reactive scenarios like this.
 
 ```python
 import logging

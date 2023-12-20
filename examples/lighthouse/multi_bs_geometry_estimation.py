@@ -295,7 +295,7 @@ def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
     """Visualize positions of base stations and Crazyflie positions"""
     # Set to True to visualize positions
     # Requires PyPlot
-    visualize_positions = True
+    visualize_positions = False
     if visualize_positions:
         import matplotlib.pyplot as plt
 
@@ -348,6 +348,8 @@ def estimate_geometry(origin: LhCfPoseSample,
     initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(
         matched_samples, LhDeck4SensorPositions.positions)
 
+    start_time = time.time()
+
     print('Initial guess base stations at:')
     print_base_stations_poses(initial_guess.bs_poses)
     print('Initial guess origin: {}', initial_guess.cf_poses[0].translation)
@@ -380,7 +382,7 @@ def estimate_geometry(origin: LhCfPoseSample,
     for bs_id, value in solution.error_info['bs'].items():
         print(f'    {bs_id + 1}: {value}')
 
-    if False:
+    if True:
         # Align the solution
         bs_aligned_poses, transformation = LighthouseSystemAligner.align(
             origin_pos, x_axis_pos, xy_plane_pos, solution.bs_poses)
@@ -416,6 +418,7 @@ def estimate_geometry(origin: LhCfPoseSample,
     for point in cf_scaled_poses[1 + len(x_axis):1 + len(x_axis) + len(xy_plane)]:
         print(point.translation)
 
+    print(f"Total time: {time.time() - start_time}")
 
     visualize(cf_scaled_poses, bs_scaled_poses.values())
 
@@ -447,8 +450,8 @@ def estimate_from_file(file_name: str):
     estimate_geometry(origin, x_axis, xy_plane, samples)
 
 
-def estimate_from_lhv2_files(origin_file: str, x_axis_files: list[str], xy_plane_files: list[str], samples_file: str, calibs_file: str):
-    geos_ignore, calibs, system_type_ignore = LighthouseConfigFileManager.read(calibs_file)
+def estimate_from_lhv2_files(origin_file: str, x_axis_files: list[str], xy_plane_files: list[str], samples_file: str, calibs_file: str, result_file: str):
+    geos_ignore, calibs, system_type = LighthouseConfigFileManager.read(calibs_file)
     origin = read_angles_average_from_lh2_file(origin_file, calibs)
     x_axis = []
     for file_name in x_axis_files:
@@ -459,7 +462,16 @@ def estimate_from_lhv2_files(origin_file: str, x_axis_files: list[str], xy_plane
         xy_plane.append(read_angles_average_from_lh2_file(file_name, calibs))
 
     samples = read_angles_sequence_from_lh2_file(samples_file, calibs)
-    estimate_geometry(origin, x_axis, xy_plane, samples)
+    bs_est = estimate_geometry(origin, x_axis, xy_plane, samples)
+
+    if result_file is not None:
+        geos = {}
+        for id, pose in bs_est.items():
+            geos[id] = LighthouseBsGeometry()
+            geos[id].origin = pose.translation.tolist()
+            geos[id].rotation_matrix = pose.rot_matrix.tolist()
+            geos[id].valid = True
+        LighthouseConfigFileManager.write(result_file, geos=geos, calibs=calibs)
 
 
 def connect_and_estimate(uri: str, file_name: str | None = None):
@@ -551,13 +563,13 @@ if __name__ == '__main__':
     file_name = None
     # file_name = 'lh_geo_estimate_data.pickle'
 
-    root_dir = '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/'
-    estimate_from_lhv2_files(
-        root_dir + 'origo-rots.txt',
-        [root_dir + '1m-rots.txt'],
-        [root_dir + 'floor1-rots.txt'],
-        root_dir + 'move-rots.txt',
-        '/home/kristoffer/Documents/lighthouse/arena_all.yaml')
+    # root_dir = '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/'
+    # estimate_from_lhv2_files(
+    #     root_dir + 'origo-rots.txt',
+    #     [root_dir + 'new_1m-rots.txt'],
+    #     [root_dir + 'floor1-rots.txt'],
+    #     root_dir + 'move-rots.txt',
+    #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml', None)
 
 
     # root_dir = '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/recodings-with-bs-1-4/'
@@ -566,8 +578,15 @@ if __name__ == '__main__':
     #     [root_dir + 'LH_RAW-20231130-095359-1m-from-origo-rots.txt'],
     #     [root_dir + 'LH_RAW-20231130-095514-random-on-floor-rots.txt'],
     #     root_dir + 'LH_RAW-20231130-095540-moving-around-rots.txt',
-    #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml')
+    #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml', None)
 
+    root_dir = '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/recodings-with-bs-1-4/'
+    estimate_from_lhv2_files(
+        root_dir + 'LH_RAW-20231130-095339-origo-rots.txt',
+        [root_dir + 'LH_RAW-20231130-095359-1m-from-origo-rots.txt'],
+        [root_dir + 'LH_RAW-20231130-095514-random-on-floor-rots.txt', '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/floor5-rots.txt', '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/floor4-rots.txt'],
+        '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/move-rots.txt',
+        '/home/kristoffer/Documents/lighthouse/arena_all.yaml', '/home/kristoffer/Documents/lighthouse/arena_16.yaml')
 
 
     # connect_and_estimate(uri, file_name=file_name)

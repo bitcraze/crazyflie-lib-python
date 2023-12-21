@@ -335,6 +335,8 @@ class LighthouseInitialEstimator:
 
             # Average over poses and add to bs_poses
             for bs_id, poses in buckets.items():
+                if len(poses) < 5:
+                    print(f"WARNING! Only {len(poses)} references used to average the pose for bs {bs_id}")
                 bs_poses[bs_id] = cls._avarage_poses(poses)
 
             to_find = all_bs - bs_poses.keys()
@@ -381,7 +383,8 @@ class LighthouseInitialEstimator:
                 est_ref_global = cls._map_cf_pos_to_cf_pos(pose_global, pose_cf)
                 poses.append(est_ref_global)
 
-            cf_poses.append(cls._avarage_poses(poses))
+            if len(poses) > 0:
+                cf_poses.append(cls._avarage_poses(poses))
 
         return cf_poses
 

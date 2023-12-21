@@ -450,7 +450,7 @@ def estimate_from_file(file_name: str):
     estimate_geometry(origin, x_axis, xy_plane, samples)
 
 
-def estimate_from_lhv2_files(origin_file: str, x_axis_files: list[str], xy_plane_files: list[str], samples_file: str, calibs_file: str, result_file: str):
+def estimate_from_lhv2_files(origin_file: str, x_axis_files: list[str], xy_plane_files: list[str], samples_files: list[str], calibs_file: str, result_file: str):
     geos_ignore, calibs, system_type = LighthouseConfigFileManager.read(calibs_file)
     origin = read_angles_average_from_lh2_file(origin_file, calibs)
     x_axis = []
@@ -461,7 +461,10 @@ def estimate_from_lhv2_files(origin_file: str, x_axis_files: list[str], xy_plane
     for file_name in xy_plane_files:
         xy_plane.append(read_angles_average_from_lh2_file(file_name, calibs))
 
-    samples = read_angles_sequence_from_lh2_file(samples_file, calibs)
+    samples = []
+    for samples_file in samples_files:
+        samples += read_angles_sequence_from_lh2_file(samples_file, calibs)
+
     bs_est = estimate_geometry(origin, x_axis, xy_plane, samples)
 
     if result_file is not None:
@@ -568,7 +571,7 @@ if __name__ == '__main__':
     #     root_dir + 'origo-rots.txt',
     #     [root_dir + 'new_1m-rots.txt'],
     #     [root_dir + 'floor1-rots.txt'],
-    #     root_dir + 'move-rots.txt',
+    #     [root_dir + 'move-rots.txt'],
     #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml', None)
 
 
@@ -577,7 +580,7 @@ if __name__ == '__main__':
     #     root_dir + 'LH_RAW-20231130-095339-origo-rots.txt',
     #     [root_dir + 'LH_RAW-20231130-095359-1m-from-origo-rots.txt'],
     #     [root_dir + 'LH_RAW-20231130-095514-random-on-floor-rots.txt'],
-    #     root_dir + 'LH_RAW-20231130-095540-moving-around-rots.txt',
+    #     [root_dir + 'LH_RAW-20231130-095540-moving-around-rots.txt'],
     #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml', None)
 
     root_dir = '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/recodings-with-bs-1-4/'

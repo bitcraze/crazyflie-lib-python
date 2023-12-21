@@ -49,7 +49,7 @@ class LighthouseSampleMatcher:
             if current is None:
                 current = LhCfPoseSample(timestamp=ts)
 
-            if ts > (current.timestamp + max_time_diff):
+            if ts > (current.timestamp + max_time_diff) or ts < current.timestamp:
                 cls._append_result(current, result, min_nr_of_bs_in_match)
                 current = LhCfPoseSample(timestamp=ts)
 

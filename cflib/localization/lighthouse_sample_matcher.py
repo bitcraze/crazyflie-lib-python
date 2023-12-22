@@ -29,12 +29,13 @@ class LighthouseSampleMatcher:
     """Utility class to match samples of measurements from multiple lighthouse base stations.
 
     Assuming that the Crazyflie was moving when the measurements were recorded,
-    samples that were meassured aproximately at the same position are aggregated into
+    samples that were measured approximately at the same position are aggregated into
     a list of LhCfPoseSample. Matching is done using the timestamp and a maximum time span.
+    The default maximum time span is set to be slightly less than one rotation of a base station.
     """
 
     @classmethod
-    def match(cls, samples: list[LhMeasurement], max_time_diff: float = 0.020,
+    def match(cls, samples: list[LhMeasurement], max_time_diff: float = 0.018,
               min_nr_of_bs_in_match: int = 0) -> list[LhCfPoseSample]:
         """
         Aggregate samples close in time into lists
@@ -45,14 +46,19 @@ class LighthouseSampleMatcher:
 
         for sample in samples:
             ts = sample.timestamp
+            # print(f"sample at {ts}, bs {sample.base_station_id}")
 
             if current is None:
                 current = LhCfPoseSample(timestamp=ts)
+                # print(f"New at {ts}")
 
             if ts > (current.timestamp + max_time_diff) or ts < current.timestamp:
                 cls._append_result(current, result, min_nr_of_bs_in_match)
                 current = LhCfPoseSample(timestamp=ts)
+                # print(f"New at {ts}")
 
+            # if sample.base_station_id in current.angles_calibrated:
+                # print(f"  Overwrite bs {sample.base_station_id}")
             current.angles_calibrated[sample.base_station_id] = sample.angles
 
         cls._append_result(current, result, min_nr_of_bs_in_match)

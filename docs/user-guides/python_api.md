@@ -74,10 +74,9 @@ There\'s are few limitations that need to be taken into account:
 ### Parameters
 
 The library supports reading and writing parameters at run-time to the
-firmware. This is intended to be used for data that is not continuously
-being changed by the firmware, like setting regulation parameters and
+firmware. This is intended to be used for data that is not continuously changed by the firmware, like setting regulation parameters and
 reading out if the power-on self-tests passed. Parameters should only be
-change in the firmware when being set from the host (cfclient or a cflib script) or during start-up.
+changed in the firmware when being set from the host (cfclient or a cflib script) or during start-up.
 
 The library doesn\'t continuously update the parameter values, this
 should only be done once after connecting. After each write to a
@@ -144,7 +143,7 @@ This will search for available drivers and instantiate them.
 ### Serial driver
 
 The serial driver is disabled by default and has to be enabled to
-be used. Enable it in the call to `init_drivers()`
+be used. Enable it in the call to `init_drivers()`.
 
 ``` python
     init_drivers(enable_serial_driver=True)
@@ -453,7 +452,7 @@ exiting it, for instance a connection or take off/landing of a Crazyflie.
 
 ### SyncCrazyflie
 
-The SyncCrazyflie class wraps a Crazyflie instance and mainly simplifies connect/disconnect.
+The `SyncCrazyflie` class wraps a Crazyflie instance and mainly simplifies connect/disconnect.
 
 Basic usage
 ``` python
@@ -469,7 +468,7 @@ Basic usage
 ```
 
 If some special properties are required for the underlying Crazyflie object,
-a Crazyflie instance can be passed in to the SyncCrazyflie instance.
+a Crazyflie instance can be passed in to the `SyncCrazyflie` instance.
 
 ``` python
     my_cf = Crazyflie(rw_cache='./cache')
@@ -481,8 +480,8 @@ a Crazyflie instance can be passed in to the SyncCrazyflie instance.
 
 ### SyncLogger
 
-The SyncLogger class wraps setting up, as well as starting/stopping logging. It works both for Crazyflie
-and SyncCrazyflie instances. To get the log values, iterate the instance.
+The `SyncLogger` class wraps setting up, as well as starting/stopping logging. It works both for Crazyflie
+and `SyncCrazyflie` instances. To get the log values, iterate the instance.
 
 ``` python
     # Connect to a Crazyflie
@@ -508,11 +507,11 @@ and SyncCrazyflie instances. To get the log values, iterate the instance.
 
 ### MotionCommander
 
-The MotionCommander class is intended to simplify basic autonomous flight, where the motion control is done from the host computer. The Crazyflie takes off and makes
+The `MotionCommander` class is intended to simplify basic autonomous flight, where the motion control is done from the host computer. The Crazyflie takes off and makes
 when entering the "with" section, and lands when exiting. It has functions for basic
 movements that are blocking until the motion is finished.
 
-The MotionCommander is using velocity set points and does not have a global coordinate
+The `MotionCommander` is using velocity set points and does not have a global coordinate
 system, all positions are relative. It is mainly intended to be used with a Flow deck.
 
 ``` python
@@ -529,11 +528,11 @@ system, all positions are relative. It is mainly intended to be used with a Flow
 
 ### PositionHlCommander
 
-The PositionHlCommander is intended to simplify basic autonomous flight, where all the high level commands exist inside the Crazyflie firmware. The Crazyflie takes off
+The `PositionHlCommander` is intended to simplify basic autonomous flight, where all the high level commands exist inside the Crazyflie firmware. The Crazyflie takes off
 when entering the "with" section, and lands when exiting. It has functions for basic
 movements that are blocking until the motion is finished.
 
-The PositionHlCommander uses the high level commander in the Crazyflie and is
+The `PositionHlCommander` uses the high level commander in the Crazyflie and is
 based on a global coordinate system and absolute positions. It is intended
 to be used with a positioning system such as Loco, the lighthouse or a mocap system.
 

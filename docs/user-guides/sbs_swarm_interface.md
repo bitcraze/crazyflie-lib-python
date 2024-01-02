@@ -3,7 +3,7 @@ title: "Step-by-Step: Swarm Interface"
 page_id: sbs_swarm_interface
 ---
 
-Here we will go through step-by-step how to interface with a swarm of crazyflies and make all the copters of the swarm hover and fly simultaneously in a square shape using the `Swarm()` class of the cflib.For this tutorial you will need a swarm (2 or more) of crazyflies with the latest firmware version installed and a global positioning system (Lighthouse, Loco or MoCap) that is able to provide data for the position estimation of the crazyflies. You can also use the Flowdeck but keep in mind that you should command relative movements of each Crazyflie and due to its nature it may lead to accumulative errors and unexpected behavior over time.
+Here we will go through step-by-step how to interface with a swarm of crazyflies and make all the copters of the swarm hover and fly simultaneously in a square shape using the `Swarm()` class of the cflib. For this tutorial you will need a swarm (2 or more) of crazyflies with the latest firmware version installed and a positioning system (Lighthouse, Loco or MoCap) that is able to provide data for the position estimation of the crazyflies. You can also use the Flowdeck but keep in mind that you should command relative movements of each Crazyflie and due to its nature it may lead to accumulative errors and unexpected behavior over time.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ We will assume that you already know this before you start with the tutorial:
 
 ## Get the script started
 
-Since you should have installed cflib in the previous step by step tutorial, you are all ready to got now. Open up a new python script called `swarm_rectangle.py`. First you will start by adding the following import to the script:
+Since you should have installed cflib in the previous step by step tutorial, you all ready to go now. Open up a new python script called `swarm_rectangle.py`. First you will start by adding the following import to the script:
 
 ```python
 import time
@@ -39,9 +39,9 @@ if __name__ == '__main__':
     with Swarm(uris, factory=factory) as swarm:
 ```
 
-This will import all the necessary modules and open the necessary links for communication with all the Crazyflies of the swarms. `Swarm` is a wrapper class which facilitates the execution of functions given by the user for each copter and can execute them in parallel or sequentially. Each Crazyflie is treated as a `SyncCrazyflie` instance and as the first argument in swarm wide actions. There is no need to worry about threads since they are handled internally. To reduce connection time,the factory is chosen to be instance of the `CachedCfFactory` class that will cache the Crazyflie objects in the `./cache` directory.
+This will import all the necessary modules and open the necessary links for communication with all the Crazyflies of the swarm. `Swarm` is a wrapper class which facilitates the execution of functions given by the user for each copter and can execute them in parallel or sequentially. Each Crazyflie is treated as a `SyncCrazyflie` instance and as the first argument in swarm wide actions. There is no need to worry about threads since they are handled internally. To reduce connection time, the factory is chosen to be instance of the `CachedCfFactory` class that will cache the Crazyflie objects in the `./cache` directory.
 
-The radio addresses of the copters are defined in the `uris` list and you can add more if you want to.
+The radio addresses of the copters are defined in the `uris` list and you can add more if you want.
 
 ## Step 1: Light Check
 
@@ -117,7 +117,7 @@ with Swarm(uris, factory=factory) as swarm:
 ```
 
 ## Step 3: Taking off and Landing Sequentially
-Now we are going to execute the fist take off and landing using the high level commander. The high level commander (more information [here](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/sensor-to-control/commanders_setpoints/#high-level-commander)) is a class that handles all the high level commands like takeoff, landing, hover, go to position and others. The high level commander is usually preferred since it needs less communication and provides more autonomy on the Crazyflie. It is always on, but just in a lower priority so you just need to execute the take off and land commands through the below functions:
+Now we are going to execute the fist take off and landing using the high level commander. The high level commander (more information [here](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/sensor-to-control/commanders_setpoints/#high-level-commander)) is a class that handles all the high level commands like takeoff, landing, hover, go to position and others. The high level commander is usually preferred since it needs less communication and provides more autonomy for the Crazyflie. It is always on, but just in a lower priority so you just need to execute the take off and land commands through the below functions:
 ```python
 def take_off(scf):
     commander= scf.cf.high_level_commander
@@ -138,7 +138,7 @@ def hover_sequence(scf):
     land(scf)
 ```
 
-Initially , we want only one copter at a time executing the hover_sequence so it is going to be called through the `sequential()` method of the `Swarm` in the following way:
+Initially , we want only one copter at a time executing the `hover_sequence` so it is going to be called through the `sequential()` method of the `Swarm` in the following way:
 
 ```python
 swarm.sequential(hover_sequence)
@@ -213,7 +213,7 @@ If you want to take off and land in sync, you can use the `parallel_safe()` meth
 Now the same action is happening but for all the copters in parallel.
 
 ## Step 5: Performing a square shape flight
-To make the swarm fly in a square shape, we will use the go_to method of the high level commander. Each copter executes 4 relative movements to its current position covering a square shape.
+To make the swarm fly in a square shape, we will use the `go_to` method of the high level commander. Each copter executes 4 relative movements to its current position covering a square shape.
 
 ```python
 def run_square_sequence(scf):

@@ -37,6 +37,10 @@ move_dist = max_ROM-ori_pos  # total moving distant for drone and leg's sensor
 
 start_pos_d = 0.3 + init_H   # start position for drone
 
+move_dist = max_ROM-ori_pos  # total moving distant for drone and leg's sensor
+start_pos_d = 0.3 + init_H   # start position for drone
+
+
 init_Vel = 0.3  # Initial velocity
 task_Vel = 0.2  # on-task velocity
 
@@ -71,8 +75,9 @@ def drone_guide_mc(scf, event1, event2, event3):
     with MotionCommander(scf) as mc:
         
         time.sleep(0.3/0.2)
+        t_zero = time.time()
 
-        t_start = time.time()
+        
         print("before going up") # the drone reaches the default take-off height 0.3 m
 
         mc.up(init_H, velocity=init_Vel)
@@ -95,9 +100,11 @@ def drone_guide_mc(scf, event1, event2, event3):
             # print("Initial position is recorded!")
 
             print("Round: ", i)
-            
+            t_start = time.time()
+
             print("start moving up")
             mc.start_up(velocity=task_Vel)  # drone starts moving up
+            time.sleep(0.1)
 
             while not event2.is_set(): # the current leg sensor's position hasn't reached the max ROM in z-axis
                 
@@ -118,24 +125,41 @@ def drone_guide_mc(scf, event1, event2, event3):
                 # time.sleep(0.05/task_Vel)    # This line can't be blank!!!
                 mc.up(0.05, velocity=task_Vel)  # optional for the above two lines
 
-                if position_estimate_1[2] - start_pos_d > move_dist:
+                if position_estimate_1[2] > start_pos_d + move_dist:
                     over_dist = position_estimate_1[2] - (start_pos_d + move_dist) 
-                    print("over the upper limit_2 (m): ", over_dist)
-                    mc.down(over_dist, velocity=over_dist/0.1)  # moving back to the start_pos_d within 0.1 second
-                    # time.sleep(0.5)
+                    print("over the upper limit_out (m): ", over_dist)
+                    mc.down(over_dist, velocity=over_dist/0.2)  # moving down to the start_pos_d + move_dist within 0.2 second
+                    # time.sleep(0.1)
         
             print("event2 is set (reached the target)") 
             # mc.stop()
             # time.sleep(0.1) # for subject's preparation
 
-
+            
+            ## Return process (without feedback)
             print("start moving down")
-            move_down_dist = position_estimate_1[2] - start_pos_d
-            print("move down distance (m): ", move_down_dist)
-            mc.down(move_down_dist, velocity=move_down_dist/2)  # moving back to the start_pos_d within 2 second
-            print("Ready?")
-            mc.stop()
-            time.sleep(1)  # hovering for 2 sec
+            if position_estimate_1[2] > start_pos_d:
+                move_down_dist = position_estimate_1[2] - start_pos_d
+                print("move down distance (m): ", move_down_dist)
+                mc.down(move_down_dist, velocity=move_down_dist/2)  # moving down to the start_pos_d within 2 second
+                print("Ready?")
+                mc.stop()
+                time.sleep(0.5)  # hovering for 0.5 sec
+
+            if position_estimate_1[2] < start_pos_d:
+                under_dist = start_pos_d - position_estimate_1[2] 
+                print("under the lower limit (m): ", under_dist)
+                mc.up(under_dist, velocity=under_dist/0.2)  # moving up to the start_pos_d within 0.2 second
+                # time.sleep(0.5)
+
+
+            # print("start moving down")
+            # move_down_dist = position_estimate_1[2] - start_pos_d
+            # print("move down distance (m): ", move_down_dist)
+            # mc.down(move_down_dist, velocity=move_down_dist/2)  # moving back to the start_pos_d within 2 second
+            # print("Ready?")
+            # mc.stop()
+            # time.sleep(1)  # hovering for 2 sec
 
 
             '''
@@ -190,17 +214,18 @@ def drone_guide_mc(scf, event1, event2, event3):
                 # time.sleep(0.1)
             '''
 
+            print("reached the start point")
+            
+            t_end = time.time()
+            TpR = t_end - t_start   # total time per round (second)
+            print("Total time per round: ", TpR)
+
             print("next!!!")
-            # mc.stop()
-            # time.sleep(0.1)
-
-            # print("next turn ready!")
-
-            # mc.move_distance(-init_x, -init_y, -init_z) # moving back to the initial position
-            # time.sleep(1)
 
                  
         print("Task done")
+        TpT = t_end - t_zero
+        print("Total time: ", TpT)
         # set the event for turning off the sound feedback process
         event1.set()
 

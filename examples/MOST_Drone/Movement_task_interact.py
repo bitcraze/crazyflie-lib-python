@@ -109,7 +109,7 @@ def drone_guide_mc_KnF(scf, event1, event2, event3):
                 print("event2 is not set")
 
                 while event3.is_set()==True and event2.is_set()==False:  # the subject doesn't follow the drone
-                    print("????????")
+                    # print("????????")
                     mc.stop()
                     time.sleep(0.1)
 
@@ -132,6 +132,8 @@ def drone_guide_mc_KnF(scf, event1, event2, event3):
                     mc.down(over_dist, velocity=over_dist/0.1)  # moving down to the start_pos_d + move_dist within 0.2 second
                     # time.sleep(0.1)
                 
+                else:
+                    pass
 
             # if position_estimate_1[2] > start_pos_d + move_dist:
             #     over_dist = position_estimate_1[2] - (start_pos_d + move_dist) 
@@ -225,6 +227,9 @@ def sound_feedback(event1, event2, event3):
                 duration = 200  # Set Duration To 250 ms == 0.25 second
                 winsound.Beep(frequency, duration)
             
+            elif event3.is_set()==False:
+                print("Good job!")
+
             else:
                 print("Not in the case")
 
@@ -266,14 +271,14 @@ if __name__ == '__main__':
             logconf_2.start()
             time.sleep(3)
 
-            drone_unit_test(scf_1)
+            # drone_unit_test(scf_1)
 
-            time.sleep(3)
+            # time.sleep(3)
 
-            logconf_1.stop()
-            logconf_2.stop()
+            # logconf_1.stop()
+            # logconf_2.stop()
 
-'''
+
         # # Drone Motion (MotionCommander)
             # Declaring threads for feedback providing
             pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change, args=(e1, e2, e3))
@@ -296,4 +301,4 @@ if __name__ == '__main__':
 
             logconf_1.stop()
             logconf_2.stop()
-'''
+

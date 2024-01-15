@@ -8,6 +8,7 @@ import cv2
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
+from cflib.positioning.position_hl_commander import PositionHlCommander
 from cflib.crazyflie.log import LogConfig
 
 
@@ -15,12 +16,9 @@ from cflib.crazyflie.log import LogConfig
 uri_1 = 'radio://0/80/2M/E7E7E7E705' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
-# Only output errors from the logging framework
-logging.basicConfig(level=logging.ERROR)
-
 init_H = float(0.7)  # Initial drone's height; unit: m
 
-max_ROM = 0.5   # change this variable according to the selected movement
+max_ROM = 0.6   # change this variable according to the selected movement
 ori_pos = 0.3    # original leg's sensor height
 
 move_dist = max_ROM - ori_pos  # total moving distant for drone and leg's sensor
@@ -52,7 +50,7 @@ def log_pos_callback_2(uri_2, timestamp, data, logconf_2):
     print("{}: {} is at pos: ({}, {}, {})".format(timestamp, uri_2, position_estimate_2[0], position_estimate_2[1], position_estimate_2[2]))
                                               
 
-def drone_unit_test(scf):
+def drone_unit_test_mc(scf):
     with MotionCommander(scf) as mc:
         print("unit start!!!")
         
@@ -79,6 +77,38 @@ def drone_unit_test(scf):
             mc.stop()
             time.sleep(0.1)
 
+
+def drone_unit_test_pc(scf):
+    with PositionHlCommander(
+            scf,
+            x=0.7, y=0.0, z=0.0,
+            default_velocity=0.2,
+            default_height=0.5,
+            controller=PositionHlCommander.CONTROLLER_PID) as pc:
+        
+        print("unit start!!!")
+        
+        time.sleep(0.3/0.2)
+        
+        print("before going up") # the drone reaches the default take-off height 0.3 m
+
+        pc.up(init_H, velocity=init_Vel)
+        time.sleep(1) # Hovering for 1 sec after reaching the init_H + 0.3 m
+
+        print("start!!!")
+
+        for i in range(1,11):
+            print("Round: ", i)
+
+            print("Going up")
+            pc.move_distance(-0.3, 0.0, 0.3)  # drone starts moving up
+            print(pc.get_position())
+            time.sleep(0.2) 
+
+            print("Going down")
+            pc.move_distance(0.3, 0.0, -0.3)
+            print(pc.get_position())
+            time.sleep(0.2)
 
 
 def drone_guide_mc_KnF(scf, event1, event2, event3): 
@@ -180,6 +210,301 @@ def drone_guide_mc_KnF(scf, event1, event2, event3):
         event1.set()
 
 
+def drone_guide_pc_KnF_sin(scf, event1, event2, event3): 
+# default take-off height = 0.3 m, take-off velocity = 0.2
+    with PositionHlCommander(
+            scf,
+            x=0.7, y=0.0, z=0.0,
+            default_velocity=0.2,
+            default_height=0.3,
+            controller=PositionHlCommander.CONTROLLER_PID) as pc:
+        
+        # mc = MotionCommander(scf)
+
+        time.sleep(0.3/0.2)
+
+        t_zero = time.time()
+        print("before going up") # the drone reaches the default take-off height 0.3 m
+
+        pc.up(init_H)
+        time.sleep(1) # Hovering for 1 sec after reaching the init_H + 0.3 m
+
+        print("start!!!")
+
+        for i in range(1,11):
+
+            print("Round: ", i)
+            t_start = time.time()
+
+            while position_estimate_1[2] < start_pos_d + move_dist:
+
+                print("move up 5 cm")
+                pc.up(0.05) 
+                time.sleep(0.05/0.2 + 0.2)
+
+                while event3.is_set()==True:  # the subject doesn't follow the drone
+                    print("please follow the drone")
+                    # time.sleep(0.1)
+
+            # time.sleep(0.1)    
+
+            if position_estimate_1[2] > start_pos_d + move_dist:
+                over_dist = position_estimate_1[2] - (start_pos_d + move_dist) 
+                print("over the upper limit (m): ", over_dist)
+                pc.down(over_dist)  # moving down to the start_pos_d + move_dist within 0.2 second
+                time.sleep(over_dist/0.2 + 0.2)
+                print("after adjusting")
+                print(pc.get_position())
+
+
+            while not event2.is_set():
+                print("You haven't reached the target")
+
+
+            print("subject and drone reached the target")
+            print(pc.get_position())
+            # mc.stop()
+            time.sleep(0.2) # for subject's preparation
+
+            
+            ## Return process (without feedback)
+            print("start moving down")
+            move_down_dist = position_estimate_1[2] - start_pos_d
+            print("move down distance (m): ", move_down_dist)
+            pc.down(move_down_dist)  # moving down to the start_pos_d
+            time.sleep(move_dist/0.2 + 0.2)
+            print(pc.get_position())
+
+            if position_estimate_1[2] < start_pos_d:
+                under_dist = start_pos_d - position_estimate_1[2] 
+                print("under the lower limit (m): ", under_dist)
+                pc.up(under_dist)  # moving down to the start_pos_d + move_dist within 0.2 second
+                time.sleep(under_dist/0.2 + 0.2)
+                print("after adjusting")
+                print(pc.get_position())
+
+            print("reached the start point")
+            print(pc.get_position())
+            
+            print("Ready?")
+            time.sleep(0.5)  # hovering for 0.5 sec
+            
+            t_end = time.time()
+            TpR = t_end - t_start   # total time per round (second)
+            print("Total time per round: ", TpR)
+
+            print("next!!!")
+
+                 
+        print("Task done")
+        TpT = t_end - t_zero
+        print("Total time: ", TpT)
+        # set the event for turning off the sound feedback process
+        event1.set()
+
+
+def drone_guide_pc_KnF_re(scf, event1, event2, event3): 
+# default take-off height = 0.3 m, take-off velocity = 0.2
+    with PositionHlCommander(
+            scf,
+            x=0.7, y=0.0, z=0.0,
+            default_velocity=0.2,
+            default_height=0.3,
+            controller=PositionHlCommander.CONTROLLER_PID) as pc:
+        
+        # mc = MotionCommander(scf)
+
+        time.sleep(0.3/0.2)
+
+        t_zero = time.time()
+        print("before going up") # the drone reaches the default take-off height 0.3 m
+
+        pc.up(init_H)
+        time.sleep(1) # Hovering for 1 sec after reaching the init_H + 0.3 m
+
+        print("start!!!")
+
+        for i in range(1,6):
+
+            print("Round: ", i)
+            t_start = time.time()
+
+            while position_estimate_1[2] < start_pos_d + move_dist:
+
+                print("move up 5 cm")
+                pc.up(0.05) 
+                time.sleep(0.05/0.2 + 0.05)
+
+                while event3.is_set()==True:  # the subject doesn't follow the drone
+                    print("please follow the drone")
+                    # time.sleep(0.1)
+
+            # time.sleep(0.1)    
+
+            if position_estimate_1[2] > start_pos_d + move_dist:
+                over_dist = position_estimate_1[2] - (start_pos_d + move_dist) 
+                print("over the upper limit (m): ", over_dist)
+                pc.down(over_dist)  # moving down to the start_pos_d + move_dist within 0.2 second
+                time.sleep(over_dist/0.2 + 0.05)
+                print("after adjusting")
+                print(pc.get_position())
+
+
+            while not event2.is_set():
+                print("You haven't reached the target")
+
+
+            print("subject and drone reached the target")
+            print(pc.get_position())
+            time.sleep(0.2) # for subject's preparation
+
+            
+            ## Return process (with feedback)
+            while position_estimate_1[2] > start_pos_d:
+
+                print("move down 5 cm")
+                pc.down(0.05) 
+                time.sleep(0.05/0.2 + 0.05)
+
+                while event3.is_set()==True:  # the subject doesn't follow the drone
+                    print("please follow the drone")
+                    # time.sleep(0.1)
+
+            # time.sleep(0.1)    
+
+            if position_estimate_1[2] < start_pos_d:
+                under_dist = start_pos_d - position_estimate_1[2] 
+                print("under the lower limit (m): ", under_dist)
+                pc.up(under_dist)  # moving down to the start_pos_d + move_dist within 0.2 second
+                time.sleep(under_dist/0.2 + 0.05)
+                print("after adjusting")
+                print(pc.get_position())
+
+
+            while abs(position_estimate_2[2] - ori_pos) > 0.04:
+                print("You haven't returned to the start point")
+
+
+            print("subject and drone reached the start point")
+            print(pc.get_position())
+            time.sleep(0.2) # for subject's preparation
+
+            
+            print("Ready?")
+            time.sleep(0.5)  # hovering for 0.5 sec
+            
+            t_end = time.time()
+            TpR = t_end - t_start   # total time per round (second)
+            print("Total time per round: ", TpR)
+
+            print("next!!!")
+
+                 
+        print("Task done")
+        TpT = t_end - t_zero
+        print("Total time: ", TpT)
+        # set the event for turning off the sound feedback process
+        event1.set()
+
+
+
+
+def drone_guide_pc_KnF_re_old(scf, event1, event2, event3): 
+# default take-off height = 0.3 m, take-off velocity = 0.2
+    with PositionHlCommander(
+            scf,
+            x=0.7, y=0.0, z=0.0,
+            default_velocity=0.2,
+            default_height=0.3,
+            controller=PositionHlCommander.CONTROLLER_PID) as pc:
+        
+        # mc = MotionCommander(scf)
+
+        time.sleep(0.3/0.2)
+
+        t_zero = time.time()
+        print("before going up") # the drone reaches the default take-off height 0.3 m
+
+        pc.up(init_H)
+        time.sleep(1) # Hovering for 1 sec after reaching the init_H + 0.3 m
+
+        print("start!!!")
+
+        for i in range(1,11):
+
+            print("Round: ", i)
+            t_start = time.time()
+
+            print("start moving up")
+            # pc.up(0.05)  # drone starts moving up
+            # time.sleep(0.1)
+
+            while not event2.is_set(): # the current leg sensor's position hasn't reached the max ROM in z-axis
+                
+                print("event2 is not set")
+
+                while event3.is_set()==True and event2.is_set()==False:  # the subject doesn't follow the drone
+                    # print("????????")
+                    time.sleep(0.05)
+                    
+                print("moving up 5 cm/s")
+                pc.up(0.05) 
+                time.sleep(0.1)
+
+                # if position_estimate_1[2] > start_pos_d + move_dist:
+                #     over_dist = position_estimate_1[2] - (start_pos_d + move_dist) 
+                #     print("over the upper limit_out (m): ", over_dist)
+                #     mc.down(over_dist, velocity=over_dist/0.1)  # moving down to the start_pos_d + move_dist within 0.2 second
+                #     # time.sleep(0.1)
+                
+                # else:
+                #     pass
+
+            # if position_estimate_1[2] > start_pos_d + move_dist:
+            #     over_dist = position_estimate_1[2] - (start_pos_d + move_dist) 
+            #     print("over the upper limit_2 (m): ", over_dist)
+            #     mc.down(over_dist, velocity=over_dist/0.2)  # moving down to the start_pos_d + move_dist within 0.2 second
+            #     # time.sleep(0.1)
+
+            print("event2 is set (reached the target)")
+            print(pc.get_position())
+            # mc.stop()
+            time.sleep(0.2) # for subject's preparation
+
+            
+            ## Return process (without feedback)
+            print("start moving down")
+            if position_estimate_1[2] > start_pos_d + move_dist:
+                move_down_dist = position_estimate_1[2] - start_pos_d
+                print("move down distance (m): ", move_down_dist)
+                pc.down(move_down_dist)  # moving down to the start_pos_d within 2 second
+                print("Ready?")
+                time.sleep(0.5)  # hovering for 0.5 sec
+
+            # # fine-tune error
+            # if position_estimate_1[2] < start_pos_d:
+            #     under_dist = start_pos_d - position_estimate_1[2] 
+            #     print("under the lower limit (m): ", under_dist)
+            #     pc.up(under_dist, velocity=under_dist/0.2)  # moving up to the start_pos_d within 0.2 second
+            #     # time.sleep(0.5)
+            
+            print("reached the start point")
+            print(pc.get_position())
+            
+            t_end = time.time()
+            TpR = t_end - t_start   # total time per round (second)
+            print("Total time per round: ", TpR)
+
+            print("next!!!")
+
+                 
+        print("Task done")
+        TpT = t_end - t_zero
+        print("Total time: ", TpT)
+        # set the event for turning off the sound feedback process
+        event1.set()
+
+
 # # Feedback Section
 
 def position_state_change(event1, event2, event3):
@@ -190,7 +515,7 @@ def position_state_change(event1, event2, event3):
             # print("keep going")
             event2.clear()
         
-            if abs(abs(position_estimate_2[2] - ori_pos)-abs(position_estimate_1[2] - 0.3 - init_H)) < 0.04:  # subject follows the drone
+            if abs(abs(position_estimate_2[2] - ori_pos)-abs(position_estimate_1[2] - start_pos_d)) < 0.04:  # subject follows the drone
             # if abs((position_estimate_2[2])-(position_estimate_1[2])) < 0.04:
                 # print("good job")
                 event3.clear()
@@ -204,40 +529,60 @@ def position_state_change(event1, event2, event3):
             # print("target reached!")
             event2.set()
 
+            if abs(abs(position_estimate_2[2] - ori_pos)-abs(position_estimate_1[2] - start_pos_d)) < 0.04:  # subject follows the drone
+            # if abs((position_estimate_2[2])-(position_estimate_1[2])) < 0.04:
+                # print("good job")
+                event3.clear()
+            
+            # elif abs((position_estimate_2[2] + 0.3 + init_H)-(position_estimate_1[2])) > 0.04:
+            else:
+                # print("please follow the drone")
+                event3.set()
+
+
     print("Finish guiding")
 
 def sound_feedback(event1, event2, event3):
     print("sound thread started")
     while not event1.is_set():  # the drone hasn't finished the guiding yet
         
-        if event2.is_set()==False: # the subject hasn't reached the max ROM yet
+        # if event2.is_set()==False: # the subject hasn't reached the max ROM yet
             
-            if event3.is_set()==True and abs(position_estimate_2[2] - ori_pos) < abs(position_estimate_1[2] - 0.3 - init_H):
-            # if event3.is_set()==True and position_estimate_2[2] < position_estimate_1[2]:  # subject not follow the drone
-                print("Too low")
-                frequency = 1500  # Set Frequency To 2500 Hertz
-                duration = 500  # Set Duration To 250 ms == 0.25 second
-                winsound.Beep(frequency, duration)
-            
-            elif event3.is_set()==True and abs(position_estimate_2[2] - ori_pos) > abs(position_estimate_1[2] - 0.3 - init_H):
-            # elif event3.is_set()==True and position_estimate_2[2] > position_estimate_1[2]:  # subject not follow the drone
-                print("Too high")
-                # winsound.PlaySound('_invalid-selection.mp3', winsound.SND_FILENAME)
-                frequency = 1500  # Set Frequency To 2500 Hertz
-                duration = 200  # Set Duration To 250 ms == 0.25 second
-                winsound.Beep(frequency, duration)
-            
-            elif event3.is_set()==False:
-                print("Good job!")
+        if event3.is_set()==True and abs(position_estimate_2[2] - ori_pos) < abs(position_estimate_1[2] - start_pos_d):
+        # if event3.is_set()==True and position_estimate_2[2] < position_estimate_1[2]:  # subject not follow the drone
+            print("Too low")
+            frequency = 1500  # Set Frequency To 2500 Hertz
+            duration = 500  # Set Duration To 250 ms == 0.25 second
+            winsound.Beep(frequency, duration)
+        
+        elif event3.is_set()==True and abs(position_estimate_2[2] - ori_pos) > abs(position_estimate_1[2] - start_pos_d):
+        # elif event3.is_set()==True and position_estimate_2[2] > position_estimate_1[2]:  # subject not follow the drone
+            print("Too high")
+            # winsound.PlaySound('_invalid-selection.mp3', winsound.SND_FILENAME)
+            frequency = 1500  # Set Frequency To 2500 Hertz
+            duration = 200  # Set Duration To 250 ms == 0.25 second
+            winsound.Beep(frequency, duration)
+        
+        elif event3.is_set()==False and event2.is_set()==False:
+            print("Good job!")
 
-            else:
-                print("Not in the case")
-
-        else:
+        elif event3.is_set()==False and event2.is_set()==True:
             print("You did it!")
             winsound.PlaySound('_short-success.mp3', winsound.SND_FILENAME)
+
+        else:
+            pass
+
+        # else:
+        #     pass
+            # print("You did it!")
+            # winsound.PlaySound('_short-success.mp3', winsound.SND_FILENAME)
             
         time.sleep(0.1)
+
+
+# Only output errors from the logging framework
+logging.basicConfig(level=logging.ERROR)
 
 
 if __name__ == '__main__':
@@ -271,7 +616,9 @@ if __name__ == '__main__':
             logconf_2.start()
             time.sleep(3)
 
-            # drone_unit_test(scf_1)
+            # print("start")
+            # # drone_unit_test_mc(scf_1)
+            # drone_unit_test_pc(scf_1)
 
             # time.sleep(3)
 
@@ -289,7 +636,7 @@ if __name__ == '__main__':
             sound_thread.start()
 
             # Perform the drone guiding task
-            drone_guide_mc_KnF(scf_1, e1, e2, e3)
+            drone_guide_pc_KnF_re(scf_1, e1, e2, e3)
             # drone_guide_mc(scf_1, e2)
             
             # Threads join

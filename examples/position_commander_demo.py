@@ -35,12 +35,23 @@ import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.position_hl_commander import PositionHlCommander
+from cflib.crazyflie.log import LogConfig
 
 import time
 
 # URI to the Crazyflie to connect to
-uri = 'radio://0/80/2M/E7E7E7E7E7'
+uri = 'radio://0/80/2M/E7E7E7E705'
 
+
+position_estimate = [0, 0, 0]  # Drone's pos
+
+def log_pos_callback(uri, timestamp, data, logconf):
+    global position_estimate_1
+    position_estimate[0] = data['kalman.stateX']
+    position_estimate[1] = data['kalman.stateY']
+    position_estimate[2] = data['kalman.stateZ']
+    print("{}: {} is at pos: ({}, {}, {})".format(timestamp, uri, position_estimate[0], position_estimate[1], position_estimate[2]))
+                                            
 
 def slightly_more_complex_usage():
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
@@ -69,21 +80,55 @@ def slightly_more_complex_usage():
 
 
 def simple_sequence():
-    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-        with PositionHlCommander(scf) as pc:
-            pc.forward(1.0)
-            pc.left(1.0)
-            pc.back(1.0)
-            pc.go_to(0.0, 0.0, 1.0)
+    # with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+    with PositionHlCommander(
+            scf,
+            x=0.7, y=-0.0, z=0.0,
+            default_velocity=0.2,
+            default_height=0.3) as pc:
+        # pc.forward(0.5)
+        # pc.left(0.5)
+        # pc.back(0.5)
+        # pc.go_to(0.0, 0.0, 1.0)
+        # pc.move_distance(0.5, 0.0, 0.0)
+        # pc.move_distance(0.0, 0.5, 0.0)
+        # pc.move_distance(-0.5, 0.0, 0.0)
+        # pc.move_distance(0.0, -0.5, 1.0)
+        
+        pc.up(0.7)
+        time.sleep(1)
+
+        while position_estimate[2] < 1.3:
+
+            pc.up(0.05)
+            time.sleep(3)
+            print(pc.get_position())
+
+        print("outside loop")
+        time.sleep(2)
+        print(pc.get_position())
 
 
 if __name__ == '__main__':
     cflib.crtp.init_drivers(enable_debug_driver=False)
-    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-        pc = PositionHlCommander(scf)
-        pc.take_off()
-        time.sleep(1)
-        pc.land()
+    # with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+    #     pc = PositionHlCommander(scf)
+    #     pc.take_off()
+    #     time.sleep(3)
+    #     pc.land()
 
-    # simple_sequence()
+    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        logconf = LogConfig(name='Position', period_in_ms=500)
+        logconf.add_variable('kalman.stateX', 'float')
+        logconf.add_variable('kalman.stateY', 'float')
+        logconf.add_variable('kalman.stateZ', 'float')            
+        scf.cf.log.add_config(logconf)
+        logconf.data_received_cb.add_callback( lambda timestamp, data, logconf: log_pos_callback(uri, timestamp, data, logconf) )
+
+        logconf.start()
+        time.sleep(0.1)
+    
+        simple_sequence()
+
+        logconf.stop()
     # slightly_more_complex_usage()

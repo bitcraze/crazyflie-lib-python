@@ -27,6 +27,7 @@ Bootloading utilities for the Crazyflie.
 """
 import json
 import logging
+import os
 import sys
 import time
 import zipfile
@@ -51,7 +52,7 @@ logger = logging.getLogger(__name__)
 __author__ = 'Bitcraze AB'
 __all__ = ['Bootloader']
 
-Target = namedtuple('Target', ['platform', 'target', 'type'])
+Target = namedtuple('Target', ['platform', 'target', 'type', 'provides', 'requires'])
 FlashArtifact = namedtuple('FlashArtifact', ['content', 'target'])
 
 
@@ -150,6 +151,60 @@ class Bootloader:
         flash_artifacts = [a for a in artifacts if a.target.platform == platform]
         deck_artifacts = [a for a in artifacts if a.target.platform == 'deck']
 
+        # Detect what soft device we are running on the nRF51 and what we need and make sure they match
+        nrf_softdevice = []
+        if self._cload.targets[TargetTypes.NRF51].start_page == 88:
+            nrf_softdevice.append('sd-s110')
+        elif self._cload.targets[TargetTypes.NRF51].start_page == 108:
+            nrf_softdevice.append('sd-s130')
+        else:
+            raise Exception('Unknown soft device running on nRF51')
+
+        # Check if there is a nrf51 firmware in the manifest and skip the soft device
+        # flashing if we already have the correct one
+        nrf51_artifacts = [x for x in flash_artifacts if x.target.target == 'nrf51']
+        if len(nrf51_artifacts) > 0:
+            nrf51_fw = [x for x in nrf51_artifacts if x.target.type == 'fw']
+            if len(nrf51_fw) == 1:
+                if 'sd-s110' in nrf51_fw[0].target.requires and 'sd-s110' in nrf_softdevice:
+                    print("nRF51 s110 already flashed on device, skipping")
+                    flash_artifacts = [a for a in artifacts if a.target.type != 'bootloader+softdevice']
+                elif 'sd-s130' in nrf51_fw[0].target.requires and 'sd-s130' in nrf_softdevice:
+                    print("nRF51 s130 already flashed on device, skipping")
+                    flash_artifacts = [a for a in artifacts if a.target.type != 'bootloader+softdevice']
+            else:
+                raise Exception('Manifest should contain at most one nrf51 firmware file')
+            # TODO: Bootloader without firmware should be supported
+            # TODO: Bootloader without soft device should be supported
+
+
+        nrf51_artifacts = [x for x in flash_artifacts if x.target.target == 'nrf51']
+
+        # First flash the nRF51 soft device and bootloader if needed
+        rf51_sdbl = [x for x in nrf51_artifacts if x.target.type == 'bootloader+softdevice']
+
+        print("nRF flash page is {}".format(self._cload.targets[TargetTypes.NRF51].start_page))
+
+        if len(rf51_sdbl) > 0:
+            print("Flashing nRF51 soft device and bootloader")
+            self._flash_flash(rf51_sdbl, flash_targets)
+            # Now remove the soft device and bootloader from the list of artifacts to flash
+            # and then reboot into the new bootloader
+            flash_artifacts = [a for a in artifacts if a.target.type != 'bootloader+softdevice']
+            self._cload.reset_to_bootloader(TargetTypes.NRF51)
+            uri = self._cload.link.uri
+            self._cload.close()
+            print("Closing bootloader link and reconnecting to new bootloader (" + uri + ")")
+            self._cload = Cloader(uri,
+                                  info_cb=None,
+                                  in_boot_cb=None)
+            self._cload.open_bootloader_uri(uri)
+            print("Reconnected to new bootloader")
+            started = self._cload.check_link_and_get_info()
+            self._cload.request_info_update(TargetTypes.NRF51)
+            print("Flashed sd+bl, we are now at {}".format(self._cload.targets[TargetTypes.NRF51].start_page))
+
+
         # Flash the MCU flash
         if len(targets) == 0 or len(flash_targets) > 0:
             self._flash_flash(flash_artifacts, flash_targets)
@@ -232,13 +287,35 @@ class Bootloader:
         manifest = zf.read('manifest.json').decode('utf8')
         manifest = json.loads(manifest)
 
-        if manifest['version'] != 1:
+        if manifest['version'] > 2:
             raise Exception('Wrong manifest version')
+        
+        print("Found manifest version: {}".format(manifest['version']))
 
         flash_artifacts = []
+        add_legacy_nRF51_s110 = False
         for (file, metadata) in manifest['files'].items():
             content = zf.read(file)
-            target = Target(metadata['platform'], metadata['target'], metadata['type'])
+
+            # Handle version 1 of manifest where prerequisites for nRF soft-devices are not specified
+            requires = [] if 'requires' not in metadata else metadata['requires']
+            provides = [] if 'provides' not in metadata else metadata['provides']
+            if len(requires) == 0 and metadata['target'] == 'nrf51':
+                requires.append('sd-s110')
+                # If there is no requires for the nRF51 target then we also need the legacy s110
+                # so add this to the file list afterwards
+                add_legacy_nRF51_s110 = True
+                print("Legacy format detected for manifest, adding s110 requirement")
+
+            target = Target(metadata['platform'], metadata['target'], metadata['type'],
+                            provides, requires)
+            flash_artifacts.append(FlashArtifact(content, target))
+
+        if add_legacy_nRF51_s110:
+            print("Legacy format detected for manifest, adding s110+bl binary from distro")
+            from importlib.resources import files
+            content = files('resources.binaries').joinpath('nrf51-s110-and-bl.bin').read_bytes()
+            target = Target('cf2', 'nrf51', 'bootloader+softdevice', ['sd-s110'], ['sd-s130'])
             flash_artifacts.append(FlashArtifact(content, target))
 
         return flash_artifacts
@@ -383,6 +460,9 @@ class Bootloader:
                     print('\nError during flash operation (code %d). Maybe'
                           ' wrong radio link?' % self._cload.error_code)
                 raise Exception()
+            
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
     def _get_platform_id(self):
         """Get platform identifier used in the zip manifest for curr copter"""

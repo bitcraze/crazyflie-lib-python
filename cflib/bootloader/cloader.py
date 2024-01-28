@@ -201,6 +201,8 @@ class Cloader:
                 if len(answer.data) > 22:
                     self.targets[target_id].protocol_version = answer.datat[22]
                     self.protocol_version = answer.datat[22]
+                if len(answer.data) > 23:
+                    self.targets[target_id].version = answer.data[23]
                 self.targets[target_id].page_size = tab[2]
                 self.targets[target_id].buffer_pages = tab[3]
                 self.targets[target_id].flash_pages = tab[4]

@@ -53,7 +53,7 @@ __author__ = 'Bitcraze AB'
 __all__ = ['Bootloader']
 
 Target = namedtuple('Target', ['platform', 'target', 'type', 'provides', 'requires'])
-FlashArtifact = namedtuple('FlashArtifact', ['content', 'target'])
+FlashArtifact = namedtuple('FlashArtifact', ['content', 'target', 'release'])
 
 
 class Bootloader:
@@ -132,6 +132,75 @@ class Bootloader:
     def get_target(self, target_id):
         return self._cload.request_info_update(target_id)
 
+    def _check_and_remove_nrf51_softdevice_from_flashing(self, flash_artifacts: List[Target]):
+        # Detect what soft device we are running on the nRF51 and what we need and make sure they match
+
+
+        upgrade_provides = []
+
+        nrf_requires = []
+        for a in flash_artifacts:
+            if a.target.target == 'nrf51':
+                for r in a.target.requires:
+                    if r not in nrf_requires:
+                        nrf_requires.append(r)
+                for p in a.target.provides:
+                    if p not in upgrade_provides:
+                        upgrade_provides.append(p)
+
+        print("nRF51 has: {} and requires {} and upgrade provides {}".format(nrf_has, nrf_requires, upgrade_provides))
+
+        for r in nrf_requires:
+            if r not in nrf_has or r not in upgrade_provides:
+                raise Exception('Cannot flash nRF51, missing requirement: {}'.format(r))
+            
+        
+
+        return flash_artifacts
+
+    def _get_current_nrf51_sd_version(self):
+        if self._cload.targets[TargetTypes.NRF51].start_page == 88:
+            return 'sd-s110'
+        elif self._cload.targets[TargetTypes.NRF51].start_page == 108:
+            return 'sd-s130'
+        else:
+            raise Exception('Unknown soft device running on nRF51')
+
+    def _get_required_nrf51_sd_version(self, flash_artifacts: List[FlashArtifact]):
+        required_nrf_sd_version = None
+        for a in flash_artifacts:
+            if a.target.target == 'nrf51':
+                for r in a.target.requires:
+                    if required_nrf_sd_version == None:
+                        required_nrf_sd_version = r
+                    if required_nrf_sd_version != r:
+                        raise Exception('Cannot flash nRF51, conflicting requirements: {} and {}'.format(required_nrf_sd_version, r)) 
+
+        return required_nrf_sd_version
+
+    def _get_provided_nrf51_sd_version(self, flash_artifacts: List[FlashArtifact]):
+        provided_nrf_sd_version = None
+        for a in flash_artifacts:
+            if a.target.target == 'nrf51':
+                for r in a.target.provides:
+                    if provided_nrf_sd_version == None:
+                        provided_nrf_sd_version = r
+                    if provided_nrf_sd_version != r:
+                        raise Exception('Cannot flash nRF51, conflicting requirements: {} and {}'.format(provided_nrf_sd_version, r)) 
+
+        return provided_nrf_sd_version
+
+    def _get_provided_nrf51_bl_version(self, flash_artifacts: List[FlashArtifact]):
+        provided_nrf_bl_version = None
+        for a in flash_artifacts:
+            if a.target.target == 'nrf51' and a.target.type == 'bootloader+softdevice':
+                if provided_nrf_bl_version == None:
+                    provided_nrf_bl_version = a.release
+                else:
+                    raise Exception('One and only one bootloader+softdevice in zip file supported') 
+
+        return provided_nrf_bl_version
+
     def flash(self, filename: str, targets: List[Target], cf=None, enable_console_log: Optional[bool] = False):
         # Separate flash targets from decks
         platform = self._get_platform_id()
@@ -140,10 +209,12 @@ class Bootloader:
 
         # Fetch artifacts from source file
         artifacts = self._get_flash_artifacts_from_zip(filename)
+        for artifact in artifacts:
+            print("Found artifact for target: {}".format(artifact.target))
         if len(artifacts) == 0:
             if len(targets) == 1:
                 content = open(filename, 'br').read()
-                artifacts = [FlashArtifact(content, targets[0])]
+                artifacts = [FlashArtifact(content, targets[0], None)]
             else:
                 raise (Exception('Cannot flash a .bin to more than one target!'))
 
@@ -151,46 +222,41 @@ class Bootloader:
         flash_artifacts = [a for a in artifacts if a.target.platform == platform]
         deck_artifacts = [a for a in artifacts if a.target.platform == 'deck']
 
-        # Detect what soft device we are running on the nRF51 and what we need and make sure they match
-        nrf_softdevice = []
-        if self._cload.targets[TargetTypes.NRF51].start_page == 88:
-            nrf_softdevice.append('sd-s110')
-        elif self._cload.targets[TargetTypes.NRF51].start_page == 108:
-            nrf_softdevice.append('sd-s130')
-        else:
-            raise Exception('Unknown soft device running on nRF51')
+        # Handle the special case of flashing soft device and bootloader for nRF51
+        current_nrf_sd_version = self._get_current_nrf51_sd_version()
+        required_nrf_sd_version = self._get_required_nrf51_sd_version(flash_artifacts)
+        provided_nrf_sd_version = self._get_provided_nrf51_sd_version(flash_artifacts)
+        # TODO: Figure the versions out. It is an int we get but the JSON contains strings, decode from int representation
+        # to some string?
+        current_nrf_bl_version = str(self._cload.targets[TargetTypes.NRF51].version) if self._cload.targets[TargetTypes.NRF51].version != None else None
+        provided_nrf_bl_version = self._get_provided_nrf51_bl_version(flash_artifacts)
 
-        # Check if there is a nrf51 firmware in the manifest and skip the soft device
-        # flashing if we already have the correct one
-        nrf51_artifacts = [x for x in flash_artifacts if x.target.target == 'nrf51']
-        if len(nrf51_artifacts) > 0:
-            nrf51_fw = [x for x in nrf51_artifacts if x.target.type == 'fw']
-            if len(nrf51_fw) == 1:
-                if 'sd-s110' in nrf51_fw[0].target.requires and 'sd-s110' in nrf_softdevice:
-                    print("nRF51 s110 already flashed on device, skipping")
-                    flash_artifacts = [a for a in artifacts if a.target.type != 'bootloader+softdevice']
-                elif 'sd-s130' in nrf51_fw[0].target.requires and 'sd-s130' in nrf_softdevice:
-                    print("nRF51 s130 already flashed on device, skipping")
-                    flash_artifacts = [a for a in artifacts if a.target.type != 'bootloader+softdevice']
-            else:
-                raise Exception('Manifest should contain at most one nrf51 firmware file')
-            # TODO: Bootloader without firmware should be supported
-            # TODO: Bootloader without soft device should be supported
+        print("nRF51 has: {} and requires {} and upgrade provides {}. Current bootloader version is [{}] but upgrade provides [{}]".format(current_nrf_sd_version, required_nrf_sd_version, provided_nrf_sd_version, current_nrf_bl_version, provided_nrf_bl_version))
 
+        if required_nrf_sd_version != None and \
+              current_nrf_sd_version != required_nrf_sd_version and \
+              provided_nrf_sd_version != required_nrf_sd_version:
+            raise Exception('Cannot flash nRF51: We have sd {}, need {} and have a zip with {}'.format(current_nrf_sd_version, required_nrf_sd_version, provided_nrf_sd_version))
 
-        nrf51_artifacts = [x for x in flash_artifacts if x.target.target == 'nrf51']
+        # To avoid always flashing the bootloader and soft device (these might never change again) first check if we really need to.
+        # The original version of the bootloader is reported as None.
+        should_flash_nrf_sd = True
+        if current_nrf_sd_version == required_nrf_sd_version and current_nrf_bl_version == provided_nrf_bl_version:
+            should_flash_nrf_sd = False
+        #elif provided_nrf_sd_version == None:
+        #    should_flash_nrf_sd = False
 
-        # First flash the nRF51 soft device and bootloader if needed
-        rf51_sdbl = [x for x in nrf51_artifacts if x.target.type == 'bootloader+softdevice']
+        if should_flash_nrf_sd:
+            print("Should flash nRF soft device")
+            rf51_sdbl_list = [x for x in flash_artifacts if x.target.type == 'bootloader+softdevice']
+            if len(rf51_sdbl_list) != 1:
+                raise Exception('Only support for one and only one bootloader+softdevice in zip file')
+            nrf51_sdbl = rf51_sdbl_list[0]
+            
+            nrf_info = self._cload.targets[TargetTypes.NRF51]
+            page = nrf_info.flash_pages - (len(nrf51_sdbl.content) // nrf_info.page_size)
+            self._internal_flash(artifact=nrf51_sdbl, page_override=page)
 
-        print("nRF flash page is {}".format(self._cload.targets[TargetTypes.NRF51].start_page))
-
-        if len(rf51_sdbl) > 0:
-            print("Flashing nRF51 soft device and bootloader")
-            self._flash_flash(rf51_sdbl, flash_targets)
-            # Now remove the soft device and bootloader from the list of artifacts to flash
-            # and then reboot into the new bootloader
-            flash_artifacts = [a for a in artifacts if a.target.type != 'bootloader+softdevice']
             self._cload.reset_to_bootloader(TargetTypes.NRF51)
             uri = self._cload.link.uri
             self._cload.close()
@@ -202,8 +268,12 @@ class Bootloader:
             print("Reconnected to new bootloader")
             started = self._cload.check_link_and_get_info()
             self._cload.request_info_update(TargetTypes.NRF51)
-            print("Flashed sd+bl, we are now at {}".format(self._cload.targets[TargetTypes.NRF51].start_page))
+        
+        # Remove the softdevice+bootloader from the list of artifacts to flash
+        flash_artifacts = [a for a in artifacts if a.target.type != 'bootloader+softdevice'] # Also filter for nRF51 here?
 
+        for artifact in artifacts:
+            print("Found artifact for target: {}".format(artifact.target))
 
         # Flash the MCU flash
         if len(targets) == 0 or len(flash_targets) > 0:
@@ -300,23 +370,23 @@ class Bootloader:
             # Handle version 1 of manifest where prerequisites for nRF soft-devices are not specified
             requires = [] if 'requires' not in metadata else metadata['requires']
             provides = [] if 'provides' not in metadata else metadata['provides']
-            if len(requires) == 0 and metadata['target'] == 'nrf51':
+            if len(requires) == 0 and metadata['target'] == 'nrf51' and metadata['type'] == 'fw':
                 requires.append('sd-s110')
-                # If there is no requires for the nRF51 target then we also need the legacy s110
+                # If there is no requires for the nRF51 fw target then we also need the legacy s110
                 # so add this to the file list afterwards
                 add_legacy_nRF51_s110 = True
-                print("Legacy format detected for manifest, adding s110 requirement")
 
             target = Target(metadata['platform'], metadata['target'], metadata['type'],
                             provides, requires)
-            flash_artifacts.append(FlashArtifact(content, target))
+            flash_artifacts.append(FlashArtifact(content, target, metadata['release']))
 
         if add_legacy_nRF51_s110:
             print("Legacy format detected for manifest, adding s110+bl binary from distro")
             from importlib.resources import files
             content = files('resources.binaries').joinpath('nrf51-s110-and-bl.bin').read_bytes()
-            target = Target('cf2', 'nrf51', 'bootloader+softdevice', ['sd-s110'], ['sd-s130'])
-            flash_artifacts.append(FlashArtifact(content, target))
+            target = Target('cf2', 'nrf51', 'bootloader+softdevice', ['sd-s110'], [])
+            release = None
+            flash_artifacts.append(FlashArtifact(content, target, release))
 
         return flash_artifacts
 
@@ -341,7 +411,7 @@ class Bootloader:
             self._cload.close()
             self._cload.link = None
 
-    def _internal_flash(self, artifact: FlashArtifact, current_file_number=1, total_files=1):
+    def _internal_flash(self, artifact: FlashArtifact, current_file_number=1, total_files=1, page_override=None):
 
         target_info = self._cload.targets[TargetTypes.from_string(artifact.target.target)]
 
@@ -349,6 +419,8 @@ class Bootloader:
         t_data = target_info
 
         start_page = target_info.start_page
+        if page_override is not None:
+            start_page = page_override
 
         # If used from a UI we need some extra things for reporting progress
         factor = (100.0 * t_data.page_size) / len(image)

@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
+import os
+from glob import glob
 from pathlib import Path
 
 from setuptools import find_packages
 from setuptools import setup
-from glob import glob
 # read the contents of README.md file fo use in pypi description
 directory = Path(__file__).parent
 long_description = (directory / 'README.md').read_text()
 
+
 def relative(lst, base=''):
     return list(map(lambda x: base + os.path.basename(x), lst))
+
 
 data_files = [
     ('binaries', glob('resources/binaries/*')),

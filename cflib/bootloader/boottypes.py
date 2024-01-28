@@ -89,7 +89,7 @@ class Target:
             TargetTypes.to_string(self.id), self.id)
         ret += 'Flash pages: {} | Page size: {} | Buffer pages: {} |' \
                ' Start page: {} | Version: {} \n'.format(self.flash_pages, self.page_size,
-                                      self.buffer_pages, self.start_page, self.version)
+                                                         self.buffer_pages, self.start_page, self.version)
         ret += '%d KBytes of flash available for firmware image.' % (
             (self.flash_pages - self.start_page) * self.page_size / 1024)
         return ret

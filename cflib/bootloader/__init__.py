@@ -184,8 +184,6 @@ class Bootloader:
 
         # Fetch artifacts from source file
         artifacts = self._get_flash_artifacts_from_zip(filename)
-        for artifact in artifacts:
-            print('Found artifact for target: {}'.format(artifact.target))
         if len(artifacts) == 0:
             if len(targets) == 1:
                 content = open(filename, 'br').read()
@@ -257,9 +255,6 @@ class Bootloader:
         # Remove the softdevice+bootloader from the list of artifacts to flash
         flash_artifacts = [a for a in artifacts if a.target.type !=
                            'bootloader+softdevice']  # Also filter for nRF51 here?
-
-        for artifact in artifacts:
-            print('Found artifact for target: {}'.format(artifact.target))
 
         # Flash the MCU flash
         if len(targets) == 0 or len(flash_targets) > 0:

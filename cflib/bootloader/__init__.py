@@ -407,9 +407,13 @@ class Bootloader:
         factor = (100.0 * t_data.page_size) / len(image)
         progress = 0
 
+        type_of_binary = 'Firmware'
+        if artifact.target.type == 'bootloader+softdevice':
+            type_of_binary = 'Bootloader+softdevice'
+
         if self.progress_cb:
             self.progress_cb(
-                'Firmware ({}/{}) Starting...'.format(current_file_number, total_files),
+                '{} ({}/{}) Starting...'.format(type_of_binary, current_file_number, total_files),
                 int(progress))
         else:
             sys.stdout.write(
@@ -452,7 +456,8 @@ class Bootloader:
 
             if self.progress_cb:
                 progress += factor
-                self.progress_cb('Firmware ({}/{}) Uploading buffer to {}...'.format(
+                self.progress_cb('{} ({}/{}) Uploading buffer to {}...'.format(
+                    type_of_binary,
                     current_file_number,
                     total_files,
                     TargetTypes.to_string(t_data.id)),
@@ -465,7 +470,8 @@ class Bootloader:
             # Flash when the complete buffers are full
             if ctr >= t_data.buffer_pages:
                 if self.progress_cb:
-                    self.progress_cb('Firmware ({}/{}) Writing buffer to {}...'.format(
+                    self.progress_cb('{} ({}/{}) Writing buffer to {}...'.format(
+                        type_of_binary,
                         current_file_number,
                         total_files,
                         TargetTypes.to_string(t_data.id)),
@@ -492,7 +498,8 @@ class Bootloader:
 
         if ctr > 0:
             if self.progress_cb:
-                self.progress_cb('Firmware ({}/{}) Writing buffer to {}...'.format(
+                self.progress_cb('{} ({}/{}) Writing buffer to {}...'.format(
+                    type_of_binary,
                     current_file_number,
                     total_files,
                     TargetTypes.to_string(t_data.id)),

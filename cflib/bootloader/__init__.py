@@ -201,8 +201,6 @@ class Bootloader:
         current_nrf_sd_version = self._get_current_nrf51_sd_version()
         required_nrf_sd_version = self._get_required_nrf51_sd_version(flash_artifacts)
         provided_nrf_sd_version = self._get_provided_nrf51_sd_version(flash_artifacts)
-        # TODO: Figure the versions out. It is an int we get but the JSON contains strings, decode from int
-        # representation to some string?
         current_nrf_bl_version = None
         if self._cload.targets[TargetTypes.NRF51].version is not None:
             current_nrf_bl_version = str(self._cload.targets[TargetTypes.NRF51].version)

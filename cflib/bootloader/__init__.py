@@ -236,6 +236,11 @@ class Bootloader:
             nrf51_sdbl = rf51_sdbl_list[0]
 
             nrf_info = self._cload.targets[TargetTypes.NRF51]
+            # During bootloader update part of the firmware will be erased. If we're
+            # only flashing the bootloader and no firmware we should make sure the bootloader
+            # stays in bootloader mode and doesn't try to start the broken firmware, this is
+            # done by erasing the first page of the firmware.
+            self._internal_flash(FlashArtifact([0xFF] * nrf_info.page_size, nrf51_sdbl.target, None))
             page = nrf_info.flash_pages - (len(nrf51_sdbl.content) // nrf_info.page_size)
             self._internal_flash(artifact=nrf51_sdbl, page_override=page)
 

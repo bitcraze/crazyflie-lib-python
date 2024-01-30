@@ -253,7 +253,7 @@ class Bootloader:
             self._cload.request_info_update(TargetTypes.NRF51)
 
         # Remove the softdevice+bootloader from the list of artifacts to flash
-        flash_artifacts = [a for a in artifacts if a.target.type !=
+        flash_artifacts = [a for a in flash_artifacts if a.target.type !=
                            'bootloader+softdevice']  # Also filter for nRF51 here?
 
         # Flash the MCU flash

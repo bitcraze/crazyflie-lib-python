@@ -199,8 +199,17 @@ class Cloader:
                     self.targets[target_id] = Target(target_id)
                 self.targets[target_id].addr = target_id
                 if len(answer.data) > 22:
-                    self.targets[target_id].protocol_version = answer.datat[22]
-                    self.protocol_version = answer.datat[22]
+                    self.targets[target_id].protocol_version = answer.data[22]
+                    self.protocol_version = answer.data[22]
+                if len(answer.data) > 23 and len(answer.data) > 26:
+                    code_state = ''
+                    if answer.data[24] & 0x80 != 0:
+                        code_state = '+'
+                    answer.data[24] &= 0x7F
+                    major = struct.unpack('H', answer.data[23:25])[0]
+                    minor = answer.data[25]
+                    patch = answer.data[26]
+                    self.targets[target_id].version = '{}.{}.{}{}'.format(major, minor, patch, code_state)
                 self.targets[target_id].page_size = tab[2]
                 self.targets[target_id].buffer_pages = tab[3]
                 self.targets[target_id].flash_pages = tab[4]

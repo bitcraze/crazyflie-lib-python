@@ -79,6 +79,7 @@ class Target:
         self.buffer_pages = 0
         self.flash_pages = 0
         self.start_page = 0
+        self.version = None
         self.cpuid = ''
         self.data = None
 
@@ -86,9 +87,9 @@ class Target:
         ret = ''
         ret += 'Target info: {} (0x{:X})\n'.format(
             TargetTypes.to_string(self.id), self.id)
-        ret += 'Flash pages: %d | Page size: %d | Buffer pages: %d |' \
-               ' Start page: %d\n' % (self.flash_pages, self.page_size,
-                                      self.buffer_pages, self.start_page)
+        ret += 'Flash pages: {} | Page size: {} | Buffer pages: {} |' \
+               ' Start page: {} | Version: {} \n'.format(self.flash_pages, self.page_size,
+                                                         self.buffer_pages, self.start_page, self.version)
         ret += '%d KBytes of flash available for firmware image.' % (
             (self.flash_pages - self.start_page) * self.page_size / 1024)
         return ret

@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import os
-from glob import glob
 from pathlib import Path
 
 from setuptools import find_packages
@@ -9,14 +7,9 @@ from setuptools import setup
 directory = Path(__file__).parent
 long_description = (directory / 'README.md').read_text()
 
-
-def relative(lst, base=''):
-    return list(map(lambda x: base + os.path.basename(x), lst))
-
-
-data_files = [
-    ('binaries', glob('resources/binaries/*')),
-]
+package_data = {
+    'cflib.resources.binaries': ['cflib/resources/binaries/*.bin'],
+}
 
 setup(
     name='cflib',
@@ -57,5 +50,6 @@ setup(
         ],
     },
 
-    data_files=data_files
+    include_package_data=True,
+    package_data=package_data
 )

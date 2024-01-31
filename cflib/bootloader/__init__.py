@@ -363,8 +363,8 @@ class Bootloader:
 
         if add_legacy_nRF51_s110:
             print('Legacy format detected for manifest, adding s110+bl binary from distro')
-            from importlib.resources import files
-            content = files('resources.binaries').joinpath('nrf51-s110-and-bl.bin').read_bytes()
+            from importlib.resources import read_binary
+            content = read_binary('cflib.resources.binaries', 'nrf51-s110-and-bl.bin')
             target = Target('cf2', 'nrf51', 'bootloader+softdevice', ['sd-s110'], [])
             release = None
             flash_artifacts.append(FlashArtifact(content, target, release))

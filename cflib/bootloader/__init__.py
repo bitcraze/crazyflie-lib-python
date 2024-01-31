@@ -578,13 +578,13 @@ class Bootloader:
                     continue
 
                 # Check that we want to flash this deck
-                deck_target = [t for t in targets if t == Target('deck', deck.name, 'fw')]
+                deck_target = [t for t in targets if t == Target('deck', deck.name, 'fw', [], [])]
                 if (not flash_all_targets) and len(deck_target) == 0:
                     print(f'Skipping {deck.name}, not in the target list')
                     continue
 
                 # Check that we have an artifact for this deck
-                deck_artifacts = [a for a in artifacts if a.target == Target('deck', deck.name, 'fw')]
+                deck_artifacts = [a for a in artifacts if a.target == Target('deck', deck.name, 'fw', [], [])]
                 if len(deck_artifacts) == 0:
                     print(f'Skipping {deck.name}, no artifact for it in the .zip')
                     continue

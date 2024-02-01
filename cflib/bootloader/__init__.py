@@ -221,8 +221,8 @@ class Bootloader:
         should_flash_nrf_sd = True
         if current_nrf_sd_version == required_nrf_sd_version and current_nrf_bl_version == provided_nrf_bl_version:
             should_flash_nrf_sd = False
-        # elif provided_nrf_sd_version == None:
-        #    should_flash_nrf_sd = False
+        elif provided_nrf_sd_version is None:
+            should_flash_nrf_sd = False
 
         if should_flash_nrf_sd:
             print('Should flash nRF soft device')

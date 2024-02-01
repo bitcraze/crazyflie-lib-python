@@ -199,6 +199,7 @@ class Bootloader:
         current_nrf_sd_version = self._get_current_nrf51_sd_version()
         required_nrf_sd_version = self._get_required_nrf51_sd_version(flash_artifacts)
         provided_nrf_sd_version = self._get_provided_nrf51_sd_version(flash_artifacts)
+        update_contains_nrf_sd = any(x.target.type == 'bootloader+softdevice' for x in flash_artifacts)
         current_nrf_bl_version = None
         if self._cload.targets[TargetTypes.NRF51].version is not None:
             current_nrf_bl_version = str(self._cload.targets[TargetTypes.NRF51].version)
@@ -221,7 +222,7 @@ class Bootloader:
         should_flash_nrf_sd = True
         if current_nrf_sd_version == required_nrf_sd_version and current_nrf_bl_version == provided_nrf_bl_version:
             should_flash_nrf_sd = False
-        elif provided_nrf_sd_version is None:
+        elif provided_nrf_sd_version is None and not update_contains_nrf_sd:
             should_flash_nrf_sd = False
 
         if should_flash_nrf_sd:

@@ -13,7 +13,7 @@ package_data = {
 
 setup(
     name='cflib',
-    version='0.1.25',
+    version='0.1.25.1',
     packages=find_packages(exclude=['examples', 'test']),
 
     description='Crazyflie python driver',
@@ -40,7 +40,7 @@ setup(
         'pyusb>=1.0.0b2',
         'libusb-package~=1.0',
         'scipy~=1.7',
-        'numpy>=1.20,<1.25',
+        'numpy~=1.20',
     ],
 
     # $ pip install -e .[dev]

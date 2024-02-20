@@ -41,6 +41,7 @@ APP_CHANNEL = 2
 
 PLATFORM_SET_CONT_WAVE = 0
 PLATFORM_REQUEST_ARMING = 1
+PLATFORM_REQUEST_CRASH_RECOVERY = 2
 
 VERSION_GET_PROTOCOL = 0
 VERSION_GET_FIRMWARE = 1
@@ -97,6 +98,16 @@ class PlatformService():
         pk = CRTPPacket()
         pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
         pk.data = (PLATFORM_REQUEST_ARMING, do_arm)
+        self._cf.send_packet(pk)
+
+    def send_crash_recovery_request(self):
+        """
+        Send crash recovery request
+
+        """
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
+        pk.data = (PLATFORM_REQUEST_CRASH_RECOVERY, )
         self._cf.send_packet(pk)
 
     def get_protocol_version(self):

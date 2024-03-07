@@ -33,6 +33,7 @@ from .serialdriver import SerialDriver
 from .tcpdriver import TcpDriver
 from .udpdriver import UdpDriver
 from .usbdriver import UsbDriver
+from .bledriver import BLEDriver
 
 __author__ = 'Bitcraze AB'
 __all__ = []
@@ -59,7 +60,7 @@ def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
     if enable_serial_driver:
         CLASSES.append(SerialDriver)
 
-    CLASSES.extend([UdpDriver, PrrtDriver, TcpDriver])
+    CLASSES.extend([UdpDriver, PrrtDriver, TcpDriver, BLEDriver])
 
 
 def scan_interfaces(address=None):

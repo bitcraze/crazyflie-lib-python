@@ -14,13 +14,13 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E708' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E710' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
 init_H = float(0.7)  # Initial drone's height; unit: m
 
-max_ROM = 0.6   # change this variable according to the selected movement
-ori_pos = 0.3    # original leg's sensor height
+max_ROM = 0.83   # change this variable according to the selected movement
+ori_pos = 0.46    # original leg's sensor height
 move_dist = max_ROM - ori_pos  # total moving distant for drone and leg's sensor
 
 start_pos_d = 0.3 + init_H   # start position for drone
@@ -51,7 +51,7 @@ def log_pos_callback_2(uri_2, timestamp, data, logconf_2):
 def drone_guide_pc_KnF_HFKnF_for(scf, event1, event2, event3): 
     with PositionHlCommander(
             scf,
-            x=0.7, y=0.0, z=0.0,
+            x=1.0, y=0.0, z=0.0,
             default_velocity=task_Vel,
             default_height=0.3,
             controller=PositionHlCommander.CONTROLLER_PID) as pc:
@@ -71,7 +71,7 @@ def drone_guide_pc_KnF_HFKnF_for(scf, event1, event2, event3):
             print("Round: ", i)
             t_start = time.time()
 
-            for j in range(1,7):
+            for j in range(1,6):
 
                 print("move up 5 cm, round: ", j)
                 pc.up(0.05) 
@@ -101,7 +101,7 @@ def drone_guide_pc_KnF_HFKnF_for(scf, event1, event2, event3):
 
             
             ## Return process (with feedback)
-            for k in range(1,7):
+            for k in range(1,6):
 
                 print("move down 5 cm, round: ", k)
                 pc.down(0.05) 
@@ -256,7 +256,7 @@ def drone_guide_pc_HE_for(scf, event1, event2, event3):
     
     with PositionHlCommander(
             scf,
-            x=0.7, y=0.0, z=0.0,
+            x=1.0, y=0.0, z=0.0,
             default_velocity=task_Vel,
             default_height=0.3,
             controller=PositionHlCommander.CONTROLLER_PID) as pc:
@@ -271,12 +271,12 @@ def drone_guide_pc_HE_for(scf, event1, event2, event3):
 
         print("start!!!")
 
-        for i in range(1,11):
+        for i in range(1,6):
 
             print("Round: ", i)
             t_start = time.time()
 
-            for j in range(1,7):
+            for j in range(1,6):
 
                 print("move up-backward 5 cm, round: ", j)
                 pc.move_distance(-(per*dz), 0.0, dz)
@@ -307,7 +307,7 @@ def drone_guide_pc_HE_for(scf, event1, event2, event3):
 
             
             ## Return process (with feedback)
-            for k in range(1,7):
+            for k in range(1,6):
 
                 print("move down-forward 5 cm, round: ", k)
                 pc.move_distance((per*dz), 0.0, -dz)
@@ -465,7 +465,7 @@ def drone_guide_pc_HA_for(scf, event1, event2, event3):
     
     with PositionHlCommander(
             scf,
-            x=0.7, y=0.0, z=0.0,
+            x=1.0, y=0.0, z=0.0,
             default_velocity=task_Vel,
             default_height=0.3,
             controller=PositionHlCommander.CONTROLLER_PID) as pc:
@@ -485,7 +485,7 @@ def drone_guide_pc_HA_for(scf, event1, event2, event3):
             print("Round: ", i)
             t_start = time.time()
 
-            for j in range(1,7):
+            for j in range(1,6):
 
                 print("move up-right 5 cm, round: ", j)
                 pc.move_distance(0.0, -(per*dz), dz)
@@ -516,7 +516,7 @@ def drone_guide_pc_HA_for(scf, event1, event2, event3):
 
             
             ## Return process (with feedback)
-            for k in range(1,7):
+            for k in range(1,6):
 
                 print("move down-left 5 cm, round: ", k)
                 pc.move_distance(0.0, (per*dz), -dz)
@@ -916,22 +916,25 @@ def sound_feedback(event1, event2, event3):
                
         if event3.is_set()==True and abs(position_estimate_2[2] - ori_pos) < abs(position_estimate_1[2] - start_pos_d):
             print("Too low")
-            frequency = 1500  # Set Frequency To 2500 Hertz
-            duration = 500  # Set Duration To 250 ms == 0.25 second
-            winsound.Beep(frequency, duration)
+            # frequency = 1500  # Set Frequency To 2500 Hertz
+            # duration = 500  # Set Duration To 250 ms == 0.25 second
+            # winsound.Beep(frequency, duration)
+            winsound.PlaySound('Lower_Alarm.wav', winsound.SND_FILENAME)
         
         elif event3.is_set()==True and abs(position_estimate_2[2] - ori_pos) > abs(position_estimate_1[2] - start_pos_d):
             print("Too high")
             # frequency = 1500  # Set Frequency To 2500 Hertz
             # duration = 200  # Set Duration To 250 ms == 0.25 second
             # winsound.Beep(frequency, duration)
+            winsound.PlaySound('Higher_Alarm.mp3', winsound.SND_FILENAME)
         
         # elif event3.is_set()==False and event2.is_set()==False:
         #     print("Good job!")
  
         elif event3.is_set()==False and event2.is_set()==True:
             print("You did it!")
-            winsound.PlaySound('_short-success.mp3', winsound.SND_FILENAME)
+            # winsound.PlaySound('_short-success.mp3', winsound.SND_FILENAME)
+            winsound.PlaySound('Success.wav', winsound.SND_FILENAME)
        
         else:
             pass
@@ -985,13 +988,13 @@ if __name__ == '__main__':
             sound_thread.start()
 
             # Perform the drone guiding task
-            # drone_guide_pc_KnF_HFKnF_for(scf_1, e1, e2, e3)
+            drone_guide_pc_KnF_HFKnF_for(scf_1, e1, e2, e3)
             # drone_guide_pc_KnF_HFKnF(scf_1, e1, e2, e3)
             # drone_guide_pc_HA_for(scf_1, e1, e2, e3)
             # drone_guide_pc_HA(scf_1, e1, e2, e3)
             # drone_guide_pc_HE_for(scf_1, e1, e2, e3)
             # drone_guide_pc_HE(scf_1, e1, e2, e3)
-            drone_guide_pc_tiptoe_for(scf_1, e1, e2, e3)
+            # drone_guide_pc_tiptoe_for(scf_1, e1, e2, e3)
             # drone_guide_pc_tiptoe(scf_1, e1, e2, e3)
             
             # Threads join

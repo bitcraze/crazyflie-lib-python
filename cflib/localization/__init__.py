@@ -25,6 +25,7 @@ from .lighthouse_config_manager import LighthouseConfigFileManager
 from .lighthouse_config_manager import LighthouseConfigWriter
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
+from .param_io import ParamFileManager
 
 __all__ = [
     'LighthouseBsGeoEstimator',
@@ -32,4 +33,5 @@ __all__ = [
     'LighthouseSweepAngleAverageReader',
     'LighthouseSweepAngleReader',
     'LighthouseConfigFileManager',
-    'LighthouseConfigWriter']
+    'LighthouseConfigWriter',
+    'ParamFileManager']

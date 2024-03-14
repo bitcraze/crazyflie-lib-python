@@ -40,8 +40,7 @@ class ParamFileManager():
             for id, param in params.items():
                 assert isinstance(param, PersistentParamState)
                 if isinstance(param, PersistentParamState):
-                    if param.is_stored:
-                        file_params[id] = {'is_stored': param.is_stored, 'default_value': param.default_value, 'stored_value': param.stored_value}
+                    file_params[id] = {'is_stored': param.is_stored, 'default_value': param.default_value, 'stored_value': param.stored_value}
 
             data = {
                 ParamFileManager.TYPE_ID: ParamFileManager.TYPE,

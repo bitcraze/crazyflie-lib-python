@@ -19,7 +19,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 import unittest
 from unittest.mock import ANY
 from unittest.mock import mock_open
@@ -28,6 +27,7 @@ from unittest.mock import patch
 import yaml
 
 from cflib.localization import ParamFileManager
+
 
 class TestParamFileManager(unittest.TestCase):
     def setUp(self):
@@ -48,7 +48,7 @@ class TestParamFileManager(unittest.TestCase):
 
         # Assert
         mock_file.assert_called_with(file_name, 'r')
-        
+
     @patch('yaml.safe_load')
     def test_that_missing_file_type_raises(self, mock_yaml_load):
         # Fixture
@@ -85,7 +85,7 @@ class TestParamFileManager(unittest.TestCase):
         with self.assertRaises(Exception):
             with patch('builtins.open', new_callable=mock_open()):
                 ParamFileManager.read('some/name.yaml')
-    
+
     @patch('yaml.safe_load')
     def test_that_wrong_version_raises(self, mock_yaml_load):
         # Fixture
@@ -106,10 +106,10 @@ class TestParamFileManager(unittest.TestCase):
         # Test
         with patch('builtins.open', new_callable=mock_open()):
             actual_params = ParamFileManager.read('some/name.yaml')
-        
+
         # Assert
         self.assertEqual(0, len(actual_params))
-    
+
     @patch('yaml.dump')
     def test_file_end_to_end_write_read(self, mock_yaml_dump):
         # Fixture
@@ -126,7 +126,7 @@ class TestParamFileManager(unittest.TestCase):
 
             # Assert
             mock_yaml_dump.assert_called_with(expected, ANY)
-    
+
     @patch('yaml.dump')
     def test_file_write_to_correct_file(self, mock_yaml_dump):
         # Fixture

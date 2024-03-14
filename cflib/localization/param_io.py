@@ -19,10 +19,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 import yaml
 
 from cflib.crazyflie.param import PersistentParamState
+
 
 class ParamFileManager():
     """Reads and writes parameter configurations from file"""
@@ -40,7 +40,8 @@ class ParamFileManager():
             for id, param in params.items():
                 assert isinstance(param, PersistentParamState)
                 if isinstance(param, PersistentParamState):
-                    file_params[id] = {'is_stored': param.is_stored, 'default_value': param.default_value, 'stored_value': param.stored_value}
+                    file_params[id] = {'is_stored': param.is_stored,
+                                       'default_value': param.default_value, 'stored_value': param.stored_value}
 
             data = {
                 ParamFileManager.TYPE_ID: ParamFileManager.TYPE,
@@ -49,7 +50,7 @@ class ParamFileManager():
             }
 
             yaml.dump(data, file)
-    
+
     @staticmethod
     def read(file_name):
         file = open(file_name, 'r')
@@ -71,13 +72,14 @@ class ParamFileManager():
 
             if data[ParamFileManager.VERSION_ID] != ParamFileManager.VERSION:
                 raise Exception('Unsupported file version')
-            
+
             def get_data(input_data):
                 persistent_params = {}
                 for id, param in input_data.items():
-                    persistent_params[id] = PersistentParamState(param['is_stored'], param['default_value'], param['stored_value'])
+                    persistent_params[id] = PersistentParamState(
+                        param['is_stored'], param['default_value'], param['stored_value'])
                 return persistent_params
-            
+
             if ParamFileManager.PARAMS_ID in data:
                 return get_data(data[ParamFileManager.PARAMS_ID])
             else:

@@ -22,7 +22,7 @@
 
 import yaml
 
-from cflib.crazyflie.param import Param, PersistentParamState
+from cflib.crazyflie.param import PersistentParamState
 
 class ParamFileManager():
     """Reads and writes parameter configurations from file"""

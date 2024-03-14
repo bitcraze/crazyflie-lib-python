@@ -27,7 +27,7 @@ from cflib.crazyflie.param import Param, PersistentParamState
 class ParamFileManager():
     """Reads and writes parameter configurations from file"""
     TYPE_ID = 'type'
-    TYPE = 'param_system_configuration'
+    TYPE = 'persistent_param_state'
     VERSION_ID = 'version'
     VERSION = '1'
     PARAMS_ID = 'params'

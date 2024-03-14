@@ -32,7 +32,7 @@ from cflib.localization import ParamFileManager
 class TestParamFileManager(unittest.TestCase):
     def setUp(self):
         self.data = {
-            'type': 'param_system_configuration',
+            'type': 'persistent_param_state',
             'version': '1',
         }
 

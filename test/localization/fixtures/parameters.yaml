@@ -11,5 +11,5 @@ params:
     default_value: 0.4000000059604645
     is_stored: true
     stored_value: 0.44999998807907104
-type: param_system_configuration
+type: persistent_param_state
 version: '1'

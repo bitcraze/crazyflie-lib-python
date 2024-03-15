@@ -13,24 +13,25 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E705' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E708' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor1's uri
 uri_3 = 'radio://0/80/2M/E7E7E7E7E8' # Leg sensor2's uri
 
-init_H = float(0.7)  # Initial drone's height; unit: m
+init_H = float(0.0)  # Initial drone's height; unit: m
 start_pos_d = 0.3 + init_H   # start z-position for drone
-start_x = float(1.0)  # initial pos_X of the drone; unit: m
+start_x = float(0.0)  # initial pos_X of the drone; unit: m
 start_y = float(0.0)  # initial pos_y of the drone; unit: m
 
-rep = 5   # repeat = rep-1
-
+step = 5   # repeat = rep-1
 task_Vel = 0.2  # on-task velocity
 
 # for hip extension
-dx = 0.25   # step length
-ori_pos_d_x = 0.0    # original drone position in x-axis
-ori_pos_t_x = 0.8    # original tag position in x-axis
-diff_x = ori_pos_d_x - ori_pos_t_x  # initial diff between drone and tag 
+dx = 0.47   # two step length
+# tot_dist = step*dx    # total moving distance
+
+ori_pos_x = -0.71    # original tag position in x-axis
+diff_x = abs(start_x - ori_pos_x)  # initial diff between drone and tag (ideally constant)
+
 
 
 position_estimate_1 = [0, 0, 0]  # Drone's pos
@@ -63,32 +64,33 @@ def log_pos_callback_3(uri_3, timestamp, data, logconf_3):
     print("{}: {} is at pos: ({}, {}, {})".format(timestamp, uri_3, position_estimate_3[0], position_estimate_3[1], position_estimate_3[2]))
                  
 
-def drone_guide_pc_HtH(scf, event1, event2): 
-    
+def drone_guide_pc_HtH(scf, event1, event2, event3): 
+    global diff_x_new
+
     with PositionHlCommander(
             scf,
-            x=0.7, y=0.0, z=0.0,
+            x=start_x, y=start_y, z=0.0,
             default_velocity=task_Vel,
             default_height=0.3,
             controller=PositionHlCommander.CONTROLLER_PID) as pc:
-
-        time.sleep(0.3/0.2)
 
         t_zero = time.time()
         print("before going up") # the drone reaches the default take-off height 0.3 m
 
         pc.up(init_H)
-        time.sleep(0.5) # Hovering for 1 sec after reaching the init_H + 0.3 m
+        time.sleep(init_H/task_Vel)
+        print(pc.get_position())
 
         print("start!!!")
+        winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
 
-        for i in range(1,rep):
+        for i in range(1,step):
 
             print("move forward, step: ", i)
             t_start = time.time()
 
             pc.move_distance(dx, 0.0, 0.0)
-            time.sleep(0.05/task_Vel)
+            time.sleep(abs(dx)/task_Vel)
             print(pc.get_position())
 
             while not event2.is_set():  # the subject doesn't follow the drone's step
@@ -100,22 +102,64 @@ def drone_guide_pc_HtH(scf, event1, event2):
 
             t_end = time.time()
             TpR = t_end - t_start   # total time per round (second)
-            print("Total time per step ", i, ": ", TpR)
+            print("Total time per step (first)", i, ": ", TpR)
             print("next!!!")
             
 
-        print("subject and drone reached the target")
-        winsound.PlaySound('_short-success.mp3', winsound.SND_FILENAME)
+        print("subject and drone reached the first end point")
+        winsound.PlaySound('_short-success.wav', winsound.SND_FILENAME)
         print(pc.get_position())
+
+        print("please turn around and prepare for the return process")
+
+        while not event3.is_set():
+            print("please align your left leg's tag at the same level with the drone")
+
+        winsound.PlaySound('mixkit-attention-bell-ding-586.wav', winsound.SND_FILENAME)
+
+        start_x_new = 1.0
+        ori_pos_x_new = position_estimate_1[0]
+        diff_x_new = abs(ori_pos_x_new - start_x_new)
+
+        print("Ready to move")
+        pc.go_to(start_x_new, start_y)
+        time.sleep(diff_x_new/task_Vel)
+
+        print("start!!!")
+        winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
+
+        for i in range(1,step):
+
+            print("move backward, step: ", i)
+            t_start = time.time()
+
+            pc.move_distance(-dx, 0.0, 0.0)
+            time.sleep(abs(dx)/task_Vel)
+            print(pc.get_position())
+
+            while not event2.is_set():  # the subject doesn't follow the drone's step
+                print("please step forward to follow the drone")
+                # time.sleep(0.1)
+
+            print("Good job and keep going!")
+            winsound.PlaySound('Success.wav', winsound.SND_FILENAME)
+
+            t_end = time.time()
+            TpR = t_end - t_start   # total time per round (second)
+            print("Total time per step (second) ", i, ": ", TpR)
+            print("next!!!")
+            
+
+        print("subject and drone reached the second end point")
+        winsound.PlaySound('_short-success.wav', winsound.SND_FILENAME)
+        print(pc.get_position())
+
 
         TpT = t_end - t_zero
         print("Total time: ", TpT)
-        time.sleep(0.1) # hovering for 0.1 sec
-
         # set the event for turning off the sound feedback process
         event1.set()
 
-        
 
 # # Feedback Section
 
@@ -123,15 +167,32 @@ def position_state_change(event1, event2):
     print("position thread start")
     while not event1.is_set():  # the drone hasn't finished the guiding yet
         
-        if abs(position_estimate_1[0]-position_estimate_2[0]-diff_x) < 0.02 or abs(position_estimate_1[0]-position_estimate_3[0]-diff_x) < 0.02 : 
+        if abs(abs(position_estimate_1[0]-position_estimate_2[0])-diff_x) < 0.025 or abs(abs(position_estimate_1[0]-position_estimate_3[0])-diff_x_new) < 0.025 : 
             # print("good job")
             event2.set()
+        
+        # if abs(abs(position_estimate_1[0]-position_estimate_2[0])-diff_x) < 0.025: 
+        #     # print("good job")
+        #     event2.set()
                             
         else: 
             # print("keep going")
             event2.clear()
 
     print("Finish guiding")
+
+
+def return_checkpoint(event1, event3):
+    print("checkpoint thread start")
+    while not event1.is_set():
+
+        if abs(position_estimate_1[0]-position_estimate_3[0]) < 0.025:
+            event3.set()    # subject align their lef leg position at the same level (x-axis) with the drone
+        
+        else:
+            event3.clear()
+
+
 
 
 # Only output errors from the logging framework
@@ -143,7 +204,7 @@ if __name__ == '__main__':
     # # initializing the queue and event object
     e1 = threading.Event()  # Checking whether the drone completes its task
     e2 = threading.Event()  # Checking whether the Subject follows the drone
-
+    e3 = threading.Event()  # Checking whether the Subject already made a return
 
     # # initializing Crazyflie 
     cflib.crtp.init_drivers(enable_debug_driver=False)
@@ -182,16 +243,19 @@ if __name__ == '__main__':
             # # Drone Motion (MotionCommander)
                 # Declaring threads for feedback providing
                 pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change, args=(e1, e2))
+                return_thread = threading.Thread(name='Position-State-Change-Thread', target=return_checkpoint, args=(e1, e3))
 
                 # Starting threads for drone motion
                 pos_state_thread.start()
+                return_thread.start()
 
                 # Perform the drone guiding task
-                drone_guide_pc_HtH(scf_1, e1, e2)
+                drone_guide_pc_HtH(scf_1, e1, e2, e3)
 
                 
                 # Threads join
                 pos_state_thread.join()
+                return_thread.join()
 
                 
                 time.sleep(3)

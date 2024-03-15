@@ -23,25 +23,25 @@ start_x = float(1.0)  # initial pos_X of the drone; unit: m
 start_y = float(0.0)  # initial pos_y of the drone; unit: m
 
 rep = 6   # repeat = rep-1
-step = 3     # inner loop step = step-1
+step = 4     # inner loop step = step-1
 
 task_Vel = 0.2  # on-task velocity
 
-
-# for hip extension
-max_ROM_x = -0.15   # change this variable according to the selected movement
-ori_pos_x = -0.05    # original leg's sensor position in x-axis
-move_dist_x = abs(ori_pos_x - max_ROM_x)  # total moving distant in x-axis for drone and leg's sensor
-ds_x = move_dist_x/(step-1)  # moving distant in inner for loop
-
 # for hip&knee flex/ext
-max_ROM_z = 0.48   # change this variable according to the selected movement
-ori_pos_z = 0.12    # original leg's sensor height
+max_ROM_z = 0.49   # change this variable according to the selected movement
+ori_pos_z = 0.08    # original leg's sensor height
 move_dist_z = abs(ori_pos_z - max_ROM_z)  # total moving distant in z-axis for drone and leg's sensor
 ds_z = move_dist_z/(step-1)  # moving distant in inner for loop
 
+
+# for hip extension
+max_ROM_x = -0.24   # change this variable according to the selected movement
+ori_pos_x = -0.06    # original leg's sensor position in x-axis
+move_dist_x = abs(ori_pos_x - max_ROM_x)  # total moving distant in x-axis for drone and leg's sensor
+ds_x = move_dist_x/(step-1)  # moving distant in inner for loop
+
 # for hip abduction
-max_ROM_y = 0.26   # change this variable according to the selected movement
+max_ROM_y = -0.4   # change this variable according to the selected movement
 ori_pos_y = 0.0    # original leg's sensor position in y-axis
 move_dist_y = abs(ori_pos_y - max_ROM_y)  # total moving distant in y-axis for drone and leg's sensor
 ds_y = move_dist_y/(step-1)  # moving distant in inner for loop
@@ -200,7 +200,7 @@ def drone_guide_pc_KnF_HFKnF(scf, event1, event2, event3, event4):
 
             print("next!!!")
         
-        '''
+
         # Middle task rest
         print("Take a short break")
         # Displaying the rest image for 1 second
@@ -315,7 +315,7 @@ def drone_guide_pc_KnF_HFKnF(scf, event1, event2, event3, event4):
             print("Total time per round: ", TpR)
 
             print("next!!!")
-        '''
+
                  
         print("Task done")
         TpT = t_end - t_zero
@@ -455,7 +455,7 @@ def drone_guide_pc_HE(scf, event1, event2, event3, event4):
 
             print("next!!!")
 
-        '''
+
         # Middle task rest
         print("Take a short break")
         # Displaying the rest image for 1 second
@@ -569,7 +569,6 @@ def drone_guide_pc_HE(scf, event1, event2, event3, event4):
 
             print("next!!!")
 
-        '''
 
         print("Task done")
         TpT = t_end - t_zero
@@ -585,6 +584,7 @@ def drone_guide_pc_HE(scf, event1, event2, event3, event4):
 
         # set the event for turning off the sound feedback process
         event1.set()
+
 
 def drone_guide_pc_HA_R(scf, event1, event2, event3, event4): 
     
@@ -615,22 +615,14 @@ def drone_guide_pc_HA_R(scf, event1, event2, event3, event4):
             print("Round: ", i)
             t_start = time.time()
 
-            # Displaying the rest image for 4 seconds
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                          cv2.WINDOW_FULLSCREEN)
+            # Displaying the image for 4 seconds
             cv2.imshow(window_name, image_r) 
             cv2.waitKey(4000) 
-            # cv2.destroyAllWindows()
+            cv2.destroyAllWindows()
 
-            winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
-
-            # Displaying the task image for 1 second
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                          cv2.WINDOW_FULLSCREEN)
+            # Displaying the image for 4 seconds
             cv2.imshow(window_name, image_t) 
-            cv2.waitKey(1000) 
+            cv2.waitKey(500) 
             cv2.destroyAllWindows()
 
             for j in range(1,step):
@@ -708,134 +700,10 @@ def drone_guide_pc_HA_R(scf, event1, event2, event3, event4):
 
             print("next!!!")
 
-        '''
-        # Middle task rest
-        print("Take a short break")
-        # Displaying the rest image for 1 second
-        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                        cv2.WINDOW_FULLSCREEN)
-        cv2.imshow(window_name, image_t) 
-        cv2.waitKey(1000) 
-        cv2.destroyAllWindows()
-
-        time.sleep(60)  # take a break for 1 minute
-
-        print("start the second half task!!!!")
-
-
-        for i in range(1,rep):
-
-            print("Round: ", i)
-            t_start = time.time()
-
-            # Displaying the rest image for 4 seconds
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                          cv2.WINDOW_FULLSCREEN)
-            cv2.imshow(window_name, image_r) 
-            cv2.waitKey(4000) 
-            # cv2.destroyAllWindows()
-
-            winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
-
-            # Displaying the task image for 1 second
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                          cv2.WINDOW_FULLSCREEN)
-            cv2.imshow(window_name, image_t) 
-            cv2.waitKey(1000) 
-            cv2.destroyAllWindows()
-
-            for j in range(1,step):
-
-                print("move up-right 4-5 cm, round: ", j)
-                pc.move_distance(0.0, -(per*ds_y), ds_y)
-                time.sleep(dist/task_Vel + 0.05)
-                print(pc.get_position())
-
-                while event3.is_set()==True:  # the subject doesn't follow the drone
-                    print("please follow the drone")
-                    # time.sleep(0.1)
-
-            if position_estimate_1[1] < start_y - move_dist_y:
-                over_dist = abs(position_estimate_1[1] - (start_y - move_dist_y))
-                print("exceed the upper limit (m): ", over_dist)
-                pc.move_distance(0.0, per*over_dist, -over_dist)  # moving down to the start_pos_d + move_dist_z within 0.2 second
-                dist_o = math.sqrt((per*over_dist)*(per*over_dist) + over_dist*over_dist)
-                time.sleep(dist_o/task_Vel + 0.05)
-                print("after adjusting")
-                print(pc.get_position())
-
-
-            while not event2.is_set():
-                print("You haven't reached the target")
-                # time.sleep(0.05)
-
-
-            print("subject and drone reached the target")
-            winsound.PlaySound('_short-success.wav', winsound.SND_FILENAME)
-            print(pc.get_position())
-            # time.sleep(0.2) # for subject's preparation
-
-            
-            ## Return process (with feedback)
-            for k in range(1,step):
-
-                print("move down-left 5 cm, round: ", k)
-                pc.move_distance(0.0, (per*ds_y), -ds_y)
-                time.sleep(dist/task_Vel + 0.05)
-                print(pc.get_position())
-
-                while event3.is_set()==True:  # the subject doesn't follow the drone
-                    print("please follow the drone")
-                    # time.sleep(0.1)
-                
-
-            # time.sleep(0.1)    
-
-            if position_estimate_1[1] > start_y:
-                under_dist = position_estimate_1[1] - start_y
-                print("exceed the lower limit (m): ", under_dist)
-                pc.move_distance(0.0, -(per*under_dist), under_dist)  # moving down to the start_pos_d + move_dist_z within 0.2 second
-                dist_u = math.sqrt((per*under_dist)*(per*under_dist) + under_dist*under_dist)
-                time.sleep(dist_u/task_Vel + 0.05)
-                print("after adjusting")
-                print(pc.get_position())
-
-            while not event4.is_set():
-                print("You haven't returned to the start point")
-                # time.sleep(0.05)
-
-            print("subject and drone reached the start point")
-            winsound.PlaySound('_short-success.wav', winsound.SND_FILENAME)
-            print(pc.get_position())
-            # time.sleep(0.05) # for subject's preparation
-
-            
-            # print("Ready?")
-            # time.sleep(0.2)  # hovering for 0.5 sec
-            
-            t_end = time.time()
-            TpR = t_end - t_start   # total time per round (second)
-            print("Total time per round: ", TpR)
-
-            print("next!!!")
-
-        '''
-
+                 
         print("Task done")
         TpT = t_end - t_zero
         print("Total time: ", TpT)
-
-        # Displaying the rest image for 1 second
-        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                        cv2.WINDOW_FULLSCREEN)
-        cv2.imshow(window_name, image_t) 
-        cv2.waitKey(1000) 
-        cv2.destroyAllWindows()
-
         # set the event for turning off the sound feedback process
         event1.set()
 
@@ -861,30 +729,12 @@ def drone_guide_pc_HA_L(scf, event1, event2, event3, event4):
         print(pc.get_position())
 
         print("start!!!")
-        # winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
+        winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
 
         for i in range(1,rep):
 
             print("Round: ", i)
             t_start = time.time()
-
-            # Displaying the rest image for 4 seconds
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                          cv2.WINDOW_FULLSCREEN)
-            cv2.imshow(window_name, image_r) 
-            cv2.waitKey(4000) 
-            # cv2.destroyAllWindows()
-
-            winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
-
-            # Displaying the task image for 1 second
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                          cv2.WINDOW_FULLSCREEN)
-            cv2.imshow(window_name, image_t) 
-            cv2.waitKey(1000) 
-            cv2.destroyAllWindows()
 
             for j in range(1,step):
 
@@ -961,134 +811,10 @@ def drone_guide_pc_HA_L(scf, event1, event2, event3, event4):
 
             print("next!!!")
 
-        '''
-        # Middle task rest
-        print("Take a short break")
-        # Displaying the rest image for 1 second
-        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                        cv2.WINDOW_FULLSCREEN)
-        cv2.imshow(window_name, image_t) 
-        cv2.waitKey(1000) 
-        cv2.destroyAllWindows()
-
-        time.sleep(60)  # take a break for 1 minute
-
-        print("start the second half task!!!!")
-
-
-        for i in range(1,rep):
-
-            print("Round: ", i)
-            t_start = time.time()
-
-            # Displaying the rest image for 4 seconds
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                          cv2.WINDOW_FULLSCREEN)
-            cv2.imshow(window_name, image_r) 
-            cv2.waitKey(4000) 
-            # cv2.destroyAllWindows()
-
-            winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
-
-            # Displaying the task image for 1 second
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                          cv2.WINDOW_FULLSCREEN)
-            cv2.imshow(window_name, image_t) 
-            cv2.waitKey(1000) 
-            cv2.destroyAllWindows()
-
-            for j in range(1,step):
-
-                print("move up-left 4-5 cm, round: ", j)
-                pc.move_distance(0.0, per*ds_y, ds_y)
-                time.sleep(dist/task_Vel + 0.05)
-                print(pc.get_position())
-
-                while event3.is_set()==True:  # the subject doesn't follow the drone
-                    print("please follow the drone")
-                    # time.sleep(0.1)
-
-            if position_estimate_1[1] > start_y + move_dist_y:
-                over_dist = position_estimate_1[1] - (start_y + move_dist_y) 
-                print("exceed the upper limit (m): ", over_dist)
-                pc.move_distance(0.0, -per*over_dist, -over_dist)  # moving down to the start_pos_d + move_dist_z within 0.2 second
-                dist_o = math.sqrt((per*over_dist)*(per*over_dist) + over_dist*over_dist)
-                time.sleep(dist_o/task_Vel + 0.05)
-                print("after adjusting")
-                print(pc.get_position())
-
-
-            while not event2.is_set():
-                print("You haven't reached the target")
-                # time.sleep(0.05)
-
-
-            print("subject and drone reached the target")
-            winsound.PlaySound('_short-success.wav', winsound.SND_FILENAME)
-            print(pc.get_position())
-            # time.sleep(0.2) # for subject's preparation
-
-            
-            ## Return process (with feedback)
-            for k in range(1,step):
-
-                print("move down-right 5 cm, round: ", k)
-                pc.move_distance(0.0, -(per*ds_y), -ds_y)
-                time.sleep(dist/task_Vel + 0.05)
-                print(pc.get_position())
-
-                while event3.is_set()==True:  # the subject doesn't follow the drone
-                    print("please follow the drone")
-                    # time.sleep(0.1)
-                
-
-            # time.sleep(0.1)    
-
-            if position_estimate_1[1] < start_y:
-                under_dist = start_y - position_estimate_1[1] 
-                print("exceed the lower limit (m): ", under_dist)
-                pc.move_distance(0.0, per*under_dist, under_dist)  # moving down to the start_pos_d + move_dist_z within 0.2 second
-                dist_u = math.sqrt((per*under_dist)*(per*under_dist) + under_dist*under_dist)
-                time.sleep(dist_u/task_Vel + 0.05)
-                print("after adjusting")
-                print(pc.get_position())
-
-            while not event4.is_set():
-                print("You haven't returned to the start point")
-                # time.sleep(0.05)
-
-            print("subject and drone reached the start point")
-            winsound.PlaySound('_short-success.wav', winsound.SND_FILENAME)
-            print(pc.get_position())
-            # time.sleep(0.05) # for subject's preparation
-
-            
-            # print("Ready?")
-            # time.sleep(0.2)  # hovering for 0.5 sec
-            
-            t_end = time.time()
-            TpR = t_end - t_start   # total time per round (second)
-            print("Total time per round: ", TpR)
-
-            print("next!!!")
-
-        '''
-
+                 
         print("Task done")
         TpT = t_end - t_zero
         print("Total time: ", TpT)
-
-        # Displaying the rest image for 1 second
-        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                        cv2.WINDOW_FULLSCREEN)
-        cv2.imshow(window_name, image_t) 
-        cv2.waitKey(1000) 
-        cv2.destroyAllWindows()
-
         # set the event for turning off the sound feedback process
         event1.set()
 
@@ -1291,7 +1017,6 @@ def position_state_change_HA_L(event1, event2, event3, event4):
     print("Finish guiding")
     
 
-
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
@@ -1331,20 +1056,20 @@ if __name__ == '__main__':
 
         # # Drone Motion (MotionCommander)
             # # Declaring threads for feedback providing
+            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_KnF, args=(e1, e2, e3, e4))
             # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HE, args=(e1, e2, e3, e4))
-            # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_KnF, args=(e1, e2, e3, e4))
             # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_R, args=(e1, e2, e3, e4))
-            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_L, args=(e1, e2, e3, e4))
+            # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_L, args=(e1, e2, e3, e4))
 
 
             # Starting threads for drone motion
             pos_state_thread.start()
 
             # Perform the drone guiding task
+            drone_guide_pc_KnF_HFKnF(scf_1, e1, e2, e3, e4)
             # drone_guide_pc_HE(scf_1, e1, e2, e3, e4)
-            # drone_guide_pc_KnF_HFKnF(scf_1, e1, e2, e3, e4)
             # drone_guide_pc_HA_R(scf_1, e1, e2, e3, e4)
-            drone_guide_pc_HA_L(scf_1, e1, e2, e3, e4)
+            # drone_guide_pc_HA_L(scf_1, e1, e2, e3, e4)
 
             
             # Threads join

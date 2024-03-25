@@ -445,6 +445,9 @@ class Param():
         @param callback Optional callback should take `complete_name` and boolean status as arguments
         """
         element = self.toc.get_element_by_complete_name(complete_name)
+        if not element:
+            callback(complete_name, False)
+            return
         if not element.is_persistent():
             raise AttributeError(f"Param '{complete_name}' is not persistent")
 

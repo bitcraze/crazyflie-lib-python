@@ -14,10 +14,10 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E710' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E708' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
-init_H = float(0.7)  # Initial drone's height; unit: m
+init_H = float(0.9)  # Initial drone's height; unit: m
 start_pos_d = 0.3 + init_H   # start z-position for drone
 start_x = float(1.0)  # initial pos_X of the drone; unit: m
 start_y = float(0.0)  # initial pos_y of the drone; unit: m
@@ -28,19 +28,19 @@ step = 3     # inner loop step = step-1
 task_Vel = 0.2  # on-task velocity
 
 
-# for hip extension
-max_ROM_x = -0.15   # change this variable according to the selected movement
-ori_pos_x = -0.05    # original leg's sensor position in x-axis
+# for hip extension (2 steps)
+max_ROM_x = -0.25   # change this variable according to the selected movement
+ori_pos_x = -0.01    # original leg's sensor position in x-axis
 move_dist_x = abs(ori_pos_x - max_ROM_x)  # total moving distant in x-axis for drone and leg's sensor
 ds_x = move_dist_x/(step-1)  # moving distant in inner for loop
 
-# for hip&knee flex/ext
-max_ROM_z = 0.48   # change this variable according to the selected movement
-ori_pos_z = 0.12    # original leg's sensor height
+# for hip&knee flex (3 steps)
+max_ROM_z = 0.71   # change this variable according to the selected movement
+ori_pos_z = 0.42    # original leg's sensor height
 move_dist_z = abs(ori_pos_z - max_ROM_z)  # total moving distant in z-axis for drone and leg's sensor
 ds_z = move_dist_z/(step-1)  # moving distant in inner for loop
 
-# for hip abduction
+# for hip abduction (2 steps)
 max_ROM_y = 0.26   # change this variable according to the selected movement
 ori_pos_y = 0.0    # original leg's sensor position in y-axis
 move_dist_y = abs(ori_pos_y - max_ROM_y)  # total moving distant in y-axis for drone and leg's sensor
@@ -325,7 +325,7 @@ def drone_guide_pc_KnF_HFKnF(scf, event1, event2, event3, event4):
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
                         cv2.WINDOW_FULLSCREEN)
-        cv2.imshow(window_name, image_t) 
+        cv2.imshow(window_name, image_r) 
         cv2.waitKey(1000) 
         cv2.destroyAllWindows()
 
@@ -428,7 +428,7 @@ def drone_guide_pc_HE(scf, event1, event2, event3, event4):
             # time.sleep(0.1)    
 
             if position_estimate_1[0] > start_x:
-                under_dist = position_estimate_1[2] - start_x 
+                under_dist = position_estimate_1[0] - start_x 
                 print("exceed the lower bound (m): ", under_dist)
                 pc.move_distance(-(per*under_dist), 0.0, under_dist)  # moving down to the start_pos_d + move_dist_z within 0.2 second
                 dist_u = math.sqrt((per*under_dist)*(per*under_dist) + under_dist*under_dist)
@@ -1331,20 +1331,20 @@ if __name__ == '__main__':
 
         # # Drone Motion (MotionCommander)
             # # Declaring threads for feedback providing
-            # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HE, args=(e1, e2, e3, e4))
+            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HE, args=(e1, e2, e3, e4))
             # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_KnF, args=(e1, e2, e3, e4))
             # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_R, args=(e1, e2, e3, e4))
-            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_L, args=(e1, e2, e3, e4))
+            # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_L, args=(e1, e2, e3, e4))
 
 
             # Starting threads for drone motion
             pos_state_thread.start()
 
             # Perform the drone guiding task
-            # drone_guide_pc_HE(scf_1, e1, e2, e3, e4)
+            drone_guide_pc_HE(scf_1, e1, e2, e3, e4)
             # drone_guide_pc_KnF_HFKnF(scf_1, e1, e2, e3, e4)
             # drone_guide_pc_HA_R(scf_1, e1, e2, e3, e4)
-            drone_guide_pc_HA_L(scf_1, e1, e2, e3, e4)
+            # drone_guide_pc_HA_L(scf_1, e1, e2, e3, e4)
 
             
             # Threads join

@@ -13,7 +13,7 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E710' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E708' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor1's uri
 
 
@@ -22,15 +22,15 @@ start_pos_d = 0.3 + init_H   # start z-position for drone
 start_x = float(0.0)  # initial pos_X of the drone; unit: m
 start_y = float(0.0)  # initial pos_y of the drone; unit: m
 
-step = 6   # repeat = rep-1
+step = 5   # repeat = rep-1
 task_Vel = 0.2  # on-task velocity
 
 
-# for hip extension
+# for heel-to-toe (4 steps)
 dx = 0.47   # two step length
 # tot_dist = step*dx    # total moving distance
 
-ori_pos_x = -0.71    # original tag position in x-axis
+ori_pos_x = -0.91    # original tag position in x-axis
 diff_x = abs(start_x - ori_pos_x)  # initial diff between drone and tag (ideally constant)
 
 
@@ -38,7 +38,7 @@ position_estimate_1 = [0, 0, 0]  # Drone's pos
 position_estimate_2 = [0, 0, 0]  # LS1's pos
 
 
-## for showing image
+## for showing image\
 # paths
 path_rest = r'D:\Drone_Project\Virtual_env\crazyflie-lib-python\examples\MOST_Drone\bg_rest.png'
 path_task = r'D:\Drone_Project\Virtual_env\crazyflie-lib-python\examples\MOST_Drone\bg_task.png'

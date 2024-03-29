@@ -13,29 +13,31 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E708' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E710' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor1's uri
 
 
 init_H = float(0.0)  # Initial drone's height; unit: m
 start_pos_d = 0.3 + init_H   # start z-position for drone
-start_x = float(0.0)  # initial pos_X of the drone; unit: m
+start_x = float(-0.30)  # initial pos_X of the drone; unit: m
 start_y = float(0.0)  # initial pos_y of the drone; unit: m
 
 step = 5   # repeat = rep-1
-task_Vel = 0.2  # on-task velocity
+task_Vel = 0.1  # on-task velocity
 
+
+ori_pos_x = -1.15    # original tag position in x-axis
+first_step_pos_x = -0.90   # tag position in x-axis after first step
 
 # for heel-to-toe (4 steps)
-dx = 0.47   # two step length
+dx = abs(ori_pos_x-first_step_pos_x)   # two step length
 # tot_dist = step*dx    # total moving distance
 
-ori_pos_x = -0.91    # original tag position in x-axis
 diff_x = abs(start_x - ori_pos_x)  # initial diff between drone and tag (ideally constant)
-
 
 position_estimate_1 = [0, 0, 0]  # Drone's pos
 position_estimate_2 = [0, 0, 0]  # LS1's pos
+
 
 
 ## for showing image\
@@ -84,8 +86,8 @@ def drone_guide_pc_HtH(scf, event1, event2):
         time.sleep(init_H/task_Vel)
         print(pc.get_position())
 
-        print("start!!!")
-        winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
+        # print("start!!!")
+        # winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
 
         for i in range(1,step):
 
@@ -118,7 +120,20 @@ def drone_guide_pc_HtH(scf, event1, event2):
                 print("please step forward to follow the drone")
                 # time.sleep(0.1)
 
-            print("Good job and keep going!")
+            print("Half step already! Keep going!")
+            # winsound.PlaySound('Success.wav', winsound.SND_FILENAME)
+            time.sleep(2)
+
+            pc.move_distance(dx, 0.0, 0.0)
+            time.sleep(abs(dx)/task_Vel)
+            print(pc.get_position())
+
+
+            while not event2.is_set():  # the subject doesn't follow the drone's step
+                print("please step forward to follow the drone")
+                # time.sleep(0.1)
+
+            print("Good job! Next step!")
             winsound.PlaySound('Success.wav', winsound.SND_FILENAME)
 
             t_end = time.time()
@@ -139,7 +154,7 @@ def drone_guide_pc_HtH(scf, event1, event2):
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
                         cv2.WINDOW_FULLSCREEN)
-        cv2.imshow(window_name, image_t) 
+        cv2.imshow(window_name, image_r) 
         cv2.waitKey(1000) 
         cv2.destroyAllWindows()
 
@@ -154,7 +169,7 @@ def position_state_change(event1, event2):
     while not event1.is_set():  # the drone hasn't finished the guiding yet
         
         
-        if abs(abs(position_estimate_1[0]-position_estimate_2[0])-diff_x) < 0.025: 
+        if abs(abs(position_estimate_1[0]-position_estimate_2[0])-diff_x) < 0.05: 
             # print("good job")
             event2.set()
                             

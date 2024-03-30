@@ -281,7 +281,7 @@ class Cloader:
             pk = None
             retry_counter = 5
             while ((not pk or pk.header != 0xFF or
-                    struct.unpack('<BB', pk.data[0:2]) != (addr, 0x1C)) and
+                    struct.unpack('<BBHH', pk.data[0:6]) != (addr, 0x1C, page, (i * 25))) and
                     retry_counter >= 0):
                 pk = CRTPPacket()
                 pk.set_header(0xFF, 0xFF)

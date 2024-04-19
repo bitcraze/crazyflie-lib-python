@@ -169,6 +169,8 @@ def read_angles_average_from_lh2_file(file_name: str, calibs) -> LhCfPoseSample:
 def read_angles_sequence_from_lh2_file(file_name: str, calibs) -> list[LhMeasurement]:
     result: list[LhMeasurement] = []
 
+    print(file_name)
+
     with open(file_name, 'r', encoding='utf8') as contents:
         for line in contents.readlines():
             if line.startswith('full-rotation'):
@@ -463,6 +465,7 @@ def estimate_from_lhv2_files(origin_file: str, x_axis_files: list[str], xy_plane
 
     samples = []
     for samples_file in samples_files:
+        print(samples_file)
         samples += read_angles_sequence_from_lh2_file(samples_file, calibs)
 
     bs_est = estimate_geometry(origin, x_axis, xy_plane, samples)
@@ -583,15 +586,29 @@ if __name__ == '__main__':
     #     [root_dir + 'LH_RAW-20231130-095540-moving-around-rots.txt'],
     #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml', None)
 
-    root_dir = '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/recodings-with-bs-1-4/'
+   # root_dir = '/home/knmcguire/development/bitcraze/lighthouse16/lighthouse16-firmware/algos/examples/large_arena_lighthouse_system/'
+   # estimate_from_lhv2_files(
+   #     root_dir + 'LH_RAW-20231130-095339-origo-rots.txt',
+   #     [root_dir + 'LH_RAW-20231130-095359-1m-from-origo-rots.txt'],
+   #     [root_dir + 'LH_RAW-20231130-095514-random-on-floor-rots.txt', '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/floor5-rots.txt', '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/floor4-rots.txt'],
+   #     '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/move-rots.txt',
+   #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml', '/home/kristoffer/Documents/lighthouse/arena_16.yaml')
+
+    # root_dir = '/home/knmcguire/development/bitcraze/lighthouse16/lighthouse16-firmware/algos/examples/large_arena_lighthouse_system/'
+    # estimate_from_lhv2_files(
+    #     root_dir + 'A-rots.txt',
+    #     [root_dir + 'B-rots.txt'],
+    #     [root_dir + 'F-rots.txt'],
+    #     [root_dir + 'K-1m-rots.txt'],
+    #     root_dir + 'arena_all.yaml', root_dir + 'arena_16.yaml')
+
+    root_dir = '/home/knmcguire/development/bitcraze/lighthouse16/lighthouse16-firmware/algos/examples/large_arena_LH_20240222/'
     estimate_from_lhv2_files(
-        root_dir + 'LH_RAW-20231130-095339-origo-rots.txt',
-        [root_dir + 'LH_RAW-20231130-095359-1m-from-origo-rots.txt'],
-        [root_dir + 'LH_RAW-20231130-095514-random-on-floor-rots.txt', '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/floor5-rots.txt', '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/floor4-rots.txt'],
-        '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/move-rots.txt',
-        '/home/kristoffer/Documents/lighthouse/arena_all.yaml', '/home/kristoffer/Documents/lighthouse/arena_16.yaml')
-
-
+        root_dir + 'A-240222-rots.txt',
+        [root_dir + 'B-240222-rots.txt'],
+        [root_dir + 'F-240222-rots.txt',root_dir + 'E-240222-rots.txt',root_dir + 'G-240222-rots.txt'],
+        [root_dir + 'figure-eight-240222-rots.txt'],
+        root_dir + 'arena_all.yaml', root_dir + 'arena_16.yaml')
     # connect_and_estimate(uri, file_name=file_name)
 
     # Run the estimation on data from file instead of live measurements

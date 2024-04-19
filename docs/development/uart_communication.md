@@ -5,6 +5,8 @@ page_id: uart_communication
 
 This page describes how to control your Crazyflie via UART, e.g. with a direct connection to a Raspberry Pi or with your computer through an FTDI cable.
 
+> Currently there is an issue with the [new Raspberry pi 5](https://www.raspberrypi.com/documentation/computers/configuration.html#raspberry-pi-5) and these instructions. Please check the status of [this ticket](https://github.com/bitcraze/crazyflie-firmware/issues/1355). 
+
 ## Physical Connection
 
 To control the Crazyflie via UART first establish a physical connection between the Crazyflie and the controlling device. On the Crazyflie use the pins for UART2 which are on the right expansion connector TX2 (pin 1) and RX2 (pin 2).

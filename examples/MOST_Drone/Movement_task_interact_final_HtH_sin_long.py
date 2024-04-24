@@ -13,7 +13,7 @@ from cflib.crazyflie.log import LogConfig
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E705' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E701' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor1's uri
 
 
@@ -32,7 +32,7 @@ step = 6   # repeat = rep-1
 task_Vel = 0.1  # on-task velocity
 
 
-ori_pos_x = -0.83    # original tag position in x-axis
+ori_pos_x = -0.84    # original tag position in x-axis
 first_step_pos_x = -0.58   # tag position in x-axis after first step
 
 # for heel-to-toe (4 steps)
@@ -78,6 +78,21 @@ def log_pos_callback_2(uri_2, timestamp, data, logconf_2):
 
 def drone_guide_pc_HtH(scf, event1, event2): 
 
+    # Displaying the rest image for 5 seconds
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.imshow(window_name, image_r) 
+    cv2.waitKey(5000) 
+    # cv2.destroyAllWindows()
+
+    # Displaying the task image for 1 second
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.imshow(window_name, image_t) 
+    cv2.waitKey(1000) 
+    cv2.destroyAllWindows()
+
+
     with PositionHlCommander(
             scf,
             x=start_x, y=start_y, z=0.0,
@@ -92,31 +107,13 @@ def drone_guide_pc_HtH(scf, event1, event2):
         time.sleep(init_H/task_Vel)
         print(pc.get_position())
 
-        # print("start!!!")
-        # winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
+        print("start!!!")
+        winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
 
         for i in range(1,step):
 
             print("move forward, step: ", i)
             t_start = time.time()
-
-            # Displaying the rest image for 4 seconds
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                          cv2.WINDOW_FULLSCREEN)
-            cv2.imshow(window_name, image_r) 
-            cv2.waitKey(4000) 
-            # cv2.destroyAllWindows()
-
-            winsound.PlaySound('game-start-6104.wav', winsound.SND_FILENAME)
-
-            # Displaying the task image for 1 second
-            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                          cv2.WINDOW_FULLSCREEN)
-            cv2.imshow(window_name, image_t) 
-            cv2.waitKey(1000) 
-            cv2.destroyAllWindows()
 
             pc.move_distance(dx, 0.0, 0.0)
             time.sleep(abs(dx)/task_Vel)
@@ -156,17 +153,15 @@ def drone_guide_pc_HtH(scf, event1, event2):
         TpT = t_end - t_zero
         print("Total time: ", TpT)
 
-        # Displaying the rest image for 1 second
-        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN,
-                        cv2.WINDOW_FULLSCREEN)
-        cv2.imshow(window_name, image_r) 
-        cv2.waitKey(1000) 
-        cv2.destroyAllWindows()
-
         # set the event for turning off the sound feedback process
         event1.set()
 
+    # Displaying the rest image for 1 second
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.imshow(window_name, image_r) 
+    cv2.waitKey(1000) 
+    cv2.destroyAllWindows()
 
 # # Feedback Section
 
@@ -175,7 +170,7 @@ def position_state_change(event1, event2):
     while not event1.is_set():  # the drone hasn't finished the guiding yet
         
         
-        if abs(abs(position_estimate_1[0]-position_estimate_2[0])-diff_x) < 0.05: 
+        if abs(abs(position_estimate_1[0]-position_estimate_2[0])-diff_x) < 0.07: 
             # print("good job")
             event2.set()
                             

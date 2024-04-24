@@ -361,4 +361,4 @@ if __name__ == '__main__':
     appQt = QtWidgets.QApplication(sys.argv)
     win = MainWindow(URI)
     win.show()
-    appQt.exec_()
+    appQt.exec()

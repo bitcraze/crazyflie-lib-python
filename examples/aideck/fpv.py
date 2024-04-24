@@ -113,39 +113,40 @@ class MainWindow(QtWidgets.QWidget):
         self.mainLayout.addWidget(self.image_frame)
 
         self.gridLayout = QtWidgets.QGridLayout()
-        self.gridLayout.addWidget(QtWidgets.QLabel('Position (X/Y/Z)'), 0, 0, 1, 1, QtCore.Qt.AlignLeft)
-        self.gridLayout.addWidget(QtWidgets.QLabel('Pose (roll/pitch/yaw)'), 1, 0, 1, 1, QtCore.Qt.AlignLeft)
+        self.gridLayout.addWidget(QtWidgets.QLabel('Position (X/Y/Z)'), 0, 0, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.gridLayout.addWidget(QtWidgets.QLabel('Pose (roll/pitch/yaw)'), 1,
+                                  0, 1, 1, QtCore.Qt.AlignmentFlag.AlignLeft)
 
         self.labels = {
             'stateEstimate.x': {
                 'widget': QtWidgets.QLabel('X'),
                 'x_grid': 0, 'y_grid': 1,
-                'alignment': QtCore.Qt.AlignLeft
+                'alignment': QtCore.Qt.AlignmentFlag.AlignLeft
             },
             'stateEstimate.y': {
                 'widget': QtWidgets.QLabel('Y'),
                 'x_grid': 0, 'y_grid': 2,
-                'alignment': QtCore.Qt.AlignLeft
+                'alignment': QtCore.Qt.AlignmentFlag.AlignLeft
             },
             'stateEstimate.z': {
                 'widget': QtWidgets.QLabel('Z'),
                 'x_grid': 0, 'y_grid': 3,
-                'alignment': QtCore.Qt.AlignLeft
+                'alignment': QtCore.Qt.AlignmentFlag.AlignLeft
             },
             'stabilizer.roll': {
                 'widget': QtWidgets.QLabel('roll'),
                 'x_grid': 1, 'y_grid': 1,
-                'alignment': QtCore.Qt.AlignLeft
+                'alignment': QtCore.Qt.AlignmentFlag.AlignLeft
             },
             'stabilizer.pitch': {
                 'widget': QtWidgets.QLabel('pitch'),
                 'x_grid': 1, 'y_grid': 2,
-                'alignment': QtCore.Qt.AlignLeft
+                'alignment': QtCore.Qt.AlignmentFlag.AlignLeft
             },
             'stabilizer.yaw': {
                 'widget': QtWidgets.QLabel('yaw'),
                 'x_grid': 1, 'y_grid': 3,
-                'alignment': QtCore.Qt.AlignLeft
+                'alignment': QtCore.Qt.AlignmentFlag.AlignLeft
             }
         }
 
@@ -191,48 +192,48 @@ class MainWindow(QtWidgets.QWidget):
 
     def keyPressEvent(self, event):
         if (not event.isAutoRepeat()):
-            if (event.key() == QtCore.Qt.Key_Left):
+            if (event.key() == QtCore.Qt.Key.Key_Left):
                 self.updateHover('y', 1)
-            if (event.key() == QtCore.Qt.Key_Right):
+            if (event.key() == QtCore.Qt.Key.Key_Right):
                 self.updateHover('y', -1)
-            if (event.key() == QtCore.Qt.Key_Up):
+            if (event.key() == QtCore.Qt.Key.Key_Up):
                 self.updateHover('x', 1)
-            if (event.key() == QtCore.Qt.Key_Down):
+            if (event.key() == QtCore.Qt.Key.Key_Down):
                 self.updateHover('x', -1)
-            if (event.key() == QtCore.Qt.Key_A):
+            if (event.key() == QtCore.Qt.Key.Key_A):
                 self.updateHover('yaw', -70)
-            if (event.key() == QtCore.Qt.Key_D):
+            if (event.key() == QtCore.Qt.Key.Key_D):
                 self.updateHover('yaw', 70)
-            if (event.key() == QtCore.Qt.Key_Z):
+            if (event.key() == QtCore.Qt.Key.Key_Z):
                 self.updateHover('yaw', -200)
-            if (event.key() == QtCore.Qt.Key_X):
+            if (event.key() == QtCore.Qt.Key.Key_X):
                 self.updateHover('yaw', 200)
-            if (event.key() == QtCore.Qt.Key_W):
+            if (event.key() == QtCore.Qt.Key.Key_W):
                 self.updateHover('height', 0.1)
-            if (event.key() == QtCore.Qt.Key_S):
+            if (event.key() == QtCore.Qt.Key.Key_S):
                 self.updateHover('height', -0.1)
 
     def keyReleaseEvent(self, event):
         if (not event.isAutoRepeat()):
-            if (event.key() == QtCore.Qt.Key_Left):
+            if (event.key() == QtCore.Qt.Key.Key_Left):
                 self.updateHover('y', 0)
-            if (event.key() == QtCore.Qt.Key_Right):
+            if (event.key() == QtCore.Qt.Key.Key_Right):
                 self.updateHover('y', 0)
-            if (event.key() == QtCore.Qt.Key_Up):
+            if (event.key() == QtCore.Qt.Key.Key_Up):
                 self.updateHover('x', 0)
-            if (event.key() == QtCore.Qt.Key_Down):
+            if (event.key() == QtCore.Qt.Key.Key_Down):
                 self.updateHover('x', 0)
-            if (event.key() == QtCore.Qt.Key_A):
+            if (event.key() == QtCore.Qt.Key.Key_A):
                 self.updateHover('yaw', 0)
-            if (event.key() == QtCore.Qt.Key_D):
+            if (event.key() == QtCore.Qt.Key.Key_D):
                 self.updateHover('yaw', 0)
-            if (event.key() == QtCore.Qt.Key_W):
+            if (event.key() == QtCore.Qt.Key.Key_W):
                 self.updateHover('height', 0)
-            if (event.key() == QtCore.Qt.Key_S):
+            if (event.key() == QtCore.Qt.Key.Key_S):
                 self.updateHover('height', 0)
-            if (event.key() == QtCore.Qt.Key_Z):
+            if (event.key() == QtCore.Qt.Key.Key_Z):
                 self.updateHover('yaw', 0)
-            if (event.key() == QtCore.Qt.Key_X):
+            if (event.key() == QtCore.Qt.Key.Key_X):
                 self.updateHover('yaw', 0)
 
     def sendHoverCommand(self):

@@ -246,11 +246,16 @@ setpoint with the same thrust but with roll/pitch/yawrate = 0, this
 will make the Crazyflie stop accelerating. After 2 seconds without new
 setpoint the Crazyflie will cut power from the motors.
 
+
 Note that this command implements a motor lock mechanism that is
 intended to avoid flyaway when connecting a gamepad. You must send
 one command with thrust = 0 in order to unlock the command. This
 unlock procedure needs to be repeated if the watchdog described above
 kicks-in.
+
+This the current default behavior, but it depends on the [Supervisor configuration in the Crazyflie firmware](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/supervisor/).
+
+> Note: If you'd like to send rate commands instead, make sure that the [flightmode.stabModeRoll/Pitch/Yaw](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/params/#flightmode) is set to rate (0).
 
 ### Other commander setpoints sending
 

@@ -253,7 +253,7 @@ one command with thrust = 0 in order to unlock the command. This
 unlock procedure needs to be repeated if the watchdog described above
 kicks-in.
 
-This the current default behavior, but it is depended on the [Supervisor configuration in the Crazyflie firmware](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/supervisor/).
+This the current default behavior, but it depends on the [Supervisor configuration in the Crazyflie firmware](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/supervisor/).
 
 > Note: If you'd like to send rate commands instead, make sure that the [flightmode.stabModeRoll/Pitch/Yaw](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/api/params/#flightmode) is set to rate (0).
 

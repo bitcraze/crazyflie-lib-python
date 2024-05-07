@@ -72,7 +72,8 @@ class Commander():
         Send a new control setpoint for roll/pitch/yaw_Rate/thrust to the copter.
 
         The meaning of these values is depended on the mode of the RPYT commander in the firmware.
-        The roll, pitch and yaw can be set in a rate or absolute mode with parameter group `flightmode` with variables `stabModeRoll`, `.stabModeRoll` and `.stabModeRoll`.
+        The roll, pitch and yaw can be set in a rate or absolute mode with parameter group
+         `flightmode` with variables `stabModeRoll`, `.stabModeRoll` and `.stabModeRoll`.
         Default settings are roll, pitch, yawrate and thrust
 
         roll,  pitch are in degrees,

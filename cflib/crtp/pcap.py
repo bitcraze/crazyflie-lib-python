@@ -1,6 +1,6 @@
 import os
 import struct
-from datetime import datetime
+import time
 from enum import IntEnum
 
 
@@ -139,6 +139,6 @@ class PCAPLog():
         )
 
     def _pcap_header(self, len):
-        ts = datetime.now()
-
-        return struct.pack('<LLLL', ts.second, ts.microsecond, len, len)
+        seconds = time.time()
+        u_sec = int((seconds % 1)*1000000)
+        return struct.pack('<LLLL', int(seconds), u_sec, len, len)

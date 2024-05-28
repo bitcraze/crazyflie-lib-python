@@ -35,7 +35,7 @@ task_Vel = 0.1  # on-task velocity
 ori_pos_x = -0.93    # original tag position in x-axis
 first_step_pos_x = -0.68  # tag position in x-axis after first step
 
-# for heel-to-toe (4 steps)
+# for heel-to-toe (5 steps)
 dx = abs(ori_pos_x-first_step_pos_x)   # two step length
 # tot_dist = step*dx    # total moving distance
 ds = 2*dx   # one task length

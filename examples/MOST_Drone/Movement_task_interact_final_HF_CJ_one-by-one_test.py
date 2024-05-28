@@ -30,21 +30,22 @@ task_Vel = 0.2  # on-task velocity
 
 
 # for hip extension (2 steps)
-max_ROM_x = -0.27   # change this variable according to the selected movement
-ori_pos_x = -0.03    # original leg's sensor position in x-axis
+max_ROM_x = -0.28   # change this variable according to the selected movement
+ori_pos_x = -0.13    # original leg's sensor position in x-axis
 move_dist_x = abs(ori_pos_x - max_ROM_x)  # total moving distant in x-axis for drone and leg's sensor
 ds_x = move_dist_x/(step)  # moving distant in inner for loop
 
 # for hip&knee flex (3 steps)
-max_ROM_z = 0.42   # change this variable according to the selected movement
+max_ROM_z = 0.5 # change this variable according to the selected movement
 ori_pos_z = 0.12    # original leg's sensor height
+
 move_dist_z = abs(ori_pos_z - max_ROM_z)  # total moving distant in z-axis for drone and leg's sensor
 ds_z = move_dist_z/(step)  # moving distant in inner for loop
 
 # for hip abduction (2 steps)
-max_ROM_y = 0.37   # change this variable according to the selected movement
-ori_pos_y = 0.05    # original leg's sensor position in y-axis
-move_dist_y = abs(ori_pos_y - max_ROM_y)  # total moving distant in y-axis for drone and leg's sensor
+max_ROM_y = -0.35   # change this variable according to the selected movement
+ori_pos_y = -0.05  # original leg's sensor position in y-axis
+move_dist_y = abs(ori_pos_y - max_ROM_y)  # total moving distant in y-axis for drone and leg's sensor                                       :P
 ds_y = move_dist_y/(step)  # moving distant in inner for loop
 
 
@@ -3150,18 +3151,18 @@ if __name__ == '__main__':
             # # Declaring threads for feedback providing
             # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HE, args=(e1, e2, e3, e4))
             # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_KnF, args=(e1, e2, e3, e4))
-            # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_R, args=(e1, e2, e3, e4))
-            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_L, args=(e1, e2, e3, e4))
+            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_R, args=(e1, e2, e3, e4))
+            # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_L, args=(e1, e2, e3, e4))
 
 
             # Starting threads for drone motion
             pos_state_thread.start()
 
-            # Perform the drone guiding task
+            # # Perform the drone guiding task                                                                            uwu
             # drone_guide_pc_HE(scf_1, e1, e2, e3, e4)
             # drone_guide_pc_KnF_HFKnF(scf_1, e1, e2, e3, e4)
-            # drone_guide_pc_HA_R(scf_1, e1, e2, e3, e4)
-            drone_guide_pc_HA_L(scf_1, e1, e2, e3, e4)
+            drone_guide_pc_HA_R(scf_1, e1, e2, e3, e4)
+            # drone_guide_pc_HA_L(scf_1, e1, e2, e3, e4)          
 
             
             # Threads join

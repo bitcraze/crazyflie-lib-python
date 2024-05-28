@@ -21,19 +21,19 @@ init_H = float(0.0)  # Initial drone's height; unit: m
 start_pos_d = 0.3 + init_H   # start z-position for drone
 
 # # for right side lighthouse
-# start_x = float(-0.56)  # initial pos_X of the drone; unit: m
-# start_y = float(0.20)  # initial pos_y of the drone; unit: m
+start_x = float(-0.29)  # initial pos_X of the drone; unit: m
+start_y = float(0.21)  # initial pos_y of the drone; unit: m
 
-# for left side lighthouse
-start_x = float(-0.62)  # initial pos_X of the drone; unit: m
-start_y = float(-0.17)  # initial pos_y of the drone; unit: m
+# # for left side lighthouse
+# start_x = float(-0.31)  # initial pos_X of the drone; unit: m
+# start_y = float(-0.17)  # initial pos_y of the drone; unit: m
 
 step = 2   # repeat = rep-1
 task_Vel = 0.1  # on-task velocity
 
 
-ori_pos_x = -1.10    # original tag position in x-axis
-first_step_pos_x = -0.84   # tag position in x-axis after first step
+ori_pos_x = -0.93    # original tag position in x-axis
+first_step_pos_x = -0.68  # tag position in x-axis after first step
 
 # for heel-to-toe (4 steps)
 dx = abs(ori_pos_x-first_step_pos_x)   # two step length

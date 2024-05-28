@@ -20,43 +20,31 @@ uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor1's uri
 init_H = float(0.0)  # Initial drone's height; unit: m
 start_pos_d = 0.3 + init_H   # start z-position for drone
 
-# for right side lighthouse
-# start_x = float(-0.30)  # initial pos_X of the drone; unit: m
-# start_y = float(0.20)  # initial pos_y of the drone; unit: m
+# # for right side lighthouse
+start_x = float(-0.29)  # initial pos_X of the drone; unit: m
+start_y = float(0.21)  # initial pos_y of the drone; unit: m
 
-# for left side lighthouse
-start_x = float(-0.30)  # initial pos_X of the drone; unit: m
-start_y = float(-0.17)  # initial pos_y of the drone; unit: m
+# # for left side lighthouse
+# start_x = float(-0.31)  # initial pos_X of the drone; unit: m
+# start_y = float(-0.17)  # initial pos_y of the drone; unit: m
 
 step = 6   # repeat = rep-1
 task_Vel = 0.1  # on-task velocity
 
 
-ori_pos_x = -0.84    # original tag position in x-axis
-first_step_pos_x = -0.58   # tag position in x-axis after first step
+ori_pos_x = -0.93    # original tag position in x-axis
+first_step_pos_x = -0.68  # tag position in x-axis after first step
 
 # for heel-to-toe (4 steps)
 dx = abs(ori_pos_x-first_step_pos_x)   # two step length
 # tot_dist = step*dx    # total moving distance
+ds = 2*dx   # one task length
 
 diff_x = abs(start_x - ori_pos_x)  # initial diff between drone and tag (ideally constant)
 
 position_estimate_1 = [0, 0, 0]  # Drone's pos
 position_estimate_2 = [0, 0, 0]  # LS1's pos
 
-
-
-## for showing image\
-# paths
-path_rest = r'D:\Drone_Project\Virtual_env\crazyflie-lib-python\examples\MOST_Drone\bg_rest.png'
-path_task = r'D:\Drone_Project\Virtual_env\crazyflie-lib-python\examples\MOST_Drone\bg_task.png'
-  
-# Reading an image in default mode 
-image_r = cv2.imread(path_rest) 
-image_t = cv2.imread(path_task)
-  
-# Window name in which image is displayed 
-window_name = 'image'
 
 
 # # Positioning Callback Section
@@ -77,21 +65,6 @@ def log_pos_callback_2(uri_2, timestamp, data, logconf_2):
 
 
 def drone_guide_pc_HtH(scf, event1, event2): 
-
-    # Displaying the rest image for 5 seconds
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    cv2.imshow(window_name, image_r) 
-    cv2.waitKey(5000) 
-    # cv2.destroyAllWindows()
-
-    # Displaying the task image for 1 second
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    cv2.imshow(window_name, image_t) 
-    cv2.waitKey(1000) 
-    cv2.destroyAllWindows()
-
 
     with PositionHlCommander(
             scf,
@@ -141,7 +114,7 @@ def drone_guide_pc_HtH(scf, event1, event2):
 
             t_end = time.time()
             TpR = t_end - t_start   # total time per round (second)
-            print("Total time per step (first)", i, ": ", TpR)
+            print("Total time per step ", i, ": ", TpR)
             print("next!!!")
             
 
@@ -149,19 +122,14 @@ def drone_guide_pc_HtH(scf, event1, event2):
         winsound.PlaySound('_short-success.wav', winsound.SND_FILENAME)
         print(pc.get_position())
 
+        # set the event for turning off the sound feedback process
+        event1.set()
+
         print("Task done")
         TpT = t_end - t_zero
         print("Total time: ", TpT)
 
-        # set the event for turning off the sound feedback process
-        event1.set()
-
-    # Displaying the rest image for 1 second
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty(window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    cv2.imshow(window_name, image_r) 
-    cv2.waitKey(1000) 
-    cv2.destroyAllWindows()
+        
 
 # # Feedback Section
 
@@ -170,7 +138,7 @@ def position_state_change(event1, event2):
     while not event1.is_set():  # the drone hasn't finished the guiding yet
         
         
-        if abs(abs(position_estimate_1[0]-position_estimate_2[0])-diff_x) < 0.07: 
+        if abs(abs(position_estimate_1[0]-position_estimate_2[0])-diff_x) < 0.05: 
             # print("good job")
             event2.set()
                             

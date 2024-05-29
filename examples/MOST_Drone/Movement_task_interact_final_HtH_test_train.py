@@ -3,14 +3,21 @@ import logging
 import cflib.crtp
 import threading
 import winsound
-import math
-import cv2
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.position_hl_commander import PositionHlCommander
 from cflib.crazyflie.log import LogConfig
 
+'''
+Changing these parameters for every trials
+1. uri_1: changing based on the drone's uri
+2. uncomment Line 30-32 and comment Line 34-36 for right-side trial
+   uncomment Line 34-36 and comment Line 30-32 for left-side trial 
+4. ori_pos_x: changing based on subject's initial position (get this value from Crazyflie Client's Lighthouse tab)
+5. first_step_pos_x :  changing based on the position of the subject when doing one-step heel-to-toe and leaning forward to straigthening his/her leg (with tag) perpendicular to the ground (get this value from Crazyflie Client's Lighthouse tab)
+
+'''
 
 # URI to the Crazyflie to connect to
 uri_1 = 'radio://0/80/2M/E7E7E7E701' # Drone's uri
@@ -28,12 +35,12 @@ start_y = float(0.21)  # initial pos_y of the drone; unit: m
 # start_x = float(-0.31)  # initial pos_X of the drone; unit: m
 # start_y = float(-0.17)  # initial pos_y of the drone; unit: m
 
-step = 6   # repeat = rep-1
+step = 6   # repeat = rep-1; same for both testing and training
 task_Vel = 0.1  # on-task velocity
 
 
-ori_pos_x = -0.93    # original tag position in x-axis
-first_step_pos_x = -0.68  # tag position in x-axis after first step
+ori_pos_x = -0.93    # original tag position in x-axis; unit: m
+first_step_pos_x = -0.68  # tag position in x-axis after first step; unit: m
 
 # for heel-to-toe (5 steps)
 dx = abs(ori_pos_x-first_step_pos_x)   # two step length

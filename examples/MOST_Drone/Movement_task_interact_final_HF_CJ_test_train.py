@@ -14,7 +14,7 @@ from cflib.crazyflie.log import LogConfig
 '''
 Changing these parameters for every trials
 1. uri_1: changing based on the drone's uri
-2. init_H: changing based on the subject's chest position
+2. init_H: changing based on the subject's chest position (No need for now)
 3. rep: changing based on the how many trials the subject has to repeat (i.e., rep = 6 for testing 5 trials)
 4. step: changing based on the movement 
     - Hip extension: step = 2
@@ -29,7 +29,7 @@ Changing these parameters for every trials
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E710' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E701' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
 init_H = float(0.7)  # Initial drone's height; unit: m
@@ -38,27 +38,27 @@ start_x = float(1.0)  # initial pos_X of the drone; unit: m
 start_y = float(0.0)  # initial pos_y of the drone; unit: m
 
 rep = 6   # trial = rep-1; for testing: rep=6, while for training: rep=11
-step = 2   # changing according to the movement  
+step = 2 # changing according to the movement  
 count = step + 1 # inner loop count
 
 task_Vel = 0.2  # on-task velocity
 
 
-# for hip extension (2 steps)
-max_ROM_x = -0.29   # change this variable according to the selected movement; unit: m
-ori_pos_x = -0.08    # original leg's sensor position in x-axis; unit: m
+# for hip extension X (2 steps)
+max_ROM_x = -0.20  # change this variable according to the selected movement; unit: m
+ori_pos_x = -0.04   # original leg's sensor position in x-axis; unit: m
 move_dist_x = abs(ori_pos_x - max_ROM_x)  # total moving distant in x-axis for drone and leg's sensor
 ds_x = move_dist_x/(step)  # moving distant in inner for loop
 
-# for hip&knee flex (3 steps)
-max_ROM_z = 0.44   # change this variable according to the selected movement; unit: m
-ori_pos_z = 0.15    # original leg's sensor height; unit: m
+# for hip&knee flex Z uwu (3 steps)
+max_ROM_z = 0.39  # change this variable according to the selected movement; unit: m
+ori_pos_z = 0.11  # original leg's sensor height; unit: m
 move_dist_z = abs(ori_pos_z - max_ROM_z)  # total moving distant in z-axis for drone and leg's sensor
 ds_z = move_dist_z/(step)  # moving distant in inner for loop
 
-# for hip abduction (2 steps)
-max_ROM_y = -0.29   # change this variable according to the selected movement; unit: m
-ori_pos_y = -0.04    # original leg's sensor position in y-axis; unit: m
+# for hip abduction Y uwu (2 steps)
+max_ROM_y = 0.28  # change this variable according to the selected movement; unit: m
+ori_pos_y = 0.02    # original leg's sensor position in y-axis; unit: m
 move_dist_y = abs(ori_pos_y - max_ROM_y)  # total moving distant in y-axis for drone and leg's sensor
 ds_y = move_dist_y/(step)  # moving distant in inner for loop
 
@@ -768,20 +768,20 @@ if __name__ == '__main__':
 
         # # Drone Motion (MotionCommander)
             # # Declaring threads for feedback providing
-            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HE, args=(e1, e2, e3, e4))
+            # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HE, args=(e1, e2, e3, e4))
             # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_KnF, args=(e1, e2, e3, e4))
             # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_R, args=(e1, e2, e3, e4))
-            # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_L, args=(e1, e2, e3, e4))
+            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_L, args=(e1, e2, e3, e4))
 
 
             # Starting threads for drone motion
             pos_state_thread.start()
 
             # Perform the drone guiding task
-            drone_guide_pc_HE(scf_1, e1, e2, e3, e4)
+            # drone_guide_pc_HE(scf_1, e1, e2, e3, e4)
             # drone_guide_pc_KnF_HFKnF(scf_1, e1, e2, e3, e4)
             # drone_guide_pc_HA_R(scf_1, e1, e2, e3, e4)
-            # drone_guide_pc_HA_L(scf_1, e1, e2, e3, e4)
+            drone_guide_pc_HA_L(scf_1, e1, e2, e3, e4)
 
             
             # Threads join

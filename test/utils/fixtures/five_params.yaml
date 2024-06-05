@@ -1,0 +1,23 @@
+params:
+  activeMarker.back:
+    default_value: 3
+    is_stored: true
+    stored_value: 10
+  activeMarker.front:
+    default_value: 3
+    is_stored: true
+    stored_value: 10
+  activeMarker.left:
+    default_value: 3
+    is_stored: true
+    stored_value: 10
+  cppm.angPitch:
+    default_value: 50.0
+    is_stored: true
+    stored_value: 55.0
+  ctrlMel.i_range_z:
+    default_value: 0.4000000059604645
+    is_stored: true
+    stored_value: 0.44999998807907104
+type: persistent_param_state
+version: '1'

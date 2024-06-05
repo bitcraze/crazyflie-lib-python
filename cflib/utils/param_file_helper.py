@@ -21,18 +21,35 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 from cflib.crazyflie import Crazyflie
 from cflib.localization.param_io import ParamFileManager
+from threading import Event
 
 
 class ParamFileHelper:
     def __init__(self, crazyflie):
         if isinstance(crazyflie, Crazyflie):
             self._cf = crazyflie
+            self.persistent_sema = None
+            self.success = False
         else:
             raise TypeError("ParamFileHelper only takes a Crazyflie Object")
-    
+        
+
+    def _persistent_stored_callback(self, complete_name, success):
+        self.success = success
+        if not success:
+            print(f'Persistent params: failed to store {complete_name}!')
+        else:
+            print(f'Persistent params: stored {complete_name}!')
+        self.persistent_sema.set()
+
+
     def store_params_from_file(self, filename):
-        print(self._cf.param)
         params = ParamFileManager().read(filename)
         for param, state in params.items():
+            self.persistent_sema = Event()
             self._cf.param.set_value(param, state.stored_value)
-            self._cf.param.persistent_store(param)
+            self._cf.param.persistent_store(param, self._persistent_stored_callback)
+            self.persistent_sema.wait()
+            if not self.success:
+                break
+        return self.success

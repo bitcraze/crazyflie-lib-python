@@ -19,20 +19,23 @@
 #  GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
+from threading import Event
+
 from cflib.crazyflie import Crazyflie
 from cflib.localization.param_io import ParamFileManager
-from threading import Event
 
 
 class ParamFileHelper:
+    '''ParamFileHelper is a helper to synchonously write multiple paramteters
+    from a file and store them in persistent memory'''
+
     def __init__(self, crazyflie):
         if isinstance(crazyflie, Crazyflie):
             self._cf = crazyflie
             self.persistent_sema = None
             self.success = False
         else:
-            raise TypeError("ParamFileHelper only takes a Crazyflie Object")
-        
+            raise TypeError('ParamFileHelper only takes a Crazyflie Object')
 
     def _persistent_stored_callback(self, complete_name, success):
         self.success = success
@@ -41,7 +44,6 @@ class ParamFileHelper:
         else:
             print(f'Persistent params: stored {complete_name}!')
         self.persistent_sema.set()
-
 
     def store_params_from_file(self, filename):
         params = ParamFileManager().read(filename)

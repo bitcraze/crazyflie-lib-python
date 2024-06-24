@@ -99,17 +99,17 @@ def drone_guide_pc_HtH(scf, event1, event2):
             time.sleep(abs(dx)/task_Vel)
             print(pc.get_position())
 
-            while not event2.is_set():  # the subject doesn't follow the drone's step
-                print("please step forward to follow the drone")
-                # time.sleep(0.1)
+            # while not event2.is_set():  # the subject doesn't follow the drone's step
+            #     print("please step forward to follow the drone")
+            #     # time.sleep(0.1)
 
-            print("Half step already! Keep going!")
-            # winsound.PlaySound('Success.wav', winsound.SND_FILENAME)
-            time.sleep(2)
+            # print("Half step already! Keep going!")
+            # # winsound.PlaySound('Success.wav', winsound.SND_FILENAME)
+            # time.sleep(2)
 
-            pc.move_distance(dx, 0.0, 0.0)
-            time.sleep(abs(dx)/task_Vel)
-            print(pc.get_position())
+            # pc.move_distance(dx, 0.0, 0.0)
+            # time.sleep(abs(dx)/task_Vel)
+            # print(pc.get_position())
 
 
             while not event2.is_set():  # the subject doesn't follow the drone's step

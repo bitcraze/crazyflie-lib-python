@@ -68,7 +68,7 @@ try:
 except ImportError:
     pass
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 logging.basicConfig(level=logging.INFO)
 
@@ -230,48 +230,48 @@ class Canvas(scene.SceneCanvas):
 
     def on_key_press(self, event):
         if (not event.native.isAutoRepeat()):
-            if (event.native.key() == QtCore.Qt.Key_Left):
+            if (event.native.key() == QtCore.Qt.Key.Key_Left):
                 self.keyCB('y', 1)
-            if (event.native.key() == QtCore.Qt.Key_Right):
+            if (event.native.key() == QtCore.Qt.Key.Key_Right):
                 self.keyCB('y', -1)
-            if (event.native.key() == QtCore.Qt.Key_Up):
+            if (event.native.key() == QtCore.Qt.Key.Key_Up):
                 self.keyCB('x', 1)
-            if (event.native.key() == QtCore.Qt.Key_Down):
+            if (event.native.key() == QtCore.Qt.Key.Key_Down):
                 self.keyCB('x', -1)
-            if (event.native.key() == QtCore.Qt.Key_A):
+            if (event.native.key() == QtCore.Qt.Key.Key_A):
                 self.keyCB('yaw', -70)
-            if (event.native.key() == QtCore.Qt.Key_D):
+            if (event.native.key() == QtCore.Qt.Key.Key_D):
                 self.keyCB('yaw', 70)
-            if (event.native.key() == QtCore.Qt.Key_Z):
+            if (event.native.key() == QtCore.Qt.Key.Key_Z):
                 self.keyCB('yaw', -200)
-            if (event.native.key() == QtCore.Qt.Key_X):
+            if (event.native.key() == QtCore.Qt.Key.Key_X):
                 self.keyCB('yaw', 200)
-            if (event.native.key() == QtCore.Qt.Key_W):
+            if (event.native.key() == QtCore.Qt.Key.Key_W):
                 self.keyCB('height', 0.1)
-            if (event.native.key() == QtCore.Qt.Key_S):
+            if (event.native.key() == QtCore.Qt.Key.Key_S):
                 self.keyCB('height', -0.1)
 
     def on_key_release(self, event):
         if (not event.native.isAutoRepeat()):
-            if (event.native.key() == QtCore.Qt.Key_Left):
+            if (event.native.key() == QtCore.Qt.Key.Key_Left):
                 self.keyCB('y', 0)
-            if (event.native.key() == QtCore.Qt.Key_Right):
+            if (event.native.key() == QtCore.Qt.Key.Key_Right):
                 self.keyCB('y', 0)
-            if (event.native.key() == QtCore.Qt.Key_Up):
+            if (event.native.key() == QtCore.Qt.Key.Key_Up):
                 self.keyCB('x', 0)
-            if (event.native.key() == QtCore.Qt.Key_Down):
+            if (event.native.key() == QtCore.Qt.Key.Key_Down):
                 self.keyCB('x', 0)
-            if (event.native.key() == QtCore.Qt.Key_A):
+            if (event.native.key() == QtCore.Qt.Key.Key_A):
                 self.keyCB('yaw', 0)
-            if (event.native.key() == QtCore.Qt.Key_D):
+            if (event.native.key() == QtCore.Qt.Key.Key_D):
                 self.keyCB('yaw', 0)
-            if (event.native.key() == QtCore.Qt.Key_W):
+            if (event.native.key() == QtCore.Qt.Key.Key_W):
                 self.keyCB('height', 0)
-            if (event.native.key() == QtCore.Qt.Key_S):
+            if (event.native.key() == QtCore.Qt.Key.Key_S):
                 self.keyCB('height', 0)
-            if (event.native.key() == QtCore.Qt.Key_Z):
+            if (event.native.key() == QtCore.Qt.Key.Key_Z):
                 self.keyCB('yaw', 0)
-            if (event.native.key() == QtCore.Qt.Key_X):
+            if (event.native.key() == QtCore.Qt.Key.Key_X):
                 self.keyCB('yaw', 0)
 
     def set_position(self, pos):
@@ -361,4 +361,4 @@ if __name__ == '__main__':
     appQt = QtWidgets.QApplication(sys.argv)
     win = MainWindow(URI)
     win.show()
-    appQt.exec_()
+    appQt.exec()

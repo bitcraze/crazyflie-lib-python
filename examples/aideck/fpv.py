@@ -68,7 +68,11 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 
 logging.basicConfig(level=logging.INFO)
 
-URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+# If you have set a CFLIB_URI environment variable, that address will be used.
+URI = uri_helper.uri_from_env(default='tcp://192.168.4.1:5000')
+# 192.168.4.1 is the default IP address if the aideck is Access point.
+# If you are using the aideck as a station, you should use the assigned IP address
+# 5000 is the default port for the aideck
 
 CAM_HEIGHT = 244
 CAM_WIDTH = 324

@@ -1,0 +1,8 @@
+Pim:
+Arm* length:0.7m (*Arm length = shoulder to fingertips) 
+Forearm length:0.4m (*Forearm length=elbow to fingertips)
+1)drone to ankle distance :Arm*80%=0.7*0.8=0.56
+2)Left:forearm*130% = 0.52
+3)Right:Arm=0.7
+4)Up:forearm*80%
+5)Front

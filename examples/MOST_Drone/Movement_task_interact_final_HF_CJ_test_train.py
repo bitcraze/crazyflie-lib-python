@@ -20,16 +20,17 @@ Changing these parameters for every trials
     - Hip extension: step = 2
     - Hip flexion and knee flexion: step = 3
     - Hip abduction: step = 2
-5. max_ROM_x or max_ROM_y or max_ROM_z: changing based on subject's maximum ROM for that movement (get this value from Crazyflie Client's Lighthouse tab)
-6. ori_pos_x or ori_pos_y or ori_pos_z:  changing based on subject's initial position for that movement (get this value from Crazyflie Client's Lighthouse tab)
-7. (Line 769-784) uncommented the "pos_state_thread" and "drone_guide_pc_XX" according to the movement that subject has to perform
+5. bt: adjusting break time between trials (No need to change)
+6. max_ROM_x or max_ROM_y or max_ROM_z: changing based on subject's maximum ROM for that movement (get this value from Crazyflie Client's Lighthouse tab)
+7. ori_pos_x or ori_pos_y or ori_pos_z:  changing based on subject's initial position for that movement (get this value from Crazyflie Client's Lighthouse tab)
+8. (Line 774-789) uncommented the "pos_state_thread" and "drone_guide_pc_XX" according to the movement that subject has to perform
 
 '''
 
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E701' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E704' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
 init_H = float(0.7)  # Initial drone's height; unit: m
@@ -42,23 +43,23 @@ step = 2 # changing according to the movement
 count = step + 1 # inner loop count
 
 task_Vel = 0.2  # on-task velocity
+bt = 2  # break time between trials; unit: second
 
-
-# for hip extension X (2 steps)
-max_ROM_x = -0.20  # change this variable according to the selected movement; unit: m
-ori_pos_x = -0.04   # original leg's sensor position in x-axis; unit: m
+# for hip extension X (2 steps) 
+max_ROM_x = -0.28  # change this variable according to the selected movement; unit: m
+ori_pos_x = -0.15   # original leg's sensor position in x-axis; unit: m
 move_dist_x = abs(ori_pos_x - max_ROM_x)  # total moving distant in x-axis for drone and leg's sensor
 ds_x = move_dist_x/(step)  # moving distant in inner for loop
 
 # for hip&knee flex Z uwu (3 steps)
-max_ROM_z = 0.39  # change this variable according to the selected movement; unit: m
-ori_pos_z = 0.11  # original leg's sensor height; unit: m
+max_ROM_z = 0.47  # change this variable according to the selected movement; unit: m
+ori_pos_z = 0.13  # original leg's sensor height; unit: m
 move_dist_z = abs(ori_pos_z - max_ROM_z)  # total moving distant in z-axis for drone and leg's sensor
 ds_z = move_dist_z/(step)  # moving distant in inner for loop
 
 # for hip abduction Y uwu (2 steps)
 max_ROM_y = 0.28  # change this variable according to the selected movement; unit: m
-ori_pos_y = 0.02    # original leg's sensor position in y-axis; unit: m
+ori_pos_y = 0.00  # original leg's sensor position in y-axis; unit: m
 move_dist_y = abs(ori_pos_y - max_ROM_y)  # total moving distant in y-axis for drone and leg's sensor
 ds_y = move_dist_y/(step)  # moving distant in inner for loop
 
@@ -185,6 +186,7 @@ def drone_guide_pc_KnF_HFKnF(scf, event1, event2, event3, event4):
             t_end = time.time()
             TpR = t_end - t_start   # total time per round (second)
             print("Total time per round: ", TpR)
+            time.sleep(bt)      # break time between trials
             print("next!!!")
 
         # set the event for turning off the sound feedback process
@@ -298,6 +300,7 @@ def drone_guide_pc_HE(scf, event1, event2, event3, event4):
             t_end = time.time()
             TpR = t_end - t_start   # total time per round (second)
             print("Total time per round ", i, ": ", TpR)
+            time.sleep(bt)      # break time between trials
             print("next!!!")
 
         # set the event for turning off the sound feedback process
@@ -410,6 +413,7 @@ def drone_guide_pc_HA_R(scf, event1, event2, event3, event4):
             t_end = time.time()
             TpR = t_end - t_start   # total time per round (second)
             print("Total time per round: ", TpR)
+            time.sleep(bt)      # break time between trials
             print("next!!!")
 
         # set the event for turning off the sound feedback process
@@ -521,6 +525,7 @@ def drone_guide_pc_HA_L(scf, event1, event2, event3, event4):
             t_end = time.time()
             TpR = t_end - t_start   # total time per round (second)
             print("Total time per round: ", TpR)
+            time.sleep(bt)      # break time between trials
             print("next!!!")
 
         # set the event for turning off the sound feedback process

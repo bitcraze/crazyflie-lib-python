@@ -14,33 +14,33 @@ Changing these parameters for every trials
 1. uri_1: changing based on the drone's uri
 2. uncomment Line 30-32 and comment Line 34-36 for right-side trial
    uncomment Line 34-36 and comment Line 30-32 for left-side trial 
-3. ori_pos_x: changing based on subject's initial position (get this value from Crazyflie Client's Lighthouse tab)
-4. first_step_pos_x :  changing based on the position of the subject when doing one-step heel-to-toe and leaning forward to straigthening his/her leg (with tag) perpendicular to the ground (get this value from Crazyflie Client's Lighthouse tab)
-
+3. bt: adjusting break time between trials (No need to change)
+4. ori_pos_x: changing based on subject's initial position (get this value from Crazyflie Client's Lighthouse tab)
+5. first_step_pos_x :  changing based on the position of the subject when doing one-step heel-to-toe and leaning forward to straigthening his/her leg (with tag) perpendicular to the ground (get this value from Crazyflie Client's Lighthouse tab)
 '''
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E701' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E704' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor1's uri
 
 
 init_H = float(0.0)  # Initial drone's height; unit: m
 start_pos_d = 0.3 + init_H   # start z-position for drone
 
-# # for right side lighthouse
+# # # for right side lighthouse
 # start_x = float(-0.29)  # initial pos_X of the drone; unit: m
 # start_y = float(0.21)  # initial pos_y of the drone; unit: m
 
-# # for left side lighthouse
+# for left side lighthouse
 start_x = float(-0.31)  # initial pos_X of the drone; unit: m
 start_y = float(-0.17)  # initial pos_y of the drone; unit: m
 
-step = 5   # repeat = rep-1; same for both testing and training uwu
+step = 6   # repeat = rep-1; same for both testing and training uwu
 task_Vel = 0.1  # on-task velocity
+#bt = 2  # break time between trials; unit: second
 
-
-ori_pos_x = -1.13  # original tag position in x-axis; unit: m
-first_step_pos_x = -0.89  # tag position in x-axis after first step; unit: m
+ori_pos_x = -0.91  # original tag position in x-axis; unit: m
+first_step_pos_x = -0.47  # tag position in x-axis after first step; unit: m
 
 # for heel-to-toe (5 steps)
 dx = abs(ori_pos_x-first_step_pos_x)   # two step length
@@ -99,17 +99,17 @@ def drone_guide_pc_HtH(scf, event1, event2):
             time.sleep(abs(dx)/task_Vel)
             print(pc.get_position())
 
-            while not event2.is_set():  # the subject doesn't follow the drone's step
-                print("please step forward to follow the drone")
-                # time.sleep(0.1)
+            # while not event2.is_set():  # the subject doesn't follow the drone's step
+            #     print("please step forward to follow the drone")
+            #     # time.sleep(0.1)
 
-            print("Half step already! Keep going!")
-            # winsound.PlaySound('Success.wav', winsound.SND_FILENAME)
-            time.sleep(2)
+            # print("Half step already! Keep going!")
+            # # winsound.PlaySound('Success.wav', winsound.SND_FILENAME)
+            # time.sleep(2)
 
-            pc.move_distance(dx, 0.0, 0.0)
-            time.sleep(abs(dx)/task_Vel)
-            print(pc.get_position())
+            # pc.move_distance(dx, 0.0, 0.0)
+            # time.sleep(abs(dx)/task_Vel)
+            # print(pc.get_position())
 
 
             while not event2.is_set():  # the subject doesn't follow the drone's step
@@ -122,6 +122,7 @@ def drone_guide_pc_HtH(scf, event1, event2):
             t_end = time.time()
             TpR = t_end - t_start   # total time per round (second)
             print("Total time per step ", i, ": ", TpR)
+           # time.sleep(bt)      # break time between trials; unit: second
             print("next!!!")
             
 

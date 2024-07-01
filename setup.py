@@ -13,7 +13,7 @@ package_data = {
 
 setup(
     name='cflib',
-    version='0.1.25.1',
+    version='0.1.26',
     packages=find_packages(exclude=['examples', 'test']),
 
     description='Crazyflie python driver',

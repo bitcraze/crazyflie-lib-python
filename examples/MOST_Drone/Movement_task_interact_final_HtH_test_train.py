@@ -20,7 +20,7 @@ Changing these parameters for every trials
 '''
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E704' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E711' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor1's uri
 
 
@@ -39,8 +39,8 @@ step = 6   # repeat = rep-1; same for both testing and training uwu
 task_Vel = 0.1  # on-task velocity
 #bt = 2  # break time between trials; unit: second
 
-ori_pos_x = -0.91  # original tag position in x-axis; unit: m
-first_step_pos_x = -0.47  # tag position in x-axis after first step; unit: m
+ori_pos_x = -0.85  # original tag position in x-axis; unit: m
+first_step_pos_x = -0.38  # tag position in x-axis after first step; unit: m
 
 # for heel-to-toe (5 steps)
 dx = abs(ori_pos_x-first_step_pos_x)   # two step length

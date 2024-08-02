@@ -30,15 +30,15 @@ Changing these parameters for every trials
 
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E704' # Drone's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E701' # Drone's uri
 uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
 
 init_H = float(0.7)  # Initial drone's height; unit: m
 start_pos_d = 0.3 + init_H   # start z-position for drone
 start_x = float(1.0)  # initial pos_X of the drone; unit: m
-start_y = float(0.0)  # initial pos_y of the drone; unit: m
+start_y = float(0.2)  # initial pos_y of the drone; unit: m
 
-rep = 6   # trial = rep-1; for testing: rep=6, while for training: rep=11
+rep = 8   # trial = rep-1; for testing: rep=6, while for training: rep=11
 step = 2 # changing according to the movement  
 count = step + 1 # inner loop count
 
@@ -46,20 +46,20 @@ task_Vel = 0.2  # on-task velocity
 bt = 2  # break time between trials; unit: second
 
 # for hip extension X (2 steps) 
-max_ROM_x = -0.28  # change this variable according to the selected movement; unit: m
-ori_pos_x = -0.15   # original leg's sensor position in x-axis; unit: m
+max_ROM_x = -0.23   # change this variable according to the selected movement; unit: m
+ori_pos_x = -0.09   # original leg's sensor position in x-axis; unit: m
 move_dist_x = abs(ori_pos_x - max_ROM_x)  # total moving distant in x-axis for drone and leg's sensor
 ds_x = move_dist_x/(step)  # moving distant in inner for loop
 
 # for hip&knee flex Z uwu (3 steps)
-max_ROM_z = 0.47  # change this variable according to the selected movement; unit: m
-ori_pos_z = 0.13  # original leg's sensor height; unit: m
+max_ROM_z = 0.76  # change this variable according to the selected movement; unit: m
+ori_pos_z = 0.46  # original leg's sensor height; unit: m
 move_dist_z = abs(ori_pos_z - max_ROM_z)  # total moving distant in z-axis for drone and leg's sensor
 ds_z = move_dist_z/(step)  # moving distant in inner for loop
 
 # for hip abduction Y uwu (2 steps)
-max_ROM_y = 0.28  # change this variable according to the selected movement; unit: m
-ori_pos_y = 0.00  # original leg's sensor position in y-axis; unit: m
+max_ROM_y = 0.57   # change this variable according to the selected movement; unit: m
+ori_pos_y = 0.25   # original leg's sensor position in y-axis; unit: m
 move_dist_y = abs(ori_pos_y - max_ROM_y)  # total moving distant in y-axis for drone and leg's sensor
 ds_y = move_dist_y/(step)  # moving distant in inner for loop
 
@@ -115,8 +115,7 @@ def drone_guide_pc_KnF_HFKnF(scf, event1, event2, event3, event4):
 
             for j in range(1,count):
 
-
-                print("move up 4-5 cm, round: ", j)
+                print("move up 4-5 cm, count: ", j)
                 pc.up(ds_z) 
                 time.sleep(ds_z/task_Vel)
                 print(pc.get_position())
@@ -148,7 +147,7 @@ def drone_guide_pc_KnF_HFKnF(scf, event1, event2, event3, event4):
             ## Return process (with feedback)
             for k in range(1,count):
 
-                print("move down 4-5 cm, round: ", k)
+                print("move down 4-5 cm, count: ", k)
                 pc.down(ds_z) 
                 time.sleep(ds_z/task_Vel)
                 print(pc.get_position())
@@ -229,7 +228,7 @@ def drone_guide_pc_HE(scf, event1, event2, event3, event4):
 
             for j in range(1,count):
 
-                print("move up-backward 4-5 cm, round: ", j)
+                print("move up-backward 4-5 cm, count: ", j)
                 pc.move_distance(-(per*ds_x), 0.0, ds_x)
                 time.sleep(dist/task_Vel)
                 print(pc.get_position())
@@ -263,7 +262,7 @@ def drone_guide_pc_HE(scf, event1, event2, event3, event4):
             ## Return process (with feedback)
             for k in range(1,count):
 
-                print("move down-forward 4-5 cm, round: ", k)
+                print("move down-forward 4-5 cm, count: ", k)
                 pc.move_distance((per*ds_x), 0.0, -ds_x)
                 time.sleep(dist/task_Vel)
                 print(pc.get_position())
@@ -343,7 +342,7 @@ def drone_guide_pc_HA_R(scf, event1, event2, event3, event4):
 
             for j in range(1,count):
 
-                print("move up-right 4-5 cm, round: ", j)
+                print("move up-right 4-5 cm, count: ", j)
                 pc.move_distance(0.0, -(per*ds_y), ds_y)
                 time.sleep(dist/task_Vel + 0.05)
                 print(pc.get_position())
@@ -376,7 +375,7 @@ def drone_guide_pc_HA_R(scf, event1, event2, event3, event4):
             ## Return process (with feedback)
             for k in range(1,count):
 
-                print("move down-left 5 cm, round: ", k)
+                print("move down-left 5 cm, count: ", k)
                 pc.move_distance(0.0, (per*ds_y), -ds_y)
                 time.sleep(dist/task_Vel + 0.05)
                 print(pc.get_position())
@@ -455,7 +454,7 @@ def drone_guide_pc_HA_L(scf, event1, event2, event3, event4):
 
             for j in range(1,count):
 
-                print("move up-left 4-5 cm, round: ", j)
+                print("move up-left 4-5 cm, count: ", j)
                 pc.move_distance(0.0, per*ds_y, ds_y)
                 time.sleep(dist/task_Vel + 0.05)
                 print(pc.get_position())
@@ -488,7 +487,7 @@ def drone_guide_pc_HA_L(scf, event1, event2, event3, event4):
             ## Return process (with feedback)
             for k in range(1,count):
 
-                print("move down-right 5 cm, round: ", k)
+                print("move down-right 5 cm, count: ", k)
                 pc.move_distance(0.0, -(per*ds_y), -ds_y)
                 time.sleep(dist/task_Vel + 0.05)
                 print(pc.get_position())
@@ -773,20 +772,20 @@ if __name__ == '__main__':
 
         # # Drone Motion (MotionCommander)
             # # Declaring threads for feedback providing
-            # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HE, args=(e1, e2, e3, e4))
+            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HE, args=(e1, e2, e3, e4))
             # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_KnF, args=(e1, e2, e3, e4))
             # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_R, args=(e1, e2, e3, e4))
-            pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_L, args=(e1, e2, e3, e4))
+            # pos_state_thread = threading.Thread(name='Position-State-Change-Thread', target=position_state_change_HA_L, args=(e1, e2, e3, e4))
 
 
             # Starting threads for drone motion
             pos_state_thread.start()
 
             # Perform the drone guiding task
-            # drone_guide_pc_HE(scf_1, e1, e2, e3, e4)
+            drone_guide_pc_HE(scf_1, e1, e2, e3, e4)
             # drone_guide_pc_KnF_HFKnF(scf_1, e1, e2, e3, e4)
             # drone_guide_pc_HA_R(scf_1, e1, e2, e3, e4)
-            drone_guide_pc_HA_L(scf_1, e1, e2, e3, e4)
+            # drone_guide_pc_HA_L(scf_1, e1, e2, e3, e4)
 
             
             # Threads join
@@ -794,6 +793,6 @@ if __name__ == '__main__':
     
             time.sleep(3)
 
-            logconf_1.stop()
+            # logconf_1.stop()
             logconf_2.stop()
 

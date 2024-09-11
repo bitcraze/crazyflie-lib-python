@@ -20,8 +20,8 @@ Changing these parameters for every trials
 '''
 
 # URI to the Crazyflie to connect to
-uri_1 = 'radio://0/80/2M/E7E7E7E711' # Drone's uri
-uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor1's uri
+uri_1 = 'radio://0/80/2M/E7E7E7E701' # Drone's uri
+uri_2 = 'radio://0/80/2M/E7E7E7E7E9' # Leg sensor1's uri
 
 
 init_H = float(0.0)  # Initial drone's height; unit: m

@@ -31,35 +31,35 @@ Changing these parameters for every trials
 
 # URI to the Crazyflie to connect to
 uri_1 = 'radio://0/80/2M/E7E7E7E701' # Drone's uri
-uri_2 = 'radio://0/80/2M/E7E7E7E7E7' # Leg sensor's uri
+uri_2 = 'radio://0/80/2M/E7E7E7E7E9' # Leg sensor's uri
 
 init_H = float(0.7)  # Initial drone's height; unit: m
 start_pos_d = 0.3 + init_H   # start z-position for drone
 start_x = float(1.0)  # initial pos_X of the drone; unit: m
-start_y = float(0.2)  # initial pos_y of the drone; unit: m
+start_y = float(0.0)  # initial pos_y of the drone; unit: m   #Left: 0.0; Right: -0.4
 
-rep = 8   # trial = rep-1; for testing: rep=6, while for training: rep=11
-step = 2 # changing according to the movement  
+rep = 10   # trial = rep-1; for testing: rep=6, while for training: rep=11
+step = 3 # changing according to the movement  
 count = step + 1 # inner loop count
 
 task_Vel = 0.2  # on-task velocity
 bt = 2  # break time between trials; unit: second
 
-# for hip extension X (2 steps) 
-max_ROM_x = -0.23   # change this variable according to the selected movement; unit: m
-ori_pos_x = -0.09   # original leg's sensor position in x-axis; unit: m
+# for hip extension 後抬腿 X (2 steps) 
+max_ROM_x = -0.21     # change this variable according to the selected movement; unit: m
+ori_pos_x = -0.09  # original leg's sensor position in x-axis; unit: m
 move_dist_x = abs(ori_pos_x - max_ROM_x)  # total moving distant in x-axis for drone and leg's sensor
 ds_x = move_dist_x/(step)  # moving distant in inner for loop
 
-# for hip&knee flex Z uwu (3 steps)
-max_ROM_z = 0.76  # change this variable according to the selected movement; unit: m
-ori_pos_z = 0.46  # original leg's sensor height; unit: m
+# for hip&knee flex 勾膝蓋/抬膝蓋 Z (3 steps)
+max_ROM_z = 0.77  # change this variable according to the selected movement; unit: m
+ori_pos_z = 0.41  # original leg's sensor height; unit: m
 move_dist_z = abs(ori_pos_z - max_ROM_z)  # total moving distant in z-axis for drone and leg's sensor
 ds_z = move_dist_z/(step)  # moving distant in inner for loop
 
-# for hip abduction Y uwu (2 steps)
-max_ROM_y = 0.57   # change this variable according to the selected movement; unit: m
-ori_pos_y = 0.25   # original leg's sensor position in y-axis; unit: m
+# for hip abduction 側抬腿 Y (2 steps)
+max_ROM_y = -0.25  # change this variable according to the selected movement; unit: m
+ori_pos_y = -0.06  # original leg's sensor position in y-axis; unit: m
 move_dist_y = abs(ori_pos_y - max_ROM_y)  # total moving distant in y-axis for drone and leg's sensor
 ds_y = move_dist_y/(step)  # moving distant in inner for loop
 

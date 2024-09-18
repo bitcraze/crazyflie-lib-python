@@ -78,7 +78,7 @@ With linux, the crazyradio is easily recognized, but you have to setup UDEVpermi
 
 Look at the [Zadig crazyradio instructions](https://www.bitcraze.io/documentation/repository/crazyradio-firmware/master/building/usbwindows/) to install crazyradio on Windows
 
-### macOs
+### macOS
 If you are using python 3.12 on mac you need to install libusb using homebrew.
 ```
 $ brew install libusb

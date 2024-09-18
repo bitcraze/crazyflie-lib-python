@@ -5,9 +5,8 @@ page_id: install
 
 ## Requirements
 
-This project requires Python 3.7 - 3.11.
+This project requires Python 3.8 - 3.12.
 
-> Python 3.12 is not supported as it has issues with missing packages (see [this ticket](https://github.com/bitcraze/crazyflie-lib-python/issues/425))
 
 See below sections for more platform-specific requirements.
 ## Install from Source
@@ -78,3 +77,15 @@ With linux, the crazyradio is easily recognized, but you have to setup UDEVpermi
 ### Windows
 
 Look at the [Zadig crazyradio instructions](https://www.bitcraze.io/documentation/repository/crazyradio-firmware/master/building/usbwindows/) to install crazyradio on Windows
+
+### macOS
+If you are using python 3.12 on mac you need to install libusb using homebrew.
+```
+$ brew install libusb
+```
+
+If your Homebrew installation is in a non default location or if you want to install libusb in some other way you
+might need to link the libusb library like this;
+```
+$ export DYLD_LIBRARY_PATH="YOUR_HOMEBREW_PATH/lib:$DYLD_LIBRARY_PATH"
+```

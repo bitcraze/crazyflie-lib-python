@@ -41,13 +41,12 @@ class HighLevelCommander():
 
     COMMAND_SET_GROUP_MASK = 0
     COMMAND_STOP = 3
+    COMMAND_GO_TO = 4
     COMMAND_START_TRAJECTORY = 5
     COMMAND_DEFINE_TRAJECTORY = 6
     COMMAND_TAKEOFF_2 = 7
     COMMAND_LAND_2 = 8
-    COMMAND_SPIRAL = 11
-    COMMAND_GO_TO_2 = 12
-    
+
     ALL_GROUPS = 0
 
     TRAJECTORY_LOCATION_MEM = 1
@@ -132,7 +131,7 @@ class HighLevelCommander():
                                       self.COMMAND_STOP,
                                       group_mask))
 
-    def go_to(self, x, y, z, yaw, duration_s, relative=False, linear=False,
+    def go_to(self, x, y, z, yaw, duration_s, relative=False,
               group_mask=ALL_GROUPS):
         """
         Go to an absolute or relative position
@@ -143,40 +142,14 @@ class HighLevelCommander():
         :param yaw: Yaw (radians)
         :param duration_s: Time it should take to reach the position (s)
         :param relative: True if x, y, z is relative to the current position
-        :param linear: True to use linear interpolation instead of a smooth polynomial
         :param group_mask: Mask for which CFs this should apply to
         """
-        self._send_packet(struct.pack('<BBBBfffff',
-                                      self.COMMAND_GO_TO_2,
+        self._send_packet(struct.pack('<BBBfffff',
+                                      self.COMMAND_GO_TO,
                                       group_mask,
                                       relative,
-                                      linear,
                                       x, y, z,
                                       yaw,
-                                      duration_s))
-        
-    def spiral(self, angle, r0, rF, ascent, duration_s, sideways=False, clockwise=False,
-              group_mask=ALL_GROUPS):
-        """
-        Follow a spiral-like segment (spline approximation of a spiral/arc for <= 90-degree segments)
-
-        :param angle: spiral angle (rad)
-        :param r0: initial radius (m)
-        :param rF: final radius (m)
-        :param ascent: altitude gain (m)
-        :param duration_s: time it should take to reach the end of the spiral (s)
-        :param sideways: true if crazyflie should spiral sideways instead of forward
-        :param clockwise: true if crazyflie should spiral clockwise instead of counter-clockwise
-        :param group_mask: Mask for which CFs this should apply to
-        """
-        self._send_packet(struct.pack('<BBBBfffff',
-                                      self.COMMAND_SPIRAL,
-                                      group_mask,
-                                      sideways,
-                                      clockwise,
-                                      angle,
-                                      r0, rF,
-                                      ascent,
                                       duration_s))
 
     def start_trajectory(self, trajectory_id, time_scale=1.0, relative=False,

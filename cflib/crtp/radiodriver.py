@@ -585,6 +585,11 @@ class _RadioDriverThread(threading.Thread):
                 break
         self._link.needs_resending = not self._has_safelink
 
+        previous_time = time.time()
+        nr_empty_packets = 0
+        nr_packets = 0
+        nr_empty_packets_in = 0
+        nr_packets_in = 0
         while (True):
             if (self._sp):
                 break
@@ -594,6 +599,8 @@ class _RadioDriverThread(threading.Thread):
                     ackStatus = self._send_packet_safe(self._radio, dataOut)
                 else:
                     ackStatus = self._radio.send_packet(dataOut)
+                    print(dataOut)
+
             except Exception as e:
                 import traceback
 
@@ -628,6 +635,13 @@ class _RadioDriverThread(threading.Thread):
             self._retry_before_disconnect = _nr_of_retries
 
             data = ackStatus.data
+            mask = 0b11110011
+            empty_ack_packet = int(data[0]) & mask
+
+            if empty_ack_packet == 0xF3:
+                nr_empty_packets_in += 1
+            nr_packets_in += 1
+
 
             # If there is a copter in range, the packet is analysed and the
             # next packet to send is prepared
@@ -644,6 +658,7 @@ class _RadioDriverThread(threading.Thread):
                     waitTime = 0.01
                 else:
                     waitTime = 0
+
 
             # If there is a rate limit setup, sleep here to force the rate limit
             if self.rate_limit:
@@ -668,6 +683,23 @@ class _RadioDriverThread(threading.Thread):
                         dataOut.append(ord(X))
             else:
                 dataOut.append(0xFF)
+                nr_empty_packets += 1
+            nr_packets += 1
+
+            if time.time() - previous_time > 1:
+                logger.info('Rate: %f', nr_packets / (time.time() - previous_time))
+                logger.info('Empty packets: %f', nr_empty_packets / nr_packets)
+                nr_packets = 0
+                nr_empty_packets = 0
+
+                logger.info('Rate in: %f', nr_packets_in / (time.time() - previous_time))
+                logger.info('Empty packets in: %f', nr_empty_packets_in / nr_packets_in)
+                nr_packets_in = 0
+                nr_empty_packets_in = 0
+                previous_time = time.time()
+
+
+
 
 
 def set_retries_before_disconnect(nr_of_retries):

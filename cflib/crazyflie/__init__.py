@@ -208,6 +208,11 @@ class Crazyflie():
         """Called from link driver to report link quality"""
         self.link_quality_updated.call(percentage)
 
+    def _link_congestion_cb(self, congestion_up, congestion_down):
+        """Called from link driver to report link congestion"""
+        logger.info('Link congestion: up=%f down=%f', congestion_up,
+                     congestion_down)
+
     def _check_for_initial_packet_cb(self, data):
         """
         Called when first packet arrives from Crazyflie.
@@ -229,7 +234,7 @@ class Crazyflie():
         self.link_uri = link_uri
         try:
             self.link = cflib.crtp.get_link_driver(
-                link_uri, self._link_quality_cb, self._link_error_cb)
+                link_uri, self._link_quality_cb, self._link_error_cb, self._link_congestion_cb)
 
             if not self.link:
                 message = 'No driver found or malformed URI: {}' \

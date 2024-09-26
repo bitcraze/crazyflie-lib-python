@@ -49,8 +49,6 @@ from typing import Tuple
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 
-import numpy as np
-
 import cflib.drivers.crazyradio as crazyradio
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
@@ -566,6 +564,7 @@ class _RadioDriverThread(threading.Thread):
             self._curr_down = 1 - self._curr_down
         if resp and resp.ack:
             self._curr_up = 1 - self._curr_up
+
         return resp
 
     def run(self):
@@ -653,12 +652,10 @@ class _RadioDriverThread(threading.Thread):
 
             # get the next packet to send of relaxation (wait 10ms)
             outPacket = None
-            
-            if not outPacket:
-                try:
-                    outPacket = self._out_queue.get(True, waitTime)
-                except queue.Empty:
-                    outPacket = None
+            try:
+                outPacket = self._out_queue.get(True, waitTime)
+            except queue.Empty:
+                outPacket = None
 
             dataOut = array.array('B')
 

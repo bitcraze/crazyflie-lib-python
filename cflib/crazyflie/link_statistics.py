@@ -19,21 +19,23 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 """
 This module provides tools for tracking statistics related to the communication
 link between the Crazyflie and the lib. Currently, it focuses on tracking latency
 but is designed to be extended with additional link statistics in the future.
 """
-
-from cflib.crtp.crtpstack import CRTPPort, CRTPPacket
-from threading import Thread, Event
-import time
 import struct
+import time
+from threading import Event
+from threading import Thread
+
 import numpy as np
 
-__author__ = "Bitcraze AB"
-__all__ = ["LinkStatistics"]
+from cflib.crtp.crtpstack import CRTPPacket
+from cflib.crtp.crtpstack import CRTPPort
+
+__author__ = 'Bitcraze AB'
+__all__ = ['LinkStatistics']
 
 PING_HEADER = 0x0
 ECHO_CHANNEL = 0
@@ -141,7 +143,7 @@ class Latency:
 
         # Pack the current time as the ping timestamp
         current_time = time.time()
-        ping_packet.data = struct.pack("<Bd", PING_HEADER, current_time)
+        ping_packet.data = struct.pack('<Bd', PING_HEADER, current_time)
         self._cf.send_packet(ping_packet)
 
     def _ping_response(self, packet):
@@ -156,7 +158,7 @@ class Latency:
             packet (CRTPPacket): The packet received from the Crazyflie containing
             the echo response data.
         """
-        received_header, received_timestamp = struct.unpack("<Bd", packet.data)
+        received_header, received_timestamp = struct.unpack('<Bd', packet.data)
         if received_header != PING_HEADER:
             return
         self.latency = self._calculate_p95_latency(received_timestamp)
@@ -175,7 +177,7 @@ class Latency:
         Returns:
             float: The updated 95th percentile latency in milliseconds.
         """
-        if not hasattr(self, "_latencies"):
+        if not hasattr(self, '_latencies'):
             self._latencies = []
 
         instantaneous_latency = (time.time() - timestamp) * 1000

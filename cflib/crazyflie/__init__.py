@@ -290,7 +290,7 @@ class Crazyflie():
     def remove_port_callback(self, port, cb):
         """Remove the callback cb on port"""
         self.incoming.remove_port_callback(port, cb)
-    
+
     def add_header_callback(self, cb, port, channel, port_mask=0xFF, channel_mask=0xFF):
         """Add a callback to cb on port and channel"""
         self.incoming.add_header_callback(cb, port, channel, port_mask, channel_mask)
@@ -408,17 +408,17 @@ class _IncomingPacketHandler(Thread):
                                           channel, channel_mask, cb))
 
     def remove_header_callback(self, cb, port, channel, port_mask=0xFF,
-                                 channel_mask=0xFF):
-          """
-          Remove a callback for a specific port/header callback with the
-          possibility to add a mask for channel and port for multiple
-          hits for same callback.
-          """
-          for port_callback in self.cb:
-                if port_callback.port == port and port_callback.port_mask == port_mask and \
-                      port_callback.channel == channel and port_callback.channel_mask == channel_mask and \
-                      port_callback.callback == cb:
-                 self.cb.remove(port_callback)
+                               channel_mask=0xFF):
+        """
+        Remove a callback for a specific port/header callback with the
+        possibility to add a mask for channel and port for multiple
+        hits for same callback.
+        """
+        for port_callback in self.cb:
+            if port_callback.port == port and port_callback.port_mask == port_mask and \
+                    port_callback.channel == channel and port_callback.channel_mask == channel_mask and \
+                    port_callback.callback == cb:
+                self.cb.remove(port_callback)
 
     def run(self):
         while True:

@@ -33,6 +33,7 @@ import numpy as np
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
+from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
 __all__ = ['LinkStatistics']
@@ -96,6 +97,7 @@ class Latency:
         self._stop_event = Event()
         self._ping_thread_instance = None
         self.latency = 0
+        self.latencyUpdated = Caller()
 
     def start(self):
         """
@@ -167,6 +169,7 @@ class Latency:
         if received_header != PING_HEADER:
             return
         self.latency = self._calculate_p95_latency(received_timestamp)
+        self.latencyUpdated.call(self.latency)
 
     def _calculate_p95_latency(self, timestamp):
         """

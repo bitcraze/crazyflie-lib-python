@@ -52,7 +52,7 @@ from urllib.parse import urlparse
 import numpy as np
 
 import cflib.drivers.crazyradio as crazyradio
-from .crtpstack import CRTPPacket, CRTPPort
+from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
 from cflib.drivers.crazyradio import Crazyradio
@@ -536,12 +536,6 @@ class _RadioDriverThread(threading.Thread):
         self._retry_sum = 0
         self.rate_limit = rate_limit
 
-        self._packed_last_ping_time = None
-        self._last_ping_time = 0
-        self._latencies = []
-        self._p95_latency = None
-        self._ping_timeout = 3
-
         self._curr_up = 0
         self._curr_down = 1
 
@@ -572,7 +566,6 @@ class _RadioDriverThread(threading.Thread):
             self._curr_down = 1 - self._curr_down
         if resp and resp.ack:
             self._curr_up = 1 - self._curr_up
-
         return resp
 
     def run(self):
@@ -640,12 +633,8 @@ class _RadioDriverThread(threading.Thread):
             # If there is a copter in range, the packet is analysed and the
             # next packet to send is prepared
             if (len(data) > 0):
-                if data[1:] == self._packed_last_ping_time:
-                    # This is a ping response
-                    self._calculate_latency(struct.unpack("<d", data[1:])[0])
-                else:
-                    inPacket = CRTPPacket(data[0], list(data[1:]))
-                    self._in_queue.put(inPacket)
+                inPacket = CRTPPacket(data[0], list(data[1:]))
+                self._in_queue.put(inPacket)
                 waitTime = 0
                 emptyCtr = 0
             else:
@@ -663,7 +652,7 @@ class _RadioDriverThread(threading.Thread):
                 waitTime = 0
 
             # get the next packet to send of relaxation (wait 10ms)
-            outPacket = self._handle_ping()
+            outPacket = None
             
             if not outPacket:
                 try:
@@ -683,43 +672,6 @@ class _RadioDriverThread(threading.Thread):
             else:
                 dataOut.append(0xFF)
 
-    def _handle_ping(self):
-        # Initialize the ping counter if it doesn't exist yet
-        if not hasattr(self, '_ping_counter'):
-            self._ping_counter = 0
-
-        self._ping_counter += 1
-
-        # Send a ping every 1000 packets or if the last ping timed out
-        if (self._ping_counter % 1000 == 0 and self._packed_last_ping_time is None) or (
-            self._last_ping_time and time.time() - self._last_ping_time > self._ping_timeout):
-            out_packet = CRTPPacket()
-            out_packet.set_header(CRTPPort.LINKCTRL, 0)
-
-            # Pack the current time as the ping timestamp
-            current_time = time.time()
-            out_packet.data = struct.pack("<d", *[current_time])
-
-            self._packed_last_ping_time = out_packet.data
-            self._last_ping_time = current_time
-
-            # Reset the counter after a ping is sent
-            self._ping_counter = 0
-
-            return out_packet
-            
-        return None
-    
-    def _calculate_latency(self, timestamp):
-        latency = (time.time() - timestamp) * 1000
-        self._latencies.append(latency)
-        if len(self._latencies) > 100:
-            self._latencies.pop(0)
-        self._p95_latency = np.percentile(self._latencies, 95)
-        print("95th percentile latency: {} ms".format(self._p95_latency))
-
-        # Indicate that the next ping can be sent
-        self._packed_last_ping_time = None
 
 def set_retries_before_disconnect(nr_of_retries):
     global _nr_of_retries

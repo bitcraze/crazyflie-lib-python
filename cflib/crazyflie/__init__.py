@@ -44,6 +44,7 @@ from .appchannel import Appchannel
 from .commander import Commander
 from .console import Console
 from .extpos import Extpos
+from .link_statistics import LinkStatistics
 from .localization import Localization
 from .log import Log
 from .mem import Memory
@@ -121,6 +122,7 @@ class Crazyflie():
         self.mem = Memory(self)
         self.platform = PlatformService(self)
         self.appchannel = Appchannel(self)
+        self.link_statistics = LinkStatistics(self)
 
         self.link_uri = ''
 
@@ -152,6 +154,11 @@ class Crazyflie():
             lambda uri: logger.info('Callback->Connection setup finished [%s]', uri))
         self.fully_connected.add_callback(
             lambda uri: logger.info('Callback->Connection completed [%s]', uri))
+
+        self.connected.add_callback(
+            lambda uri: self.link_statistics.start())
+        self.disconnected.add_callback(
+            lambda uri: self.link_statistics.stop())
 
     def _disconnected(self, link_uri):
         """ Callback when disconnected."""
@@ -283,6 +290,14 @@ class Crazyflie():
     def remove_port_callback(self, port, cb):
         """Remove the callback cb on port"""
         self.incoming.remove_port_callback(port, cb)
+    
+    def add_header_callback(self, cb, port, channel, port_mask=0xFF, channel_mask=0xFF):
+        """Add a callback to cb on port and channel"""
+        self.incoming.add_header_callback(cb, port, channel, port_mask, channel_mask)
+
+    def remove_header_callback(self, cb, port, channel, port_mask=0xFF, channel_mask=0xFF):
+        """Remove the callback cb on port and channel"""
+        self.incoming.remove_header_callback(cb, port, channel, port_mask, channel_mask)
 
     def _no_answer_do_retry(self, pk, pattern):
         """Resend packets that we have not gotten answers to"""
@@ -380,9 +395,7 @@ class _IncomingPacketHandler(Thread):
     def remove_port_callback(self, port, cb):
         """Remove a callback for data that comes on a specific port"""
         logger.debug('Removing callback on port [%d] to [%s]', port, cb)
-        for port_callback in self.cb:
-            if port_callback.port == port and port_callback.callback == cb:
-                self.cb.remove(port_callback)
+        self.remove_header_callback(cb, port, 0, 0xff, 0x0)
 
     def add_header_callback(self, cb, port, channel, port_mask=0xFF,
                             channel_mask=0xFF):
@@ -393,6 +406,19 @@ class _IncomingPacketHandler(Thread):
         """
         self.cb.append(_CallbackContainer(port, port_mask,
                                           channel, channel_mask, cb))
+
+    def remove_header_callback(self, cb, port, channel, port_mask=0xFF,
+                                 channel_mask=0xFF):
+          """
+          Remove a callback for a specific port/header callback with the
+          possibility to add a mask for channel and port for multiple
+          hits for same callback.
+          """
+          for port_callback in self.cb:
+                if port_callback.port == port and port_callback.port_mask == port_mask and \
+                      port_callback.channel == channel and port_callback.channel_mask == channel_mask and \
+                      port_callback.callback == cb:
+                 self.cb.remove(port_callback)
 
     def run(self):
         while True:

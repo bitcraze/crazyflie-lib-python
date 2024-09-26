@@ -94,7 +94,7 @@ class Latency:
         self._cf = crazyflie
         self._cf.add_header_callback(self._ping_response, CRTPPort.LINKCTRL, 0)
         self._stop_event = Event()
-        self._ping_thread_instance = Thread(target=self._ping_thread)
+        self._ping_thread_instance = None
         self.latency = 0
 
     def start(self):
@@ -104,7 +104,10 @@ class Latency:
         This method initiates a background thread that sends ping requests
         at regular intervals to measure and track latency statistics.
         """
-        self._ping_thread_instance.start()
+        if self._ping_thread_instance is None or not self._ping_thread_instance.is_alive():
+            self._stop_event.clear()
+            self._ping_thread_instance = Thread(target=self._ping_thread)
+            self._ping_thread_instance.start()
 
     def stop(self):
         """
@@ -114,7 +117,9 @@ class Latency:
         ping requests, halting latency measurement.
         """
         self._stop_event.set()
-        self._ping_thread_instance.join()
+        if self._ping_thread_instance is not None:
+            self._ping_thread_instance.join()
+            self._ping_thread_instance = None
 
     def _ping_thread(self, interval: float = 1.0) -> None:
         """

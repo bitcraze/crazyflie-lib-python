@@ -242,13 +242,13 @@ class RadioDriver(CRTPDriver):
         self.uri = ''
         self.link_error_callback = None
         self.link_quality_callback = None
-        self.link_congestion_callback = None
+        self.link_quality_low_level_callback = None
         self.in_queue = None
         self.out_queue = None
         self._thread = None
         self.needs_resending = True
 
-    def connect(self, uri, link_quality_callback, link_error_callback, link_congestion_callback):
+    def connect(self, uri, link_quality_callback, link_error_callback, link_quality_low_level_callback):
         """
         Connect the link driver to a specified URI of the format:
         radio://<dongle nbr>/<radio channel>/[250K,1M,2M]
@@ -286,7 +286,7 @@ class RadioDriver(CRTPDriver):
                                           self.out_queue,
                                           link_quality_callback,
                                           link_error_callback,
-                                          link_congestion_callback,
+                                          link_quality_low_level_callback,
                                           self,
                                           rate_limit)
         self._thread.start()
@@ -385,7 +385,7 @@ class RadioDriver(CRTPDriver):
                                           self.out_queue,
                                           self.link_quality_callback,
                                           self.link_error_callback,
-                                          self.link_congestion_callback,
+                                          self.link_quality_low_level_callback,
                                           self)
         self._thread.start()
 
@@ -405,7 +405,7 @@ class RadioDriver(CRTPDriver):
         # Clear callbacks
         self.link_error_callback = None
         self.link_quality_callback = None
-        self.link_congestion_callback = None
+        self.link_quality_low_level_callback = None
 
     def _scan_radio_channels(self, radio: _SharedRadioInstance,
                              start=0, stop=125):
@@ -524,7 +524,7 @@ class _RadioDriverThread(threading.Thread):
     Crazyradio USB driver. """
 
     def __init__(self, radio, inQueue, outQueue,
-                 link_quality_callback, link_error_callback, link_congestion_callback, link, rate_limit: Optional[int]):
+                 link_quality_callback, link_error_callback, link_quality_low_level_callback, link, rate_limit: Optional[int]):
         """ Create the object """
         threading.Thread.__init__(self)
         self._radio = radio
@@ -533,7 +533,7 @@ class _RadioDriverThread(threading.Thread):
         self._sp = False
         self._link_error_callback = link_error_callback
         self._link_quality_callback = link_quality_callback
-        self._link_congestion_callback = link_congestion_callback
+        self._link_quality_low_level_callback = link_quality_low_level_callback
         self._retry_before_disconnect = _nr_of_retries
         self._retries = collections.deque()
         self._retry_sum = 0
@@ -590,11 +590,13 @@ class _RadioDriverThread(threading.Thread):
                 break
         self._link.needs_resending = not self._has_safelink
 
-        previous_time = time.time()
-        nr_empty_packets = 0
-        nr_packets = 0
-        nr_empty_packets_in = 0
-        nr_packets_in = 0
+        # Low level stats initialization
+        previous_time_stamp = time.time()
+        amount_null_packets_up = 0
+        amount_packets_up = 0
+        amount_null_packets_down = 0
+        amount_packets_down = 0
+
         while (True):
             if (self._sp):
                 break
@@ -639,14 +641,14 @@ class _RadioDriverThread(threading.Thread):
                 continue
             self._retry_before_disconnect = _nr_of_retries
 
+            ## Find null packets in the downlink and count them
             data = ackStatus.data
             mask = 0b11110011
             empty_ack_packet = int(data[0]) & mask
 
             if empty_ack_packet == 0xF3:
-                nr_empty_packets_in += 1
-            nr_packets_in += 1
-
+                amount_null_packets_down += 1
+            amount_packets_down += 1
 
             # If there is a copter in range, the packet is analysed and the
             # next packet to send is prepared
@@ -688,27 +690,25 @@ class _RadioDriverThread(threading.Thread):
                     else:
                         dataOut.append(ord(X))
             else:
+                # If no packet to send, send a null packet
                 dataOut.append(0xFF)
-                nr_empty_packets += 1
-            nr_packets += 1
+                amount_null_packets_up += 1
+            amount_packets_up += 1
 
-            if time.time() - previous_time > 1:
-                rate_up = nr_packets / (time.time() - previous_time)
-                congestion_up = 1.0 - nr_empty_packets / nr_packets
-                #logger.info('Rate: %f', rate_up)
-                #logger.info('Empty packets: %f', congestion_up)
-                nr_packets = 0
-                nr_empty_packets = 0
+            # Low level stats every second
+            if time.time() - previous_time_stamp > 1:
+                rate_up = amount_packets_up / (time.time() - previous_time_stamp)
+                rate_down = amount_packets_down / (time.time() - previous_time_stamp)
+                congestion_up = 1.0 - amount_null_packets_up / amount_packets_up
+                congestion_down = 1.0 - amount_null_packets_down / amount_packets_down
 
-                rate_down = nr_packets_in / (time.time() - previous_time)
-                congestion_down = 1.0 - nr_empty_packets_in / nr_packets_in
-                #logger.info('Rate in: %f', rate_down)
-                #logger.info('Empty packets in: %f', congestion_down)
-                nr_packets_in = 0
-                nr_empty_packets_in = 0
-                previous_time = time.time()
+                amount_packets_up = 0
+                amount_null_packets_up = 0
+                amount_packets_down = 0
+                amount_null_packets_down = 0
+                previous_time_stamp = time.time()
 
-                self._link_congestion_callback(congestion_up, congestion_down)
+                self._link_quality_low_level_callback(rate_up, rate_down, congestion_up, congestion_down)
 
 
 

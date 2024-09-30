@@ -27,20 +27,20 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 
 # Reads the CFLIB_URI environment variable for URI or uses default
-uri = uri_helper.uri_from_env(default="radio://0/90/2M/E7E7E7E7E7")
+uri = uri_helper.uri_from_env(default='radio://0/90/2M/E7E7E7E7E7')
 
 
 def latency_callback(latency: float):
     """A callback to run when we get an updated latency estimate"""
-    print(f"Latency: {latency:.3f} ms")
+    print(f'Latency: {latency:.3f} ms')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
     # Create Crazyflie object, with cache to avoid re-reading param and log TOC
-    cf = Crazyflie(rw_cache="./cache")
+    cf = Crazyflie(rw_cache='./cache')
 
     # Add a callback to whenever we receive an updated latency estimate
     #
@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     # This will connect the Crazyflie with the URI specified above.
     with SyncCrazyflie(uri, cf=cf) as scf:
-        print("[host] Connected, use ctrl-c to quit.")
+        print('[host] Connected, use ctrl-c to quit.')
 
         while True:
             time.sleep(1)

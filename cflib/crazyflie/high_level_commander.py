@@ -153,9 +153,9 @@ class HighLevelCommander():
                                       x, y, z,
                                       yaw,
                                       duration_s))
-        
+
     def go_to2(self, x, y, z, yaw, duration_s, relative=False, linear=False,
-              group_mask=ALL_GROUPS):
+               group_mask=ALL_GROUPS):
         """
         Go to an absolute or relative position
 
@@ -176,9 +176,9 @@ class HighLevelCommander():
                                       x, y, z,
                                       yaw,
                                       duration_s))
-        
+
     def spiral(self, angle, r0, rF, ascent, duration_s, sideways=False, clockwise=False,
-              group_mask=ALL_GROUPS):
+               group_mask=ALL_GROUPS):
         """
         Follow a spiral-like segment (spline approximation of a spiral/arc for <= 90-degree segments)
 

@@ -128,14 +128,14 @@ class TestResponseTime(unittest.TestCase):
         return False
 
     def connect_link(self, uri):
-        link = cflib.crtp.get_link_driver(uri, self._link_quality_cb,
+        link = cflib.crtp.get_link_driver(uri, self._signal_health_cb,
                                           self._link_error_cb)
         self.assertIsNotNone(link)
         self.links.append(link)
 
         return link
 
-    def _link_quality_cb(self, percentage):
+    def _signal_health_cb(self, signal_health):
         pass
 
     def _link_error_cb(self, errmsg):

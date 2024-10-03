@@ -584,6 +584,12 @@ class _RadioDriverThread(threading.Thread):
                 break
         self._link.needs_resending = not self._has_safelink
 
+        previous_time_stamp = time.time()
+        amount_null_packets_up = 0
+        amount_packets_up = 0
+        amount_null_packets_down = 0
+        amount_packets_down = 0
+
         while (True):
             if (self._sp):
                 break
@@ -620,10 +626,18 @@ class _RadioDriverThread(threading.Thread):
                 continue
             self._retry_before_disconnect = _nr_of_retries
 
+            ## Find null packets in the downlink and count them
             data = ackStatus.data
+            mask = 0b11110011
+            empty_ack_packet = int(data[0]) & mask
+
+            if empty_ack_packet == 0xF3:
+                amount_null_packets_down += 1
+            amount_packets_down += 1
 
             # If there is a copter in range, the packet is analysed and the
             # next packet to send is prepared
+            # TODO: THis seems not to work since there is always a byte filled in the data even with null packets
             if (len(data) > 0):
                 inPacket = CRTPPacket(data[0], list(data[1:]))
                 self._in_queue.put(inPacket)
@@ -660,7 +674,25 @@ class _RadioDriverThread(threading.Thread):
                     else:
                         dataOut.append(ord(X))
             else:
+                # If no packet to send, send a null packet
                 dataOut.append(0xFF)
+                amount_null_packets_up += 1
+            amount_packets_up += 1
+
+            # Low level stats every second
+            if time.time() - previous_time_stamp > 1:
+                rate_up = amount_packets_up / (time.time() - previous_time_stamp)
+                rate_down = amount_packets_down / (time.time() - previous_time_stamp)
+                congestion_up = 1.0 - amount_null_packets_up / amount_packets_up
+                congestion_down = 1.0 - amount_null_packets_down / amount_packets_down
+
+                amount_packets_up = 0
+                amount_null_packets_up = 0
+                amount_packets_down = 0
+                amount_null_packets_down = 0
+                previous_time_stamp = time.time()
+
+                self._link_quality_low_level_callback(rate_up, rate_down, congestion_up, congestion_down)
 
 
 def set_retries_before_disconnect(nr_of_retries):

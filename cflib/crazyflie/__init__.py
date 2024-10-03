@@ -100,6 +100,10 @@ class Crazyflie():
         # Called when the link driver updates the link quality measurement
         self.link_quality_updated = Caller()
         self.uplink_rssi_updated = Caller()
+        self.uplink_rate_updated = Caller()
+        self.downlink_rate_updated = Caller()
+        self.uplink_congestion_updated = Caller()
+        self.downlink_congestion_updated = Caller()
 
         self.state = State.DISCONNECTED
 
@@ -207,10 +211,18 @@ class Crazyflie():
 
     def _signal_health_cb(self, signal_health):
         """Called from link driver to report signal health"""
-        if signal_health.link_quality:
-            self.link_quality_updated.call(signal_health.link_quality)
-        if signal_health.uplink_rssi:
-            self.uplink_rssi_updated.call(signal_health.uplink_rssi)
+        if 'link_quality' in signal_health:
+            self.link_quality_updated.call(signal_health['link_quality'])
+        if 'uplink_rssi' in signal_health:
+            self.uplink_rssi_updated.call(signal_health['uplink_rssi'])
+        if 'uplink_rate' in signal_health:
+            self.uplink_rate_updated.call(signal_health['uplink_rate'])
+        if 'downlink_rate' in signal_health:
+            self.downlink_rate_updated.call(signal_health['downlink_rate'])
+        if 'uplink_congestion' in signal_health:
+            self.uplink_congestion_updated.call(signal_health['uplink_congestion'])
+        if 'downlink_congestion' in signal_health:
+            self.downlink_congestion_updated.call(signal_health['downlink_congestion'])
 
     def _check_for_initial_packet_cb(self, data):
         """

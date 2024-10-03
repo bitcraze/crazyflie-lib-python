@@ -528,8 +528,7 @@ class _RadioDriverThread(threading.Thread):
         self._out_queue = outQueue
         self._sp = False
         self._link_error_callback = link_error_callback
-        self._signal_health_callback = signal_health_callback
-        self._signal_health = SignalHealth()
+        self._signal_health = SignalHealth(signal_health_callback)
         self._retry_before_disconnect = _nr_of_retries
         self.rate_limit = rate_limit
 
@@ -584,12 +583,6 @@ class _RadioDriverThread(threading.Thread):
                 break
         self._link.needs_resending = not self._has_safelink
 
-        previous_time_stamp = time.time()
-        amount_null_packets_up = 0
-        amount_packets_up = 0
-        amount_null_packets_down = 0
-        amount_packets_down = 0
-
         while (True):
             if (self._sp):
                 break
@@ -611,10 +604,6 @@ class _RadioDriverThread(threading.Thread):
             if ackStatus is None:
                 logger.info('Dongle reported ACK status == None')
                 continue
-            else:
-                self._signal_health.update(ackStatus)
-                if (self._signal_health_callback is not None):
-                    self._signal_health_callback(self._signal_health)
 
             # If no copter, retry
             if ackStatus.ack is False:
@@ -626,18 +615,11 @@ class _RadioDriverThread(threading.Thread):
                 continue
             self._retry_before_disconnect = _nr_of_retries
 
-            ## Find null packets in the downlink and count them
             data = ackStatus.data
-            mask = 0b11110011
-            empty_ack_packet = int(data[0]) & mask
-
-            if empty_ack_packet == 0xF3:
-                amount_null_packets_down += 1
-            amount_packets_down += 1
 
             # If there is a copter in range, the packet is analysed and the
             # next packet to send is prepared
-            # TODO: THis seems not to work since there is always a byte filled in the data even with null packets
+            # TODO: This does not seem to work since there is always a byte filled in the data even with null packets
             if (len(data) > 0):
                 inPacket = CRTPPacket(data[0], list(data[1:]))
                 self._in_queue.put(inPacket)
@@ -676,23 +658,8 @@ class _RadioDriverThread(threading.Thread):
             else:
                 # If no packet to send, send a null packet
                 dataOut.append(0xFF)
-                amount_null_packets_up += 1
-            amount_packets_up += 1
 
-            # Low level stats every second
-            if time.time() - previous_time_stamp > 1:
-                rate_up = amount_packets_up / (time.time() - previous_time_stamp)
-                rate_down = amount_packets_down / (time.time() - previous_time_stamp)
-                congestion_up = 1.0 - amount_null_packets_up / amount_packets_up
-                congestion_down = 1.0 - amount_null_packets_down / amount_packets_down
-
-                amount_packets_up = 0
-                amount_null_packets_up = 0
-                amount_packets_down = 0
-                amount_null_packets_down = 0
-                previous_time_stamp = time.time()
-
-                self._link_quality_low_level_callback(rate_up, rate_down, congestion_up, congestion_down)
+            self._signal_health.update(ackStatus, outPacket)
 
 
 def set_retries_before_disconnect(nr_of_retries):

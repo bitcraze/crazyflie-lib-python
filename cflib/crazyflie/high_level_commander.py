@@ -27,7 +27,6 @@ Used for sending high level setpoints to the Crazyflie
 """
 import math
 import struct
-import warnings
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
@@ -151,8 +150,8 @@ class HighLevelCommander():
         """
         if self._cf.platform.get_protocol_version() < 8:
             if linear:
-                warnings.warning('Linear mode is not supported in protocol version < 8, update your Crazyflie firmware')
-            self._send_packet(struct.pack('<BBBBfffff',
+                print('Warning: Linear mode is not supported in protocol version < 8, update the firmware of your crazyflie')
+            self._send_packet(struct.pack('<BBBfffff',
                                           self.COMMAND_GO_TO,
                                           group_mask,
                                           relative,
@@ -161,7 +160,7 @@ class HighLevelCommander():
                                           duration_s))
         else:
             self._send_packet(struct.pack('<BBBBfffff',
-                                          self.COMMAND_GO_TO2,
+                                          self.COMMAND_GO_TO_2,
                                           group_mask,
                                           relative,
                                           linear,
@@ -183,27 +182,30 @@ class HighLevelCommander():
         :param clockwise: true if crazyflie should spiral clockwise instead of counter-clockwise
         :param group_mask: Mask for which CFs this should apply to
         """
-        if angle > 2*math.pi:
-            angle = 2*math.pi
-            warnings.warning('Spiral angle saturated at 2pi as it was too large')
-        elif angle < -2*math.pi:
-            angle = -2*math.pi
-            warnings.warning('Spiral angle saturated at -2pi as it was too small')
-        if r0 < 0:
-            r0 = 0
-            warnings.warning('Initial radius set to 0 as it cannot be negative')
-        if rF < 0:
-            rF = 0
-            warnings.warning('Final radius set to 0 as it cannot be negative')
-        self._send_packet(struct.pack('<BBBBfffff',
-                                      self.COMMAND_SPIRAL,
-                                      group_mask,
-                                      sideways,
-                                      clockwise,
-                                      angle,
-                                      r0, rF,
-                                      ascent,
-                                      duration_s))
+        if self._cf.platform.get_protocol_version() < 8:
+            print('Warning: Spiral command is not supported in protocol version < 8, update the firmware of your crazyflie')
+        else:
+          if angle > 2*math.pi:
+              angle = 2*math.pi
+              print('Warning: Spiral angle saturated at 2pi as it was too large')
+          elif angle < -2*math.pi:
+              angle = -2*math.pi
+              print('Warning: Spiral angle saturated at -2pi as it was too small')
+          if r0 < 0:
+              r0 = 0
+              print('Warning: Initial radius set to 0 as it cannot be negative')
+          if rF < 0:
+              rF = 0
+              print('Warning: Final radius set to 0 as it cannot be negative')
+          self._send_packet(struct.pack('<BBBBfffff',
+                                        self.COMMAND_SPIRAL,
+                                        group_mask,
+                                        sideways,
+                                        clockwise,
+                                        angle,
+                                        r0, rF,
+                                        ascent,
+                                        duration_s))
 
     def start_trajectory(self, trajectory_id, time_scale=1.0, relative=False,
                          reversed=False, group_mask=ALL_GROUPS):

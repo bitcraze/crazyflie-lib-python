@@ -150,7 +150,7 @@ class HighLevelCommander():
         """
         if self._cf.platform.get_protocol_version() < 8:
             if linear:
-                print('Warning: Linear mode is not supported in protocol version < 8, update the firmware of your crazyflie')
+                print('Warning: Linear mode not supported in protocol version < 8, update your crazyflie\'s firmware')
             self._send_packet(struct.pack('<BBBfffff',
                                           self.COMMAND_GO_TO,
                                           group_mask,
@@ -183,29 +183,29 @@ class HighLevelCommander():
         :param group_mask: Mask for which CFs this should apply to
         """
         if self._cf.platform.get_protocol_version() < 8:
-            print('Warning: Spiral command is not supported in protocol version < 8, update the firmware of your crazyflie')
+            print('Warning: Spiral command is not supported in protocol version < 8, update your crazyflie\'s firmware')
         else:
-          if angle > 2*math.pi:
-              angle = 2*math.pi
-              print('Warning: Spiral angle saturated at 2pi as it was too large')
-          elif angle < -2*math.pi:
-              angle = -2*math.pi
-              print('Warning: Spiral angle saturated at -2pi as it was too small')
-          if r0 < 0:
-              r0 = 0
-              print('Warning: Initial radius set to 0 as it cannot be negative')
-          if rF < 0:
-              rF = 0
-              print('Warning: Final radius set to 0 as it cannot be negative')
-          self._send_packet(struct.pack('<BBBBfffff',
-                                        self.COMMAND_SPIRAL,
-                                        group_mask,
-                                        sideways,
-                                        clockwise,
-                                        angle,
-                                        r0, rF,
-                                        ascent,
-                                        duration_s))
+            if angle > 2*math.pi:
+                angle = 2*math.pi
+                print('Warning: Spiral angle saturated at 2pi as it was too large')
+            elif angle < -2*math.pi:
+                angle = -2*math.pi
+                print('Warning: Spiral angle saturated at -2pi as it was too small')
+            if r0 < 0:
+                r0 = 0
+                print('Warning: Initial radius set to 0 as it cannot be negative')
+            if rF < 0:
+                rF = 0
+                print('Warning: Final radius set to 0 as it cannot be negative')
+            self._send_packet(struct.pack('<BBBBfffff',
+                                          self.COMMAND_SPIRAL,
+                                          group_mask,
+                                          sideways,
+                                          clockwise,
+                                          angle,
+                                          r0, rF,
+                                          ascent,
+                                          duration_s))
 
     def start_trajectory(self, trajectory_id, time_scale=1.0, relative=False,
                          reversed=False, group_mask=ALL_GROUPS):

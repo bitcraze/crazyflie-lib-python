@@ -25,7 +25,9 @@
 """
 Used for sending high level setpoints to the Crazyflie
 """
+import math
 import struct
+import warnings
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
@@ -133,29 +135,8 @@ class HighLevelCommander():
                                       self.COMMAND_STOP,
                                       group_mask))
 
-    def go_to(self, x, y, z, yaw, duration_s, relative=False,
+    def go_to(self, x, y, z, yaw, duration_s, relative=False, linear=False,
               group_mask=ALL_GROUPS):
-        """
-        Go to an absolute or relative position
-
-        :param x: X (m)
-        :param y: Y (m)
-        :param z: Z (m)
-        :param yaw: Yaw (radians)
-        :param duration_s: Time it should take to reach the position (s)
-        :param relative: True if x, y, z is relative to the current position
-        :param group_mask: Mask for which CFs this should apply to
-        """
-        self._send_packet(struct.pack('<BBBfffff',
-                                      self.COMMAND_GO_TO,
-                                      group_mask,
-                                      relative,
-                                      x, y, z,
-                                      yaw,
-                                      duration_s))
-
-    def go_to2(self, x, y, z, yaw, duration_s, relative=False, linear=False,
-               group_mask=ALL_GROUPS):
         """
         Go to an absolute or relative position
 
@@ -168,29 +149,52 @@ class HighLevelCommander():
         :param linear: True to use linear interpolation instead of a smooth polynomial
         :param group_mask: Mask for which CFs this should apply to
         """
-        self._send_packet(struct.pack('<BBBBfffff',
-                                      self.COMMAND_GO_TO_2,
-                                      group_mask,
-                                      relative,
-                                      linear,
-                                      x, y, z,
-                                      yaw,
-                                      duration_s))
+        if self._cf.platform.get_protocol_version() < 8:
+            if linear:
+                warnings.warning('Linear mode is not supported in protocol version < 8, update your Crazyflie firmware')
+            self._send_packet(struct.pack('<BBBBfffff',
+                                          self.COMMAND_GO_TO,
+                                          group_mask,
+                                          relative,
+                                          x, y, z,
+                                          yaw,
+                                          duration_s))
+        else:
+            self._send_packet(struct.pack('<BBBBfffff',
+                                          self.COMMAND_GO_TO2,
+                                          group_mask,
+                                          relative,
+                                          linear,
+                                          x, y, z,
+                                          yaw,
+                                          duration_s))
 
     def spiral(self, angle, r0, rF, ascent, duration_s, sideways=False, clockwise=False,
                group_mask=ALL_GROUPS):
         """
         Follow a spiral-like segment (spline approximation of a spiral/arc for <= 90-degree segments)
 
-        :param angle: spiral angle (rad)
-        :param r0: initial radius (m)
-        :param rF: final radius (m)
-        :param ascent: altitude gain (m)
+        :param angle: spiral angle (rad), limited to +/- 2pi
+        :param r0: initial radius (m), must be positive
+        :param rF: final radius (m), must be positive
+        :param ascent: altitude gain (m), positive to climb, negative to descent
         :param duration_s: time it should take to reach the end of the spiral (s)
         :param sideways: true if crazyflie should spiral sideways instead of forward
         :param clockwise: true if crazyflie should spiral clockwise instead of counter-clockwise
         :param group_mask: Mask for which CFs this should apply to
         """
+        if angle > 2*math.pi:
+            angle = 2*math.pi
+            warnings.warning('Spiral angle saturated at 2pi as it was too large')
+        elif angle < -2*math.pi:
+            angle = -2*math.pi
+            warnings.warning('Spiral angle saturated at -2pi as it was too small')
+        if r0 < 0:
+            r0 = 0
+            warnings.warning('Initial radius set to 0 as it cannot be negative')
+        if rF < 0:
+            rF = 0
+            warnings.warning('Final radius set to 0 as it cannot be negative')
         self._send_packet(struct.pack('<BBBBfffff',
                                       self.COMMAND_SPIRAL,
                                       group_mask,

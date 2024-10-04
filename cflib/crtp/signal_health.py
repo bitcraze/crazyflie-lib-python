@@ -34,7 +34,7 @@ class SignalHealth:
         self._update_rssi(ack)
         self._update_rate_and_congestion(ack, packet_out)
 
-        if self.signal_health:
+        if self.signal_health and self._signal_health_callback:
             self._signal_health_callback(self.signal_health)
 
     def _update_link_quality(self, ack):

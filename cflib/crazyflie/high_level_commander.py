@@ -25,6 +25,7 @@
 """
 Used for sending high level setpoints to the Crazyflie
 """
+import math
 import struct
 
 from cflib.crtp.crtpstack import CRTPPacket
@@ -46,6 +47,8 @@ class HighLevelCommander():
     COMMAND_DEFINE_TRAJECTORY = 6
     COMMAND_TAKEOFF_2 = 7
     COMMAND_LAND_2 = 8
+    COMMAND_SPIRAL = 11
+    COMMAND_GO_TO_2 = 12
 
     ALL_GROUPS = 0
 
@@ -131,7 +134,7 @@ class HighLevelCommander():
                                       self.COMMAND_STOP,
                                       group_mask))
 
-    def go_to(self, x, y, z, yaw, duration_s, relative=False,
+    def go_to(self, x, y, z, yaw, duration_s, relative=False, linear=False,
               group_mask=ALL_GROUPS):
         """
         Go to an absolute or relative position
@@ -142,15 +145,67 @@ class HighLevelCommander():
         :param yaw: Yaw (radians)
         :param duration_s: Time it should take to reach the position (s)
         :param relative: True if x, y, z is relative to the current position
+        :param linear: True to use linear interpolation instead of a smooth polynomial
         :param group_mask: Mask for which CFs this should apply to
         """
-        self._send_packet(struct.pack('<BBBfffff',
-                                      self.COMMAND_GO_TO,
-                                      group_mask,
-                                      relative,
-                                      x, y, z,
-                                      yaw,
-                                      duration_s))
+        if self._cf.platform.get_protocol_version() < 8:
+            if linear:
+                print('Warning: Linear mode not supported in protocol version < 8, update your crazyflie\'s firmware')
+            self._send_packet(struct.pack('<BBBfffff',
+                                          self.COMMAND_GO_TO,
+                                          group_mask,
+                                          relative,
+                                          x, y, z,
+                                          yaw,
+                                          duration_s))
+        else:
+            self._send_packet(struct.pack('<BBBBfffff',
+                                          self.COMMAND_GO_TO_2,
+                                          group_mask,
+                                          relative,
+                                          linear,
+                                          x, y, z,
+                                          yaw,
+                                          duration_s))
+
+    def spiral(self, angle, r0, rF, ascent, duration_s, sideways=False, clockwise=False,
+               group_mask=ALL_GROUPS):
+        """
+        Follow a spiral-like segment (spline approximation of a spiral/arc for <= 90-degree segments)
+
+        :param angle: spiral angle (rad), limited to +/- 2pi
+        :param r0: initial radius (m), must be positive
+        :param rF: final radius (m), must be positive
+        :param ascent: altitude gain (m), positive to climb, negative to descent
+        :param duration_s: time it should take to reach the end of the spiral (s)
+        :param sideways: true if crazyflie should spiral sideways instead of forward
+        :param clockwise: true if crazyflie should spiral clockwise instead of counter-clockwise
+        :param group_mask: Mask for which CFs this should apply to
+        """
+        if self._cf.platform.get_protocol_version() < 8:
+            print('Warning: Spiral command is not supported in protocol version < 8, update your crazyflie\'s firmware')
+        else:
+            if angle > 2*math.pi:
+                angle = 2*math.pi
+                print('Warning: Spiral angle saturated at 2pi as it was too large')
+            elif angle < -2*math.pi:
+                angle = -2*math.pi
+                print('Warning: Spiral angle saturated at -2pi as it was too small')
+            if r0 < 0:
+                r0 = 0
+                print('Warning: Initial radius set to 0 as it cannot be negative')
+            if rF < 0:
+                rF = 0
+                print('Warning: Final radius set to 0 as it cannot be negative')
+            self._send_packet(struct.pack('<BBBBfffff',
+                                          self.COMMAND_SPIRAL,
+                                          group_mask,
+                                          sideways,
+                                          clockwise,
+                                          angle,
+                                          r0, rF,
+                                          ascent,
+                                          duration_s))
 
     def start_trajectory(self, trajectory_id, time_scale=1.0, relative=False,
                          reversed=False, group_mask=ALL_GROUPS):

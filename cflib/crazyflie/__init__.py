@@ -93,6 +93,8 @@ class Crazyflie():
 
         # Called if establishing of the link fails (i.e times out)
         self.connection_failed = Caller()
+        # Called if link driver has an error while state is DISCONNECTED
+        self.disconnected_link_error = Caller()
         # Called for every packet received
         self.packet_received = Caller()
         # Called for every packet sent
@@ -198,10 +200,12 @@ class Crazyflie():
         self.link = None
         if (self.state == State.INITIALIZED):
             self.connection_failed.call(self.link_uri, errmsg)
-        if (self.state == State.CONNECTED or
+        elif (self.state == State.CONNECTED or
                 self.state == State.SETUP_FINISHED):
             self.disconnected.call(self.link_uri)
             self.connection_lost.call(self.link_uri, errmsg)
+        elif (self.state == State.DISCONNECTED):
+            self.disconnected_link_error.call(self.link_uri, errmsg)
         self.state = State.DISCONNECTED
 
     def _link_quality_cb(self, percentage):

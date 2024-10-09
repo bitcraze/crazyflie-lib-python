@@ -34,6 +34,7 @@ import cflinkcpp
 
 from .crtpstack import CRTPPacket
 from cflib.crtp.crtpdriver import CRTPDriver
+from cflib.crtp.signal_health import SignalHealth
 
 __author__ = 'Bitcraze AB'
 __all__ = ['CfLinkCppDriver']
@@ -54,22 +55,23 @@ class CfLinkCppDriver(CRTPDriver):
         self.needs_resending = False
 
         self._connection = None
+        self._signal_health = SignalHealth()
 
-    def connect(self, uri, link_quality_callback, link_error_callback):
+    def connect(self, uri, signal_health_callback, link_error_callback):
         """Connect the driver to a specified URI
 
         @param uri Uri of the link to open
-        @param link_quality_callback Callback to report link quality in percent
+        @param signal_health_callback Callback to report signal health
         @param link_error_callback Callback to report errors (will result in
                disconnection)
         """
 
         self._connection = cflinkcpp.Connection(uri)
         self.uri = uri
-        self._link_quality_callback = link_quality_callback
+        self._signal_health_callback = signal_health_callback
         self._link_error_callback = link_error_callback
 
-        if uri.startswith('radio://') and link_quality_callback is not None:
+        if uri.startswith('radio://') and signal_health_callback is not None:
             self._last_connection_stats = self._connection.statistics
             self._recompute_link_quality_timer()
 
@@ -181,13 +183,13 @@ class CfLinkCppDriver(CRTPDriver):
         sent_count = stats.sent_count - self._last_connection_stats.sent_count
         ack_count = stats.ack_count - self._last_connection_stats.ack_count
         if sent_count > 0:
-            link_quality = min(ack_count, sent_count) / sent_count * 100.0
+            self._signal_health.link_quality = min(ack_count, sent_count) / sent_count * 100.0
         else:
-            link_quality = 1
+            self._signal_health.link_quality = 1
         self._last_connection_stats = stats
 
-        if self._link_quality_callback is not None:
-            self._link_quality_callback(link_quality)
+        if self._signal_health_callback is not None:
+            self._signal_health_callback(self._signal_health)
 
         if sent_count > 10 and ack_count == 0 and self._link_error_callback is not None:
             self._link_error_callback('Too many packets lost')

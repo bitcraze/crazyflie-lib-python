@@ -205,7 +205,9 @@ class Bootloader:
         current_nrf_bl_version = None
         if self._cload.targets[TargetTypes.NRF51].version is not None:
             current_nrf_bl_version = Version(str(self._cload.targets[TargetTypes.NRF51].version))
-        provided_nrf_bl_version = Version(self._get_provided_nrf51_bl_version(flash_artifacts))
+        provided_nrf_bl_version = None
+        if self._get_provided_nrf51_bl_version(flash_artifacts) is not None:
+            provided_nrf_bl_version = Version(self._get_provided_nrf51_bl_version(flash_artifacts))
 
         print('nRF51 has: {} and requires {} and upgrade provides {}. Current bootloader version is [{}] and upgrade '
               'provides [{}]'.format(

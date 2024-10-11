@@ -37,6 +37,8 @@ from typing import NoReturn
 from typing import Optional
 from typing import Tuple
 
+from packaging.version import Version
+
 from .boottypes import BootVersion
 from .boottypes import TargetTypes
 from .cloader import Cloader
@@ -202,10 +204,12 @@ class Bootloader:
         update_contains_nrf_sd = any(x.target.type == 'bootloader+softdevice' for x in flash_artifacts)
         current_nrf_bl_version = None
         if self._cload.targets[TargetTypes.NRF51].version is not None:
-            current_nrf_bl_version = str(self._cload.targets[TargetTypes.NRF51].version)
-        provided_nrf_bl_version = self._get_provided_nrf51_bl_version(flash_artifacts)
+            current_nrf_bl_version = Version(str(self._cload.targets[TargetTypes.NRF51].version))
+        provided_nrf_bl_version = None
+        if self._get_provided_nrf51_bl_version(flash_artifacts) is not None:
+            provided_nrf_bl_version = Version(self._get_provided_nrf51_bl_version(flash_artifacts))
 
-        print('nRF51 has: {} and requires {} and upgrade provides {}. Current bootloader version is [{}] but upgrade '
+        print('nRF51 has: {} and requires {} and upgrade provides {}. Current bootloader version is [{}] and upgrade '
               'provides [{}]'.format(
                   current_nrf_sd_version, required_nrf_sd_version, provided_nrf_sd_version,
                   current_nrf_bl_version, provided_nrf_bl_version)
@@ -252,6 +256,8 @@ class Bootloader:
             print('Reconnected to new bootloader')
             self._cload.check_link_and_get_info()
             self._cload.request_info_update(TargetTypes.NRF51)
+        else:
+            print('No need to flash nRF soft device')
 
         # Remove the softdevice+bootloader from the list of artifacts to flash
         flash_artifacts = [a for a in flash_artifacts if a.target.type !=

@@ -22,8 +22,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
+Warning: you will have to write new data to the memory to make it
+usable again. Use with caution.
+
 Simple example that connects to the first Crazyflie found, looks for
-EEPROM memories and lists its contents.
+EEPROM memories and erases its contents.
 """
 import logging
 import sys
@@ -42,7 +45,7 @@ logging.basicConfig(level=logging.INFO)
 
 class EEPROMExample:
     """
-    Simple example listing the EEPROMs found and lists its contents.
+    Simple example listing the EEPROMs found and erases its contents.
     """
 
     def __init__(self, link_uri):
@@ -122,6 +125,8 @@ class EEPROMExample:
 
 
 if __name__ == '__main__':
+    input('Warning, this will erase EEPROM memory, press enter to continue...')
+
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 

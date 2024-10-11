@@ -83,7 +83,7 @@ class EEPROMExample:
             elems['roll_trim'] = 0.0
             elems['radio_channel'] = 80
             elems['radio_speed'] = 2
-            elems['radio_address'] = 0xDEADBEEF
+            elems['radio_address'] = 0xE7E7E7E7E7
 
             mems[0].write_data(self._data_written)
 

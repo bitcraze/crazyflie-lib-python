@@ -28,7 +28,7 @@ pip uninstall cflib
 
 Note: If you are developing for the cflib you must use python3. On Ubuntu (20.04+) use `pip3` instead of `pip`.
 
-### Linux, OSX, Windows
+### Linux, macOS, Windows
 
 The following should be executed in the root of the crazyflie-lib-python file tree.
 
@@ -44,8 +44,8 @@ you can skip this section.
 
 * To deactivate the virtualenv when you are done using it `deactivate`
 
-### Pre commit hooks (Ubuntu)
-If you want some extra help with keeping to the mandated python coding style you can install hooks that verify your style at commit time. This is done by running:
+### Pre-commit hooks (Ubuntu)
+If you want some extra help with keeping to the mandated Python coding style you can install hooks that verify your style at commit time. This is done by running:
 ```
 $ pip3 install pre-commit
 ```

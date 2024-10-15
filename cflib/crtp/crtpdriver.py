@@ -42,11 +42,11 @@ class CRTPDriver:
         """
         self.needs_resending = True
 
-    def connect(self, uri, link_quality_callback, link_error_callback):
+    def connect(self, uri, signal_health_callback, link_error_callback):
         """Connect the driver to a specified URI
 
         @param uri Uri of the link to open
-        @param link_quality_callback Callback to report link quality in percent
+        @param signal_health_callback Callback to report signal health
         @param link_error_callback Callback to report errors (will result in
                disconnection)
         """

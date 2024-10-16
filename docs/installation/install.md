@@ -5,7 +5,7 @@ page_id: install
 
 ## Requirements
 
-This project requires Python 3.8 - 3.12.
+This project requires Python 3.10+.
 
 
 See below sections for more platform-specific requirements.

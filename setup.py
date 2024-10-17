@@ -30,7 +30,6 @@ setup(
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Topic :: System :: Hardware :: Hardware Drivers',
-        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3'
     ],
 

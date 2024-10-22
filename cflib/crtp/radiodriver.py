@@ -52,7 +52,7 @@ import cflib.drivers.crazyradio as crazyradio
 from .crtpstack import CRTPPacket
 from .exceptions import WrongUriType
 from cflib.crtp.crtpdriver import CRTPDriver
-from cflib.crtp.signal_health import SignalHealth
+from cflib.crtp.radio_link_statistics import RadioLinkStatistics
 from cflib.drivers.crazyradio import Crazyradio
 
 
@@ -241,19 +241,19 @@ class RadioDriver(CRTPDriver):
         self._radio = None
         self.uri = ''
         self.link_error_callback = None
-        self.signal_health_callback = None
+        self.radio_link_statistics_callback = None
         self.in_queue = None
         self.out_queue = None
         self._thread = None
         self.needs_resending = True
 
-    def connect(self, uri, signal_health_callback, link_error_callback):
+    def connect(self, uri, radio_link_statistics_callback, link_error_callback):
         """
         Connect the link driver to a specified URI of the format:
         radio://<dongle nbr>/<radio channel>/[250K,1M,2M]
 
-        The callback for signal health can be called at any moment from the
-        driver to report back the signal health. The callback from linkError
+        The callback for radio link statistics can be called at any moment from the
+        driver to report back the radio link statistics. The callback from linkError
         will be called when a error occurs with
         an error message.
         """
@@ -283,7 +283,7 @@ class RadioDriver(CRTPDriver):
         self._thread = _RadioDriverThread(self._radio,
                                           self.in_queue,
                                           self.out_queue,
-                                          signal_health_callback,
+                                          radio_link_statistics_callback,
                                           link_error_callback,
                                           self,
                                           rate_limit)
@@ -381,7 +381,7 @@ class RadioDriver(CRTPDriver):
 
         self._thread = _RadioDriverThread(self._radio, self.in_queue,
                                           self.out_queue,
-                                          self.signal_health_callback,
+                                          self.radio_link_statistics_callback,
                                           self.link_error_callback,
                                           self)
         self._thread.start()
@@ -401,7 +401,7 @@ class RadioDriver(CRTPDriver):
 
         # Clear callbacks
         self.link_error_callback = None
-        self.signal_health_callback = None
+        self.radio_link_statistics_callback = None
 
     def _scan_radio_channels(self, radio: _SharedRadioInstance,
                              start=0, stop=125):
@@ -520,7 +520,7 @@ class _RadioDriverThread(threading.Thread):
     Crazyradio USB driver. """
 
     def __init__(self, radio, inQueue, outQueue,
-                 signal_health_callback, link_error_callback, link, rate_limit: Optional[int]):
+                 radio_link_statistics_callback, link_error_callback, link, rate_limit: Optional[int]):
         """ Create the object """
         threading.Thread.__init__(self)
         self._radio = radio
@@ -528,7 +528,7 @@ class _RadioDriverThread(threading.Thread):
         self._out_queue = outQueue
         self._sp = False
         self._link_error_callback = link_error_callback
-        self._signal_health = SignalHealth(signal_health_callback)
+        self._radio_link_statistics = RadioLinkStatistics(radio_link_statistics_callback)
         self._retry_before_disconnect = _nr_of_retries
         self.rate_limit = rate_limit
 
@@ -659,7 +659,7 @@ class _RadioDriverThread(threading.Thread):
                 # If no packet to send, send a null packet
                 dataOut.append(0xFF)
 
-            self._signal_health.update(ackStatus, outPacket)
+            self._radio_link_statistics.update(ackStatus, outPacket)
 
 
 def set_retries_before_disconnect(nr_of_retries):

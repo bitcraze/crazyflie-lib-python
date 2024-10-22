@@ -4,38 +4,38 @@ import time
 import numpy as np
 
 
-class SignalHealth:
+class RadioLinkStatistics:
     """
-    Tracks the health of the signal by monitoring link quality and uplink RSSI
-    using exponential moving averages.
+    Tracks the health of the signal by monitoring link quality, uplink RSSI,
+    packet rates, and congestion.
     """
 
-    def __init__(self, signal_health_callback, alpha=0.1):
+    def __init__(self, radio_link_statistics_callback, alpha=0.1):
         """
-        Initialize the SignalHealth class.
+        Initialize the RadioLinkStatistics class.
 
         :param alpha: Weight for the exponential moving average (default 0.1)
         """
         self._alpha = alpha
-        self._signal_health_callback = signal_health_callback
+        self._radio_link_statistics_callback = radio_link_statistics_callback
 
         self._retries = collections.deque()
         self._retry_sum = 0
 
     def update(self, ack, packet_out):
         """
-        Update the signal health based on the acknowledgment data.
+        Update the radio link statistics based on the acknowledgment data.
 
         :param ack: Acknowledgment object containing retry and RSSI data.
         """
-        self.signal_health = {}
+        self.radio_link_statistics = {}
 
         self._update_link_quality(ack)
         self._update_rssi(ack)
         self._update_rate_and_congestion(ack, packet_out)
 
-        if self.signal_health and self._signal_health_callback:
-            self._signal_health_callback(self.signal_health)
+        if self.radio_link_statistics and self._radio_link_statistics_callback:
+            self._radio_link_statistics_callback(self.radio_link_statistics)
 
     def _update_link_quality(self, ack):
         """
@@ -49,7 +49,7 @@ class SignalHealth:
             self._retry_sum += retry
             if len(self._retries) > 100:
                 self._retry_sum -= self._retries.popleft()
-            self.signal_health['link_quality'] = float(self._retry_sum) / len(self._retries) * 10
+            self.radio_link_statistics['link_quality'] = float(self._retry_sum) / len(self._retries) * 10
 
     def _update_rssi(self, ack):
         """
@@ -73,7 +73,7 @@ class SignalHealth:
                 time_diffs = np.diff(self._rssi_timestamps, prepend=time.time())
                 weights = np.exp(-time_diffs)
                 weighted_average = np.sum(weights * self._rssi_values) / np.sum(weights)
-                self.signal_health['uplink_rssi'] = weighted_average
+                self.radio_link_statistics['uplink_rssi'] = weighted_average
 
     def _update_rate_and_congestion(self, ack, packet_out):
         """
@@ -108,11 +108,13 @@ class SignalHealth:
             # rate and congestion stats every N seconds
             if time.time() - self._previous_time_stamp > 0.1:
                 # self._uplink_rate = self._amount_packets_up / (time.time() - self._previous_time_stamp)
-                self.signal_health['uplink_rate'] = self._amount_packets_up / (time.time() - self._previous_time_stamp)
-                self.signal_health['downlink_rate'] = self._amount_packets_down / \
+                self.radio_link_statistics['uplink_rate'] = self._amount_packets_up / \
                     (time.time() - self._previous_time_stamp)
-                self.signal_health['uplink_congestion'] = 1.0 - self._amount_null_packets_up / self._amount_packets_up
-                self.signal_health['downlink_congestion'] = 1.0 - \
+                self.radio_link_statistics['downlink_rate'] = self._amount_packets_down / \
+                    (time.time() - self._previous_time_stamp)
+                self.radio_link_statistics['uplink_congestion'] = 1.0 - \
+                    self._amount_null_packets_up / self._amount_packets_up
+                self.radio_link_statistics['downlink_congestion'] = 1.0 - \
                     self._amount_null_packets_down / self._amount_packets_down
 
                 self._amount_packets_up = 0

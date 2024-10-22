@@ -220,20 +220,20 @@ class Crazyflie():
             self.disconnected_link_error.call(self.link_uri, errmsg)
         self.state = State.DISCONNECTED
 
-    def _signal_health_cb(self, signal_health):
-        """Called from link driver to report signal health"""
-        if 'link_quality' in signal_health:
-            self.link_quality_updated.call(signal_health['link_quality'])
-        if 'uplink_rssi' in signal_health:
-            self.uplink_rssi_updated.call(signal_health['uplink_rssi'])
-        if 'uplink_rate' in signal_health:
-            self.uplink_rate_updated.call(signal_health['uplink_rate'])
-        if 'downlink_rate' in signal_health:
-            self.downlink_rate_updated.call(signal_health['downlink_rate'])
-        if 'uplink_congestion' in signal_health:
-            self.uplink_congestion_updated.call(signal_health['uplink_congestion'])
-        if 'downlink_congestion' in signal_health:
-            self.downlink_congestion_updated.call(signal_health['downlink_congestion'])
+    def _radio_link_statistics_cb(self, radio_link_statistics):
+        """Called from link driver to report radio link statistics"""
+        if 'link_quality' in radio_link_statistics:
+            self.link_quality_updated.call(radio_link_statistics['link_quality'])
+        if 'uplink_rssi' in radio_link_statistics:
+            self.uplink_rssi_updated.call(radio_link_statistics['uplink_rssi'])
+        if 'uplink_rate' in radio_link_statistics:
+            self.uplink_rate_updated.call(radio_link_statistics['uplink_rate'])
+        if 'downlink_rate' in radio_link_statistics:
+            self.downlink_rate_updated.call(radio_link_statistics['downlink_rate'])
+        if 'uplink_congestion' in radio_link_statistics:
+            self.uplink_congestion_updated.call(radio_link_statistics['uplink_congestion'])
+        if 'downlink_congestion' in radio_link_statistics:
+            self.downlink_congestion_updated.call(radio_link_statistics['downlink_congestion'])
 
     def _check_for_initial_packet_cb(self, data):
         """
@@ -256,7 +256,7 @@ class Crazyflie():
         self.link_uri = link_uri
         try:
             self.link = cflib.crtp.get_link_driver(
-                link_uri, self._signal_health_cb, self._link_error_cb)
+                link_uri, self._radio_link_statistics_cb, self._link_error_cb)
 
             if not self.link:
                 message = 'No driver found or malformed URI: {}' \

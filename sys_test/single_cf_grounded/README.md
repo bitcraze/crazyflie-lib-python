@@ -1,4 +1,4 @@
-# Tests for a single Crazyflie 2.X (USB & Crazyradio) without flight
+# Tests for a single Crazyflie 2.x (USB & Crazyradio) without flight
 
 ## Preparation
 

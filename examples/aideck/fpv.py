@@ -64,7 +64,7 @@ try:
 except ImportError:
     pass
 
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt6 import QtCore, QtWidgets, QtGui
 
 logging.basicConfig(level=logging.INFO)
 

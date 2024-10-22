@@ -33,7 +33,7 @@ import time
 import xml.etree.cElementTree as ET
 from threading import Thread
 
-import qtm
+import qtm_rt
 from scipy.spatial.transform import Rotation
 
 import cflib.crtp
@@ -106,7 +106,7 @@ class QtmWrapper(Thread):
         qtm_instance = await self._discover()
         host = qtm_instance.host
         print('Connecting to QTM on ' + host)
-        self.connection = await qtm.connect(host)
+        self.connection = await qtm_rt.connect(host)
 
         params = await self.connection.get_parameters(parameters=['6d'])
         xml = ET.fromstring(params)
@@ -117,7 +117,7 @@ class QtmWrapper(Thread):
             on_packet=self._on_packet)
 
     async def _discover(self):
-        async for qtm_instance in qtm.Discover('0.0.0.0'):
+        async for qtm_instance in qtm_rt.Discover('0.0.0.0'):
             return qtm_instance
 
     def _on_packet(self, packet):

@@ -11,9 +11,6 @@ tempDir=$scriptDir/../../.tmp
 mkdir -p $apiRefDir
 mkdir -p $tempDir
 
-# This hack is needed to find --user installed modules
-export PYTHONPATH=$PYTHONPATH:$scriptDir/.local/lib/python3.7/site-packages
-
 [ -n "$API_REF_BASE" ] || {
     export API_REF_BASE=$(readlink -fn $tempDir)
 }
@@ -27,8 +24,8 @@ export PYTHONPATH=$PYTHONPATH:$scriptDir/.local/lib/python3.7/site-packages
 #
 
 # Make a temporary install in the temp dir
-HOME=$tempDir pip3 install --user --upgrade pip
-HOME=$tempDir pip3 install --user -e $scriptDir/../../
+HOME=$tempDir pip3 install --upgrade pip
+HOME=$tempDir pip3 install -e $scriptDir/../../
 
 # Generate documentation
 HOME=$tempDir pdoc3 --force $cflibDir --output-dir $tempDir --template-dir $templateDir

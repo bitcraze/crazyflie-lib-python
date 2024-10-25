@@ -6,42 +6,53 @@ on:
   pull_request: # to register the in-branch workflow
 
 jobs:
+  define-matrix:
+    runs-on: ubuntu-latest
+
+    outputs:
+      python-version: ${{ steps.python-version.outputs.python-version }}
+    steps:
+      - name: Define supported Python versions
+        id: python-version
+        run: |
+          echo 'python-version=["3.10", "3.11", "3.12", "3.13"]' >> "$GITHUB_OUTPUT"
+
   build:
+    needs: define-matrix
     runs-on: [ubuntu-latest, windows-latest, macos-latest]
+    strategy:
+      matrix:
+        python-version: ${{ fromJSON(needs.define-matrix.outputs.python-version) }}
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
       with:
-        python-version: |
-          3.10
-          3.11
-          3.12
-          3.13
+        python-version: ${{ matrix.python-version }}
     - run: pip install build
     - run: python -m build
   pip-install:
+    needs: define-matrix
     runs-on: [ubuntu-latest, windows-latest, macos-latest]
+    strategy:
+      matrix:
+        python-version: ${{ fromJSON(needs.define-matrix.outputs.python-version) }}
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
       with:
-        python-version: |
-          3.10
-          3.11
-          3.12
-          3.13
+        python-version: ${{ matrix.python-version }}
     - run: pip install build
     - run: pip install .
   pip-editable-install:
+    needs: define-matrix
     runs-on: [ubuntu-latest, windows-latest, macos-latest]
+    strategy:
+      matrix:
+        python-version: ${{ fromJSON(needs.define-matrix.outputs.python-version) }}
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
       with:
-        python-version: |
-          3.10
-          3.11
-          3.12
-          3.13
+        python-version: ${{ matrix.python-version }}
     - run: pip install build
     - run: pip install -e .

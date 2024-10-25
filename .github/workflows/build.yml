@@ -19,7 +19,7 @@ jobs:
 
   build:
     needs: define-matrix
-    runs-on: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: [ubuntu-latest]
     strategy:
       matrix:
         python-version: ${{ fromJSON(needs.define-matrix.outputs.python-version) }}
@@ -32,7 +32,7 @@ jobs:
     - run: python -m build
   pip-install:
     needs: define-matrix
-    runs-on: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: [ubuntu-latest]
     strategy:
       matrix:
         python-version: ${{ fromJSON(needs.define-matrix.outputs.python-version) }}
@@ -45,7 +45,7 @@ jobs:
     - run: pip install .
   pip-editable-install:
     needs: define-matrix
-    runs-on: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: [ubuntu-latest]
     strategy:
       matrix:
         python-version: ${{ fromJSON(needs.define-matrix.outputs.python-version) }}

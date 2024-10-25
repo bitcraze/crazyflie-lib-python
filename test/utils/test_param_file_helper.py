@@ -116,5 +116,5 @@ class ParamFileHelperTests(unittest.TestCase):
         with patch.object(Event, 'wait', new=mock_wait):
             # Test and  Assert
             self.assertTrue(helper.store_params_from_file('test/utils/fixtures/five_params.yaml'))
-            self.assertEquals(5, len(mock_Param.set_value.mock_calls))
-            self.assertEquals(5, len(mock_Param.persistent_store.mock_calls))
+            self.assertEqual(5, len(mock_Param.set_value.mock_calls))
+            self.assertEqual(5, len(mock_Param.persistent_store.mock_calls))

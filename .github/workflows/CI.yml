@@ -1,25 +1,107 @@
-# Run check and build of the lib using the Bitcraze builder docker image
 name: CI
 
 on:
+  workflow_call:
+  workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
   schedule:
-    # Weekly build to make sure dependencies are OK
     - cron:  '30 16 * * 6'
 
 jobs:
-  build:
+  verify:
+    name: Check code formatting and run tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.x
+    - name: Install pre-commit
+      run: pip install pre-commit
+    - name: Check code formatting
+      run: pre-commit run --all-files
+    - name: Basic install to fetch dependencies for tests
+      run: pip install .
+    - name: Install test dependencies
+      run: pip install pytest setuptools
+    - name: Run tests
+      run : python3 -m unittest discover test
+
+  define-python-version-matrix:
+    name: Define Python versions matrix
+    needs: verify
     runs-on: ubuntu-latest
 
+    outputs:
+      python-version: ${{ steps.python-version.outputs.python-version }}
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      - name: Define supported Python versions
+        id: python-version
+        run: |
+          echo 'python-version=["3.10", "3.11", "3.12", "3.13"]' >> "$GITHUB_OUTPUT"
 
-    - name: Build
-      run: docker run --rm -v ${PWD}:/module bitcraze/builder ./tools/build/build
+  build:
+    name: Build package
+    needs: define-python-version-matrix
+    runs-on: [ubuntu-latest]
+    strategy:
+      matrix:
+        python-version: ${{ fromJSON(needs.define-python-version-matrix.outputs.python-version) }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - run: pip install build
+    - run: python -m build
 
-    - name: Build docs
-      run: docker run --rm -v ${PWD}:/module bitcraze/web-builder ./tools/build-docs/build-docs
+  pip-install:
+    name: Install package with pip
+    needs: define-python-version-matrix
+    runs-on: [ubuntu-latest]
+    strategy:
+      matrix:
+        python-version: ${{ fromJSON(needs.define-python-version-matrix.outputs.python-version) }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - run: pip install build
+    - run: pip install .
+
+  pip-editable-install:
+    name: Install package in editable mode with pip
+    needs: define-python-version-matrix
+    runs-on: [ubuntu-latest]
+    strategy:
+      matrix:
+        python-version: ${{ fromJSON(needs.define-python-version-matrix.outputs.python-version) }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - run: pip install build
+    - run: pip install -e .
+
+  build-docs:
+    name: Build documentation
+    needs: verify
+    runs-on: [ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: 3.x
+    - name: install cflib
+      run: pip install .
+    - name: install pdoc3
+      run: pip install pdoc3
+    - name: build docs
+      run: pdoc3 docs/api/template

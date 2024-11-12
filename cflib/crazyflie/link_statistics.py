@@ -97,7 +97,7 @@ class Latency:
         self._stop_event = Event()
         self._ping_thread_instance = None
         self.latency = 0
-        self.latencyUpdated = Caller()
+        self.latency_updated = Caller()
 
     def start(self):
         """
@@ -123,7 +123,7 @@ class Latency:
             self._ping_thread_instance.join()
             self._ping_thread_instance = None
 
-    def _ping_thread(self, interval: float = 1.0) -> None:
+    def _ping_thread(self, interval: float = 0.1) -> None:
         """
         Background thread method that sends a ping to the Crazyflie at regular intervals.
 
@@ -131,7 +131,7 @@ class Latency:
         until the stop event is set.
 
         Args:
-            interval (float): The time (in seconds) to wait between ping requests. Default is 1 second.
+            interval (float): The time (in seconds) to wait between ping requests. Default is 0.1 seconds.
         """
         while not self._stop_event.is_set():
             self.ping()
@@ -169,7 +169,7 @@ class Latency:
         if received_header != PING_HEADER:
             return
         self.latency = self._calculate_p95_latency(received_timestamp)
-        self.latencyUpdated.call(self.latency)
+        self.latency_updated.call(self.latency)
 
     def _calculate_p95_latency(self, timestamp):
         """

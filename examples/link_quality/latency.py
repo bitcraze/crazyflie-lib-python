@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # Add a callback to whenever we receive an updated latency estimate
     #
     # This could also be a Python lambda, something like:
-    cf.link_statistics.latency.latencyUpdated.add_callback(latency_callback)
+    cf.link_statistics.latency.latency_updated.add_callback(latency_callback)
 
     # This will connect the Crazyflie with the URI specified above.
     with SyncCrazyflie(uri, cf=cf) as scf:

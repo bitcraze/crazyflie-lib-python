@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cflib"
-version = "0.1.27"
+version = "0.1.27.dev0"
 description = "Crazyflie Python driver"
 authors = [
     { name = "Bitcraze and contributors", email = "contact@bitcraze.io" },

@@ -37,7 +37,7 @@ dependencies = [
 
 
 [project.urls]
-Homepage = "bitcraze.io"
+Homepage = "https://www.bitcraze.io"
 Documentation = "https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/"
 Repository = "https://github.com/bitcraze/crazyflie-lib-python"
 Issues = "https://github.com/bitcraze/crazyflie-lib-python/issues"

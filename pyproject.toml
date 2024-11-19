@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cflib"
+version = "0.1.27.1.dev0"
+description = "Crazyflie Python driver"
+authors = [
+    { name = "Bitcraze and contributors", email = "contact@bitcraze.io" },
+]
+
+readme = {file = "README.md", content-type = "text/markdown"}
+license = { text = "GPLv3" }
+keywords = ["driver", "crazyflie", "quadcopter"]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+
+    # Supported Python versions
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">= 3.10"
+
+dependencies = [
+    "pyusb>=1.0.0b2",
+    "libusb-package~=1.0",
+    "scipy~=1.7",
+    "numpy~=1.20",
+    "packaging~=24.0",
+]
+
+
+[project.urls]
+Homepage = "https://www.bitcraze.io"
+Documentation = "https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/"
+Repository = "https://github.com/bitcraze/crazyflie-lib-python"
+Issues = "https://github.com/bitcraze/crazyflie-lib-python/issues"
+
+[project.optional-dependencies]
+dev = ["pre-commit"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages]
+find = { exclude = ["examples", "test"] }
+
+[tool.setuptools.package-data]
+"cflib.resources.binaries" = ["cflib/resources/binaries/*.bin"]

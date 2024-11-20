@@ -6,44 +6,23 @@ on:
   - cron:  '0 2 * * *'
 
 jobs:
-  python-latest:
+  python-check:
+    strategy:
+      matrix:
+        python-version: [3.10, 3.11, 3.12, 3.13]
     runs-on: ubuntu-latest
-    container:
-      image: python:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: python version
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Verify Python version
         run: python --version
 
-      - name: install lib
-        run: pip install -e .
-
-  python-python311:
-    runs-on: ubuntu-latest
-    container:
-      image: python:3.11
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: python version
-        run: python --version
-
-      - name: install lib
-        run: pip install -e .
-
-  minimum-python310:
-    runs-on: ubuntu-latest
-    container:
-      image: python:3.10
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: python version
-        run: python --version
-
-      - name: install lib
+      - name: Install library
         run: pip install -e .

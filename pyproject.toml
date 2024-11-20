@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "cflib"
-version = "0.1.27.1.dev0"
+dynamic = ["version"]
 description = "Crazyflie Python driver"
 authors = [
     { name = "Bitcraze and contributors", email = "contact@bitcraze.io" },
@@ -59,3 +59,6 @@ find = { exclude = ["examples", "test"] }
 
 [tool.setuptools.package-data]
 "cflib.resources.binaries" = ["cflib/resources/binaries/*.bin"]
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"

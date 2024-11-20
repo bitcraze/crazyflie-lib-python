@@ -3,7 +3,7 @@ name: Dependency check
 on:
   workflow_dispatch:
   schedule:
-  - cron:  '0 2 * * *'
+  - cron:  '0 2 * * 5'
 
 jobs:
   python-check:

@@ -12,10 +12,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, lab-mac, windows-latest]
-        python-version: [3.10, 3.11, 3.12, 3.13]
-    
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
     runs-on: ${{ matrix.os }}
-    
+
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
@@ -25,13 +25,12 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Verify
-      run: ./tools/build/verify
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build pre-commit
 
-    - name: Test
-      run: ./tools/build/test
-
-    - name: Build
+    - name: Verify, test, and build
       run: ./tools/build/build
 
     - name: Build docs

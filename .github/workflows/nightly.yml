@@ -1,0 +1,37 @@
+# Run check and build of the lib using the Bitcraze builder docker image
+name: Nightly Build
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.10, 3.11, 3.12, 3.13]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Verify
+      run: ./tools/build/verify
+
+    - name: Test
+      run: ./tools/build/test
+
+    - name: Build
+      run: ./tools/build/build
+
+    - name: Build docs
+      run: ./tools/build-docs/build-docs

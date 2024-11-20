@@ -30,8 +30,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install build pre-commit
 
-    - name: Verify, test, and build
-      run: ./tools/build/build
+    - name: Build
+      run: ./tools/build/bdist
+
+    - name: Test
+      run: ./tools/build/test
+
+    - name: Verify
+      run: ./tools/build/verify
 
     - name: Build docs
       run: ./tools/build-docs/build-docs

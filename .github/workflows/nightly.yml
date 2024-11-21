@@ -36,8 +36,22 @@ jobs:
     - name: Build wheel
       run: python3 -m build --wheel
 
-    - name: Install wheel
-      run: pip install ./dist/*.whl
+    - name: Install the built wheel
+      run: |
+        # Find the built wheel
+        WHEEL_FILE=$(ls dist/*.whl | head -n 1)
+        echo "Installing wheel: $WHEEL_FILE"
+        pip install "$WHEEL_FILE"
+      shell: bash
+      if: runner.os != 'Windows'
+
+    - name: Install the built wheel (Windows)
+      run: |
+        for /f %%i in ('dir /b dist\*.whl') do set WHEEL_FILE=dist\%%i
+        echo Installing wheel: %WHEEL_FILE%
+        pip install %WHEEL_FILE%
+      shell: cmd
+      if: runner.os == 'Windows'
 
     - name: Test
       run: python3 -m unittest discover test/

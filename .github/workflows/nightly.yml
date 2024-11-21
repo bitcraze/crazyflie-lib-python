@@ -21,17 +21,61 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
+      if: runner.os == 'Linux' || runner.os == 'Windows'
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Set up Python ${{ matrix.python-version }} and venv on macOS
+      if: runner.os == 'macOS'
+      run: |
+        brew install python@${{ matrix.python-version }}
+        $(brew --prefix)/bin/python${{ matrix.python-version }} -m venv venv
+        echo "PATH=$(pwd)/venv/bin:$PATH" >> $GITHUB_ENV
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install build pre-commit
+        python3 -m pip install --upgrade pip build setuptools
+        python3 -m pip install pre-commit
 
-    - name: Verify, test, and build
-      run: ./tools/build/build
+    - name: Code quality checks
+      run: pre-commit run --all-files
 
-    - name: Build docs
-      run: ./tools/build-docs/build-docs
+    - name: Build wheel
+      run: python3 -m build --wheel
+
+    - name: Install the built wheel
+      run: |
+        # Find the built wheel
+        WHEEL_FILE=$(ls dist/*.whl | head -n 1)
+        echo "Installing wheel: $WHEEL_FILE"
+        pip install "$WHEEL_FILE"
+      shell: bash
+      if: runner.os != 'Windows'
+
+    - name: Install the built wheel (Windows)
+      run: |
+        for /f %%i in ('dir /b dist\*.whl') do set WHEEL_FILE=dist\%%i
+        echo Installing wheel: %WHEEL_FILE%
+        pip install %WHEEL_FILE%
+      shell: cmd
+      if: runner.os == 'Windows'
+
+    - name: Test
+      run: python3 -m unittest discover test/
+
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip setuptools
+          python3 -m pip install pdoc3 pyyaml
+      - name: Build docs
+        run: ./tools/build-docs/build-docs

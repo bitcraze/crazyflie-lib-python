@@ -21,9 +21,17 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
+      if: runner.os == 'Linux' || runner.os == 'Windows'
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Set up Python ${{ matrix.python-version }} and venv on macOS
+      if: runner.os == 'macOS'
+      run: |
+        brew install python@${{ matrix.python-version }}
+        $(brew --prefix)/bin/python${{ matrix.python-version }} -m venv venv
+        echo "PATH=$(pwd)/venv/bin:$PATH" >> $GITHUB_ENV
 
     - name: Install dependencies
       run: |

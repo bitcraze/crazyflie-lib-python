@@ -27,17 +27,33 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install build pre-commit
+        python3 -m pip install --upgrade pip build setuptools
+        python3 -m pip install pre-commit
 
-    - name: Build
-      run: ./tools/build/bdist
+    - name: Code quality checks
+      run: pre-commit run --all-files
+
+    - name: Build wheel
+      run: python3 -m build --wheel
+
+    - name: Install wheel
+      run: pip install ./dist/*.whl
 
     - name: Test
-      run: ./tools/build/test
+      run: python3 -m unittest discover test/
 
-    - name: Verify
-      run: ./tools/build/verify
-
-    - name: Build docs
-      run: ./tools/build-docs/build-docs
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pdoc3
+      - name: Build docs
+        run: ./tools/build-docs/build-docs

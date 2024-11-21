@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "cflib"
-version = "0.1.27.1.dev0"
+dynamic = ["version"]
 description = "Crazyflie Python driver"
 authors = [
     { name = "Bitcraze and contributors", email = "contact@bitcraze.io" },
@@ -15,9 +15,16 @@ license = { text = "GPLv3" }
 keywords = ["driver", "crazyflie", "quadcopter"]
 
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Topic :: System :: Hardware :: Hardware Drivers",
+    "Topic :: Scientific/Engineering :: Robotics",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Intended Audience :: Developers",
+    "Operating System :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
 
     # Supported Python versions
     "Programming Language :: Python :: 3.10",
@@ -28,13 +35,12 @@ classifiers = [
 requires-python = ">= 3.10"
 
 dependencies = [
-    "pyusb>=1.0.0b2",
+    "pyusb~=1.2",
     "libusb-package~=1.0",
-    "scipy~=1.7",
-    "numpy~=1.20",
-    "packaging~=24.0",
+    "scipy~=1.14",
+    "numpy~=1.26",
+    "packaging~=24.2",
 ]
-
 
 [project.urls]
 Homepage = "https://www.bitcraze.io"
@@ -53,3 +59,6 @@ find = { exclude = ["examples", "test"] }
 
 [tool.setuptools.package-data]
 "cflib.resources.binaries" = ["cflib/resources/binaries/*.bin"]
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"

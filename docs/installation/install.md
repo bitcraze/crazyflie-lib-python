@@ -7,6 +7,7 @@ page_id: install
 
 This project requires Python 3.10+.
 
+To install on Python 3.13, build tools and Python development headers are required.
 
 See below sections for more platform-specific requirements.
 ## Install from Source
@@ -77,6 +78,8 @@ With linux, the crazyradio is easily recognized, but you have to setup UDEVpermi
 ### Windows
 
 Look at the [Zadig crazyradio instructions](https://www.bitcraze.io/documentation/repository/crazyradio-firmware/master/building/usbwindows/) to install crazyradio on Windows
+
+If you're using Python 3.13, you need to install [Visual Studio](https://visualstudio.microsoft.com/downloads/). During the installation process, you only need to select the Desktop Development with C++ workload in the Visual Studio Installer.
 
 ### macOS
 If you are using python 3.12 on mac you need to install libusb using homebrew.

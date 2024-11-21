@@ -33,6 +33,12 @@ jobs:
         $(brew --prefix)/bin/python${{ matrix.python-version }} -m venv venv
         echo "PATH=$(pwd)/venv/bin:$PATH" >> $GITHUB_ENV
 
+    - name: Set up MSVC environment (Windows)
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+      if: runner.os == 'Windows'
+
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip build setuptools

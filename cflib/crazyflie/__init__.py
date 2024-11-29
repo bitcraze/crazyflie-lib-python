@@ -109,7 +109,7 @@ class Crazyflie():
                                    rw_cache=rw_cache)
 
         self.incoming = _IncomingPacketHandler(self)
-        self.incoming.setDaemon(True)
+        self.incoming.daemon = True
         if self.link:
             self.incoming.start()
 

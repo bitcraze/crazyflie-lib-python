@@ -18,9 +18,16 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
+    environment:
+      name: pypi-test
+      url: https://pypi.org/p/cflib
+    permissions:
+      id-token: write
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -34,6 +41,5 @@ jobs:
     - name: Publish package to TestPyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-        username: __token__
-        password: ${{ secrets.PYPI_TEST_TOKEN }}
-        repository_url: https://test.pypi.org/legacy/
+        repository-url: https://test.pypi.org/legacy/
+        verbose: true

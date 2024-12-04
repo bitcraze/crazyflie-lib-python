@@ -134,6 +134,10 @@ def run_sequence(scf):
     # Set to mellinger controller
     # cf.param.set_value('stabilizer.controller', '2')
 
+    # Arm the Crazyflie
+    cf.platform.send_arming_request(True)
+    time.sleep(1.0)
+
     print('takeoff')
     send_setpoint(cf, 4.0,
                   [0.0, 0.0, 1.0],

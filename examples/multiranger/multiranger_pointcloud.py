@@ -50,6 +50,7 @@ For the example to run the following hardware is needed:
 import logging
 import math
 import sys
+from time import time
 
 import numpy as np
 from vispy import scene
@@ -110,6 +111,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Connect to the Crazyflie
         self.cf.open_link(URI)
+
+        # Arm the Crazyflie
+        self.cf.platform.send_arming_request(True)
+        time.sleep(1.0)
 
         self.hover = {'x': 0.0, 'y': 0.0, 'z': 0.0, 'yaw': 0.0, 'height': 0.3}
 

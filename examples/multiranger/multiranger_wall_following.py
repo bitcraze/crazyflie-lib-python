@@ -82,6 +82,10 @@ if __name__ == '__main__':
 
     cf = Crazyflie(rw_cache='./cache')
     with SyncCrazyflie(URI, cf=cf) as scf:
+        # Arm the Crazyflie
+        scf.cf.platform.send_arming_request(True)
+        time.sleep(1.0)
+
         with MotionCommander(scf) as motion_commander:
             with Multiranger(scf) as multiranger:
                 with SyncLogger(scf, lg_stab) as logger:

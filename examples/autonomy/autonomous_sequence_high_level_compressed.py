@@ -137,6 +137,10 @@ def upload_trajectory(cf, trajectory_id, trajectory):
 def run_sequence(cf, trajectory_id, duration):
     commander = cf.high_level_commander
 
+    # Arm the Crazyflie
+    cf.platform.send_arming_request(True)
+    time.sleep(1.0)
+
     commander.takeoff(1.0, 2.0)
     time.sleep(3.0)
     relative = True

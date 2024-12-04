@@ -162,6 +162,10 @@ def turn_off_leds(scf):
 
 
 def run_sequence(scf, alpha, r):
+    # Arm the Crazyflie
+    scf.cf.platform.send_arming_request(True)
+    time.sleep(1.0)
+
     commander = scf.cf.high_level_commander
     trajectory_id = 1
     duration = 4*t

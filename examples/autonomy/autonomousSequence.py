@@ -127,6 +127,10 @@ def start_position_printing(scf):
 def run_sequence(scf, sequence):
     cf = scf.cf
 
+    # Arm the Crazyflie
+    cf.platform.send_arming_request(True)
+    time.sleep(1.0)
+
     for position in sequence:
         print('Setting position {}'.format(position))
         for i in range(50):

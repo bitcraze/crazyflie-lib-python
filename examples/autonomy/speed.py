@@ -38,8 +38,6 @@ from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.utils import uri_helper
-# from trajectory import trajectory0
-# from trajectory import trajectory1
 
 # URI to the Crazyflie to connect to
 uri = uri_helper.uri_from_env(default='radio://0/88/2M/F00D2BEFED')
@@ -117,13 +115,13 @@ def run_native_sequence(cf):
     commander = cf.high_level_commander
 
     TIME_SCALE = 1.
-    DESIRED_SPEED = 1.5
+    DESIRED_SPEED = 2.
 
     GATE_LOCATIONS = [
-        np.array([-1.28, -1.55, 1.04]),  # Gate 1
-        np.array([-3.47, 0.14, 1.45]),  # Gate 2
-        np.array([-1.76, 1.76, 1.78]),  # Gate 3
-        np.array([0.20, 0.33, 1.33]),  # Gate 4
+        np.array([-1.28, -1.6, 1.06]),  # Gate 1
+        np.array([-3.48, 0.14, 1.45]),  # Gate 2
+        np.array([-1.76, 1.77, 1.76]),  # Gate 3
+        np.array([0.21, 0.33, 1.33]),  # Gate 4
     ]
     PAD_LOCATION = np.array([-1.64, 0.20, 0])
 
@@ -155,7 +153,7 @@ def run_native_sequence(cf):
     ascent = 0.00
     angle = np.pi
     spiral_length = calculate_spiral_length(r0, rf, ascent, angle)
-    duration = spiral_length / DESIRED_SPEED
+    duration = spiral_length / DESIRED_SPEED * 1.5
     commander.spiral(
         angle=angle,
         r0=r0,
@@ -296,7 +294,7 @@ def run_native_sequence(cf):
 
     current_position = GATE_LOCATIONS[0]
     target_position = np.array([current_position[0]-0.3, current_position[1], current_position[2]])
-    duration = calculate_distance(current_position, target_position) / DESIRED_SPEED * 1.5
+    duration = calculate_distance(current_position, target_position) / DESIRED_SPEED * 3
     straight_part_duration = duration
     commander.go_to(
         x=target_position[0],
@@ -331,11 +329,11 @@ def run_native_sequence(cf):
         y=target_position[1] + 1.,
         z=target_position[2] - 0.5,
         yaw=0,
-        duration_s=straight_part_duration * TIME_SCALE * 1.3,
+        duration_s=straight_part_duration * TIME_SCALE * 3,
         relative=False,
         linear=True,
     )
-    time.sleep(straight_part_duration * TIME_SCALE * 1.3)
+    time.sleep(straight_part_duration * TIME_SCALE * 3)
 
     # spiral back up through the gate
     r0 = 0.5
@@ -377,7 +375,7 @@ def run_native_sequence(cf):
 
     current_position = GATE_LOCATIONS[0]
     target_position = np.array([current_position[0] - thickness / 2, current_position[1], current_position[2]])
-    duration = calculate_distance(current_position, target_position) / DESIRED_SPEED * 1.3
+    duration = calculate_distance(current_position, target_position) / DESIRED_SPEED * 2
     print(current_position, target_position, duration)
     commander.go_to(
         x=target_position[0],
@@ -715,7 +713,7 @@ def run_native_sequence(cf):
     ascent = -delta_z
     angle = np.pi/2
     spiral_length = calculate_spiral_length(r0, rf, ascent, angle)
-    duration = spiral_length / DESIRED_SPEED * 1.4
+    duration = spiral_length / DESIRED_SPEED * 1.3
     commander.spiral(
         angle=angle,
         r0=r0,
@@ -769,7 +767,7 @@ def run_native_sequence(cf):
     ascent = -0.5
     angle = 2*np.pi
     spiral_length = calculate_spiral_length(r0, rf, ascent, angle)
-    duration = spiral_length / DESIRED_SPEED * 1.2
+    duration = spiral_length / DESIRED_SPEED * 1.6
     commander.spiral(
         angle=angle,
         r0=r0,
@@ -785,7 +783,7 @@ def run_native_sequence(cf):
     ascent = -0.5
     angle = 2*np.pi
     spiral_length = calculate_spiral_length(r0, rf, ascent, angle)
-    duration = spiral_length / DESIRED_SPEED * 1.2
+    duration = spiral_length / DESIRED_SPEED * 1.6
     commander.spiral(
         angle=angle,
         r0=r0,
@@ -801,7 +799,7 @@ def run_native_sequence(cf):
     ascent = -0.5
     angle = 2*np.pi
     spiral_length = calculate_spiral_length(r0, rf, ascent, angle)
-    duration = spiral_length / DESIRED_SPEED * 1.2
+    duration = spiral_length / DESIRED_SPEED * 1.6
     commander.spiral(
         angle=angle,
         r0=r0,
@@ -817,7 +815,7 @@ def run_native_sequence(cf):
     ascent = -0.5
     angle = 2*np.pi
     spiral_length = calculate_spiral_length(r0, rf, ascent, angle)
-    duration = spiral_length / DESIRED_SPEED * 1.2
+    duration = spiral_length / DESIRED_SPEED * 1.6
     commander.spiral(
         angle=angle,
         r0=r0,
@@ -859,7 +857,6 @@ if __name__ == '__main__':
         # duration1 = 0
         # print(offset)
         # duration1, offset = upload_trajectory(cf, trajectory_id, trajectory1, offset)
-        # reset_estimator(cf)
         # run_sequence(cf, trajectory_id, duration0, duration1)
 
 

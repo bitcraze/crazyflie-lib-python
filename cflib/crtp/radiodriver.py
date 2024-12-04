@@ -460,7 +460,6 @@ class RadioDriver(CRTPDriver):
         except Exception as e:
             print(e)
             serial = 'N/A'
-        
 
         logger.info('v%s dongle with serial %s found', self._radio.version,
                     serial[0])

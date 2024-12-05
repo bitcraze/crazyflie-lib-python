@@ -9,6 +9,8 @@ This project requires Python 3.10+.
 
 To install on Python 3.13, build tools and Python development headers are required.
 
+***NOTE: Running with python 3.13 on macOS is not officially supported***
+
 See below sections for more platform-specific requirements.
 ## Install from Source
 ### Clone  the repository

@@ -54,6 +54,10 @@ if __name__ == '__main__':
         cf.param.set_value('kalman.resetEstimation', '0')
         time.sleep(2)
 
+        # Arm the Crazyflie
+        cf.platform.send_arming_request(True)
+        time.sleep(1.0)
+
         for y in range(10):
             cf.commander.send_hover_setpoint(0, 0, 0, y / 25)
             time.sleep(0.1)

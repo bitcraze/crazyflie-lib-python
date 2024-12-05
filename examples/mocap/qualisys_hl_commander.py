@@ -296,6 +296,11 @@ if __name__ == '__main__':
         duration = upload_trajectory(cf, trajectory_id, figure8)
         print('The sequence is {:.1f} seconds long'.format(duration))
         reset_estimator(cf)
+
+        # Arm the Crazyflie
+        cf.platform.send_arming_request(True)
+        time.sleep(1.0)
+
         run_sequence(cf, trajectory_id, duration)
 
     qtm_wrapper.close()

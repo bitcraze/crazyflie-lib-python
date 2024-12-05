@@ -199,6 +199,12 @@ if __name__ == '__main__':
         reset_estimator(scf0)
         with SyncCrazyflie(uri1, cf=Crazyflie(rw_cache='./cache')) as scf1:
             reset_estimator(scf1)
+
+            # Arm the Crazyflies
+            scf0.cf.platform.send_arming_request(True)
+            scf1.cf.platform.send_arming_request(True)
+            time.sleep(1.0)
+
             run_sequence(scf0, scf1)
 
     openvr.shutdown()

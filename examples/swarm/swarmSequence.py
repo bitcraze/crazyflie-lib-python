@@ -171,6 +171,11 @@ def wait_for_param_download(scf):
     print('Parameters downloaded for', scf.cf.link_uri)
 
 
+def arm(scf):
+    scf.cf.platform.send_arming_request(True)
+    time.sleep(1.0)
+
+
 def take_off(cf, position):
     take_off_time = 1.0
     sleep_time = 0.1
@@ -209,6 +214,7 @@ def run_sequence(scf, sequence):
     try:
         cf = scf.cf
 
+        arm(cf)
         take_off(cf, sequence[0])
         for position in sequence:
             print('Setting position {}'.format(position))

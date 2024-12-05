@@ -44,6 +44,11 @@ def activate_mellinger_controller(scf, use_mellinger):
     scf.cf.param.set_value('stabilizer.controller', controller)
 
 
+def arm(scf):
+    scf.cf.platform.send_arming_request(True)
+    time.sleep(1.0)
+
+
 def run_shared_sequence(scf):
     activate_mellinger_controller(scf, False)
 
@@ -84,4 +89,5 @@ if __name__ == '__main__':
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
         swarm.reset_estimators()
+        swarm.parallel_safe(arm)
         swarm.parallel_safe(run_shared_sequence)

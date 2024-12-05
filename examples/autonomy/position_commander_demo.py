@@ -29,6 +29,8 @@ The PositionHlCommander uses position setpoints.
 
 Change the URI variable to your Crazyflie configuration.
 """
+from time import time
+
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
@@ -41,6 +43,10 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 def slightly_more_complex_usage():
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        # Arm the Crazyflie
+        scf.cf.platform.send_arming_request(True)
+        time.sleep(1.0)
+
         with PositionHlCommander(
                 scf,
                 x=0.0, y=0.0, z=0.0,
@@ -67,6 +73,10 @@ def slightly_more_complex_usage():
 
 def land_on_elevated_surface():
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        # Arm the Crazyflie
+        scf.cf.platform.send_arming_request(True)
+        time.sleep(1.0)
+
         with PositionHlCommander(scf,
                                  default_height=0.5,
                                  default_velocity=0.2,
@@ -80,6 +90,10 @@ def land_on_elevated_surface():
 
 def simple_sequence():
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        # Arm the Crazyflie
+        scf.cf.platform.send_arming_request(True)
+        time.sleep(1.0)
+
         with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             pc.forward(1.0)
             pc.left(1.0)

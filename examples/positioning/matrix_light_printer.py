@@ -110,5 +110,9 @@ if __name__ == '__main__':
     image_def = ImageDef('monalisa.png')
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        # Arm the Crazyflie
+        scf.cf.platform.send_arming_request(True)
+        time.sleep(1.0)
+
         with PositionHlCommander(scf, default_height=0.5, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             matrix_print(scf.cf, pc, image_def)

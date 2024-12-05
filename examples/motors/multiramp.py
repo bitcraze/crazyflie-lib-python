@@ -59,6 +59,10 @@ class MotorRampExample:
         """ This callback is called form the Crazyflie API when a Crazyflie
         has been connected and the TOCs have been downloaded."""
 
+        # Arm the Crazyflie
+        self._cf.platform.send_arming_request(True)
+        time.sleep(1.0)
+
         # Start a separate thread to do the motor test.
         # Do not hijack the calling thread!
         Thread(target=self._ramp_motors).start()

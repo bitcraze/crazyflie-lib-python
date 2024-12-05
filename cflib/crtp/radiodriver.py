@@ -455,12 +455,14 @@ class RadioDriver(CRTPDriver):
             except Exception as e:
                 print(e)
                 return []
-
-        # FIXME: implements serial number in the Crazyradio driver!
-        serial = 'N/A'
+        try:
+            serial = crazyradio.get_serials()
+        except Exception as e:
+            print(e)
+            serial = 'N/A'
 
         logger.info('v%s dongle with serial %s found', self._radio.version,
-                    serial)
+                    serial[0])
         found = []
 
         if address is not None:

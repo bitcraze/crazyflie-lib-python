@@ -599,7 +599,7 @@ class _ParamUpdater(Thread):
     def __init__(self, cf, useV2, updated_callback):
         """Initialize the thread"""
         Thread.__init__(self)
-        self.setDaemon(True)
+        self.daemon = True
         self.wait_lock = Lock()
         self.cf = cf
         self._useV2 = useV2

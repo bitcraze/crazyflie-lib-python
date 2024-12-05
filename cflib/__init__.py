@@ -54,6 +54,10 @@ cf.open_link("radio://0/125")
 cf.close_link()
 ```
 """
+import warnings
+
+warnings.simplefilter('always', DeprecationWarning)  # Enbable DeprecationWarnings
+
 __pdoc__ = {}
 __pdoc__['cflib.crtp.cflinkcppdriver'] = False
 __pdoc__['cflib.cpx.transports'] = False

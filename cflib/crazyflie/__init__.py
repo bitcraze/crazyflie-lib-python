@@ -33,6 +33,7 @@ firmware which makes the mapping 1:1 in most cases.
 import datetime
 import logging
 import time
+import warnings
 from collections import namedtuple
 from threading import current_thread
 from threading import Lock
@@ -100,13 +101,6 @@ class Crazyflie():
         self.packet_received = Caller()
         # Called for every packet sent
         self.packet_sent = Caller()
-        # Called when the link driver updates the link quality measurement
-        self.link_quality_updated = Caller()
-        self.uplink_rssi_updated = Caller()
-        self.uplink_rate_updated = Caller()
-        self.downlink_rate_updated = Caller()
-        self.uplink_congestion_updated = Caller()
-        self.downlink_congestion_updated = Caller()
 
         self.state = State.DISCONNECTED
 
@@ -167,6 +161,17 @@ class Crazyflie():
         self.disconnected.add_callback(
             lambda uri: self.link_statistics.stop())
 
+    @property
+    def link_quality_updated(self):
+        # Issue a deprecation warning when the deprecated attribute is accessed
+        warnings.warn(
+            'link_quality_updated is deprecated and will be removed soon. '
+            'Please use link_statistics.link_quality_updated directly and/or update your client.',
+            DeprecationWarning,
+            stacklevel=2  # To point to the caller's code
+        )
+        return self.link_statistics.link_quality_updated
+
     def _disconnected(self, link_uri):
         """ Callback when disconnected."""
         self.connected_ts = None
@@ -220,21 +225,6 @@ class Crazyflie():
             self.disconnected_link_error.call(self.link_uri, errmsg)
         self.state = State.DISCONNECTED
 
-    def _radio_link_statistics_cb(self, radio_link_statistics):
-        """Called from link driver to report radio link statistics"""
-        if 'link_quality' in radio_link_statistics:
-            self.link_quality_updated.call(radio_link_statistics['link_quality'])
-        if 'uplink_rssi' in radio_link_statistics:
-            self.uplink_rssi_updated.call(radio_link_statistics['uplink_rssi'])
-        if 'uplink_rate' in radio_link_statistics:
-            self.uplink_rate_updated.call(radio_link_statistics['uplink_rate'])
-        if 'downlink_rate' in radio_link_statistics:
-            self.downlink_rate_updated.call(radio_link_statistics['downlink_rate'])
-        if 'uplink_congestion' in radio_link_statistics:
-            self.uplink_congestion_updated.call(radio_link_statistics['uplink_congestion'])
-        if 'downlink_congestion' in radio_link_statistics:
-            self.downlink_congestion_updated.call(radio_link_statistics['downlink_congestion'])
-
     def _check_for_initial_packet_cb(self, data):
         """
         Called when first packet arrives from Crazyflie.
@@ -256,7 +246,7 @@ class Crazyflie():
         self.link_uri = link_uri
         try:
             self.link = cflib.crtp.get_link_driver(
-                link_uri, self._radio_link_statistics_cb, self._link_error_cb)
+                link_uri, self.link_statistics.radio_link_statistics_callback, self._link_error_cb)
 
             if not self.link:
                 message = 'No driver found or malformed URI: {}' \

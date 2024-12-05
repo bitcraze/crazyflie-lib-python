@@ -60,19 +60,57 @@ class LinkStatistics:
     def __init__(self, crazyflie):
         self._cf = crazyflie
 
+        # Flag to track if the statistics are active
+        self._is_active = False
+
+        # Universal statistics
         self.latency = Latency(self._cf)
+
+        # Proxy for latency callback
+        self.latency_updated = self.latency.latency_updated
+
+        # Callers for radio link statistics
+        self.link_quality_updated = Caller()
+        self.uplink_rssi_updated = Caller()
+        self.uplink_rate_updated = Caller()
+        self.downlink_rate_updated = Caller()
+        self.uplink_congestion_updated = Caller()
+        self.downlink_congestion_updated = Caller()
 
     def start(self):
         """
         Start collecting all statistics.
         """
+        self._is_active = True
         self.latency.start()
 
     def stop(self):
         """
         Stop collecting all statistics.
         """
+        self._is_active = False
         self.latency.stop()
+
+    def radio_link_statistics_callback(self, radio_link_statistics):
+        """
+        This callback is called by the RadioLinkStatistics class after it
+        processes the data provided by the radio driver.
+        """
+        if not self._is_active:
+            return  # Skip processing if link statistics are stopped
+
+        if 'link_quality' in radio_link_statistics:
+            self.link_quality_updated.call(radio_link_statistics['link_quality'])
+        if 'uplink_rssi' in radio_link_statistics:
+            self.uplink_rssi_updated.call(radio_link_statistics['uplink_rssi'])
+        if 'uplink_rate' in radio_link_statistics:
+            self.uplink_rate_updated.call(radio_link_statistics['uplink_rate'])
+        if 'downlink_rate' in radio_link_statistics:
+            self.downlink_rate_updated.call(radio_link_statistics['downlink_rate'])
+        if 'uplink_congestion' in radio_link_statistics:
+            self.uplink_congestion_updated.call(radio_link_statistics['uplink_congestion'])
+        if 'downlink_congestion' in radio_link_statistics:
+            self.downlink_congestion_updated.call(radio_link_statistics['downlink_congestion'])
 
 
 class Latency:

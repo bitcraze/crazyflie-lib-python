@@ -89,14 +89,14 @@ def get_interfaces_status():
     return status
 
 
-def get_link_driver(uri, link_quality_callback=None, link_error_callback=None):
+def get_link_driver(uri, radio_link_statistics_callback=None, link_error_callback=None):
     """Return the link driver for the given URI. Returns None if no driver
     was found for the URI or the URI was not well formatted for the matching
     driver."""
     for driverClass in CLASSES:
         try:
             instance = driverClass()
-            instance.connect(uri, link_quality_callback, link_error_callback)
+            instance.connect(uri, radio_link_statistics_callback, link_error_callback)
             return instance
         except WrongUriType:
             continue

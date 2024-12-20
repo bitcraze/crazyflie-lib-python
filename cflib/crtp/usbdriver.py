@@ -52,21 +52,19 @@ class UsbDriver(CRTPDriver):
         self.cfusb = None
         self.uri = ''
         self.link_error_callback = None
-        self.link_quality_callback = None
+        self.radio_link_statistics_callback = None
         self.in_queue = None
         self.out_queue = None
         self._thread = None
         self.needs_resending = False
 
-    def connect(self, uri, link_quality_callback, link_error_callback):
+    def connect(self, uri, radio_link_statistics_callback, link_error_callback):
         """
         Connect the link driver to a specified URI of the format:
         radio://<dongle nbr>/<radio channel>/[250K,1M,2M]
 
-        The callback for linkQuality can be called at any moment from the
-        driver to report back the link quality in percentage. The
-        callback from linkError will be called when a error occurs with
-        an error message.
+        The callback for radio link statistics should not be called from the usb driver
+        The callback from linkError will be called when a error occurs with an error message.
         """
 
         # check if the URI is a radio URI
@@ -100,7 +98,7 @@ class UsbDriver(CRTPDriver):
 
         # Launch the comm thread
         self._thread = _UsbReceiveThread(self.cfusb, self.in_queue,
-                                         link_quality_callback,
+                                         radio_link_statistics_callback,
                                          link_error_callback)
         self._thread.start()
 
@@ -152,7 +150,7 @@ class UsbDriver(CRTPDriver):
             return
 
         self._thread = _UsbReceiveThread(self.cfusb, self.in_queue,
-                                         self.link_quality_callback,
+                                         self.radio_link_statistics_callback,
                                          self.link_error_callback)
         self._thread.start()
 
@@ -208,7 +206,7 @@ class _UsbReceiveThread(threading.Thread):
     Radio link receiver thread used to read data from the
     Crazyradio USB driver. """
 
-    def __init__(self, cfusb, inQueue, link_quality_callback,
+    def __init__(self, cfusb, inQueue, radio_link_statistics_callback,
                  link_error_callback):
         """ Create the object """
         threading.Thread.__init__(self)
@@ -216,7 +214,7 @@ class _UsbReceiveThread(threading.Thread):
         self.in_queue = inQueue
         self.sp = False
         self.link_error_callback = link_error_callback
-        self.link_quality_callback = link_quality_callback
+        self.radio_link_statistics_callback = radio_link_statistics_callback
 
     def stop(self):
         """ Stop the thread """

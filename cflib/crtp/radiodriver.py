@@ -246,6 +246,7 @@ class RadioDriver(CRTPDriver):
         self.out_queue = None
         self._thread = None
         self.needs_resending = True
+        self.rate_limit = None
 
     def connect(self, uri, link_quality_callback, link_error_callback):
         """

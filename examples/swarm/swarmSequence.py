@@ -52,6 +52,7 @@ from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
 
 # Change uris and sequences according to your setup
+# URIs in a swarm using the same radio must also be on the same channel
 URI1 = 'radio://0/70/2M/E7E7E7E701'
 URI2 = 'radio://0/70/2M/E7E7E7E702'
 URI3 = 'radio://0/70/2M/E7E7E7E703'

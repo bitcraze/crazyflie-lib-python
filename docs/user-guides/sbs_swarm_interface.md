@@ -31,6 +31,7 @@ uris = {
     'radio://0/20/2M/E7E7E7E703',
     'radio://0/20/2M/E7E7E7E704',
     # Add more URIs if you want more copters in the swarm
+    # URIs in a swarm using the same radio must also be on the same channel
 }
 
 if __name__ == '__main__':
@@ -39,7 +40,7 @@ if __name__ == '__main__':
     with Swarm(uris, factory=factory) as swarm:
 ```
 
-This will import all the necessary modules and open the necessary links for communication with all the Crazyflies of the swarm. `Swarm` is a wrapper class which facilitates the execution of functions given by the user for each copter and can execute them in parallel or sequentially. Each Crazyflie is treated as a `SyncCrazyflie` instance and as the first argument in swarm wide actions. There is no need to worry about threads since they are handled internally. To reduce connection time, the factory is chosen to be instance of the `CachedCfFactory` class that will cache the Crazyflie objects in the `./cache` directory.
+This will import all the necessary modules and open the necessary links for communication with all the Crazyflies of the swarm. Note that the URIs in a swarm using the same radio must also be on the same channel. `Swarm` is a wrapper class which facilitates the execution of functions given by the user for each copter and can execute them in parallel or sequentially. Each Crazyflie is treated as a `SyncCrazyflie` instance and as the first argument in swarm wide actions. There is no need to worry about threads since they are handled internally. To reduce connection time, the factory is chosen to be instance of the `CachedCfFactory` class that will cache the Crazyflie objects in the `./cache` directory.
 
 The radio addresses of the copters are defined in the `uris` list and you can add more if you want.
 
@@ -97,6 +98,7 @@ uris = {
     'radio://0/20/2M/E7E7E7E703',
     'radio://0/20/2M/E7E7E7E704',
     # Add more URIs if you want more copters in the swarm
+    # URIs in a swarm using the same radio must also be on the same channel
 }
 
 if __name__ == '__main__':
@@ -189,6 +191,7 @@ uris = {
     'radio://0/20/2M/E7E7E7E703',
     'radio://0/20/2M/E7E7E7E704',
     # Add more URIs if you want more copters in the swarm
+    # URIs in a swarm using the same radio must also be on the same channel
 }
 
 if __name__ == '__main__':
@@ -277,6 +280,7 @@ uris = {
     'radio://0/20/2M/E7E7E7E703',
     'radio://0/20/2M/E7E7E7E704',
     # Add more URIs if you want more copters in the swarm
+    # URIs in a swarm using the same radio must also be on the same channel
 }
 
 if __name__ == '__main__':

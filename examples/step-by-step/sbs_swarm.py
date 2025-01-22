@@ -90,6 +90,7 @@ uris = [
     'radio://0/20/2M/E7E7E7E703',
     'radio://0/20/2M/E7E7E7E704',
     # Add more URIs if you want more copters in the swarm
+    # URIs in a swarm using the same radio must also be on the same channel
 ]
 
 # The layout of the positions (1m apart from each other):

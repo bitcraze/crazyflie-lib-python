@@ -47,7 +47,7 @@ from cflib.crazyflie.syncLogger import SyncLogger
 from cflib.utils import uri_helper
 
 # URI to the Crazyflie to connect to
-uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
+uri = uri_helper.uri_from_env(default='radio://0/88/2M/F00D2BEFED')
 
 # The name of the rigid body in QTM that represents the Crazyflie
 rigid_body_name = 'cf'
@@ -253,14 +253,14 @@ def upload_trajectory(cf, trajectory_id, trajectory):
 def run_sequence(cf, trajectory_id, duration):
     commander = cf.high_level_commander
 
-    commander.takeoff(0.15, 2.0)
+    commander.takeoff(1.0, 2.0)
     time.sleep(3.0)
     relative = False
     TIME_SCALE = 1.
     commander.start_trajectory(trajectory_id, 1.0*TIME_SCALE, relative)
     time.sleep(duration*TIME_SCALE)
-    commander.go_to(-2.9, 0.6, 1, 0.0, 3, relative=False)
-    time.sleep(3)
+    # commander.go_to(-2.9, 0.6, 1, 0.0, 3, relative=False)
+    # time.sleep(3)
     commander.land(0.0, 2.0)
     time.sleep(2)
     commander.stop()

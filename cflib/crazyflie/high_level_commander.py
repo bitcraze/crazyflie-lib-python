@@ -23,7 +23,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Used for sending high level setpoints to the Crazyflie
+Used for sending high level setpoints to the Crazyflie.
+
+The high level commander generates setpoints from within the firmware
+based on a predefined trajectory. This was merged as part of the
+Crazyswarm project of the USC ACT lab. The high level commander uses a
+planner to generate smooth trajectories based on actions like "take off",
+"go to" or "land" with 7th order polynomials.
 """
 import math
 import struct

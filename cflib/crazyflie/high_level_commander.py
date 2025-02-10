@@ -158,6 +158,10 @@ class HighLevelCommander():
         of acceleration) is constrained to be zero at both the starting
         and ending points.
 
+        Warning! Avoid overlapping go_to commands. When a command is sent to a
+        Crazyflie when another one is currently executed, the generated polynomial
+        can take unexpected routes and have high peaks.
+
         :param x: X (m)
         :param y: Y (m)
         :param z: Z (m)

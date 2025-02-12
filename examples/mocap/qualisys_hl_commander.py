@@ -42,7 +42,7 @@ from cflib.crazyflie.mem import MemoryElement
 from cflib.crazyflie.mem import Poly4D
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
-from cflib.utils.ResetEstimator import reset_estimator
+from cflib.utils.reset_estimator import reset_estimator
 
 # URI to the Crazyflie to connect to
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')

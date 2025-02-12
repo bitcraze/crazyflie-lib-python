@@ -183,6 +183,7 @@ if __name__ == '__main__':
 
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
+        swarm.reset_estimators()
         swarm.parallel_safe(turn_off_leds)
         swarm.parallel_safe(upload_trajectories, args_dict=position_params)
         time.sleep(5)

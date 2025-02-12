@@ -18,7 +18,7 @@ def reset_estimator(crazyflie):
 
 
 def _wait_for_position_estimator(cf):
-    print('Waiting for estimator to find position...')
+    print('Waiting for estimator to find position...', end='\r')
 
     log_config = LogConfig(name='Kalman Variance', period_in_ms=500)
     log_config.add_variable('kalman.varPX', 'float')
@@ -52,5 +52,5 @@ def _wait_for_position_estimator(cf):
             if (max_x - min_x) < threshold and (
                     max_y - min_y) < threshold and (
                     max_z - min_z) < threshold:
-                print('reset estimator success!')
+                print('Waiting for estimator to find position...success!')
                 break

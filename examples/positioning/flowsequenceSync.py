@@ -35,6 +35,7 @@ import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
+from cflib.utils.reset_estimator import reset_estimator
 
 URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
@@ -49,10 +50,8 @@ if __name__ == '__main__':
     with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
         cf = scf.cf
 
-        cf.param.set_value('kalman.resetEstimation', '1')
-        time.sleep(0.1)
-        cf.param.set_value('kalman.resetEstimation', '0')
-        time.sleep(2)
+        reset_estimator(scf)
+        time.sleep(1)
 
         # Arm the Crazyflie
         cf.platform.send_arming_request(True)

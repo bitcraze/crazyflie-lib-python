@@ -26,6 +26,7 @@
 Used for sending control setpoints to the Crazyflie
 """
 import struct
+import warnings
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
@@ -38,11 +39,14 @@ SET_SETPOINT_CHANNEL = 0
 META_COMMAND_CHANNEL = 1
 
 TYPE_STOP = 0
-TYPE_VELOCITY_WORLD = 1
-TYPE_ZDISTANCE = 2
-TYPE_HOVER = 5
+TYPE_VELOCITY_WORLD_LEGACY = 1
+TYPE_ZDISTANCE_LEGACY = 2
+TYPE_HOVER_LEGACY = 5
 TYPE_FULL_STATE = 6
 TYPE_POSITION = 7
+TYPE_VELOCITY_WORLD = 8
+TYPE_ZDISTANCE = 9
+TYPE_HOVER = 10
 
 TYPE_META_COMMAND_NOTIFY_SETPOINT_STOP = 0
 
@@ -122,8 +126,16 @@ class Commander():
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
         pk.channel = SET_SETPOINT_CHANNEL
-        pk.data = struct.pack('<Bffff', TYPE_VELOCITY_WORLD,
-                              vx, vy, vz, yawrate)
+        if self._cf.platform.get_protocol_version() <= 8:
+            warnings.warn(
+                'Using legacy TYPE_VELOCITY_WORLD_LEGACY. Please update your crazyflie-firmware.',
+                DeprecationWarning,
+            )
+            pk.data = struct.pack('<Bffff', TYPE_VELOCITY_WORLD_LEGACY,
+                                  vx, vy, vz, -yawrate)
+        else:
+            pk.data = struct.pack('<Bffff', TYPE_VELOCITY_WORLD,
+                                  vx, vy, vz, yawrate)
         self._cf.send_packet(pk)
 
     def send_zdistance_setpoint(self, roll, pitch, yawrate, zdistance):
@@ -139,8 +151,16 @@ class Commander():
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
         pk.channel = SET_SETPOINT_CHANNEL
-        pk.data = struct.pack('<Bffff', TYPE_ZDISTANCE,
-                              roll, pitch, yawrate, zdistance)
+        if self._cf.platform.get_protocol_version() <= 8:
+            warnings.warn(
+                'Using legacy TYPE_ZDISTANCE_LEGACY. Please update your crazyflie-firmware.',
+                DeprecationWarning,
+            )
+            pk.data = struct.pack('<Bffff', TYPE_ZDISTANCE_LEGACY,
+                                  roll, pitch, -yawrate, zdistance)
+        else:
+            pk.data = struct.pack('<Bffff', TYPE_ZDISTANCE,
+                                  roll, pitch, yawrate, zdistance)
         self._cf.send_packet(pk)
 
     def send_hover_setpoint(self, vx, vy, yawrate, zdistance):
@@ -156,8 +176,16 @@ class Commander():
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER_GENERIC
         pk.channel = SET_SETPOINT_CHANNEL
-        pk.data = struct.pack('<Bffff', TYPE_HOVER,
-                              vx, vy, yawrate, zdistance)
+        if self._cf.platform.get_protocol_version() <= 8:
+            warnings.warn(
+                'Using legacy TYPE_HOVER_LEGACY. Please update your crazyflie-firmware.',
+                DeprecationWarning,
+            )
+            pk.data = struct.pack('<Bffff', TYPE_HOVER_LEGACY,
+                                  vx, vy, -yawrate, zdistance)
+        else:
+            pk.data = struct.pack('<Bffff', TYPE_HOVER,
+                                  vx, vy, yawrate, zdistance)
         self._cf.send_packet(pk)
 
     def send_full_state_setpoint(self, pos, vel, acc, orientation, rollrate, pitchrate, yawrate):

@@ -23,7 +23,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Used for sending high level setpoints to the Crazyflie
+Used for sending high level setpoints to the Crazyflie.
+
+The high level commander generates setpoints from within the firmware
+based on a predefined trajectory. This was merged as part of the
+Crazyswarm project of the USC ACT lab. The high level commander uses a
+planner to generate smooth trajectories based on actions like "take off",
+"go to" or "land" with 7th order polynomials.
 """
 import math
 import struct
@@ -137,7 +143,24 @@ class HighLevelCommander():
     def go_to(self, x, y, z, yaw, duration_s, relative=False, linear=False,
               group_mask=ALL_GROUPS):
         """
-        Go to an absolute or relative position
+        Go to an absolute or relative position.
+
+        The path is designed to transition smoothly from the current
+        state to the target position, gradually decelerating at the
+        goal with minimal overshoot. When the system is at hover, the
+        path will be a straight line, but if there is any initial
+        velocity, the path will be a smooth curve.
+
+        The trajectory is derived by solving for a unique 7th-degree
+        polynomial that satisfies the initial conditions of position,
+        velocity, and acceleration, and ends at the goal with zero
+        velocity and acceleration. Additionally, the jerk (derivative
+        of acceleration) is constrained to be zero at both the starting
+        and ending points.
+
+        Warning! Avoid overlapping go_to commands. When a command is sent to a
+        Crazyflie when another one is currently executed, the generated polynomial
+        can take unexpected routes and have high peaks.
 
         :param x: X (m)
         :param y: Y (m)

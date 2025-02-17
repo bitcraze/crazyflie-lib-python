@@ -22,7 +22,7 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Education",
     "Intended Audience :: Developers",
-    "Operating System :: Linux",
+    "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
 

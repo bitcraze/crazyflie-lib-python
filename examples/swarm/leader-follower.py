@@ -194,7 +194,7 @@ if __name__ == '__main__':
 
         swarm.reset_estimators()
 
-        # swarm.parallel_safe(arm)
+        swarm.parallel_safe(arm)
 
         print('Waiting for parameters to be downloaded...')
         swarm.parallel_safe(wait_for_param_download)

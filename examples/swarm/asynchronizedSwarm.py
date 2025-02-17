@@ -73,14 +73,14 @@ def arm(scf):
     time.sleep(1.0)
 
 
-def position_callback(uri, timestamp, data, logconf):
+def position_callback(uri, data):
     global pos1, pos2
-    if uri == 'radio://0/80/2M/E7E7E7E7E7':
+    if uri == URI1:
         pos1[0] = data['stateEstimate.x']
         pos1[1] = data['stateEstimate.y']
         pos1[2] = data['stateEstimate.z']
         print(f'Uri1 position: x={pos1[0]}, y-{pos1[1]}, z{pos1[2]}')
-    elif uri == 'radio://0/80/2M/E7E7E7E7E8':
+    elif uri == URI2:
         pos2[0] = data['stateEstimate.x']
         pos2[1] = data['stateEstimate.y']
         pos2[2] = data['stateEstimate.z']
@@ -93,38 +93,41 @@ def start_position_printing(scf):
     log_conf1.add_variable('stateEstimate.y', 'float')
     log_conf1.add_variable('stateEstimate.z', 'float')
     scf.cf.log.add_config(log_conf1)
-    log_conf1.data_received_cb.add_callback(
-        lambda timestamp, data, logconf: position_callback(scf.cf.link_uri, timestamp, data, logconf))
+    log_conf1.data_received_cb.add_callback(lambda _timestamp, data, _logconf: position_callback(scf.cf.link_uri, data))
     log_conf1.start()
 
 
 def async_flight(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
         time.sleep(1)
+
+        start_time = time.time()
         end_time = time.time() + 12
+
         while time.time() < end_time:
-            if scf.__dict__['_link_uri'] == 'radio://0/80/2M/E7E7E7E7E7':
-                if time.time() < end_time - 7:
+
+            if scf.__dict__['_link_uri'] == URI1:
+                if time.time() - start_time < 5:
                     mc.start_up(DEFAULT_VELOCITY)
-                elif time.time() < end_time - 5:
+                elif time.time() - start_time < 7:
                     mc.stop()
-                elif time.time() < end_time:
+                elif time.time() - start_time < 12:
                     mc.start_down(DEFAULT_VELOCITY)
                 else:
                     mc.stop()
 
-            elif scf.__dict__['_link_uri'] == 'radio://0/80/2M/E7E7E7E7E8':
-                if time.time() < end_time-10:
+            elif scf.__dict__['_link_uri'] == URI2:
+                if time.time() - start_time < 2:
                     mc.start_left(DEFAULT_VELOCITY)
-                elif time.time() < end_time-8:
+                elif time.time() - start_time < 4:
                     mc.start_right(DEFAULT_VELOCITY)
-                elif time.time() < end_time-6:
+                elif time.time() - start_time < 6:
                     mc.start_left(DEFAULT_VELOCITY)
-                elif time.time() < end_time-4:
+                elif time.time() - start_time < 8:
                     mc.start_right(DEFAULT_VELOCITY)
-                elif time.time() < end_time-2:
+                elif time.time() - start_time < 10:
                     mc.start_left(DEFAULT_VELOCITY)
-                elif time.time() < end_time:
+                elif time.time() - start_time < 12:
                     mc.start_right(DEFAULT_VELOCITY)
                 else:
                     mc.stop()

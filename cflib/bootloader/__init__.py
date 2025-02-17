@@ -278,7 +278,11 @@ class Bootloader:
                 # Reset to firmware mode
                 self.reset_to_firmware()
                 self.close()
-                time.sleep(3)
+
+                if any(deck.target == 'bcAI:gap8' for deck in deck_targets):
+                    time.sleep(7)
+                else:
+                    time.sleep(2)
 
                 # Flash all decks and reboot after each deck
                 current_index = 0
@@ -289,7 +293,10 @@ class Bootloader:
                         self.progress_cb('Deck updated! Restarting...', int(100))
                     if current_index != -1:
                         PowerSwitch(self.clink).reboot_to_fw()
-                        time.sleep(3)
+                        if any(deck.target == 'bcAI:gap8' for deck in deck_targets):
+                            time.sleep(7)
+                        else:
+                            time.sleep(2)
 
                 # Put the crazyflie back in Bootloader mode to exit the function in the same state we entered it
                 self.start_bootloader(warm_boot=True, cf=cf)
@@ -601,7 +608,10 @@ class Bootloader:
                     self.progress_cb(f'Updating deck {deck.name}', 0)
 
                 # Test and wait for the deck to be started
-                timeout_time = time.time() + 5
+                if any(deck.name == 'bcAI:gap8' for deck in decks.values()):
+                    timeout_time = time.time() + 9
+                else:
+                    timeout_time = time.time() + 4
                 while not deck.is_started:
                     if time.time() > timeout_time:
                         raise RuntimeError(f'Deck {deck.name} did not start')
@@ -628,7 +638,10 @@ class Bootloader:
                         continue
 
                 # Wait for bootloader to be ready
-                timeout_time = time.time() + 5
+                if any(deck.name == 'bcAI:gap8' for deck in decks.values()):
+                    timeout_time = time.time() + 9
+                else:
+                    timeout_time = time.time() + 4
                 while not deck.is_bootloader_active:
                     if time.time() > timeout_time:
                         raise RuntimeError(f'Deck {deck.name} did not enter bootloader mode')

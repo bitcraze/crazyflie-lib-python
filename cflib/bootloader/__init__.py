@@ -277,7 +277,7 @@ class Bootloader:
 
                 # Reset to firmware mode
                 if any(deck.target == 'bcAI:gap8' for deck in deck_targets):
-                    self.reset_to_firmware(boot_delay=5.0)
+                    self.reset_to_firmware(boot_delay=6.0)
                     self.close()
                     time.sleep(7)
                 else:

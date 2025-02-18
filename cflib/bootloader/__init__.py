@@ -276,14 +276,9 @@ class Bootloader:
                     self.progress_cb('Restarting firmware to update decks.', int(0))
 
                 # Reset to firmware mode
-                if any(deck.target == 'bcAI:gap8' for deck in deck_targets):
-                    self.reset_to_firmware(boot_delay=6.0)
-                    self.close()
-                    time.sleep(7)
-                else:
-                    self.reset_to_firmware()
-                    self.close()
-                    time.sleep(2)
+                self.reset_to_firmware(boot_delay=5.0)
+                self.close()
+                time.sleep(2)
 
                 # Flash all decks and reboot after each deck
                 current_index = 0

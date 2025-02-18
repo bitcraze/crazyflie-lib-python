@@ -117,7 +117,7 @@ class Cloader:
 
         return False
 
-    def reset_to_firmware(self, target_id: int) -> bool:
+    def reset_to_firmware(self, target_id: int, boot_delay: float = 0.0) -> bool:
         """ Reset to firmware
         The parameter target_id corresponds to the device to reset.
 
@@ -138,7 +138,7 @@ class Cloader:
                     continue
                 pk = CRTPPacket(0xff, [target_id, 0xf0, 0x01])
                 self.link.send_packet(pk)
-                time.sleep(1)
+                time.sleep(1 + boot_delay)
                 return True
 
         time.sleep(0.1)

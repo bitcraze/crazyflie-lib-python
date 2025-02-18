@@ -276,12 +276,13 @@ class Bootloader:
                     self.progress_cb('Restarting firmware to update decks.', int(0))
 
                 # Reset to firmware mode
-                self.reset_to_firmware()
-                self.close()
-
                 if any(deck.target == 'bcAI:gap8' for deck in deck_targets):
+                    self.reset_to_firmware(boot_delay=5.0)
+                    self.close()
                     time.sleep(7)
                 else:
+                    self.reset_to_firmware()
+                    self.close()
                     time.sleep(2)
 
                 # Flash all decks and reboot after each deck
@@ -389,12 +390,12 @@ class Bootloader:
         for (i, artifact) in enumerate(artifacts):
             self._internal_flash(artifact, i + 1, len(artifacts))
 
-    def reset_to_firmware(self) -> bool:
+    def reset_to_firmware(self, boot_delay: float = 0.0) -> bool:
         status = False
         if self._cload.protocol_version == BootVersion.CF2_PROTO_VER:
-            status = self._cload.reset_to_firmware(TargetTypes.NRF51)
+            status = self._cload.reset_to_firmware(TargetTypes.NRF51, boot_delay)
         else:
-            status = self._cload.reset_to_firmware(TargetTypes.STM32)
+            status = self._cload.reset_to_firmware(TargetTypes.STM32, boot_delay)
 
         if status:
             self.close()

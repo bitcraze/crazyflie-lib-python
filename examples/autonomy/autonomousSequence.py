@@ -27,8 +27,8 @@ and update it to your crazyflie address) and send a sequence of setpoints,
 one every 5 seconds.
 
 This example is intended to work with the Loco Positioning System in TWR TOA
-mode. It aims at documenting how to set the Crazyflie in position control mode
-and how to send setpoints.
+mode and with the Lighthouse Positioning System. It aims at documenting how
+to set the Crazyflie in position control mode and how to send setpoints.
 """
 import time
 
@@ -56,6 +56,19 @@ sequence = [
 ]
 
 
+def take_off(cf, position):
+    take_off_time = 1.0
+    sleep_time = 0.1
+    steps = int(take_off_time / sleep_time)
+    vz = position[2] / take_off_time
+
+    print(f'take off at {position[2]}')
+
+    for i in range(steps):
+        cf.commander.send_velocity_world_setpoint(0, 0, vz, 0)
+        time.sleep(sleep_time)
+
+
 def position_callback(timestamp, data, logconf):
     x = data['kalman.stateX']
     y = data['kalman.stateY']
@@ -79,6 +92,9 @@ def run_sequence(scf, sequence):
 
     # Arm the Crazyflie
     cf.platform.send_arming_request(True)
+    time.sleep(1.0)
+
+    take_off(cf, sequence[0])
     time.sleep(1.0)
 
     for position in sequence:

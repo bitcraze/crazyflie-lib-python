@@ -24,7 +24,7 @@
 """
 Simple example that connects to the crazyflie at `URI` and runs a figure 8
 sequence. This script requires some kind of location system, it has been
-tested with (and designed for) the flow deck.
+tested with the flow deck and the lighthouse positioning system.
 
 Change the URI variable to your Crazyflie configuration.
 """

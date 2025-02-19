@@ -215,7 +215,6 @@ def run_sequence(scf, sequence):
     try:
         cf = scf.cf
 
-        arm(cf)
         take_off(cf, sequence[0])
         for position in sequence:
             print('Setting position {}'.format(position))
@@ -248,5 +247,7 @@ if __name__ == '__main__':
         # flying.
         print('Waiting for parameters to be downloaded...')
         swarm.parallel(wait_for_param_download)
+
+        swarm.parallel(arm)
 
         swarm.parallel(run_sequence, args_dict=seq_args)

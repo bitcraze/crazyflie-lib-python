@@ -29,7 +29,7 @@ The PositionHlCommander uses position setpoints.
 
 Change the URI variable to your Crazyflie configuration.
 """
-from time import time
+import time
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie

@@ -255,7 +255,7 @@ class TestMotionCommander(unittest.TestCase):
 
         # Assert
         thread_mock.set_vel_setpoint.assert_has_calls([
-            call(0.0, 0.0, 0.0, rate),
+            call(0.0, 0.0, 0.0, -rate),
         ])
 
     def test_that_it_starts_turn_left(self, _SetPointThread_mock, sleep_mock):
@@ -270,7 +270,7 @@ class TestMotionCommander(unittest.TestCase):
 
         # Assert
         thread_mock.set_vel_setpoint.assert_has_calls([
-            call(0.0, 0.0, 0.0, -rate),
+            call(0.0, 0.0, 0.0, rate),
         ])
 
     def test_that_it_starts_circle_right(
@@ -289,7 +289,7 @@ class TestMotionCommander(unittest.TestCase):
 
         # Assert
         thread_mock.set_vel_setpoint.assert_has_calls([
-            call(velocity, 0.0, 0.0, expected_rate),
+            call(velocity, 0.0, 0.0, -expected_rate),
         ])
 
     def test_that_it_starts_circle_left(
@@ -308,7 +308,7 @@ class TestMotionCommander(unittest.TestCase):
 
         # Assert
         thread_mock.set_vel_setpoint.assert_has_calls([
-            call(velocity, 0.0, 0.0, -expected_rate),
+            call(velocity, 0.0, 0.0, expected_rate),
         ])
 
     def test_that_it_turns_right(self, _SetPointThread_mock, sleep_mock):
@@ -325,7 +325,7 @@ class TestMotionCommander(unittest.TestCase):
 
         # Assert
         thread_mock.set_vel_setpoint.assert_has_calls([
-            call(0.0, 0.0, 0.0, rate),
+            call(0.0, 0.0, 0.0, -rate),
             call(0.0, 0.0, 0.0, 0.0)
         ])
         sleep_mock.assert_called_with(turn_time)
@@ -344,7 +344,7 @@ class TestMotionCommander(unittest.TestCase):
 
         # Assert
         thread_mock.set_vel_setpoint.assert_has_calls([
-            call(0.0, 0.0, 0.0, -rate),
+            call(0.0, 0.0, 0.0, rate),
             call(0.0, 0.0, 0.0, 0.0)
         ])
         sleep_mock.assert_called_with(turn_time)
@@ -368,7 +368,7 @@ class TestMotionCommander(unittest.TestCase):
 
         # Assert
         thread_mock.set_vel_setpoint.assert_has_calls([
-            call(velocity, 0.0, 0.0, rate),
+            call(velocity, 0.0, 0.0, -rate),
             call(0.0, 0.0, 0.0, 0.0)
         ])
         sleep_mock.assert_called_with(turn_time)
@@ -392,7 +392,7 @@ class TestMotionCommander(unittest.TestCase):
 
         # Assert
         thread_mock.set_vel_setpoint.assert_has_calls([
-            call(velocity, 0.0, 0.0, -rate),
+            call(velocity, 0.0, 0.0, rate),
             call(0.0, 0.0, 0.0, 0.0)
         ])
         sleep_mock.assert_called_with(turn_time)

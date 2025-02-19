@@ -347,7 +347,7 @@ class MotionCommander:
         :param rate: The angular rate (degrees/second)
         :return:
         """
-        self._set_vel_setpoint(0.0, 0.0, 0.0, -rate)
+        self._set_vel_setpoint(0.0, 0.0, 0.0, rate)
 
     def start_turn_right(self, rate=RATE):
         """
@@ -356,7 +356,7 @@ class MotionCommander:
         :param rate: The angular rate (degrees/second)
         :return:
         """
-        self._set_vel_setpoint(0.0, 0.0, 0.0, rate)
+        self._set_vel_setpoint(0.0, 0.0, 0.0, -rate)
 
     def start_circle_left(self, radius_m, velocity=VELOCITY):
         """
@@ -369,7 +369,7 @@ class MotionCommander:
         circumference = 2 * radius_m * math.pi
         rate = 360.0 * velocity / circumference
 
-        self._set_vel_setpoint(velocity, 0.0, 0.0, -rate)
+        self._set_vel_setpoint(velocity, 0.0, 0.0, rate)
 
     def start_circle_right(self, radius_m, velocity=VELOCITY):
         """
@@ -382,7 +382,7 @@ class MotionCommander:
         circumference = 2 * radius_m * math.pi
         rate = 360.0 * velocity / circumference
 
-        self._set_vel_setpoint(velocity, 0.0, 0.0, rate)
+        self._set_vel_setpoint(velocity, 0.0, 0.0, -rate)
 
     def start_linear_motion(self, velocity_x_m, velocity_y_m, velocity_z_m, rate_yaw=0.0):
         """

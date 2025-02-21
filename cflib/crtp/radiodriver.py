@@ -246,6 +246,7 @@ class RadioDriver(CRTPDriver):
         self.out_queue = None
         self._thread = None
         self.needs_resending = True
+        self.rate_limit = None
 
     def connect(self, uri, radio_link_statistics_callback, link_error_callback):
         """
@@ -260,6 +261,7 @@ class RadioDriver(CRTPDriver):
 
         devid, channel, datarate, address, rate_limit = self.parse_uri(uri)
         self.uri = uri
+        self.rate_limit = rate_limit
 
         if self._radio is None:
             self._radio = RadioManager.open(devid)
@@ -383,7 +385,8 @@ class RadioDriver(CRTPDriver):
                                           self.out_queue,
                                           self.radio_link_statistics_callback,
                                           self.link_error_callback,
-                                          self)
+                                          self,
+                                          self.rate_limit)
         self._thread.start()
 
     def close(self):

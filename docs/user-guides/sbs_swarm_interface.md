@@ -58,9 +58,9 @@ def deactivate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 0)
 
 def light_check(scf):
-    activateBitMask(scf)
+    activate_led_bit_mask(scf)
     time.sleep(2)
-    deactivateBitMask(scf)
+    deactivate_led_bit_mask(scf)
 ```
 `light_check` will light up a copter red for 2 seconds and then return them to normal.
 
@@ -162,9 +162,9 @@ def deactivate_led_bit_mask(scf):
     scf.cf.param.set_value('led.bitmask', 0)
 
 def light_check(scf):
-    activateBitMask(scf)
+    activate_led_bit_mask(scf)
     time.sleep(2)
-    deactivateBitMask(scf)
+    deactivate_led_bit_mask(scf)
     time.sleep(2)
 
 def take_off(scf):

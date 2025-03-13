@@ -64,7 +64,7 @@ from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
 from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
-from cflib.localization.lighthouse_system_aligner2 import LighthouseSystemAligner2
+# from cflib.localization.lighthouse_system_aligner2 import LighthouseSystemAligner2
 from cflib.localization.lighthouse_system_scaler import LighthouseSystemScaler
 from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
@@ -264,40 +264,11 @@ def print_base_stations_poses(base_stations: dict[int, Pose]):
         print(f'    {bs_id + 1}: ({pos[0]}, {pos[1]}, {pos[2]})')
 
 
-def set_axes_equal(ax):
-    '''Make axes of 3D plot have equal scale so that spheres appear as spheres,
-    cubes as cubes, etc..  This is one possible solution to Matplotlib's
-    ax.set_aspect('equal') and ax.axis('equal') not working for 3D.
-
-    Input
-    ax: a matplotlib axis, e.g., as output from plt.gca().
-    '''
-
-    x_limits = ax.get_xlim3d()
-    y_limits = ax.get_ylim3d()
-    z_limits = ax.get_zlim3d()
-
-    x_range = abs(x_limits[1] - x_limits[0])
-    x_middle = np.mean(x_limits)
-    y_range = abs(y_limits[1] - y_limits[0])
-    y_middle = np.mean(y_limits)
-    z_range = abs(z_limits[1] - z_limits[0])
-    z_middle = np.mean(z_limits)
-
-    # The plot bounding box is a sphere in the sense of the infinity
-    # norm, hence I call half the max range the plot radius.
-    plot_radius = 0.5*max([x_range, y_range, z_range])
-
-    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
-    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
-    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
-
-
 def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
     """Visualize positions of base stations and Crazyflie positions"""
     # Set to True to visualize positions
     # Requires PyPlot
-    visualize_positions = False
+    visualize_positions = True
     if visualize_positions:
         import matplotlib.pyplot as plt
 
@@ -320,7 +291,7 @@ def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
 
         ax.scatter(x_bs, y_bs, z_bs, c='red')
 
-        set_axes_equal(ax)
+        ax.set_aspect('equal')
         print('Close graph window to continue')
         plt.show()
         print('Continuing...')
@@ -586,13 +557,13 @@ if __name__ == '__main__':
     #     [root_dir + 'LH_RAW-20231130-095540-moving-around-rots.txt'],
     #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml', None)
 
-   # root_dir = '/home/knmcguire/development/bitcraze/lighthouse16/lighthouse16-firmware/algos/examples/large_arena_lighthouse_system/'
-   # estimate_from_lhv2_files(
-   #     root_dir + 'LH_RAW-20231130-095339-origo-rots.txt',
-   #     [root_dir + 'LH_RAW-20231130-095359-1m-from-origo-rots.txt'],
-   #     [root_dir + 'LH_RAW-20231130-095514-random-on-floor-rots.txt', '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/floor5-rots.txt', '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/floor4-rots.txt'],
-   #     '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/move-rots.txt',
-   #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml', '/home/kristoffer/Documents/lighthouse/arena_16.yaml')
+    # root_dir = '/home/knmcguire/development/bitcraze/lighthouse16/lighthouse16-firmware/algos/examples/large_arena_lighthouse_system/'
+    # estimate_from_lhv2_files(
+    #     root_dir + 'LH_RAW-20231130-095339-origo-rots.txt',
+    #     [root_dir + 'LH_RAW-20231130-095359-1m-from-origo-rots.txt'],
+    #     [root_dir + 'LH_RAW-20231130-095514-random-on-floor-rots.txt', '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/floor5-rots.txt', '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/floor4-rots.txt'],
+    #     '/home/kristoffer/code/bitcraze/lighthouse16-firmware/algos/examples/the-full-shebang-v2/move-rots.txt',
+    #     '/home/kristoffer/Documents/lighthouse/arena_all.yaml', '/home/kristoffer/Documents/lighthouse/arena_16.yaml')
 
     # root_dir = '/home/knmcguire/development/bitcraze/lighthouse16/lighthouse16-firmware/algos/examples/large_arena_lighthouse_system/'
     # estimate_from_lhv2_files(
@@ -602,13 +573,21 @@ if __name__ == '__main__':
     #     [root_dir + 'K-1m-rots.txt'],
     #     root_dir + 'arena_all.yaml', root_dir + 'arena_16.yaml')
 
-    root_dir = '/home/knmcguire/development/bitcraze/lighthouse16/lighthouse16-firmware/algos/examples/large_arena_LH_20240222/'
+    # root_dir = '/home/knmcguire/development/bitcraze/lighthouse16/lighthouse16-firmware/algos/examples/large_arena_LH_20240222/'
+    # estimate_from_lhv2_files(
+    #    root_dir + 'A-240222-rots.txt',
+    #    [root_dir + 'B-240222-rots.txt'],
+    #    [root_dir + 'F-240222-rots.txt',root_dir + 'E-240222-rots.txt',root_dir + 'G-240222-rots.txt'],
+    #    [root_dir + 'figure-eight-240222-rots.txt'],
+    #    root_dir + 'arena_all.yaml', root_dir + 'arena_16.yaml')
+
+    root_dir = '/home/aris/Morgens/Code/Library.venv/crazyflie-lib-python-lighthouse16branch/Geo_Estimation_Files/'
     estimate_from_lhv2_files(
-        root_dir + 'A-240222-rots.txt',
-        [root_dir + 'B-240222-rots.txt'],
-        [root_dir + 'F-240222-rots.txt',root_dir + 'E-240222-rots.txt',root_dir + 'G-240222-rots.txt'],
-        [root_dir + 'figure-eight-240222-rots.txt'],
-        root_dir + 'arena_all.yaml', root_dir + 'arena_16.yaml')
+        root_dir + '1_Origin_2025-03-12-rots.txt',  # origin_file: str
+        [root_dir + '2_X-axis_2025-03-12-rots.txt'],  # x_axis_files: list[str]
+        [root_dir + '3_XY-plane_pointA_2025-03-12-rots.txt',root_dir + '4_XY-plane_pointB_2025-03-12-rots.txt', root_dir + '5_XY-plane_pointC_2025-03-12-rots.txt', root_dir + '6_XY-plane_pointD_2025-03-12-rots.txt'],  # xy_plane_files: list[str]
+        [root_dir + '7_Samples_2025-03-12-rots.txt'],  # samples_files: list[str]
+        root_dir + '8_Calibs_2025-03-12.yaml', root_dir + 'Lighthouse_x16.yaml')  # calibs_file: str, result_file: str
     # connect_and_estimate(uri, file_name=file_name)
 
     # Run the estimation on data from file instead of live measurements

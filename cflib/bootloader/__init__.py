@@ -289,7 +289,7 @@ class Bootloader:
                         self.progress_cb('Deck updated! Restarting...', int(100))
                     if current_index != -1:
                         PowerSwitch(self.clink).reboot_to_fw()
-                        if any(deck.target == 'bcAI:gap8' for deck in deck_targets):
+                        if any(deck.target in ['bcAI:gap8', 'bcAI:esp'] for deck in deck_targets):
                             time.sleep(7)
                         else:
                             time.sleep(2)
@@ -337,7 +337,7 @@ class Bootloader:
 
         if filename is not None:
             self.flash(filename, targets, cf, enable_console_log=enable_console_log)
-            self.reset_to_firmware()
+            self.reset_to_firmware(boot_delay=5.0)
 
     def _get_flash_artifacts_from_zip(self, filename):
         if not zipfile.is_zipfile(filename):
@@ -604,7 +604,7 @@ class Bootloader:
                     self.progress_cb(f'Updating deck {deck.name}', 0)
 
                 # Test and wait for the deck to be started
-                if any(deck.name == 'bcAI:gap8' for deck in decks.values()):
+                if any(deck.name in ['bcAI:gap8', 'bcAI:esp'] for deck in decks.values()):
                     timeout_time = time.time() + 9
                 else:
                     timeout_time = time.time() + 4
@@ -634,7 +634,7 @@ class Bootloader:
                         continue
 
                 # Wait for bootloader to be ready
-                if any(deck.name == 'bcAI:gap8' for deck in decks.values()):
+                if any(deck.name in ['bcAI:gap8', 'bcAI:esp'] for deck in decks.values()):
                     timeout_time = time.time() + 9
                 else:
                     timeout_time = time.time() + 4

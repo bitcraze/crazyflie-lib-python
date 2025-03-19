@@ -178,7 +178,48 @@ class Bootloader:
 
         return provided_nrf_bl_version
 
-    def flash(self, filename: str, targets: List[Target], cf=None, enable_console_log: Optional[bool] = False):
+    def _get_boot_delay(self, cf: Optional[Crazyflie] = None) -> float:
+        """
+        Determines the boot delay for the Crazyflie.
+        This method calculates the boot delay based on the presence of specific decks.
+        If the AI deck is attached, a longer boot delay is used.
+        @return: The boot delay in seconds. Returns -1 if no deck memory is found.
+        @rtype: float
+        @raises RuntimeError: If there is a failure in reading the decks.
+        """
+
+        if cf is not None and cf.link:
+            cf.close_link()
+
+        try:
+            with SyncCrazyflie(self.clink, cf=Crazyflie()) as scf:
+                deck_mems = scf.cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
+                deck_mems_count = len(deck_mems)
+                if deck_mems_count == 0:
+                    return -1
+
+                mgr = deck_memory.SyncDeckMemoryManager(deck_mems[0])
+                try:
+                    decks = mgr.query_decks()
+                except RuntimeError as e:
+                    if self.progress_cb:
+                        message = f'Failed to read decks: {str(e)}'
+                        self.progress_cb(message, 0)
+                        logger.error(message)
+                        time.sleep(2)
+                        raise RuntimeError(message)
+
+                if any(deck.name in ['bcAI:gap8', 'bcAI:esp'] for deck in decks.values()):
+                    return 5.0
+        except Exception as e:
+            # If we fail to connect to the Crazyflie in firmware mode, we assume the AI-deck is attached
+            print(f'Failed to connect to Crazyflie in firmware mode: {str(e)}. Setting boot delay to 5.0 seconds')
+            return 5.0  # AI-deck may be attached
+
+        return 0.0
+
+    def flash(self, filename: str, targets: List[Target], cf=None, enable_console_log: Optional[bool] = False,
+              boot_delay: Optional[float] = 0.0):
         # Separate flash targets from decks
         platform = self._get_platform_id()
         flash_targets = [t for t in targets if t.platform == platform]
@@ -276,7 +317,7 @@ class Bootloader:
                     self.progress_cb('Restarting firmware to update decks.', int(0))
 
                 # Reset to firmware mode
-                self.reset_to_firmware(boot_delay=5.0)
+                self.reset_to_firmware(boot_delay=boot_delay)
                 self.close()
                 time.sleep(2)
 
@@ -284,15 +325,13 @@ class Bootloader:
                 current_index = 0
                 while current_index != -1:
                     current_index = self._flash_deck_incrementally(deck_artifacts, deck_targets, current_index,
-                                                                   enable_console_log=enable_console_log)
+                                                                   enable_console_log=enable_console_log,
+                                                                   boot_delay=boot_delay)
                     if self.progress_cb:
                         self.progress_cb('Deck updated! Restarting...', int(100))
                     if current_index != -1:
                         PowerSwitch(self.clink).reboot_to_fw()
-                        if any(deck.target in ['bcAI:gap8', 'bcAI:esp'] for deck in deck_targets):
-                            time.sleep(7)
-                        else:
-                            time.sleep(2)
+                        time.sleep(2.0 + boot_delay)
 
                 # Put the crazyflie back in Bootloader mode to exit the function in the same state we entered it
                 self.start_bootloader(warm_boot=True, cf=cf)
@@ -321,6 +360,9 @@ class Bootloader:
         Flash .zip or bin .file to list of targets.
         Reset to firmware when done.
         """
+        # Get the required boot delay
+        boot_delay = self._get_boot_delay(cf=cf)
+
         if progress_cb is not None:
             self.progress_cb = progress_cb
         if terminate_flash_cb is not None:
@@ -336,7 +378,7 @@ class Bootloader:
             info_cb(self.protocol_version, connected)
 
         if filename is not None:
-            self.flash(filename, targets, cf, enable_console_log=enable_console_log)
+            self.flash(filename, targets, cf, enable_console_log=enable_console_log, boot_delay=boot_delay)
             self.reset_to_firmware(boot_delay=5.0)
 
     def _get_flash_artifacts_from_zip(self, filename):
@@ -549,7 +591,7 @@ class Bootloader:
         print(text, end='')
 
     def _flash_deck_incrementally(self, artifacts: List[FlashArtifact], targets: List[Target], start_index: int,
-                                  enable_console_log: Optional[bool] = False):
+                                  enable_console_log: Optional[bool] = False, boot_delay=0.0):
         flash_all_targets = len(targets) == 0
         if self.progress_cb:
             self.progress_cb('Identifying deck to be updated', 0)
@@ -604,10 +646,7 @@ class Bootloader:
                     self.progress_cb(f'Updating deck {deck.name}', 0)
 
                 # Test and wait for the deck to be started
-                if any(deck.name in ['bcAI:gap8', 'bcAI:esp'] for deck in decks.values()):
-                    timeout_time = time.time() + 9
-                else:
-                    timeout_time = time.time() + 4
+                timeout_time = time.time() + 4. + boot_delay
                 while not deck.is_started:
                     if time.time() > timeout_time:
                         raise RuntimeError(f'Deck {deck.name} did not start')
@@ -634,10 +673,7 @@ class Bootloader:
                         continue
 
                 # Wait for bootloader to be ready
-                if any(deck.name in ['bcAI:gap8', 'bcAI:esp'] for deck in decks.values()):
-                    timeout_time = time.time() + 9
-                else:
-                    timeout_time = time.time() + 4
+                timeout_time = time.time() + 4. + boot_delay
                 while not deck.is_bootloader_active:
                     if time.time() > timeout_time:
                         raise RuntimeError(f'Deck {deck.name} did not enter bootloader mode')

@@ -106,6 +106,9 @@ class MotorRampExample:
             # to prevent the supervisor from intervening due to missing regular setpoints
             self._cf.commander.send_setpoint(0, 0, 0, 0)
             time.sleep(0.1)
+        # Sleeping before closing the link makes sure the last
+        # packet leaves before the link is closed, since the
+        # message queue is not flushed before closing
         self._cf.close_link()
 
 

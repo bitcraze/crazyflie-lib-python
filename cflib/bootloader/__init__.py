@@ -178,45 +178,40 @@ class Bootloader:
 
         return provided_nrf_bl_version
 
-    def _get_boot_delay(self, cf: Optional[Crazyflie] = None) -> float:
-        """
-        Determines the boot delay for the Crazyflie.
-        This method calculates the boot delay based on the presence of specific decks.
-        If the AI deck is attached, a longer boot delay is used.
-        @return: The boot delay in seconds. Returns -1 if no deck memory is found.
-        @rtype: float
-        @raises RuntimeError: If there is a failure in reading the decks.
-        """
-
-        if cf is not None and cf.link:
-            cf.close_link()
+    def _get_boot_delay(self, cf: Optional[Crazyflie] = None):
+        """Determines the boot delay based on AI-deck presence or failure to connect."""
+        try:
+            # First try using an existing link
+            if cf.link:
+                return 5.0 if self._has_ai_deck(cf) else 0.0
+        except Exception:
+            # Failed to connect using existing link, try opening a new link
+            pass
 
         try:
-            with SyncCrazyflie(self.clink, cf=Crazyflie()) as scf:
-                deck_mems = scf.cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
-                deck_mems_count = len(deck_mems)
-                if deck_mems_count == 0:
-                    return -1
+            with SyncCrazyflie(cf.uri, cf=Crazyflie()) as scf:
+                return 5.0 if self._has_ai_deck(scf.cf) else 0.0
+        except Exception:
+            # If we fail to connect using SyncCrazyflie, assume the Crazyflie may be in bootloader mode
+            return 5.0
 
-                mgr = deck_memory.SyncDeckMemoryManager(deck_mems[0])
-                try:
-                    decks = mgr.query_decks()
-                except RuntimeError as e:
-                    if self.progress_cb:
-                        message = f'Failed to read decks: {str(e)}'
-                        self.progress_cb(message, 0)
-                        logger.error(message)
-                        time.sleep(2)
-                        raise RuntimeError(message)
+    def _has_ai_deck(self, cf):
+        deck_mems = cf.mem.get_mems(MemoryElement.TYPE_DECK_MEMORY)
+        if not deck_mems:
+            raise RuntimeError('Failed to read memory: No deck memory found')
 
-                if any(deck.name in ['bcAI:gap8', 'bcAI:esp'] for deck in decks.values()):
-                    return 5.0
-        except Exception as e:
-            # If we fail to connect to the Crazyflie in firmware mode, we assume the AI-deck is attached
-            print(f'Failed to connect to Crazyflie in firmware mode: {str(e)}. Setting boot delay to 5.0 seconds')
-            return 5.0  # AI-deck may be attached
+        mgr = deck_memory.SyncDeckMemoryManager(deck_mems[0])
+        try:
+            decks = mgr.query_decks()
+        except RuntimeError as e:
+            if self.progress_cb:
+                message = f'Failed to read decks: {str(e)}'
+                self.progress_cb(message, 0)
+                print(message)
+                time.sleep(2)
+                raise RuntimeError(message)
 
-        return 0.0
+        return any(deck.name in ['bcAI:gap8', 'bcAI:esp'] for deck in decks.values())
 
     def flash(self, filename: str, targets: List[Target], cf=None, enable_console_log: Optional[bool] = False,
               boot_delay: Optional[float] = 0.0):

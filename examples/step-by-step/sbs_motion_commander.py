@@ -125,6 +125,10 @@ if __name__ == '__main__':
             print('No flow deck detected!')
             sys.exit(1)
 
+        # Arm the Crazyflie
+        scf.cf.platform.send_arming_request(True)
+        time.sleep(1.0)
+
         logconf.start()
 
         take_off_simple(scf)

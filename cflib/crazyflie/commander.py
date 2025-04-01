@@ -47,6 +47,7 @@ TYPE_POSITION = 7
 TYPE_VELOCITY_WORLD = 8
 TYPE_ZDISTANCE = 9
 TYPE_HOVER = 10
+TYPE_MANUAL = 11
 
 TYPE_META_COMMAND_NOTIFY_SETPOINT_STOP = 0
 
@@ -231,4 +232,27 @@ class Commander():
         pk.channel = SET_SETPOINT_CHANNEL
         pk.data = struct.pack('<Bffff', TYPE_POSITION,
                               x, y, z, yaw)
+        self._cf.send_packet(pk)
+
+    def send_setpoint_manual(self, roll, pitch, yawrate, thrust_percentage, rate):
+        """
+        Send a new control setpoint for roll/pitch/yaw_Rate/thrust_percentage to the copter.
+        with an option to send roll rate and pitch rate. If `rate == False`, roll/pitch angle is sent.
+        If `rate == True`, roll/pitch rate is sent.
+
+        roll,  pitch are in degrees or in degrees/s
+        yawrate is in degrees/s
+        thrust_percentage is a float value ranging from 0 (next to no power) to 100 (full power)
+        rate is a bool
+        """
+        if thrust_percentage > 100 or thrust_percentage < 0:
+            raise ValueError('Thrust percentage must be between 0 and 100')
+
+        thrust = 1001 + 0.01 * thrust_percentage * (60000 - 1001)
+        thrust_16 = struct.unpack('<H', struct.pack('<H', int(thrust)))[0]
+
+        pk = CRTPPacket()
+        pk.port = CRTPPort.COMMANDER_GENERIC
+        pk.channel = SET_SETPOINT_CHANNEL
+        pk.data = struct.pack('<BfffHB', TYPE_MANUAL, roll, -pitch, yawrate, thrust_16, rate)
         self._cf.send_packet(pk)

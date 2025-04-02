@@ -74,7 +74,6 @@ def arm(scf):
 
 
 def position_callback(uri, data):
-    global pos1, pos2
     if uri == URI1:
         pos1[0] = data['stateEstimate.x']
         pos1[1] = data['stateEstimate.y']

@@ -106,8 +106,7 @@ def pos_to_vel(x1, y1, x2, y2, dist):
 
 
 def position_callback(uri, data):
-    global yaw1
-    global x1, y1, z1, x2, y2, z2, d
+    global d
     if uri == URI1:  # Follower
         x1.append(data['stateEstimate.x'])
         y1.append(data['stateEstimate.y'])

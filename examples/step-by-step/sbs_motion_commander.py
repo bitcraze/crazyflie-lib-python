@@ -91,7 +91,6 @@ def take_off_simple(scf):
 
 def log_pos_callback(timestamp, data, logconf):
     print(data)
-    global position_estimate
     position_estimate[0] = data['stateEstimate.x']
     position_estimate[1] = data['stateEstimate.y']
 

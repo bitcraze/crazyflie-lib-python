@@ -576,6 +576,8 @@ class _ExtendedTypeFetcher(Thread):
 
         # Then force an unlock of the mutex if we are waiting for a packet
         # we didn't get back due to a disconnect for example.
+        self._should_close = True
+        self.request_queue.put(None)
         try:
             self._lock.release()
         except RuntimeError:
@@ -584,6 +586,8 @@ class _ExtendedTypeFetcher(Thread):
     def run(self):
         while not self._should_close:
             pk = self.request_queue.get()  # Wait for request update
+            if pk is None:  # Put none to close the thread
+                continue
             self._lock.acquire()
             if self._cf.link:
                 self._req_param = struct.unpack('<H', pk.data[1:3])[0]
@@ -616,9 +620,11 @@ class _ParamUpdater(Thread):
                 self.request_queue.get(block=False)
         except Empty:
             pass
-
+        self._should_close = True
+        self.request_queue.put(None)
         # Then force an unlock of the mutex if we are waiting for a packet
         # we didn't get back due to a disconnect for example.
+
         try:
             self.wait_lock.release()
         except RuntimeError:
@@ -677,6 +683,8 @@ class _ParamUpdater(Thread):
     def run(self):
         while not self._should_close:
             pk = self.request_queue.get()  # Wait for request update
+            if pk is None:  # Put none to close the thread
+                continue
             self.wait_lock.acquire()
             if self.cf.link:
                 if self._useV2:

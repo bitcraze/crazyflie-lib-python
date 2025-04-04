@@ -119,7 +119,7 @@ class Crazyflie():
         self.extpos = Extpos(self)
         self.log = Log(self)
         self.console = Console(self)
-        self.param = Param(self)
+        self.param = None
         self.mem = Memory(self)
         self.platform = PlatformService(self)
         self.appchannel = Appchannel(self)
@@ -136,8 +136,6 @@ class Crazyflie():
         self._send_lock = Lock()
 
         self.connected_ts = None
-
-        self.param.all_updated.add_callback(self._all_parameters_updated)
 
         # Connect callbacks to logger
         self.disconnected.add_callback(
@@ -244,6 +242,8 @@ class Crazyflie():
         self.connection_requested.call(link_uri)
         self.state = State.INITIALIZED
         self.link_uri = link_uri
+        self.param = Param(self)
+        self.param.all_updated.add_callback(self._all_parameters_updated)
         try:
             self.link = cflib.crtp.get_link_driver(
                 link_uri, self.link_statistics.radio_link_statistics_callback, self._link_error_cb)

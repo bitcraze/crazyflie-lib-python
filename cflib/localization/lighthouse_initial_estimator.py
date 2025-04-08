@@ -22,14 +22,15 @@
 from __future__ import annotations
 
 from typing import NamedTuple
+
 import numpy as np
 import numpy.typing as npt
 
 from .ippe_cf import IppeCf
 from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.localization.lighthouse_types import LhCfPoseSample
-from cflib.localization.lighthouse_types import Pose
 from cflib.localization.lighthouse_types import LhException
+from cflib.localization.lighthouse_types import Pose
 
 
 ArrayFloat = npt.NDArray[np.float_]

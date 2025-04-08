@@ -27,8 +27,8 @@ import numpy as np
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
-from cflib.localization.lighthouse_types import Pose
 from cflib.localization.lighthouse_types import LhException
+from cflib.localization.lighthouse_types import Pose
 
 
 class TestLighthouseInitialEstimator(LighthouseTestBase):

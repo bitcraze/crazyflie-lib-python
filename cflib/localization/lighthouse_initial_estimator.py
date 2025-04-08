@@ -189,20 +189,21 @@ class LighthouseInitialEstimator:
             poses: dict[int, Pose] = {}
             ids = sorted(solutions.keys())
             first = ids[0]
+            is_sample_valid = True
 
             for other in ids[1:]:
-                pair = BsPairIds(first, other)
-                expected = bs_positions[pair]
+                pair_ids = BsPairIds(first, other)
+                expected = bs_positions[pair_ids]
 
-                firstPose, otherPose = cls._choose_solutions(solutions[first], solutions[other], expected)
-                if firstPose is not None:
-                    poses[first] = firstPose
-                    poses[other] = otherPose
+                first_pose, other_pose = cls._choose_solutions(solutions[first], solutions[other], expected)
+                if first_pose is not None:
+                    poses[first] = first_pose
+                    poses[other] = other_pose
                 else:
-                    poses = None
+                    is_sample_valid = False
                     break
 
-            if poses is not None:
+            if is_sample_valid:
                 result.append(poses)
                 cleaned_matched_samples.append(sample)
 

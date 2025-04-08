@@ -28,6 +28,7 @@ from .ippe_cf import IppeCf
 from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import Pose
+from cflib.localization.lighthouse_types import LhException
 
 
 class LighthouseInitialEstimator:
@@ -70,7 +71,7 @@ class LighthouseInitialEstimator:
                 break
 
         if reference_bs_pose is None:
-            raise Exception('Too little data, no reference')
+            raise LhException('Too little data, no reference')
         bs_poses: dict[int, Pose] = {bs_id: reference_bs_pose}
 
         # Calculate the pose of the remaining base stations, based on the pose of the first CF
@@ -342,7 +343,7 @@ class LighthouseInitialEstimator:
                 break
 
             if len(to_find) == remaining:
-                raise RuntimeError('Can not link positions between all base stations')
+                raise LhException('Can not link positions between all base stations')
 
             remaining = len(to_find)
 

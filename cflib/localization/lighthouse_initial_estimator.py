@@ -32,6 +32,9 @@ from cflib.localization.lighthouse_types import Pose
 from cflib.localization.lighthouse_types import LhException
 
 
+ArrayFloat = npt.NDArray[np.float_]
+
+
 class BsPairIds(NamedTuple):
     """A type representing the ids of a pair of base stations"""
     bs1: int
@@ -54,7 +57,7 @@ class LighthouseInitialEstimator:
     OUTLIER_DETECTION_ERROR = 0.5
 
     @classmethod
-    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike) -> tuple[
+    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: ArrayFloat) -> tuple[
             LhBsCfPoses, list[LhCfPoseSample]]:
         """
         Make a rough estimate of the poses of all base stations and CF poses found in the samples.
@@ -96,8 +99,8 @@ class LighthouseInitialEstimator:
         return LhBsCfPoses(bs_poses, cf_poses), cleaned_matched_samples
 
     @classmethod
-    def _find_solutions(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike
-                        ) -> dict[BsPairIds, npt.NDArray]:
+    def _find_solutions(cls, matched_samples: list[LhCfPoseSample], sensor_positions: ArrayFloat
+                        ) -> dict[BsPairIds, ArrayFloat]:
         """
         Find the pose of all base stations, in the reference frame of other base stations.
 
@@ -115,7 +118,7 @@ class LighthouseInitialEstimator:
                  (2, 1) contains the position of base station 1, in the base station 2 reference frame.
         """
 
-        position_permutations: dict[BsPairIds, list[list[npt.ArrayLike]]] = {}
+        position_permutations: dict[BsPairIds, list[list[ArrayFloat]]] = {}
         for sample in matched_samples:
             solutions: dict[int, BsPairPoses] = {}
             for bs, angles in sample.angles_calibrated.items():
@@ -130,17 +133,17 @@ class LighthouseInitialEstimator:
 
     @classmethod
     def _add_solution_permutations(cls, solutions: dict[int, BsPairPoses],
-                                   position_permutations: dict[BsPairIds, list[list[npt.ArrayLike]]]):
+                                   position_permutations: dict[BsPairIds, list[list[ArrayFloat]]]):
         """
         Add the possible permutations of base station positions for a sample to a collection of aggregated positions.
         The aggregated collection contains base station positions in the reference frame of other base stations.
 
         :param solutions: All possible positions of the base stations, in the reference frame of the Crazyflie in one
                           sample
-        :param position_permutations: Aggregated possible solutions. A dictionary with base staion pairs as keys, mapped
-                                      to lists of lists of possible positions. For instance, the entry for (2, 1) would
-                                      contain a list of lists with 4 positions each, for where base station 1 might be
-                                      located in the base station 2 reference frame.
+        :param position_permutations: Aggregated possible solutions. A dictionary with base staTion pairs as keys,
+                                      mapped to lists of lists of possible positions. For instance, the entry for (2, 1)
+                                      would contain a list of lists with 4 positions each, for where base station 1
+                                      might be located in the base station 2 reference frame.
         """
         ids = sorted(solutions.keys())
 
@@ -164,9 +167,9 @@ class LighthouseInitialEstimator:
                                                    pose3.translation, pose4.translation])
 
     @classmethod
-    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike,
-                         bs_positions: dict[BsPairIds, npt.NDArray]) -> tuple[list[dict[int, Pose]],
-                                                                              list[LhCfPoseSample]]:
+    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample], sensor_positions: ArrayFloat,
+                         bs_positions: dict[BsPairIds, ArrayFloat]) -> tuple[list[dict[int, Pose]],
+                                                                             list[LhCfPoseSample]]:
         """
         Estimate the base station poses in the Crazyflie reference frames, for each sample.
 
@@ -216,7 +219,7 @@ class LighthouseInitialEstimator:
 
     @classmethod
     def _choose_solutions(cls, solutions_1: BsPairPoses, solutions_2: BsPairPoses,
-                          expected: npt.ArrayLike) -> tuple[bool, BsPairPoses]:
+                          expected: ArrayFloat) -> tuple[bool, BsPairPoses]:
         """Pick the base pose solutions for a pair of base stations, based on the position in expected"""
 
         min_dist = 100000.0
@@ -238,19 +241,19 @@ class LighthouseInitialEstimator:
 
     @classmethod
     def _find_most_likely_positions(cls, position_permutations: dict[BsPairIds,
-                                    list[list[npt.ArrayLike]]]) -> dict[BsPairIds, npt.NDArray]:
+                                    list[list[ArrayFloat]]]) -> dict[BsPairIds, ArrayFloat]:
         """
         Find the most likely base station positions from all the possible permutations.
 
         Sort the permutations into buckets based on how close they are to the solutions in the first sample. Solutions
         that are "too" far away and discarded. The bucket with the most samples in, is considered the best.
         """
-        result: dict[BsPairIds, npt.NDArray] = {}
+        result: dict[BsPairIds, ArrayFloat] = {}
 
         for pair, position_lists in position_permutations.items():
             # Use first as reference to map the others to
             bucket_ref_positions = position_lists[0]
-            buckets: list[list[npt.NDArray]] = [[], [], [], []]
+            buckets: list[list[ArrayFloat]] = [[], [], [], []]
 
             cls._map_positions_to_ref(bucket_ref_positions, position_lists, buckets)
             best_pos = cls._find_best_position_bucket(buckets)
@@ -259,8 +262,9 @@ class LighthouseInitialEstimator:
         return result
 
     @classmethod
-    def _map_positions_to_ref(cls, bucket_ref_positions: list[npt.ArrayLike], position_lists: list[list[npt.ArrayLike]],
-                              buckets: list[list[npt.ArrayLike]]) -> None:
+    def _map_positions_to_ref(cls, bucket_ref_positions: list[ArrayFloat],
+                              position_lists: list[list[ArrayFloat]],
+                              buckets: list[list[ArrayFloat]]) -> None:
         """
         Sort solution into buckets based on the distance to the reference position. If no bucket is close enough,
         the solution is discarded.
@@ -276,7 +280,7 @@ class LighthouseInitialEstimator:
                         break
 
     @classmethod
-    def _find_best_position_bucket(cls, buckets: list[list[npt.ArrayLike]]) -> npt.NDArray:
+    def _find_best_position_bucket(cls, buckets: list[list[ArrayFloat]]) -> ArrayFloat:
         """
         Find the bucket with the most solutions in, this is considered to be the correct solution.
         The final result is the mean of the solution in the bucket.

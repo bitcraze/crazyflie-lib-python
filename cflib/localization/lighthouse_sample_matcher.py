@@ -29,7 +29,7 @@ class LighthouseSampleMatcher:
     """Utility class to match samples of measurements from multiple lighthouse base stations.
 
     Assuming that the Crazyflie was moving when the measurements were recorded,
-    samples that were meassured aproximately at the same position are aggregated into
+    samples that were measured approximately at the same position are aggregated into
     a list of LhCfPoseSample. Matching is done using the timestamp and a maximum time span.
     """
 

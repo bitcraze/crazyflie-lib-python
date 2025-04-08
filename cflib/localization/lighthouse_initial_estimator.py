@@ -21,9 +21,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+from typing import NamedTuple
 import numpy as np
 import numpy.typing as npt
-from collections import namedtuple
 
 from .ippe_cf import IppeCf
 from cflib.localization.lighthouse_types import LhBsCfPoses
@@ -32,11 +32,16 @@ from cflib.localization.lighthouse_types import Pose
 from cflib.localization.lighthouse_types import LhException
 
 
-# A type representing the ids of a pair of base stations
-BsPairIds = namedtuple('BsPairIds', ['bs1', 'bs2'])
+class BsPairIds(NamedTuple):
+    """A type representing the ids of a pair of base stations"""
+    bs1: int
+    bs2: int
 
-# A type representing the poses of a pair of base stations
-BsPairPoses = namedtuple('BsPairPoses', ['bs1', 'bs2'])
+
+class BsPairPoses(NamedTuple):
+    """A type representing the poses of a pair of base stations"""
+    bs1: Pose
+    bs2: Pose
 
 
 class LighthouseInitialEstimator:

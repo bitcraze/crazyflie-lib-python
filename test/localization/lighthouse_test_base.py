@@ -23,7 +23,7 @@ import unittest
 
 import numpy as np
 import numpy.typing as npt
-from scipy.spatial.transform.rotation import Rotation
+from scipy.spatial.transform import Rotation
 
 from cflib.localization.lighthouse_types import Pose
 

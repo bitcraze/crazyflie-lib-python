@@ -195,10 +195,10 @@ class LighthouseInitialEstimator:
                 pair_ids = BsPairIds(first, other)
                 expected = bs_positions[pair_ids]
 
-                first_pose, other_pose = cls._choose_solutions(solutions[first], solutions[other], expected)
-                if first_pose is not None:
-                    poses[first] = first_pose
-                    poses[other] = other_pose
+                success, pair_poses = cls._choose_solutions(solutions[first], solutions[other], expected)
+                if success:
+                    poses[pair_ids.bs1] = pair_poses.bs1
+                    poses[pair_ids.bs2] = pair_poses.bs2
                 else:
                     is_sample_valid = False
                     break
@@ -211,12 +211,12 @@ class LighthouseInitialEstimator:
 
     @classmethod
     def _choose_solutions(cls, solutions_1: BsPairPoses, solutions_2: BsPairPoses,
-                          expected: npt.ArrayLike) -> BsPairPoses:
+                          expected: npt.ArrayLike) -> tuple[bool, BsPairPoses]:
         """Pick the base pose solutions for a pair of base stations, based on the position in expected"""
 
         min_dist = 100000.0
-        best1 = None
-        best2 = None
+        best = BsPairPoses(Pose(), Pose())
+        success = True
 
         for solution_1 in solutions_1:
             for solution_2 in solutions_2:
@@ -224,13 +224,12 @@ class LighthouseInitialEstimator:
                 dist = np.linalg.norm(expected - pose_second_bs_ref_fr_first.translation)
                 if dist < min_dist:
                     min_dist = dist
-                    best1 = solution_1
-                    best2 = solution_2
+                    best = BsPairPoses(solution_1, solution_2)
 
         if min_dist > cls.OUTLIER_DETECTION_ERROR:
-            return None, None
+            success = False
 
-        return best1, best2
+        return success, best
 
     @classmethod
     def _find_most_likely_positions(cls, position_permutations: dict[BsPairIds,

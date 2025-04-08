@@ -40,8 +40,8 @@ class LighthouseInitialEstimator:
     OUTLIER_DETECTION_ERROR = 0.5
 
     @classmethod
-    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike) -> tuple(
-            LhBsCfPoses, list[LhCfPoseSample]):
+    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike) -> tuple[
+            LhBsCfPoses, list[LhCfPoseSample]]:
         """
         Make a rough estimate of the poses of all base stations and CF poses found in the samples.
 
@@ -83,7 +83,7 @@ class LighthouseInitialEstimator:
 
     @classmethod
     def _find_solutions(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike
-                        ) -> dict[tuple(int, int), npt.NDArray]:
+                        ) -> dict[tuple[int, int], npt.NDArray]:
         """
         Find the pose of all base stations, in the reference frame of other base stations.
 
@@ -101,7 +101,7 @@ class LighthouseInitialEstimator:
                  (2, 1) contains the position of base station 1, in the base station 2 reference frame.
         """
 
-        position_permutations: dict[tuple(int, int), list[list[npt.ArrayLike]]] = {}
+        position_permutations: dict[tuple[int, int], list[list[npt.ArrayLike]]] = {}
         for sample in matched_samples:
             solutions: dict[int, tuple[Pose, Pose]] = {}
             for bs, angles in sample.angles_calibrated.items():
@@ -151,8 +151,8 @@ class LighthouseInitialEstimator:
 
     @classmethod
     def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample], sensor_positions: npt.ArrayLike,
-                         bs_positions: dict[tuple(int, int), npt.NDArray]) -> tuple(list[dict[int, Pose]],
-                                                                                    list[LhCfPoseSample]):
+                         bs_positions: dict[tuple[int, int], npt.NDArray]) -> tuple[list[dict[int, Pose]],
+                                                                                    list[LhCfPoseSample]]:
         """
         Estimate the base station poses in the Crazyflie reference frames, for each sample.
 
@@ -223,15 +223,15 @@ class LighthouseInitialEstimator:
         return best1, best2
 
     @classmethod
-    def _find_most_likely_positions(cls, position_permutations: dict[tuple(int, int),
-                                    list[list[npt.ArrayLike]]]) -> dict[tuple(int, int), npt.NDArray]:
+    def _find_most_likely_positions(cls, position_permutations: dict[tuple[int, int],
+                                    list[list[npt.ArrayLike]]]) -> dict[tuple[int, int], npt.NDArray]:
         """
         Find the most likely base station positions from all the possible permutations.
 
         Sort the permutations into buckets based on how close they are to the solutions in the first sample. Solutions
-        that are "too" far away and distcarded. The bucket with the most samples in, is considerred the best.
+        that are "too" far away and discarded. The bucket with the most samples in, is considered the best.
         """
-        result: dict[tuple(int, int), npt.NDArray] = {}
+        result: dict[tuple[int, int], npt.NDArray] = {}
 
         for pair, position_lists in position_permutations.items():
             # Use first as reference to map the others to
@@ -367,7 +367,7 @@ class LighthouseInitialEstimator:
         return Pose.from_quat(R_quat=average_quaternion, t_vec=average_pos)
 
     @classmethod
-    def _estimate_cf_poses(cls, bs_poses_ref_cfs: list[dict[int, Pose]], bs_poses: list[Pose]) -> list[Pose]:
+    def _estimate_cf_poses(cls, bs_poses_ref_cfs: list[dict[int, Pose]], bs_poses: dict[int, Pose]) -> list[Pose]:
         """
         Find the pose of the Crazyflie in all samples, based on the base station poses.
         """

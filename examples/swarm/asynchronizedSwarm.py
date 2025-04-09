@@ -78,12 +78,12 @@ def position_callback(uri, data):
         pos1[0] = data['stateEstimate.x']
         pos1[1] = data['stateEstimate.y']
         pos1[2] = data['stateEstimate.z']
-        print(f'Uri1 position: x={pos1[0]}, y-{pos1[1]}, z{pos1[2]}')
+        print(f'Uri1 position: x={pos1[0]}, y={pos1[1]}, z={pos1[2]}')
     elif uri == URI2:
         pos2[0] = data['stateEstimate.x']
         pos2[1] = data['stateEstimate.y']
         pos2[2] = data['stateEstimate.z']
-        print(f'Uri2 position: x={pos2[0]}, y-{pos2[1]}, z{pos2[2]}')
+        print(f'Uri2 position: x={pos2[0]}, y={pos2[1]}, z={pos2[2]}')
 
 
 def start_position_printing(scf):

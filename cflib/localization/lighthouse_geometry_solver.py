@@ -78,7 +78,7 @@ class LighthouseGeometrySolution:
         # Information about errors in the solution
         self.error_info = {}
 
-        # Indicates if the solution coverged (True).
+        # Indicates if the solution converged (True).
         # If it did not converge, the solution is probably not good enough to use
         self.success = False
 

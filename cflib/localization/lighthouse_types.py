@@ -175,10 +175,14 @@ class LhDeck4SensorPositions:
     _sensor_distance_length = 0.03
 
     # Sensor positions in the Crazyflie reference frame
-    positions = np.float32([
+    positions = np.array([
         (-_sensor_distance_length / 2, _sensor_distance_width / 2, 0.0),
         (-_sensor_distance_length / 2, -_sensor_distance_width / 2, 0.0),
         (_sensor_distance_length / 2, _sensor_distance_width / 2, 0.0),
         (_sensor_distance_length / 2, -_sensor_distance_width / 2, 0.0)])
 
     diagonal_distance = np.sqrt(_sensor_distance_length ** 2 + _sensor_distance_length ** 2)
+
+
+class LhException(RuntimeError):
+    """Base exception for lighthouse exceptions"""

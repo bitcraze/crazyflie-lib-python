@@ -27,6 +27,7 @@ import numpy as np
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
+from cflib.localization.lighthouse_types import LhException
 from cflib.localization.lighthouse_types import Pose
 
 
@@ -44,7 +45,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
 
         # Test
         # Assert
-        with self.assertRaises(Exception):
+        with self.assertRaises(LhException):
             LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
 
     def test_that_two_bs_poses_in_same_sample_are_found(self):
@@ -174,5 +175,5 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
 
         # Test
         # Assert
-        with self.assertRaises(Exception):
+        with self.assertRaises(LhException):
             LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)

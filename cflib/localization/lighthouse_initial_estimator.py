@@ -141,7 +141,7 @@ class LighthouseInitialEstimator:
 
         :param solutions: All possible positions of the base stations, in the reference frame of the Crazyflie in one
                           sample
-        :param position_permutations: Aggregated possible solutions. A dictionary with base staTion pairs as keys,
+        :param position_permutations: Aggregated possible solutions. A dictionary with base station pairs as keys,
                                       mapped to lists of lists of possible positions. For instance, the entry for (2, 1)
                                       would contain a list of lists with 4 positions each, for where base station 1
                                       might be located in the base station 2 reference frame.

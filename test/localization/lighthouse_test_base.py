@@ -47,13 +47,13 @@ class LighthouseTestBase(unittest.TestCase):
         self.assertAlmostEqual(0.0, np.linalg.norm(translation_diff), places,
                                f'Translation different, expected: {expected.translation}, actual: {actual.translation}')
 
-        def un_ambiguize(rot_vec):
-            quat = Rotation.from_rotvec(rot_vec).as_quat()
-            return Rotation.from_quat(quat).as_rotvec()
+        _expected_rot = Rotation.from_rotvec(expected.rot_vec)
+        _actual_rot = Rotation.from_rotvec(actual.rot_vec)
 
-        _expected_rot_vec = un_ambiguize(expected.rot_vec)
-        _actual_rot_vec = un_ambiguize(actual.rot_vec)
+        # Compute the rotation needed to go from expected to actual.
+        # This avoids sign ambiguity in rotvecs (e.g., π vs. -π) by comparing actual orientation difference.
+        _relative_rot = _expected_rot.inv() * _actual_rot
 
-        rotation_diff = _expected_rot_vec - _actual_rot_vec
-        self.assertAlmostEqual(0.0, np.linalg.norm(rotation_diff), places,
-                               f'Rotation different, expected: {expected.rot_vec}, actual: {actual.rot_vec}')
+        angle_diff = _relative_rot.magnitude()
+        self.assertAlmostEqual(0.0, angle_diff, places,
+                            f'Rotation different, expected: {expected.rot_vec}, actual: {actual.rot_vec}')

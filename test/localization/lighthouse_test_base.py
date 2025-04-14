@@ -56,4 +56,4 @@ class LighthouseTestBase(unittest.TestCase):
 
         angle_diff = _relative_rot.magnitude()
         self.assertAlmostEqual(0.0, angle_diff, places,
-                            f'Rotation different, expected: {expected.rot_vec}, actual: {actual.rot_vec}')
+                               f'Rotation different, expected: {expected.rot_vec}, actual: {actual.rot_vec}')

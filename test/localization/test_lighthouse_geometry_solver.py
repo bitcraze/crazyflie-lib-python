@@ -24,7 +24,7 @@ from test.localization.lighthouse_test_base import LighthouseTestBase
 
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
-from cflib.localization.lighthouse_types import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 
 

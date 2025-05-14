@@ -21,7 +21,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from cflib.localization.lighthouse_types import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhMeasurement
 
 

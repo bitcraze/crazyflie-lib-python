@@ -63,10 +63,10 @@ from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngl
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
 from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
 from cflib.localization.lighthouse_system_scaler import LighthouseSystemScaler
-from cflib.localization.lighthouse_types import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import Pose
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 from cflib.localization.lighthouse_types import LhMeasurement
-from cflib.localization.lighthouse_types import Pose
 from cflib.utils import uri_helper
 
 REFERENCE_DIST = 1.0

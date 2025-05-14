@@ -106,9 +106,9 @@ def record_angles_average(scf: SyncCrazyflie, timeout: float = 5.0) -> LhCfPoseS
     return result
 
 
-def record_angles_sequence(scf: SyncCrazyflie, recording_time_s: float) -> list[LhCfPoseSample]:
+def record_angles_sequence(scf: SyncCrazyflie, recording_time_s: float) -> list[LhMeasurement]:
     """Record angles and return a list of the samples"""
-    result: list[LhCfPoseSample] = []
+    result: list[LhMeasurement] = []
 
     bs_seen = set()
 
@@ -214,7 +214,7 @@ def write_to_file(name: str,
                   origin: LhCfPoseSample,
                   x_axis: list[LhCfPoseSample],
                   xy_plane: list[LhCfPoseSample],
-                  samples: list[LhCfPoseSample]):
+                  samples: list[LhMeasurement]):
     with open(name, 'wb') as handle:
         data = (origin, x_axis, xy_plane, samples)
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -228,7 +228,7 @@ def load_from_file(name: str):
 def estimate_geometry(origin: LhCfPoseSample,
                       x_axis: list[LhCfPoseSample],
                       xy_plane: list[LhCfPoseSample],
-                      samples: list[LhCfPoseSample]) -> dict[int, Pose]:
+                      samples: list[LhMeasurement]) -> dict[int, Pose]:
     """Estimate the geometry of the system based on samples recorded by a Crazyflie"""
     matched_samples = [origin] + x_axis + xy_plane + LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
     initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(

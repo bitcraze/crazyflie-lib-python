@@ -26,7 +26,6 @@ from typing import NamedTuple
 import numpy as np
 import numpy.typing as npt
 
-from .ippe_cf import IppeCf
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_cf_pose_sample import BsPairPoses
 from cflib.localization.lighthouse_types import LhBsCfPoses
@@ -53,8 +52,7 @@ class LighthouseInitialEstimator:
     OUTLIER_DETECTION_ERROR = 0.5
 
     @classmethod
-    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: ArrayFloat) -> tuple[
-            LhBsCfPoses, list[LhCfPoseSample]]:
+    def estimate(cls, matched_samples: list[LhCfPoseSample]) -> tuple[LhBsCfPoses, list[LhCfPoseSample]]:
         """
         Make a rough estimate of the poses of all base stations and CF poses found in the samples.
 
@@ -62,12 +60,9 @@ class LighthouseInitialEstimator:
         global reference frame.
 
         :param matched_samples: A list of samples with lighthouse angles.
-        :param sensor_positions: An array with the sensor positions on the lighthouse deck (3D, CF ref frame)
         :return: an estimate of base station and Crazyflie poses, as well as a cleaned version of matched_samples where
                  outliers are removed.
         """
-
-        cls._add_ippe_solutions_to_samples(matched_samples, sensor_positions)
 
         bs_positions = cls._find_bs_to_bs_poses(matched_samples)
         # bs_positions is a map from bs-id-pair to position, where the position is the position of the second
@@ -82,18 +77,6 @@ class LighthouseInitialEstimator:
         cf_poses = cls._estimate_cf_poses(bs_poses_ref_cfs, bs_poses)
 
         return LhBsCfPoses(bs_poses, cf_poses), cleaned_matched_samples
-
-    @classmethod
-    def _add_ippe_solutions_to_samples(cls, matched_samples: list[LhCfPoseSample], sensor_positions: ArrayFloat):
-        for sample in matched_samples:
-            solutions: dict[int, BsPairPoses] = {}
-            for bs, angles in sample.angles_calibrated.items():
-                projections = angles.projection_pair_list()
-                estimates_ref_bs = IppeCf.solve(sensor_positions, projections)
-                estimates_ref_cf = cls._convert_estimates_to_cf_reference_frame(estimates_ref_bs)
-                solutions[bs] = estimates_ref_cf
-
-                sample.ippe_solutions = solutions
 
     @classmethod
     def _find_bs_to_bs_poses(cls, matched_samples: list[LhCfPoseSample]) -> dict[BsPairIds, ArrayFloat]:
@@ -161,8 +144,8 @@ class LighthouseInitialEstimator:
         """
         Estimate the base station poses in the Crazyflie reference frames, for each sample.
 
-        Use Ippe again to find the possible poses of the base stations and pick the one that best matches the position
-        in bs_positions.
+        Again use the IPPE solutions to find the possible poses of the base stations and pick the one that best matches
+        the position in bs_positions.
 
         :param matched_samples: List of samples
         :param bs_positions: Dictionary of base station positions (other base station ref frame)
@@ -276,19 +259,6 @@ class LighthouseInitialEstimator:
 
         pos = np.mean(buckets[max_i], axis=0)
         return pos
-
-    @classmethod
-    def _convert_estimates_to_cf_reference_frame(cls, estimates_ref_bs: list[IppeCf.Solution]) -> BsPairPoses:
-        """
-        Convert the two ippe solutions from the base station reference frame to the CF reference frame
-        """
-        rot_1 = estimates_ref_bs[0].R.transpose()
-        t_1 = np.dot(rot_1, -estimates_ref_bs[0].t)
-
-        rot_2 = estimates_ref_bs[1].R.transpose()
-        t_2 = np.dot(rot_2, -estimates_ref_bs[1].t)
-
-        return BsPairPoses(Pose(rot_1, t_1), Pose(rot_2, t_2))
 
     @classmethod
     def _estimate_bs_poses(cls, bs_poses_ref_cfs: list[dict[int, Pose]]) -> dict[int, Pose]:

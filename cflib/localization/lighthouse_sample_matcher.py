@@ -49,7 +49,7 @@ class LighthouseSampleMatcher:
             if len(current_angles) > 0:
                 if sample.timestamp > (current_ts + max_time_diff):
                     if len(current_angles) >= min_nr_of_bs_in_match:
-                        pose_sample = LhCfPoseSample(timestamp=current_ts, angles_calibrated=current_angles)
+                        pose_sample = LhCfPoseSample(current_angles, timestamp=current_ts)
                         result.append(pose_sample)
 
                     current_angles = {}
@@ -59,7 +59,7 @@ class LighthouseSampleMatcher:
             current_angles[sample.base_station_id] = sample.angles
 
         if len(current_angles) >= min_nr_of_bs_in_match:
-            pose_sample = LhCfPoseSample(timestamp=current_ts, angles_calibrated=current_angles)
+            pose_sample = LhCfPoseSample(current_angles, timestamp=current_ts)
             result.append(pose_sample)
 
         return result

@@ -94,7 +94,7 @@ def record_angles_average(scf: SyncCrazyflie, timeout: float = 5.0) -> LhCfPoseS
     for bs_id, data in recorded_angles.items():
         angles_calibrated[bs_id] = data[1]
 
-    result = LhCfPoseSample(angles_calibrated=angles_calibrated)
+    result = LhCfPoseSample(angles_calibrated)
 
     visible = ', '.join(map(lambda x: str(x + 1), recorded_angles.keys()))
     print(f'  Position recorded, base station ids visible: {visible}')
@@ -231,8 +231,9 @@ def estimate_geometry(origin: LhCfPoseSample,
                       samples: list[LhMeasurement]) -> dict[int, Pose]:
     """Estimate the geometry of the system based on samples recorded by a Crazyflie"""
     matched_samples = [origin] + x_axis + xy_plane + LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
-    initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(
-        matched_samples, LhDeck4SensorPositions.positions)
+    for sample in matched_samples:
+        sample.augment_with_ippe(LhDeck4SensorPositions.positions)
+    initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples)
 
     print('Initial guess base stations at:')
     print_base_stations_poses(initial_guess.bs_poses)

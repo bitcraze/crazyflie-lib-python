@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhMeasurement
+from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
 
 
 class LighthouseSampleMatcher:
@@ -35,30 +36,30 @@ class LighthouseSampleMatcher:
 
     @classmethod
     def match(cls, samples: list[LhMeasurement], max_time_diff: float = 0.020,
-              min_nr_of_bs_in_match: int = 0) -> list[LhCfPoseSample]:
+              min_nr_of_bs_in_match: int = 1) -> list[LhCfPoseSample]:
         """
         Aggregate samples close in time into lists
         """
 
         result = []
-        current: LhCfPoseSample = None
+        current_angles: dict[int, LighthouseBsVectors] = {}
+        current_ts = 0.0
 
         for sample in samples:
-            ts = sample.timestamp
+            if len(current_angles) > 0:
+                if sample.timestamp > (current_ts + max_time_diff):
+                    if len(current_angles) >= min_nr_of_bs_in_match:
+                        pose_sample = LhCfPoseSample(timestamp=current_ts, angles_calibrated=current_angles)
+                        result.append(pose_sample)
 
-            if current is None:
-                current = LhCfPoseSample(timestamp=ts)
+                    current_angles = {}
 
-            if ts > (current.timestamp + max_time_diff):
-                cls._append_result(current, result, min_nr_of_bs_in_match)
-                current = LhCfPoseSample(timestamp=ts)
+            if len(current_angles) == 0:
+                current_ts = sample.timestamp
+            current_angles[sample.base_station_id] = sample.angles
 
-            current.angles_calibrated[sample.base_station_id] = sample.angles
+        if len(current_angles) >= min_nr_of_bs_in_match:
+            pose_sample = LhCfPoseSample(timestamp=current_ts, angles_calibrated=current_angles)
+            result.append(pose_sample)
 
-        cls._append_result(current, result, min_nr_of_bs_in_match)
         return result
-
-    @classmethod
-    def _append_result(cls, current: LhCfPoseSample, result: list[LhCfPoseSample], min_nr_of_bs_in_match: int):
-        if current is not None and len(current.angles_calibrated) >= min_nr_of_bs_in_match:
-            result.append(current)

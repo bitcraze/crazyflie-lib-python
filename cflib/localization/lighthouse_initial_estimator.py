@@ -69,12 +69,11 @@ class LighthouseInitialEstimator:
 
         cls._add_ippe_solutions_to_samples(matched_samples, sensor_positions)
 
-        bs_positions = cls._find_bs_to_bs_poses(matched_samples, sensor_positions)
+        bs_positions = cls._find_bs_to_bs_poses(matched_samples)
         # bs_positions is a map from bs-id-pair to position, where the position is the position of the second
         # bs, as seen from the first bs (in the first bs ref frame).
 
-        bs_poses_ref_cfs, cleaned_matched_samples = cls._angles_to_poses(
-            matched_samples, sensor_positions, bs_positions)
+        bs_poses_ref_cfs, cleaned_matched_samples = cls._angles_to_poses(matched_samples, bs_positions)
 
         # Calculate the pose of the base stations, based on the pose of one base station
         bs_poses = cls._estimate_bs_poses(bs_poses_ref_cfs)
@@ -96,10 +95,8 @@ class LighthouseInitialEstimator:
 
                 sample.ippe_solutions = solutions
 
-
     @classmethod
-    def _find_bs_to_bs_poses(cls, matched_samples: list[LhCfPoseSample], sensor_positions: ArrayFloat
-                        ) -> dict[BsPairIds, ArrayFloat]:
+    def _find_bs_to_bs_poses(cls, matched_samples: list[LhCfPoseSample]) -> dict[BsPairIds, ArrayFloat]:
         """
         Find the pose of all base stations, in the reference frame of other base stations.
 
@@ -111,7 +108,6 @@ class LighthouseInitialEstimator:
            out in space, while the correct one will end up more or less in the same spot for all samples.
 
         :param matched_samples: List of matched samples
-        :param sensor_positions: list of sensor positions on the lighthouse deck, CF reference frame
         :return: Base stations poses in the reference frame of the other base stations. The data is organized as a
                  dictionary of tuples with base station id pairs, mapped to positions. For instance the entry with key
                  (2, 1) contains the position of base station 1, in the base station 2 reference frame.
@@ -159,7 +155,7 @@ class LighthouseInitialEstimator:
                                                    pose3.translation, pose4.translation])
 
     @classmethod
-    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample], sensor_positions: ArrayFloat,
+    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample],
                          bs_positions: dict[BsPairIds, ArrayFloat]) -> tuple[list[dict[int, Pose]],
                                                                              list[LhCfPoseSample]]:
         """
@@ -169,7 +165,6 @@ class LighthouseInitialEstimator:
         in bs_positions.
 
         :param matched_samples: List of samples
-        :param sensor_positions: Positions of the sensors on the lighthouse deck (CF ref frame)
         :param bs_positions: Dictionary of base station positions (other base station ref frame)
         :return: A list of dictionaries from base station to Pose of all base stations, for each sample, as well as
                  a version of the matched_samples where outliers are removed

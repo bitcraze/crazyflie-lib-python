@@ -56,6 +56,7 @@ from cflib.crazyflie.mem.lighthouse_memory import LighthouseBsGeometry
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
 from cflib.localization.lighthouse_config_manager import LighthouseConfigWriter
+from cflib.localization.lighthouse_geo_estimation_manager import LhGeoInputContainer
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
@@ -72,13 +73,13 @@ from cflib.utils import uri_helper
 REFERENCE_DIST = 1.0
 
 
-def record_angles_average(scf: SyncCrazyflie, timeout: float = 5.0) -> LhCfPoseSample:
+def record_angles_average(scf: SyncCrazyflie, timeout: float = 5.0) -> LhCfPoseSample | None:
     """Record angles and average over the samples to reduce noise"""
-    recorded_angles = None
+    recorded_angles: dict[int, tuple[int, LighthouseBsVectors]] | None = None
 
     is_ready = Event()
 
-    def ready_cb(averages):
+    def ready_cb(averages: dict[int, tuple[int, LighthouseBsVectors]]):
         nonlocal recorded_angles
         recorded_angles = averages
         is_ready.set()
@@ -90,7 +91,7 @@ def record_angles_average(scf: SyncCrazyflie, timeout: float = 5.0) -> LhCfPoseS
         print('Recording timed out.')
         return None
 
-    angles_calibrated = {}
+    angles_calibrated: dict[int, LighthouseBsVectors] = {}
     for bs_id, data in recorded_angles.items():
         angles_calibrated[bs_id] = data[1]
 
@@ -182,7 +183,7 @@ def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
     """Visualize positions of base stations and Crazyflie positions"""
     # Set to True to visualize positions
     # Requires PyPlot
-    visualize_positions = False
+    visualize_positions = True
     if visualize_positions:
         import matplotlib.pyplot as plt
 
@@ -210,29 +211,20 @@ def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
         plt.show()
 
 
-def write_to_file(name: str,
-                  origin: LhCfPoseSample,
-                  x_axis: list[LhCfPoseSample],
-                  xy_plane: list[LhCfPoseSample],
-                  samples: list[LhMeasurement]):
+def write_to_file(name: str, container: LhGeoInputContainer):
     with open(name, 'wb') as handle:
-        data = (origin, x_axis, xy_plane, samples)
+        data = container
         pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_from_file(name: str):
+def load_from_file(name: str) -> LhGeoInputContainer:
     with open(name, 'rb') as handle:
         return pickle.load(handle)
 
 
-def estimate_geometry(origin: LhCfPoseSample,
-                      x_axis: list[LhCfPoseSample],
-                      xy_plane: list[LhCfPoseSample],
-                      samples: list[LhMeasurement]) -> dict[int, Pose]:
+def estimate_geometry(container: LhGeoInputContainer) -> dict[int, Pose]:
     """Estimate the geometry of the system based on samples recorded by a Crazyflie"""
-    matched_samples = [origin] + x_axis + xy_plane + LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
-    for sample in matched_samples:
-        sample.augment_with_ippe(LhDeck4SensorPositions.positions)
+    matched_samples = container.get_matched_samples()
     initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples)
 
     print('Initial guess base stations at:')
@@ -241,16 +233,16 @@ def estimate_geometry(origin: LhCfPoseSample,
     print(f'{len(cleaned_matched_samples)} samples will be used')
     visualize(initial_guess.cf_poses, initial_guess.bs_poses.values())
 
-    solution = LighthouseGeometrySolver.solve(initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions)
+    solution = LighthouseGeometrySolver.solve(initial_guess, cleaned_matched_samples, container.sensor_positions)
     if not solution.success:
         print('Solution did not converge, it might not be good!')
 
     start_x_axis = 1
-    start_xy_plane = 1 + len(x_axis)
+    start_xy_plane = 1 + len(container.x_axis)
     origin_pos = solution.cf_poses[0].translation
-    x_axis_poses = solution.cf_poses[start_x_axis:start_x_axis + len(x_axis)]
+    x_axis_poses = solution.cf_poses[start_x_axis:start_x_axis + len(container.x_axis)]
     x_axis_pos = list(map(lambda x: x.translation, x_axis_poses))
-    xy_plane_poses = solution.cf_poses[start_xy_plane:start_xy_plane + len(xy_plane)]
+    xy_plane_poses = solution.cf_poses[start_xy_plane:start_xy_plane + len(container.xy_plane)]
     xy_plane_pos = list(map(lambda x: x.translation, xy_plane_poses))
 
     print('Raw solution:')
@@ -303,11 +295,11 @@ def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):
 
 
 def estimate_from_file(file_name: str):
-    origin, x_axis, xy_plane, samples = load_from_file(file_name)
-    estimate_geometry(origin, x_axis, xy_plane, samples)
+    container = load_from_file(file_name)
+    estimate_geometry(container)
 
 
-def get_recording(scf: SyncCrazyflie):
+def get_recording(scf: SyncCrazyflie) -> LhCfPoseSample:
     data = None
     while True:  # Infinite loop, will break on valid measurement
         input('Press return when ready. ')
@@ -322,8 +314,8 @@ def get_recording(scf: SyncCrazyflie):
     return data
 
 
-def get_multiple_recordings(scf: SyncCrazyflie):
-    data = []
+def get_multiple_recordings(scf: SyncCrazyflie) -> list[LhCfPoseSample]:
+    data: list[LhCfPoseSample] = []
     first_attempt = True
 
     while True:
@@ -354,21 +346,22 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
     """Connect to a Crazyflie, collect data and estimate the geometry of the system"""
     print(f'Step 1. Connecting to the Crazyflie on uri {uri}...')
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        container = LhGeoInputContainer(LhDeck4SensorPositions.positions)
         print('  Connected')
         print('')
         print('In the 3 following steps we will define the coordinate system.')
 
         print('Step 2. Put the Crazyflie where you want the origin of your coordinate system.')
 
-        origin = get_recording(scf)
+        container.set_origin_sample(get_recording(scf))
 
         print(f'Step 3. Put the Crazyflie on the positive X-axis, exactly {REFERENCE_DIST} meters from the origin. ' +
-              'This position defines the direction of the X-axis, but it is also used for scaling of the system.')
-        x_axis = [get_recording(scf)]
+              'This position defines the direction of the X-axis, but it is also used for scaling the system.')
+        container.set_x_axis_sample(get_recording(scf))
 
         print('Step 4. Put the Crazyflie somehere in the XY-plane, but not on the X-axis.')
         print('Multiple samples can be recorded if you want to.')
-        xy_plane = get_multiple_recordings(scf)
+        container.set_xy_plane_samples(get_multiple_recordings(scf))
 
         print()
         print('Step 5. We will now record data from the space you plan to fly in and optimize the base station ' +
@@ -379,15 +372,15 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
                                'recording starts when you hit enter. ')
         recording_time_s = parse_recording_time(recording_time, default_time)
         print('  Recording started...')
-        samples = record_angles_sequence(scf, recording_time_s)
+        container.set_xyz_space_samples(record_angles_sequence(scf, recording_time_s))
         print('  Recording ended')
 
         if file_name:
-            write_to_file(file_name, origin, x_axis, xy_plane, samples)
+            write_to_file(file_name, container)
             print(f'Wrote data to file {file_name}')
 
         print('Step 6. Estimating geometry...')
-        bs_poses = estimate_geometry(origin, x_axis, xy_plane, samples)
+        bs_poses = estimate_geometry(container)
         print('  Geometry estimated')
 
         print('Step 7. Upload geometry to the Crazyflie')

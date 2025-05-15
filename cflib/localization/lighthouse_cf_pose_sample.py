@@ -29,14 +29,26 @@ class LhCfPoseSample:
 
         # Angles measured by the Crazyflie and compensated using calibration data
         # Stored in a dictionary using base station id as the key
-        self.angles_calibrated = angles_calibrated
+        self.angles_calibrated: dict[int, LighthouseBsVectors] = angles_calibrated
 
         # A dictionary from base station id to BsPairPoses, The poses represents the two possible poses of the base
         # stations found by IPPE, in the crazyflie reference frame.
         self.ippe_solutions: dict[int, BsPairPoses] = {}
 
+        self.is_augmented = False
+
     def augment_with_ippe(self, sensor_positions: ArrayFloat) -> None:
-        self.ippe_solutions = self._find_ippe_solutions(self.angles_calibrated, sensor_positions)
+        if not self.is_augmented:
+            self.ippe_solutions = self._find_ippe_solutions(self.angles_calibrated, sensor_positions)
+            self.is_augmented = True
+
+    def is_empty(self) -> bool:
+        """Checks if no angles are set
+
+        Returns:
+            bool: True if no angles are set
+        """
+        return len(self.angles_calibrated) == 0
 
     def _find_ippe_solutions(self, angles_calibrated: dict[int, LighthouseBsVectors],
                              sensor_positions: ArrayFloat) -> dict[int, BsPairPoses]:

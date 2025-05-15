@@ -51,7 +51,7 @@ class LhGeoInputContainer():
             origin (LhCfPoseSample): the new origin
         """
         self.origin = origin
-        self.origin.augment_with_ippe(self.sensor_positions)
+        self._augment_sample(self.origin, True)
 
     def set_x_axis_sample(self, x_axis: LhCfPoseSample) -> None:
         """Store/update the sample to be used for the x_axis
@@ -60,7 +60,7 @@ class LhGeoInputContainer():
             x_axis (LhCfPoseSample): the new x-axis sample
         """
         self.x_axis = [x_axis]
-        self.x_axis[0].augment_with_ippe(self.sensor_positions)
+        self._augment_samples(self.x_axis, True)
 
     def set_xy_plane_samples(self, xy_plane: list[LhCfPoseSample]) -> None:
         """Store/update the samples to be used for the xy-plane
@@ -69,7 +69,7 @@ class LhGeoInputContainer():
             xy_plane (list[LhCfPoseSample]): the new xy-plane samples
         """
         self.xy_plane = xy_plane
-        self._augment_samples(self.xy_plane)
+        self._augment_samples(self.xy_plane, True)
 
     def set_xyz_space_samples(self, samples: list[LhMeasurement]) -> None:
         """Store/update the samples for the volume
@@ -78,7 +78,7 @@ class LhGeoInputContainer():
             samples (list[LhMeasurement]): the new samples
         """
         self.xyz_space = LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
-        self._augment_samples(self.xyz_space)
+        self._augment_samples(self.xyz_space, False)
 
     def get_matched_samples(self) -> list[LhCfPoseSample]:
         """Get all pose samples collected in a list
@@ -88,6 +88,10 @@ class LhGeoInputContainer():
         """
         return [self.origin] + self.x_axis + self.xy_plane + self.xyz_space
 
-    def _augment_samples(self, samples: list[LhCfPoseSample]) -> None:
+    def _augment_sample(self, sample: LhCfPoseSample, is_mandatory: bool) -> None:
+        sample.augment_with_ippe(self.sensor_positions)
+        sample.is_mandatory = is_mandatory
+
+    def _augment_samples(self, samples: list[LhCfPoseSample], is_mandatory: bool) -> None:
         for sample in samples:
-            sample.augment_with_ippe(self.sensor_positions)
+            self._augment_sample(sample, is_mandatory)

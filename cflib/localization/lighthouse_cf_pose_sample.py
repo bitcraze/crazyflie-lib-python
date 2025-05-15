@@ -34,8 +34,11 @@ class LhCfPoseSample:
         # A dictionary from base station id to BsPairPoses, The poses represents the two possible poses of the base
         # stations found by IPPE, in the crazyflie reference frame.
         self.ippe_solutions: dict[int, BsPairPoses] = {}
-
         self.is_augmented = False
+
+        # Some samples are mandatory and must not be removed, even if they appear to be outliers. For instance the
+        # the samples that define the origin or x-axis
+        self.is_mandatory = False
 
     def augment_with_ippe(self, sensor_positions: ArrayFloat) -> None:
         if not self.is_augmented:

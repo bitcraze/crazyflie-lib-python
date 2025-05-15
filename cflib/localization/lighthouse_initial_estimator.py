@@ -176,7 +176,7 @@ class LighthouseInitialEstimator:
                     is_sample_valid = False
                     break
 
-            if is_sample_valid:
+            if is_sample_valid or sample.is_mandatory:
                 result.append(poses)
                 cleaned_matched_samples.append(sample)
 

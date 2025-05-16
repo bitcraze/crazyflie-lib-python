@@ -25,11 +25,39 @@ import numpy as np
 import numpy.typing as npt
 
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
-from cflib.localization.lighthouse_types import LhMeasurement
+from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
+from cflib.localization.lighthouse_system_scaler import LighthouseSystemScaler
+from cflib.localization.lighthouse_types import LhBsCfPoses, LhMeasurement
 from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
 
 
 ArrayFloat = npt.NDArray[np.float_]
+
+
+class LhGeoEstimationManager():
+    @classmethod
+    def align_and_scale_solution(cls, container: LhGeoInputContainer, poses: LhBsCfPoses,
+                                 reference_distance: float) -> LhBsCfPoses:
+        start_idx_x_axis = 1
+        start_idx_xy_plane = 1 + len(container.x_axis)
+
+        origin_pos = poses.cf_poses[0].translation
+        x_axis_poses = poses.cf_poses[start_idx_x_axis:start_idx_x_axis + len(container.x_axis)]
+        x_axis_pos = list(map(lambda x: x.translation, x_axis_poses))
+        xy_plane_poses = poses.cf_poses[start_idx_xy_plane:start_idx_xy_plane + len(container.xy_plane)]
+        xy_plane_pos = list(map(lambda x: x.translation, xy_plane_poses))
+
+        # Align the solution
+        bs_aligned_poses, trnsfrm = LighthouseSystemAligner.align(origin_pos, x_axis_pos, xy_plane_pos, poses.bs_poses)
+        cf_aligned_poses = list(map(trnsfrm.rotate_translate_pose, poses.cf_poses))
+
+        # Scale the solution
+        bs_scaled_poses, cf_scaled_poses, scale = LighthouseSystemScaler.scale_fixed_point(bs_aligned_poses,
+                                                                                           cf_aligned_poses,
+                                                                                           [reference_distance, 0, 0],
+                                                                                           cf_aligned_poses[1])
+
+        return LhBsCfPoses(bs_poses=bs_scaled_poses, cf_poses=cf_scaled_poses)
 
 
 class LhGeoInputContainer():

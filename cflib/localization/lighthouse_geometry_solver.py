@@ -66,11 +66,8 @@ class LighthouseGeometrySolution:
 
         # The solution ######################
 
-        # The estimated poses of the base stations
-        self.bs_poses: dict[int, Pose] = {}
-
-        # The estimated poses of the CF samples
-        self.cf_poses: list[Pose] = []
+        # The estimated poses of the base stations and the CF samples
+        self.poses = LhBsCfPoses(bs_poses={}, cf_poses=[])
 
         # Estimated error for each base station in each sample
         self.estimated_errors: list[dict[int, float]] = []
@@ -402,14 +399,14 @@ class LighthouseGeometrySolver:
 
         # Extract CF pose estimates
         # First pose (origin) is not in the parameter list
-        solution.cf_poses.append(Pose())
+        solution.poses.cf_poses.append(Pose())
         for i in range(len(matched_samples) - 1):
-            solution.cf_poses.append(cls._params_to_pose(cf_poses[i], solution))
+            solution.poses.cf_poses.append(cls._params_to_pose(cf_poses[i], solution))
 
         # Extract base station pose estimates
         for index, pose in enumerate(bss):
             bs_id = solution.bs_index_to_id[index]
-            solution.bs_poses[bs_id] = cls._params_to_pose(pose, solution)
+            solution.poses.bs_poses[bs_id] = cls._params_to_pose(pose, solution)
 
         solution.success = lsq_result.success
 

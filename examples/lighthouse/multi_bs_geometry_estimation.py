@@ -56,18 +56,16 @@ from cflib.crazyflie.mem.lighthouse_memory import LighthouseBsGeometry
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
 from cflib.localization.lighthouse_config_manager import LighthouseConfigWriter
-from cflib.localization.lighthouse_geo_estimation_manager import LhGeoInputContainer
+from cflib.localization.lighthouse_geo_estimation_manager import LhGeoInputContainer, LhGeoEstimationManager
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
-from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
-from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
-from cflib.localization.lighthouse_system_scaler import LighthouseSystemScaler
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_cf_pose_sample import Pose
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 from cflib.localization.lighthouse_types import LhMeasurement
+from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.utils import uri_helper
 
 REFERENCE_DIST = 1.0
@@ -179,7 +177,7 @@ def set_axes_equal(ax):
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
 
-def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
+def visualize(poses: LhBsCfPoses):
     """Visualize positions of base stations and Crazyflie positions"""
     # Set to True to visualize positions
     # Requires PyPlot
@@ -187,7 +185,7 @@ def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
     if visualize_positions:
         import matplotlib.pyplot as plt
 
-        positions = np.array(list(map(lambda x: x.translation, cf_poses)))
+        positions = np.array(list(map(lambda x: x.translation, poses.cf_poses)))
 
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
@@ -198,7 +196,7 @@ def visualize(cf_poses: list[Pose], bs_poses: list[Pose]):
 
         ax.scatter(x_cf, y_cf, z_cf)
 
-        positions = np.array(list(map(lambda x: x.translation, bs_poses)))
+        positions = np.array(list(map(lambda x: x.translation, poses.bs_poses.values())))
 
         x_bs = positions[:, 0]
         y_bs = positions[:, 1]
@@ -226,52 +224,35 @@ def estimate_geometry(container: LhGeoInputContainer) -> dict[int, Pose]:
     """Estimate the geometry of the system based on samples recorded by a Crazyflie"""
     matched_samples = container.get_matched_samples()
     initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples)
+    scaled_initial_guess = LhGeoEstimationManager.align_and_scale_solution(container, initial_guess, REFERENCE_DIST)
 
     print('Initial guess base stations at:')
     print_base_stations_poses(initial_guess.bs_poses)
 
     print(f'{len(cleaned_matched_samples)} samples will be used')
-    visualize(initial_guess.cf_poses, initial_guess.bs_poses.values())
+    visualize(scaled_initial_guess)
 
     solution = LighthouseGeometrySolver.solve(initial_guess, cleaned_matched_samples, container.sensor_positions)
     if not solution.success:
-        print('Solution did not converge, it might not be good!')
+        print('WARNING: Solution did not converge, it might not be good!')
 
-    start_x_axis = 1
-    start_xy_plane = 1 + len(container.x_axis)
-    origin_pos = solution.cf_poses[0].translation
-    x_axis_poses = solution.cf_poses[start_x_axis:start_x_axis + len(container.x_axis)]
-    x_axis_pos = list(map(lambda x: x.translation, x_axis_poses))
-    xy_plane_poses = solution.cf_poses[start_xy_plane:start_xy_plane + len(container.xy_plane)]
-    xy_plane_pos = list(map(lambda x: x.translation, xy_plane_poses))
+    scaled_solution = LhGeoEstimationManager.align_and_scale_solution(container, solution.poses, REFERENCE_DIST)
 
     print('Raw solution:')
     print('  Base stations at:')
-    print_base_stations_poses(solution.bs_poses)
+    print_base_stations_poses(solution.poses.bs_poses)
     print('  Solution match per base station:')
     for bs_id, value in solution.error_info['bs'].items():
         print(f'    {bs_id + 1}: {value}')
 
-    # Align the solution
-    bs_aligned_poses, transformation = LighthouseSystemAligner.align(
-        origin_pos, x_axis_pos, xy_plane_pos, solution.bs_poses)
-
-    cf_aligned_poses = list(map(transformation.rotate_translate_pose, solution.cf_poses))
-
-    # Scale the solution
-    bs_scaled_poses, cf_scaled_poses, scale = LighthouseSystemScaler.scale_fixed_point(bs_aligned_poses,
-                                                                                       cf_aligned_poses,
-                                                                                       [REFERENCE_DIST, 0, 0],
-                                                                                       cf_aligned_poses[1])
-
     print()
     print('Final solution:')
     print('  Base stations at:')
-    print_base_stations_poses(bs_scaled_poses)
+    print_base_stations_poses(scaled_solution.bs_poses)
 
-    visualize(cf_scaled_poses, bs_scaled_poses.values())
+    visualize(scaled_solution)
 
-    return bs_scaled_poses
+    return scaled_solution.bs_poses
 
 
 def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):

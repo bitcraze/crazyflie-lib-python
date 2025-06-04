@@ -527,7 +527,7 @@ class _RadioDriverThread(threading.Thread):
     def __init__(self, radio, inQueue, outQueue,
                  radio_link_statistics_callback, link_error_callback, link, rate_limit: Optional[int]):
         """ Create the object """
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name='RadioDriverThread')
         self._radio = radio
         self._in_queue = inQueue
         self._out_queue = outQueue

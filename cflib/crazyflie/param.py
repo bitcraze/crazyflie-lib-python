@@ -519,7 +519,7 @@ class Param():
 class _ExtendedTypeFetcher(Thread):
 
     def __init__(self, cf, toc):
-        Thread.__init__(self)
+        Thread.__init__(self, name='ExtendedTypeFetcherThread')
         self.daemon = True
         self._lock = Lock()
 
@@ -598,7 +598,7 @@ class _ParamUpdater(Thread):
 
     def __init__(self, cf, useV2, updated_callback):
         """Initialize the thread"""
-        Thread.__init__(self)
+        Thread.__init__(self, name='ParamUpdaterThread')
         self.daemon = True
         self.wait_lock = Lock()
         self.cf = cf

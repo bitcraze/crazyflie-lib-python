@@ -295,7 +295,9 @@ class Param():
 
     def _disconnected(self, uri):
         """Disconnected callback from Crazyflie API"""
-        self.param_updater.close()
+        if self.param_updater is not None:
+            self.param_updater.close()
+            self.param_updater = None
 
         # Do not clear self.is_updated here as we might get spurious parameter updates later
 
@@ -307,6 +309,9 @@ class Param():
         """
         Request an update of the value for the supplied parameter.
         """
+        if self.param_updater is None:
+            self.param_updater = _ParamUpdater(self.cf, self._useV2, self._param_updated)
+            self.param_updater.start()
         self.param_updater.request_param_update(
             self.toc.get_element_id(complete_name))
 
@@ -573,6 +578,9 @@ class _ExtendedTypeFetcher(Thread):
                 self.request_queue.get(block=False)
         except Empty:
             pass
+        self.request_queue.put(None)  # Make sure we exit the run loop
+        self._should_close = True
+        self._cf.remove_port_callback(CRTPPort.PARAM, self._new_packet_cb)
 
         # Then force an unlock of the mutex if we are waiting for a packet
         # we didn't get back due to a disconnect for example.
@@ -584,6 +592,8 @@ class _ExtendedTypeFetcher(Thread):
     def run(self):
         while not self._should_close:
             pk = self.request_queue.get()  # Wait for request update
+            if pk is None:
+                continue
             self._lock.acquire()
             if self._cf.link:
                 self._req_param = struct.unpack('<H', pk.data[1:3])[0]
@@ -616,7 +626,9 @@ class _ParamUpdater(Thread):
                 self.request_queue.get(block=False)
         except Empty:
             pass
-
+        self.request_queue.put(None)  # Make sure we exit the run loop
+        self._should_close = True
+        self.cf.remove_port_callback(CRTPPort.PARAM, self._new_packet_cb)
         # Then force an unlock of the mutex if we are waiting for a packet
         # we didn't get back due to a disconnect for example.
         try:
@@ -677,6 +689,8 @@ class _ParamUpdater(Thread):
     def run(self):
         while not self._should_close:
             pk = self.request_queue.get()  # Wait for request update
+            if pk is None:
+                continue
             self.wait_lock.acquire()
             if self.cf.link:
                 if self._useV2:

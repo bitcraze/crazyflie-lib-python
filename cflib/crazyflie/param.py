@@ -29,6 +29,7 @@ When a Crazyflie is connected it's possible to download a TableOfContent of all
 the parameters that can be written/read.
 
 """
+import copy
 import errno
 import logging
 import struct
@@ -652,6 +653,7 @@ class _ParamUpdater(Thread):
             if self._useV2:
                 release_pattern = pk.data[:2]
                 if pk.channel == READ_CHANNEL:
+                    pk = copy.deepcopy(pk)  # Dont modify the original packet
                     pk.data = pk.data[:2] + pk.data[3:]
             else:
                 release_pattern = pk.data[:1]

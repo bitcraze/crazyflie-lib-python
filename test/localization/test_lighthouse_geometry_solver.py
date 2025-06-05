@@ -43,9 +43,10 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
                 bs_id1: self.fixtures.angles_cf_origin_bs1,
             }),
         ]
+        for sample in matched_samples:
+            sample.augment_with_ippe(LhDeck4SensorPositions.positions)
 
-        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples,
-                                                                                     LhDeck4SensorPositions.positions)
+        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples)
 
         # Test
         actual = LighthouseGeometrySolver.solve(
@@ -77,9 +78,10 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
                 bs_id3: self.fixtures.angles_cf2_bs3,
             }),
         ]
+        for sample in matched_samples:
+            sample.augment_with_ippe(LhDeck4SensorPositions.positions)
 
-        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples,
-                                                                                     LhDeck4SensorPositions.positions)
+        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples)
 
         # Test
         actual = LighthouseGeometrySolver.solve(

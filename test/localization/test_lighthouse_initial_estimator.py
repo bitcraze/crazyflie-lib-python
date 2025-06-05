@@ -42,11 +42,12 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         samples = [
             LhCfPoseSample(angles_calibrated={bs_id: self.fixtures.angles_cf_origin_bs0}),
         ]
+        self.augment(samples)
 
         # Test
         # Assert
         with self.assertRaises(LhException):
-            LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+            LighthouseInitialEstimator.estimate(samples)
 
     def test_that_two_bs_poses_in_same_sample_are_found(self):
         # Fixture
@@ -59,9 +60,10 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
                 bs_id1: self.fixtures.angles_cf_origin_bs1,
             }),
         ]
+        self.augment(samples)
 
         # Test
-        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples)
 
         # Assert
         self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual.bs_poses[bs_id0], places=3)
@@ -88,9 +90,10 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
                 bs_id3: self.fixtures.angles_cf2_bs3,
             }),
         ]
+        self.augment(samples)
 
         # Test
-        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples)
 
         # Assert
         self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual.bs_poses[bs_id0], places=3)
@@ -119,9 +122,10 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
                 bs_id3: self.fixtures.angles_cf2_bs3,
             }),
         ]
+        self.augment(samples)
 
         # Test
-        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples)
 
         # Assert
         self.assertPosesAlmostEqual(self.fixtures.CF_ORIGIN_POSE, actual.cf_poses[0], places=3)
@@ -144,9 +148,10 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
                 bs_id2: self.fixtures.angles_cf1_bs2,
             }),
         ]
+        self.augment(samples)
 
         # Test
-        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples)
 
         # Assert
         self.assertPosesAlmostEqual(
@@ -172,8 +177,15 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
                 bs_id3: self.fixtures.angles_cf2_bs2,
             }),
         ]
+        self.augment(samples)
 
         # Test
         # Assert
         with self.assertRaises(LhException):
-            LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+            LighthouseInitialEstimator.estimate(samples)
+
+###### helpers
+
+    def augment(self, samples):
+        for sample in samples:
+            sample.augment_with_ippe(LhDeck4SensorPositions.positions)

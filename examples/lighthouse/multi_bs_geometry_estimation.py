@@ -55,17 +55,18 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem.lighthouse_memory import LighthouseBsGeometry
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import Pose
 from cflib.localization.lighthouse_config_manager import LighthouseConfigWriter
-from cflib.localization.lighthouse_geo_estimation_manager import LhGeoInputContainer, LhGeoEstimationManager
+from cflib.localization.lighthouse_geo_estimation_manager import LhGeoEstimationManager
+from cflib.localization.lighthouse_geo_estimation_manager import LhGeoInputContainer
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
-from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
-from cflib.localization.lighthouse_cf_pose_sample import Pose
+from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 from cflib.localization.lighthouse_types import LhMeasurement
-from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.utils import uri_helper
 
 REFERENCE_DIST = 1.0

@@ -19,10 +19,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+from collections.abc import Callable
+
+from cflib.crazyflie import Crazyflie
 from cflib.localization import LighthouseBsVector
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
-from cflib.crazyflie import Crazyflie
-from collections.abc import Callable
 
 
 class LighthouseSweepAngleReader():
@@ -130,7 +131,8 @@ class LighthouseSweepAngleAverageReader():
                 return True
         return False
 
-    def _average_all_lists(self, storage: dict[int, list[list[LighthouseBsVector]]]) -> dict[int, tuple[int, LighthouseBsVectors]]:
+    def _average_all_lists(self, storage: dict[int, list[list[LighthouseBsVector]]]
+                           ) -> dict[int, tuple[int, LighthouseBsVectors]]:
         result: dict[int, tuple[int, LighthouseBsVectors]] = {}
 
         for bs_id, sample_lists in storage.items():

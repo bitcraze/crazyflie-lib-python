@@ -26,8 +26,8 @@ from typing import NamedTuple
 import numpy as np
 import numpy.typing as npt
 
-from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_cf_pose_sample import BsPairPoses
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.localization.lighthouse_types import LhException
 from cflib.localization.lighthouse_types import Pose

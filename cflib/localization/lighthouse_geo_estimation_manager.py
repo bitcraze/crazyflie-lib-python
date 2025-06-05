@@ -25,10 +25,11 @@ import numpy as np
 import numpy.typing as npt
 
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
 from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
 from cflib.localization.lighthouse_system_scaler import LighthouseSystemScaler
-from cflib.localization.lighthouse_types import LhBsCfPoses, LhMeasurement
-from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
+from cflib.localization.lighthouse_types import LhBsCfPoses
+from cflib.localization.lighthouse_types import LhMeasurement
 
 
 ArrayFloat = npt.NDArray[np.float_]
@@ -63,6 +64,7 @@ class LhGeoEstimationManager():
 class LhGeoInputContainer():
     """This class holds the input data required by the geometry estimation functionality.
     """
+
     def __init__(self, sensor_positions: ArrayFloat) -> None:
         self.EMPTY_POSE_SAMPLE = LhCfPoseSample(angles_calibrated={})
         self.sensor_positions = sensor_positions

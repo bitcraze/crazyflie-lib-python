@@ -24,9 +24,9 @@ from test.localization.lighthouse_test_base import LighthouseTestBase
 
 import numpy as np
 
-from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_cf_pose_sample import Pose
+from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 from cflib.localization.lighthouse_types import LhException
 
@@ -184,7 +184,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         with self.assertRaises(LhException):
             LighthouseInitialEstimator.estimate(samples)
 
-###### helpers
+# helpers
 
     def augment(self, samples):
         for sample in samples:

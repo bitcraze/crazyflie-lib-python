@@ -53,7 +53,7 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
             initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions)
 
         # Assert
-        bs_poses = actual.bs_poses
+        bs_poses = actual.poses.bs_poses
         self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, bs_poses[bs_id0], places=3)
         self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, bs_poses[bs_id1], places=3)
 
@@ -88,7 +88,7 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
             initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions)
 
         # Assert
-        bs_poses = actual.bs_poses
+        bs_poses = actual.poses.bs_poses
         self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, bs_poses[bs_id0], places=3)
         self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, bs_poses[bs_id1], places=3)
         self.assertPosesAlmostEqual(self.fixtures.BS2_POSE, bs_poses[bs_id2], places=3)

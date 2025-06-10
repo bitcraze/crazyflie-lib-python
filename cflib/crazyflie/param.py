@@ -295,6 +295,7 @@ class Param():
         self._initialized.clear()
 
     def _disconnected(self, uri):
+        logger.info('Disconnected, cleaning up threads')
         """Disconnected callback from Crazyflie API"""
         if self.param_updater is not None:
             self.param_updater.close()

@@ -155,9 +155,6 @@ class Param():
         self.all_update_callback = Caller()
         self.param_updater = None
 
-        self.param_updater = _ParamUpdater(self.cf, self._useV2, self._param_updated)
-        self.param_updater.start()
-
         self.cf.disconnected.add_callback(self._disconnected)
         self.cf.connection_requested.add_callback(self._connection_requested)
 
@@ -289,6 +286,8 @@ class Param():
 
     def _connection_requested(self, uri):
         # Reset the internal state on connect to make sure we have a clean state
+        self.param_updater = _ParamUpdater(self.cf, self._useV2, self._param_updated)
+        self.param_updater.start()
         self.is_updated = False
         self.toc = Toc()
         self.values = {}
@@ -312,8 +311,7 @@ class Param():
         Request an update of the value for the supplied parameter.
         """
         if self.param_updater is None:
-            self.param_updater = _ParamUpdater(self.cf, self._useV2, self._param_updated)
-            self.param_updater.start()
+            raise Exception('Param updater not initialized, did you call open_connection?')
         self.param_updater.request_param_update(
             self.toc.get_element_id(complete_name))
 

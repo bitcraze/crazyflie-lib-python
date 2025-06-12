@@ -60,8 +60,6 @@ from cflib.localization.lighthouse_cf_pose_sample import Pose
 from cflib.localization.lighthouse_config_manager import LighthouseConfigWriter
 from cflib.localization.lighthouse_geo_estimation_manager import LhGeoEstimationManager
 from cflib.localization.lighthouse_geo_estimation_manager import LhGeoInputContainer
-from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
-from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
 from cflib.localization.lighthouse_types import LhBsCfPoses
@@ -221,39 +219,12 @@ def load_from_file(name: str) -> LhGeoInputContainer:
         return pickle.load(handle)
 
 
-def estimate_geometry(container: LhGeoInputContainer) -> dict[int, Pose]:
-    """Estimate the geometry of the system based on samples recorded by a Crazyflie"""
-    matched_samples = container.get_matched_samples()
-    initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples)
-    scaled_initial_guess = LhGeoEstimationManager.align_and_scale_solution(container, initial_guess, REFERENCE_DIST)
-
-    print('Initial guess base stations at:')
-    print_base_stations_poses(initial_guess.bs_poses)
-
-    print(f'{len(cleaned_matched_samples)} samples will be used')
-    visualize(scaled_initial_guess)
-
-    solution = LighthouseGeometrySolver.solve(initial_guess, cleaned_matched_samples, container.sensor_positions)
-    if not solution.success:
-        print('WARNING: Solution did not converge, it might not be good!')
-
-    scaled_solution = LhGeoEstimationManager.align_and_scale_solution(container, solution.poses, REFERENCE_DIST)
-
-    print('Raw solution:')
-    print('  Base stations at:')
-    print_base_stations_poses(solution.poses.bs_poses)
-    print('  Solution match per base station:')
-    for bs_id, value in solution.error_info['bs'].items():
-        print(f'    {bs_id + 1}: {value}')
-
-    print()
-    print('Final solution:')
+def solution_handler(scaled_solution: LhBsCfPoses):
+    print('Solution ready:')
     print('  Base stations at:')
     print_base_stations_poses(scaled_solution.bs_poses)
-
-    visualize(scaled_solution)
-
-    return scaled_solution.bs_poses
+    # visualize(thread.scaled_solution)
+    # upload_geometry(thread.container.scf, thread.scaled_solution.bs_poses)
 
 
 def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):
@@ -278,7 +249,10 @@ def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):
 
 def estimate_from_file(file_name: str):
     container = load_from_file(file_name)
-    estimate_geometry(container)
+    thread = LhGeoEstimationManager.SolverThread(container, is_done_cb=solution_handler)
+    thread.start()
+    time.sleep(1)
+    thread.stop()
 
 
 def get_recording(scf: SyncCrazyflie) -> LhCfPoseSample:
@@ -329,6 +303,10 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
     print(f'Step 1. Connecting to the Crazyflie on uri {uri}...')
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         container = LhGeoInputContainer(LhDeck4SensorPositions.positions)
+        print('Starting geometry estimation thread...')
+        thread = LhGeoEstimationManager.SolverThread(container, is_done_cb=solution_handler)
+        thread.start()
+
         print('  Connected')
         print('')
         print('In the 3 following steps we will define the coordinate system.')
@@ -341,34 +319,37 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
               'This position defines the direction of the X-axis, but it is also used for scaling the system.')
         container.set_x_axis_sample(get_recording(scf))
 
-        print('Step 4. Put the Crazyflie somehere in the XY-plane, but not on the X-axis.')
+        print('Step 4. Put the Crazyflie somewhere in the XY-plane, but not on the X-axis.')
         print('Multiple samples can be recorded if you want to.')
         container.set_xy_plane_samples(get_multiple_recordings(scf))
 
         print()
         print('Step 5. We will now record data from the space you plan to fly in and optimize the base station ' +
-              'geometry based on this data. Move the Crazyflie around, try to cover all of the space, make sure ' +
-              'all the base stations are received and do not move too fast.')
-        default_time = 20
-        recording_time = input(f'Enter the number of seconds you want to record ({default_time} by default), ' +
-                               'recording starts when you hit enter. ')
-        recording_time_s = parse_recording_time(recording_time, default_time)
-        print('  Recording started...')
-        container.set_xyz_space_samples(record_angles_sequence(scf, recording_time_s))
-        print('  Recording ended')
+              'geometry based on this data.')
+        recording_time_s = 1.0
+        first_attempt = True
 
-        if file_name:
-            write_to_file(file_name, container)
-            print(f'Wrote data to file {file_name}')
+        while True:
+            if first_attempt:
+                user_input = input('Press return to record a measurement: ').lower()
+                first_attempt = False
+            else:
+                user_input = input('Press return to record another measurement, or "q" to continue: ').lower()
 
-        print('Step 6. Estimating geometry...')
-        bs_poses = estimate_geometry(container)
-        print('  Geometry estimated')
+            if user_input == 'q':
+                break
 
-        print('Step 7. Upload geometry to the Crazyflie')
-        input('Press enter to upload geometry. ')
-        upload_geometry(scf, bs_poses)
-        print('Geometry uploaded')
+            measurement = record_angles_sequence(scf, recording_time_s)
+            if measurement is not None:
+                container.append_xyz_space_samples(measurement)
+            else:
+                print('No data recorded, please try again.')
+
+        thread.stop()
+
+        # if file_name:
+        #     write_to_file(file_name, container)
+        #     print(f'Wrote data to file {file_name}')
 
 
 # Only output errors from the logging framework

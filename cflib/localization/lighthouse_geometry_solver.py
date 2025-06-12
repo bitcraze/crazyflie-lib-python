@@ -45,7 +45,7 @@ class LighthouseGeometrySolution:
 
         # Nr of base stations
         self.n_bss: int = None
-        # Nr of parametrs per base station
+        # Nr of parameters per base station
         self.n_params_per_bs = self.len_pose
 
         # Nr of sampled Crazyflie poses
@@ -76,8 +76,8 @@ class LighthouseGeometrySolution:
         self.error_info = {}
 
         # Indicates if the solution converged (True).
-        # If it did not converge, the solution is probably not good enough to use
-        self.success = False
+        # If it did not converge, the solution is possibly not good enough to use
+        self.has_converged = False
 
 
 class LighthouseGeometrySolver:
@@ -137,8 +137,9 @@ class LighthouseGeometrySolver:
         Solve for the pose of base stations and CF samples.
         The pose of the CF in sample 0 defines the global reference frame.
 
-        Iteration is terminated acceptable solution is found. If no solution is found after a fixed number of iterations
-        the solver is terminated. The success member of the result will indicate if a solution was found or not.
+        Iteration is terminated when an acceptable solution is found. If no solution is found after a fixed number of
+        iterations the solver is terminated. The has_converged member of the result will indicate if a solution was
+        found or not. Note: the solution may still be good enough to use even if it did not converge.
 
         :param initial_guess: Initial guess for the base stations and CF sample poses
         :param matched_samples: List of matched samples.
@@ -408,7 +409,7 @@ class LighthouseGeometrySolver:
             bs_id = solution.bs_index_to_id[index]
             solution.poses.bs_poses[bs_id] = cls._params_to_pose(pose, solution)
 
-        solution.success = lsq_result.success
+        solution.has_converged = lsq_result.success
 
         # Extract the error for each CF pose
         residuals = lsq_result.fun

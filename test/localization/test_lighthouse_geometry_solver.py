@@ -23,6 +23,7 @@ from test.localization.lighthouse_fixtures import LighthouseFixtures
 from test.localization.lighthouse_test_base import LighthouseTestBase
 
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
@@ -31,6 +32,7 @@ from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 class TestLighthouseGeometrySolver(LighthouseTestBase):
     def setUp(self):
         self.fixtures = LighthouseFixtures()
+        self.solution = LighthouseGeometrySolution()
 
     def test_that_two_bs_poses_in_one_sample_are_estimated(self):
         # Fixture
@@ -46,14 +48,14 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
         for sample in matched_samples:
             sample.augment_with_ippe(LhDeck4SensorPositions.positions)
 
-        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples)
+        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples, self.solution)
 
         # Test
-        actual = LighthouseGeometrySolver.solve(
-            initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions)
+        LighthouseGeometrySolver.solve(
+            initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions, self.solution)
 
         # Assert
-        bs_poses = actual.poses.bs_poses
+        bs_poses = self.solution.poses.bs_poses
         self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, bs_poses[bs_id0], places=3)
         self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, bs_poses[bs_id1], places=3)
 
@@ -81,14 +83,14 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
         for sample in matched_samples:
             sample.augment_with_ippe(LhDeck4SensorPositions.positions)
 
-        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples)
+        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples, self.solution)
 
         # Test
-        actual = LighthouseGeometrySolver.solve(
-            initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions)
+        LighthouseGeometrySolver.solve(
+            initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions, self.solution)
 
         # Assert
-        bs_poses = actual.poses.bs_poses
+        bs_poses = self.solution.poses.bs_poses
         self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, bs_poses[bs_id0], places=3)
         self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, bs_poses[bs_id1], places=3)
         self.assertPosesAlmostEqual(self.fixtures.BS2_POSE, bs_poses[bs_id2], places=3)

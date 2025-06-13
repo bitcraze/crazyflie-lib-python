@@ -27,10 +27,11 @@ import scipy.optimize
 
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_cf_pose_sample import Pose
+from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_types import LhBsCfPoses
 
 
-class LighthouseGeometrySolution:
+class SolverData:
     """
     Represents a solution from the geometry solver.
 
@@ -63,21 +64,6 @@ class LighthouseGeometrySolution:
 
         self.bs_id_to_index: dict[int, int] = {}
         self.bs_index_to_id: dict[int, int] = {}
-
-        # The solution ######################
-
-        # The estimated poses of the base stations and the CF samples
-        self.poses = LhBsCfPoses(bs_poses={}, cf_poses=[])
-
-        # Estimated error for each base station in each sample
-        self.estimated_errors: list[dict[int, float]] = []
-
-        # Information about errors in the solution
-        self.error_info = {}
-
-        # Indicates if the solution converged (True).
-        # If it did not converge, the solution is possibly not good enough to use
-        self.has_converged = False
 
 
 class LighthouseGeometrySolver:
@@ -132,7 +118,7 @@ class LighthouseGeometrySolver:
 
     @classmethod
     def solve(cls, initial_guess: LhBsCfPoses, matched_samples: list[LhCfPoseSample],
-              sensor_positions: npt.ArrayLike) -> LighthouseGeometrySolution:
+              sensor_positions: npt.ArrayLike, solution: LighthouseGeometrySolution) -> None:
         """
         Solve for the pose of base stations and CF samples.
         The pose of the CF in sample 0 defines the global reference frame.
@@ -144,23 +130,23 @@ class LighthouseGeometrySolver:
         :param initial_guess: Initial guess for the base stations and CF sample poses
         :param matched_samples: List of matched samples.
         :param sensor_positions: Sensor positions (3D), in the CF reference frame
-        :return: an instance of LighthouseGeometrySolution
+        :param solution: an instance of LighthouseGeometrySolution that is filled with the result
         """
-        solution = LighthouseGeometrySolution()
+        defs = SolverData()
 
-        solution.n_bss = len(initial_guess.bs_poses)
-        solution.n_cfs = len(matched_samples)
-        solution.n_cfs_in_params = len(matched_samples) - 1
-        solution.n_sensors = len(sensor_positions)
-        solution.bs_id_to_index, solution.bs_index_to_id = cls._create_bs_map(initial_guess.bs_poses)
+        defs.n_bss = len(initial_guess.bs_poses)
+        defs.n_cfs = len(matched_samples)
+        defs.n_cfs_in_params = len(matched_samples) - 1
+        defs.n_sensors = len(sensor_positions)
+        defs.bs_id_to_index, defs.bs_index_to_id = cls._create_bs_map(initial_guess.bs_poses)
 
         target_angles = cls._populate_target_angles(matched_samples)
         idx_agl_pr_to_bs, idx_agl_pr_to_cf, idx_agl_pr_to_sens_pos, jac_sparsity = cls._populate_indexes_and_jacobian(
-            matched_samples, solution)
-        params_bs, params_cfs = cls._populate_initial_guess(initial_guess, solution)
+            matched_samples, defs)
+        params_bs, params_cfs = cls._populate_initial_guess(initial_guess, defs)
 
         # Extra arguments passed on to calc_residual()
-        args = (solution, idx_agl_pr_to_bs, idx_agl_pr_to_cf, idx_agl_pr_to_sens_pos, target_angles, sensor_positions)
+        args = (defs, idx_agl_pr_to_bs, idx_agl_pr_to_cf, idx_agl_pr_to_sens_pos, target_angles, sensor_positions)
 
         # Vector to optimize. Composed of base station parameters followed by cf parameters
         x0 = np.hstack((params_bs.ravel(), params_cfs.ravel()))
@@ -172,11 +158,10 @@ class LighthouseGeometrySolver:
                                               x_scale='jac',
                                               ftol=1e-8,
                                               method='trf',
-                                              max_nfev=solution.max_nr_iter,
+                                              max_nfev=defs.max_nr_iter,
                                               args=args)
 
-        cls._condense_results(result, solution, matched_samples)
-        return solution
+        cls._condense_results(result, defs, matched_samples, solution)
 
     @classmethod
     def _populate_target_angles(cls, matched_samples: list[LhCfPoseSample]) -> npt.NDArray:
@@ -191,7 +176,7 @@ class LighthouseGeometrySolver:
         return np.array(result)
 
     @classmethod
-    def _populate_indexes_and_jacobian(cls, matched_samples: list[LhCfPoseSample], defs: LighthouseGeometrySolution
+    def _populate_indexes_and_jacobian(cls, matched_samples: list[LhCfPoseSample], defs: SolverData
                                        ) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray]:
         """
         To speed up calculations all operations in the iteration phase are done on np.arrays of equal length (ish),
@@ -252,7 +237,7 @@ class LighthouseGeometrySolver:
 
     @classmethod
     def _populate_initial_guess(cls, initial_guess: LhBsCfPoses,
-                                defs: LighthouseGeometrySolution) -> tuple[npt.NDArray, npt.NDArray]:
+                                defs: SolverData) -> tuple[npt.NDArray, npt.NDArray]:
         """
         Generate parameters for base stations and CFs, this is the initial guess we start to iterate from.
         """
@@ -268,7 +253,7 @@ class LighthouseGeometrySolver:
         return params_bs, params_cfs
 
     @classmethod
-    def _params_to_struct(cls, params, defs: LighthouseGeometrySolution):
+    def _params_to_struct(cls, params, defs: SolverData):
         """
         Convert the params list to two arrays, one for base stations and one for CFs
         """
@@ -280,7 +265,7 @@ class LighthouseGeometrySolver:
         return params_bs_poses, params_cf_poses
 
     @classmethod
-    def _calc_residual(cls, params, defs: LighthouseGeometrySolution, index_angle_pair_to_bs, index_angle_pair_to_cf,
+    def _calc_residual(cls, params, defs: SolverData, index_angle_pair_to_bs, index_angle_pair_to_cf,
                        index_angle_pair_to_sensor_base, target_angles, sensor_positions):
         """
         Calculate the residual for a set of parameters. The residual is defined as the distance from a sensor to the
@@ -315,13 +300,13 @@ class LighthouseGeometrySolver:
 
     @classmethod
     def _poses_to_angle_pairs(cls, bss, cf_poses, sensor_base_pos, index_angle_pair_to_bs, index_angle_pair_to_cf,
-                              index_angle_pair_to_sensor_base, defs: LighthouseGeometrySolution):
+                              index_angle_pair_to_sensor_base, defs: SolverData):
         pairs = cls._calc_angle_pairs(bss[index_angle_pair_to_bs], cf_poses[index_angle_pair_to_cf],
                                       sensor_base_pos[index_angle_pair_to_sensor_base], defs)
         return pairs
 
     @classmethod
-    def _calc_angle_pairs(cls, bs_p_a, cf_p_a, sens_pos_p_a, defs: LighthouseGeometrySolution):
+    def _calc_angle_pairs(cls, bs_p_a, cf_p_a, sens_pos_p_a, defs: SolverData):
         """
         Calculate angle pairs based on base station poses, cf poses and sensor positions
 
@@ -366,7 +351,7 @@ class LighthouseGeometrySolver:
         return np.concatenate((pose.rot_vec, pose.translation))
 
     @classmethod
-    def _params_to_pose(cls, params: npt.ArrayLike, defs: LighthouseGeometrySolution) -> Pose:
+    def _params_to_pose(cls, params: npt.ArrayLike, defs: SolverData) -> Pose:
         """
         Convert from the array format used in the solver to Pose
         """
@@ -394,34 +379,37 @@ class LighthouseGeometrySolver:
         return bs_id_to_index, bs_index_to_id
 
     @classmethod
-    def _condense_results(cls, lsq_result, solution: LighthouseGeometrySolution,
-                          matched_samples: list[LhCfPoseSample]) -> None:
-        bss, cf_poses = cls._params_to_struct(lsq_result.x, solution)
+    def _condense_results(cls, lsq_result, defs: SolverData, matched_samples: list[LhCfPoseSample],
+                          solution: LighthouseGeometrySolution) -> None:
+        bss, cf_poses = cls._params_to_struct(lsq_result.x, defs)
 
         # Extract CF pose estimates
         # First pose (origin) is not in the parameter list
         solution.poses.cf_poses.append(Pose())
         for i in range(len(matched_samples) - 1):
-            solution.poses.cf_poses.append(cls._params_to_pose(cf_poses[i], solution))
+            solution.poses.cf_poses.append(cls._params_to_pose(cf_poses[i], defs))
 
         # Extract base station pose estimates
         for index, pose in enumerate(bss):
-            bs_id = solution.bs_index_to_id[index]
-            solution.poses.bs_poses[bs_id] = cls._params_to_pose(pose, solution)
+            bs_id = defs.bs_index_to_id[index]
+            solution.poses.bs_poses[bs_id] = cls._params_to_pose(pose, defs)
 
         solution.has_converged = lsq_result.success
 
         # Extract the error for each CF pose
         residuals = lsq_result.fun
         i = 0
+        # Estimated error for each base station in each sample
+        estimated_errors: list[dict[int, float]] = []
+
         for sample in matched_samples:
             sample_errors = {}
             for bs_id in sorted(sample.angles_calibrated.keys()):
                 sample_errors[bs_id] = np.linalg.norm(residuals[i:i + 2])
-                i += solution.n_sensors * 2
-            solution.estimated_errors.append(sample_errors)
+                i += defs.n_sensors * 2
+            estimated_errors.append(sample_errors)
 
-        solution.error_info = cls._aggregate_error_info(solution.estimated_errors)
+        solution.error_info = cls._aggregate_error_info(estimated_errors)
 
     @classmethod
     def _aggregate_error_info(cls, estimated_errors: list[dict[int, float]]) -> dict[str, float]:

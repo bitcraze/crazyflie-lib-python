@@ -60,6 +60,7 @@ from cflib.localization.lighthouse_cf_pose_sample import Pose
 from cflib.localization.lighthouse_config_manager import LighthouseConfigWriter
 from cflib.localization.lighthouse_geo_estimation_manager import LhGeoEstimationManager
 from cflib.localization.lighthouse_geo_estimation_manager import LhGeoInputContainer
+from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
 from cflib.localization.lighthouse_types import LhBsCfPoses
@@ -219,12 +220,20 @@ def load_from_file(name: str) -> LhGeoInputContainer:
         return pickle.load(handle)
 
 
-def solution_handler(scaled_solution: LhBsCfPoses):
+def solution_handler(solution: LighthouseGeometrySolution):
     print('Solution ready:')
     print('  Base stations at:')
-    print_base_stations_poses(scaled_solution.bs_poses)
-    # visualize(thread.scaled_solution)
-    # upload_geometry(thread.container.scf, thread.scaled_solution.bs_poses)
+    bs_poses = solution.poses.bs_poses
+    print_base_stations_poses(bs_poses)
+    print(f'Converged: {solution.has_converged}')
+    print(f'Progress info: {solution.progress_info}')
+    print(f'Progress is ok: {solution.progress_is_ok}')
+    print(f'Origin: {solution.is_origin_sample_valid}, {solution.origin_sample_info}')
+    print(f'X-axis: {solution.is_x_axis_samples_valid}, {solution.x_axis_samples_info}')
+    print(f'XY-plane: {solution.is_xy_plane_samples_valid}, {solution.xy_plane_samples_info}')
+    print(f'XYZ space: {solution.xyz_space_samples_info}')
+    # visualize(bs_poses)
+    # upload_geometry(thread.container.scf, bs_poses)
 
 
 def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):

@@ -28,6 +28,7 @@ import numpy.typing as npt
 
 from cflib.localization.lighthouse_cf_pose_sample import BsPairPoses
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.localization.lighthouse_types import LhException
 from cflib.localization.lighthouse_types import Pose
@@ -52,14 +53,17 @@ class LighthouseInitialEstimator:
     OUTLIER_DETECTION_ERROR = 0.5
 
     @classmethod
-    def estimate(cls, matched_samples: list[LhCfPoseSample]) -> tuple[LhBsCfPoses, list[LhCfPoseSample]]:
+    def estimate(cls, matched_samples: list[LhCfPoseSample],
+                 solution: LighthouseGeometrySolution) -> tuple[LhBsCfPoses, list[LhCfPoseSample]]:
         """
         Make a rough estimate of the poses of all base stations and CF poses found in the samples.
 
         The pose of the Crazyflie in the first sample is used as a reference and will define the
         global reference frame.
 
-        :param matched_samples: A list of samples with lighthouse angles.
+        :param matched_samples: A list of samples with lighthouse angles. It is assumed that all samples have data for
+                                two or more base stations.
+        :param solution: A LighthouseGeometrySolution object to store progress information and issues in
         :return: an estimate of base station and Crazyflie poses, as well as a cleaned version of matched_samples where
                  outliers are removed.
         """
@@ -68,9 +72,12 @@ class LighthouseInitialEstimator:
         # bs_positions is a map from bs-id-pair to position, where the position is the position of the second
         # bs, as seen from the first bs (in the first bs ref frame).
 
-        bs_poses_ref_cfs, cleaned_matched_samples = cls._angles_to_poses(matched_samples, bs_positions)
+        bs_poses_ref_cfs, cleaned_matched_samples = cls._angles_to_poses(matched_samples, bs_positions, solution)
+        if not solution.progress_is_ok:
+            return LhBsCfPoses(bs_poses={}, cf_poses=[]), cleaned_matched_samples
 
         # Calculate the pose of the base stations, based on the pose of one base station
+        # TODO krri _estimate_bs_poses() may raise an exception, handle
         bs_poses = cls._estimate_bs_poses(bs_poses_ref_cfs)
 
         # Now that we have estimated the base station poses, estimate the poses of the CF in all the samples
@@ -138,9 +145,8 @@ class LighthouseInitialEstimator:
                                                    pose3.translation, pose4.translation])
 
     @classmethod
-    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample],
-                         bs_positions: dict[BsPairIds, ArrayFloat]) -> tuple[list[dict[int, Pose]],
-                                                                             list[LhCfPoseSample]]:
+    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample], bs_positions: dict[BsPairIds, ArrayFloat],
+                         solution: LighthouseGeometrySolution) -> tuple[list[dict[int, Pose]], list[LhCfPoseSample]]:
         """
         Estimate the base station poses in the Crazyflie reference frames, for each sample.
 
@@ -149,8 +155,9 @@ class LighthouseInitialEstimator:
 
         :param matched_samples: List of samples
         :param bs_positions: Dictionary of base station positions (other base station ref frame)
+        :param solution: A LighthouseGeometrySolution object to store issues in
         :return: A list of dictionaries from base station to Pose of all base stations, for each sample, as well as
-                 a version of the matched_samples where outliers are removed
+                 a version of the matched_samples where outliers are removed.
         """
         result: list[dict[int, Pose]] = []
 
@@ -174,6 +181,10 @@ class LighthouseInitialEstimator:
                     poses[pair_ids.bs2] = pair_poses.bs2
                 else:
                     is_sample_valid = False
+                    if sample.is_mandatory:
+                        solution.append_mandatory_issue_sample(sample, 'Outlier detected')
+                    else:
+                        solution.xyz_space_samples_info = 'Sample(s) with outliers skipped'
                     break
 
             if is_sample_valid or sample.is_mandatory:

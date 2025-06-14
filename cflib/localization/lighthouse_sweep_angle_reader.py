@@ -107,13 +107,14 @@ class LighthouseSweepAngleAverageReader():
         return self._sample_storage is not None
 
     def _data_recevied_cb(self, base_station_id: int, bs_vectors: list[LighthouseBsVector]):
-        self._store_sample(base_station_id, bs_vectors, self._sample_storage)
-        if self._has_collected_enough_data(self._sample_storage):
-            self._reader.stop()
-            if self._ready_cb:
-                averages = self._average_all_lists(self._sample_storage)
-                self._ready_cb(averages)
-            self._sample_storage = None
+        if self._sample_storage is not None:
+            self._store_sample(base_station_id, bs_vectors, self._sample_storage)
+            if self._has_collected_enough_data(self._sample_storage):
+                self._reader.stop()
+                if self._ready_cb:
+                    averages = self._average_all_lists(self._sample_storage)
+                    self._ready_cb(averages)
+                self._sample_storage = None
 
     def _store_sample(self, base_station_id: int, bs_vectors: list[LighthouseBsVector],
                       storage: dict[int, list[list[LighthouseBsVector]]]):

@@ -187,6 +187,41 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         # Assert
         assert self.solution.progress_is_ok is False
 
+    def test_that_link_count_is_right(self):
+        # Fixture
+        bs_id0 = 3
+        bs_id1 = 1
+        bs_id2 = 2
+        bs_id3 = 4
+        samples = [
+            LhCfPoseSample(angles_calibrated={
+                bs_id0: self.fixtures.angles_cf_origin_bs0,
+                bs_id1: self.fixtures.angles_cf_origin_bs1,
+            }),
+            LhCfPoseSample(angles_calibrated={
+                bs_id2: self.fixtures.angles_cf1_bs1,
+                bs_id3: self.fixtures.angles_cf1_bs2,
+            }),
+            LhCfPoseSample(angles_calibrated={
+                bs_id0: self.fixtures.angles_cf2_bs0,
+                bs_id1: self.fixtures.angles_cf2_bs1,
+                bs_id2: self.fixtures.angles_cf2_bs2,
+                bs_id3: self.fixtures.angles_cf2_bs3,
+            }),
+        ]
+        self.augment(samples)
+
+        # Test
+        LighthouseInitialEstimator.estimate(samples, self.solution)
+
+        # Assert
+        assert self.solution.link_count == {
+            bs_id0: {bs_id1: 2, bs_id2: 1, bs_id3: 1},
+            bs_id1: {bs_id0: 2, bs_id2: 1, bs_id3: 1},
+            bs_id2: {bs_id0: 1, bs_id1: 1, bs_id3: 2},
+            bs_id3: {bs_id0: 1, bs_id1: 1, bs_id2: 2},
+        }
+
 # helpers
 
     def augment(self, samples):

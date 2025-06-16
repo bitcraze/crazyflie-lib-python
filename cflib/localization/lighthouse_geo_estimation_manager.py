@@ -94,8 +94,6 @@ class LhGeoEstimationManager():
         cls._humanize_error_info(solution, container)
         # TODO krri indicate in the solution if there is a geometry
 
-        # TODO krri create linkage map
-
         return solution
 
     @classmethod

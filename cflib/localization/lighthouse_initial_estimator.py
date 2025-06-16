@@ -76,14 +76,50 @@ class LighthouseInitialEstimator:
         if not solution.progress_is_ok:
             return LhBsCfPoses(bs_poses={}, cf_poses=[]), cleaned_matched_samples
 
-        # Calculate the pose of the base stations, based on the pose of one base station
-        # TODO krri _estimate_bs_poses() may raise an exception, handle
-        bs_poses = cls._estimate_bs_poses(bs_poses_ref_cfs)
+        cls._build_link_stats(matched_samples, solution)
+        # TODO krri: This step should check that we have enough links between base stations and fail with good
+        # user information.
+        # We could also filter out base stations that are not linked instead of failing the solution (in
+        # _estimate_bs_poses()).
+        if not solution.progress_is_ok:
+            return LhBsCfPoses(bs_poses={}, cf_poses=[]), cleaned_matched_samples
+
+        # Calculate the pose of all base stations, based on the pose of one base station
+        try:
+            bs_poses = cls._estimate_bs_poses(bs_poses_ref_cfs)
+        except LhException as e:
+            # At this point we might have too few base stations or we have islands of non-linked base stations.
+            solution.progress_is_ok = False
+            solution.general_failure_info = str(e)
+            return LhBsCfPoses(bs_poses={}, cf_poses=[]), cleaned_matched_samples
 
         # Now that we have estimated the base station poses, estimate the poses of the CF in all the samples
         cf_poses = cls._estimate_cf_poses(bs_poses_ref_cfs, bs_poses)
 
         return LhBsCfPoses(bs_poses, cf_poses), cleaned_matched_samples
+
+    @classmethod
+    def _build_link_stats(cls, matched_samples: list[LhCfPoseSample], solution: LighthouseGeometrySolution) -> None:
+        """
+        Build statistics about the number of links between base stations, based on the matched samples.
+        :param matched_samples: List of matched samples
+        :param solution: A LighthouseGeometry Solution object to store issues in
+        """
+
+        def increase_link_count(bs1: int, bs2: int):
+            """Increase the link count between two base stations"""
+            if bs1 not in solution.link_count:
+                solution.link_count[bs1] = {}
+            if bs2 not in solution.link_count[bs1]:
+                solution.link_count[bs1][bs2] = 0
+            solution.link_count[bs1][bs2] += 1
+
+        for sample in matched_samples:
+            bs_in_sample = sample.angles_calibrated.keys()
+            for bs1 in bs_in_sample:
+                for bs2 in bs_in_sample:
+                    if bs1 != bs2:
+                        increase_link_count(bs1, bs2)
 
     @classmethod
     def _find_bs_to_bs_poses(cls, matched_samples: list[LhCfPoseSample]) -> dict[BsPairIds, ArrayFloat]:
@@ -281,7 +317,7 @@ class LighthouseInitialEstimator:
         that the pose of 3.
         """
         # Use the first CF pose as the global reference frame. The pose of the first base station (as estimated by ippe)
-        # is used as the "true" position (reference)
+        # is used as the pose that all other base stations are mapped to.
         reference_bs_pose = None
         for bs_pose_ref_cfs in bs_poses_ref_cfs:
             if len(bs_pose_ref_cfs) > 0:
@@ -301,9 +337,11 @@ class LighthouseInitialEstimator:
         to_find = all_bs - bs_poses.keys()
 
         # run through the list of samples until we manage to find them all
-        remaining = len(to_find)
-        while remaining > 0:
-            buckets: dict[int, list[Pose]] = {}
+        # The process is like peeling an onion, from the inside out. In each iteration we find the poses of
+        # the base stations that are closest to the ones we already have, until we have found all poses.
+        remaining_to_find = len(to_find)
+        while remaining_to_find > 0:
+            averaging_storage: dict[int, list[Pose]] = {}
             for bs_poses_in_sample in bs_poses_ref_cfs:
                 unknown = to_find.intersection(bs_poses_in_sample.keys())
                 known = set(bs_poses.keys()).intersection(bs_poses_in_sample.keys())
@@ -322,22 +360,25 @@ class LighthouseInitialEstimator:
                         unknown_cf = bs_poses_in_sample[bs_id]
                         # Finally we can calculate the BS pose in the global reference frame
                         bs_pose = cls._map_pose_to_ref_frame(known_global, known_cf, unknown_cf)
-                        if bs_id not in buckets:
-                            buckets[bs_id] = []
-                        buckets[bs_id].append(bs_pose)
+                        if bs_id not in averaging_storage:
+                            averaging_storage[bs_id] = []
+                        averaging_storage[bs_id].append(bs_pose)
 
             # Average over poses and add to bs_poses
-            for bs_id, poses in buckets.items():
+            for bs_id, poses in averaging_storage.items():
                 bs_poses[bs_id] = cls._average_poses(poses)
 
+            # Remove the newly found base stations from the set of base stations to find
             to_find = all_bs - bs_poses.keys()
             if len(to_find) == 0:
                 break
 
-            if len(to_find) == remaining:
+            if len(to_find) == remaining_to_find:
+                # We could not map any more poses, but some still remain to be found. This means that there are not
+                # links to all base stations.
                 raise LhException('Can not link positions between all base stations')
 
-            remaining = len(to_find)
+            remaining_to_find = len(to_find)
 
         return bs_poses
 

@@ -29,7 +29,6 @@ from cflib.localization.lighthouse_cf_pose_sample import Pose
 from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
-from cflib.localization.lighthouse_types import LhException
 
 
 class TestLighthouseInitialEstimator(LighthouseTestBase):
@@ -37,7 +36,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         self.fixtures = LighthouseFixtures()
         self.solution = LighthouseGeometrySolution()
 
-    def test_that_one_bs_pose_raises_exception(self):
+    def test_that_one_bs_pose_failes_solution(self):
         # Fixture
         # CF_ORIGIN is used in the first sample and will define the global reference frame
         bs_id = 3
@@ -47,9 +46,10 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         self.augment(samples)
 
         # Test
+        LighthouseInitialEstimator.estimate(samples, self.solution)
+
         # Assert
-        with self.assertRaises(LhException):
-            LighthouseInitialEstimator.estimate(samples, self.solution)
+        assert self.solution.progress_is_ok is False
 
     def test_that_two_bs_poses_in_same_sample_are_found(self):
         # Fixture
@@ -163,7 +163,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         self.assertPosesAlmostEqual(
             Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi), t_vec=(2.0, 1.0, 3.0)), actual.bs_poses[bs_id2], places=3)
 
-    def test_that_raises_for_isolated_bs(self):
+    def test_that_solution_failes_for_isolated_bs(self):
         # Fixture
         bs_id0 = 3
         bs_id1 = 1
@@ -182,9 +182,10 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         self.augment(samples)
 
         # Test
+        LighthouseInitialEstimator.estimate(samples, self.solution)
+
         # Assert
-        with self.assertRaises(LhException):
-            LighthouseInitialEstimator.estimate(samples, self.solution)
+        assert self.solution.progress_is_ok is False
 
 # helpers
 

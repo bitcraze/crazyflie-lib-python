@@ -1,4 +1,3 @@
-
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhBsCfPoses
 
@@ -21,7 +20,7 @@ class LighthouseGeometrySolution:
         self.has_converged = False
 
         # Progress information stating how far in the solution process we got
-        self.progress_info = ""
+        self.progress_info = ''
 
         # Indicates that all previous steps in the solution process were successful and that the next step
         # can be executed. This is used to determine if the solution process can continue.
@@ -40,6 +39,14 @@ class LighthouseGeometrySolution:
         # Samples that are mandatory for the solution but where problems were encountered. The tuples contain the sample
         # and a description of the issue. This list is used to extract issue descriptions for the user interface.
         self.mandatory_issue_samples: list[tuple[LhCfPoseSample, str]] = []
+
+        # General failure information if the problem is not related to a specific sample
+        self.general_failure_info = ''
+
+        # The number of links between base stations. The data is organized as a dictionary with base station ids as
+        # keys, mapped to a dictionary of base station ids and the number of links to other base stations.
+        # For example: link_count[1][2] = 3 means that base station 1 has 3 links to base station 2.
+        self.link_count: dict[int, dict[int, int]] = {}
 
     def append_mandatory_issue_sample(self, sample: LhCfPoseSample, issue: str):
         """

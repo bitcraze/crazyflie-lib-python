@@ -24,6 +24,7 @@ from collections.abc import Callable
 from cflib.crazyflie import Crazyflie
 from cflib.localization import LighthouseBsVector
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 
 
 class LighthouseSweepAngleReader():
@@ -161,3 +162,86 @@ class LighthouseSweepAngleAverageReader():
 
         count = len(sample_list)
         return LighthouseBsVector(sum_horiz / count, sum_vert / count)
+
+
+class LighthouseMatchedSweepAngleReader():
+    """
+    Wrapper to simplify reading of matched lighthouse sweep angles from the locSrv stream
+    """
+    MATCHED_STREAM_PARAM = 'locSrv.enLhMtchStm'
+    MATCHED_STREAM_MIN_BS_PARAM = 'locSrv.minBsLhMtchStm'
+    MATCHED_STREAM_MAX_TIME_PARAM = 'locSrv.maxTimeLhMtchStm'
+    NR_OF_SENSORS = 4
+
+    def __init__(self, cf: Crazyflie, data_recevied_cb, sample_count: int = 1, min_bs: int = 2, max_time_ms: int = 25):
+        self._cf = cf
+        self._cb = data_recevied_cb
+        self._is_active = False
+        self._sample_count = sample_count
+
+        # The maximum number of base stations is limited in the CF due to memory considerations.
+        if min_bs > 4:
+            raise ValueError('Minimum base station count must be 4 or less')
+        self._min_bs = min_bs
+
+        self._max_time_ms = max_time_ms
+
+        self._current_group_id = 0
+        self._angles: dict[int, LighthouseBsVectors] = {}
+
+    def start(self):
+        """Start reading sweep angles"""
+        self._cf.loc.receivedLocationPacket.add_callback(self._packet_received_cb)
+        self._is_active = True
+        self._angle_stream_activate(True)
+
+    def stop(self):
+        """Stop reading sweep angles"""
+        if self._is_active:
+            self._is_active = False
+            self._cf.loc.receivedLocationPacket.remove_callback(self._packet_received_cb)
+            self._angle_stream_activate(False)
+
+    def _angle_stream_activate(self, is_active: bool):
+        value = 0
+        if is_active:
+            value = self._sample_count
+        self._cf.param.set_value(self.MATCHED_STREAM_PARAM, value)
+
+        self._cf.param.set_value(self.MATCHED_STREAM_MIN_BS_PARAM, self._min_bs)
+        self._cf.param.set_value(self.MATCHED_STREAM_MAX_TIME_PARAM, self._max_time_ms)
+
+    def _packet_received_cb(self, packet):
+        if self._is_active:
+            if packet.type != self._cf.loc.LH_MATCHED_ANGLE_STREAM:
+                return
+
+            base_station_id: int = packet.data['basestation']
+            horiz_angles: float = packet.data['x']
+            vert_angles: float = packet.data['y']
+            group_id: int = packet.data['group_id']
+            bs_count: int = packet.data['bs_count']
+
+            if group_id != self._current_group_id:
+                if len(self._angles) >= self._min_bs:
+                    # We have enough angles in the previous group even though all angles were not received
+                    # Lost a packet?
+                    self._call_callback()
+
+                # Reset
+                self._current_group_id = group_id
+                self._angles = {}
+
+            vectors: list[LighthouseBsVector] = []
+            for i in range(self.NR_OF_SENSORS):
+                vectors.append(LighthouseBsVector(horiz_angles[i], vert_angles[i]))
+            self._angles[base_station_id] = LighthouseBsVectors(vectors)
+
+            if len(self._angles) == bs_count:
+                # We have received all angles for this group, call the callback
+                self._call_callback()
+
+    def _call_callback(self):
+        if self._cb:
+            self._cb(LhCfPoseSample(self._angles))
+            self._angles = {}

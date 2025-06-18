@@ -542,6 +542,7 @@ class _RadioDriverThread(threading.Thread):
 
         self._has_safelink = False
         self._link = link
+        self.daemon = True
 
     def stop(self):
         """ Stop the thread """

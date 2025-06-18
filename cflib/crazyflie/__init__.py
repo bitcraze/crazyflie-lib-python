@@ -393,7 +393,8 @@ class _IncomingPacketHandler(Thread):
     """Handles incoming packets and sends the data to the correct receivers"""
 
     def __init__(self, cf):
-        Thread.__init__(self)
+        Thread.__init__(self, name='IncomingPacketHandlerThread')
+        self.daemon = True
         self.cf = cf
         self.cb = []
 

@@ -19,6 +19,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+from collections.abc import Callable
+
+from cflib.crazyflie import Crazyflie
 from cflib.localization import LighthouseBsVector
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
 
@@ -30,7 +33,7 @@ class LighthouseSweepAngleReader():
     ANGLE_STREAM_PARAM = 'locSrv.enLhAngleStream'
     NR_OF_SENSORS = 4
 
-    def __init__(self, cf, data_recevied_cb):
+    def __init__(self, cf: Crazyflie, data_recevied_cb):
         self._cf = cf
         self._cb = data_recevied_cb
         self._is_active = False
@@ -48,7 +51,7 @@ class LighthouseSweepAngleReader():
             self._cf.loc.receivedLocationPacket.remove_callback(self._packet_received_cb)
             self._angle_stream_activate(False)
 
-    def _angle_stream_activate(self, is_active):
+    def _angle_stream_activate(self, is_active: bool):
         value = 0
         if is_active:
             value = 1
@@ -59,11 +62,11 @@ class LighthouseSweepAngleReader():
             return
 
         if self._cb:
-            base_station_id = packet.data['basestation']
-            horiz_angles = packet.data['x']
-            vert_angles = packet.data['y']
+            base_station_id: int = packet.data['basestation']
+            horiz_angles: float = packet.data['x']
+            vert_angles: float = packet.data['y']
 
-            result = []
+            result: list[LighthouseBsVector] = []
             for i in range(self.NR_OF_SENSORS):
                 result.append(LighthouseBsVector(horiz_angles[i], vert_angles[i]))
 
@@ -75,7 +78,7 @@ class LighthouseSweepAngleAverageReader():
     Helper class to make it easy read sweep angles for multiple base stations and average the result
     """
 
-    def __init__(self, cf, ready_cb):
+    def __init__(self, cf: Crazyflie, ready_cb: Callable[[dict[int, tuple[int, LighthouseBsVectors]]], None]):
         self._reader = LighthouseSweepAngleReader(cf, self._data_recevied_cb)
         self._ready_cb = ready_cb
         self.nr_of_samples_required = 50
@@ -84,7 +87,7 @@ class LighthouseSweepAngleAverageReader():
         # The storage is a dictionary keyed on the base station channel
         # Each entry is a list of 4 lists, one per sensor.
         # Each list contains LighthouseBsVector objects, representing the sampled sweep angles
-        self._sample_storage = None
+        self._sample_storage: dict[int, list[list[LighthouseBsVector]]] | None = None
 
     def start_angle_collection(self):
         """
@@ -103,16 +106,18 @@ class LighthouseSweepAngleAverageReader():
         """True if data collection is in progress"""
         return self._sample_storage is not None
 
-    def _data_recevied_cb(self, base_station_id, bs_vectors):
-        self._store_sample(base_station_id, bs_vectors, self._sample_storage)
-        if self._has_collected_enough_data(self._sample_storage):
-            self._reader.stop()
-            if self._ready_cb:
-                averages = self._average_all_lists(self._sample_storage)
-                self._ready_cb(averages)
-            self._sample_storage = None
+    def _data_recevied_cb(self, base_station_id: int, bs_vectors: list[LighthouseBsVector]):
+        if self._sample_storage is not None:
+            self._store_sample(base_station_id, bs_vectors, self._sample_storage)
+            if self._has_collected_enough_data(self._sample_storage):
+                self._reader.stop()
+                if self._ready_cb:
+                    averages = self._average_all_lists(self._sample_storage)
+                    self._ready_cb(averages)
+                self._sample_storage = None
 
-    def _store_sample(self, base_station_id, bs_vectors, storage):
+    def _store_sample(self, base_station_id: int, bs_vectors: list[LighthouseBsVector],
+                      storage: dict[int, list[list[LighthouseBsVector]]]):
         if base_station_id not in storage:
             storage[base_station_id] = []
             for sensor in range(self._reader.NR_OF_SENSORS):
@@ -121,31 +126,32 @@ class LighthouseSweepAngleAverageReader():
         for sensor in range(self._reader.NR_OF_SENSORS):
             storage[base_station_id][sensor].append(bs_vectors[sensor])
 
-    def _has_collected_enough_data(self, storage):
+    def _has_collected_enough_data(self, storage: dict[int, list[list[LighthouseBsVector]]]):
         for sample_list in storage.values():
             if len(sample_list[0]) >= self.nr_of_samples_required:
                 return True
         return False
 
-    def _average_all_lists(self, storage):
-        result = {}
+    def _average_all_lists(self, storage: dict[int, list[list[LighthouseBsVector]]]
+                           ) -> dict[int, tuple[int, LighthouseBsVectors]]:
+        result: dict[int, tuple[int, LighthouseBsVectors]] = {}
 
-        for id, sample_lists in storage.items():
+        for bs_id, sample_lists in storage.items():
             averages = self._average_sample_lists(sample_lists)
             count = len(sample_lists[0])
-            result[id] = (count, averages)
+            result[bs_id] = (count, averages)
 
         return result
 
-    def _average_sample_lists(self, sample_lists):
-        result = []
+    def _average_sample_lists(self, sample_lists: list[list[LighthouseBsVector]]) -> LighthouseBsVectors:
+        result: list[LighthouseBsVector] = []
 
         for i in range(self._reader.NR_OF_SENSORS):
             result.append(self._average_sample_list(sample_lists[i]))
 
         return LighthouseBsVectors(result)
 
-    def _average_sample_list(self, sample_list):
+    def _average_sample_list(self, sample_list: list[LighthouseBsVector]) -> LighthouseBsVector:
         sum_horiz = 0.0
         sum_vert = 0.0
 

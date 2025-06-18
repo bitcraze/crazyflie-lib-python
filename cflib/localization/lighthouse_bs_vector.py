@@ -144,7 +144,7 @@ class LighthouseBsVectors(list):
 
     def projection_pair_list(self) -> npt.NDArray:
         """
-        Genereate a list of projection pairs for all vectors
+        Generate a list of projection pairs for all vectors
         """
         result = np.empty((len(self), 2), dtype=float)
         for i, vector in enumerate(self):
@@ -154,7 +154,7 @@ class LighthouseBsVectors(list):
 
     def angle_list(self) -> npt.NDArray:
         """
-        Genereate a list of angles for all vectors, the order is horizontal, vertical, horizontal, vertical...
+        Generate a list of angles for all vectors, the order is horizontal, vertical, horizontal, vertical...
         """
         result = np.empty((len(self) * 2), dtype=float)
         for i, vector in enumerate(self):

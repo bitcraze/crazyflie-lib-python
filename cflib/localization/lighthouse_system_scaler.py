@@ -27,8 +27,8 @@ import numpy as np
 import numpy.typing as npt
 
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVector
-from cflib.localization.lighthouse_types import LhCfPoseSample
-from cflib.localization.lighthouse_types import Pose
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import Pose
 
 
 class LighthouseSystemScaler:

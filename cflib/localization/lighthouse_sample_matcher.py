@@ -21,7 +21,8 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-from cflib.localization.lighthouse_types import LhCfPoseSample
+from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhMeasurement
 
 
@@ -33,32 +34,75 @@ class LighthouseSampleMatcher:
     a list of LhCfPoseSample. Matching is done using the timestamp and a maximum time span.
     """
 
-    @classmethod
-    def match(cls, samples: list[LhMeasurement], max_time_diff: float = 0.020,
-              min_nr_of_bs_in_match: int = 0) -> list[LhCfPoseSample]:
+    def __init__(self, max_time_diff: float = 0.020, min_nr_of_bs_in_match: int = 1) -> None:
+        self.max_time_diff = max_time_diff
+        self.min_nr_of_bs_in_match = min_nr_of_bs_in_match
+
+        self._current_angles: dict[int, LighthouseBsVectors] = {}
+        self._current_ts = 0.0
+
+    def match_one(self, sample: LhMeasurement) -> LhCfPoseSample | None:
+        """Aggregate samples close in time.
+        This function is used to match samples from multiple base stations into a single LhCfPoseSample.
+        The function will return None if the number of base stations in the sample is less than
+        the minimum number of base stations required for a match.
+        Note that a pose sample is returned upon the next call to this function, that is when the maximum time diff of
+        the first sample in the group has been exceeded.
+
+        Args:
+            sample (LhMeasurement): angles from one base station
+
+        Returns:
+            LhCfPoseSample | None: a pose sample if available, otherwise None
         """
-        Aggregate samples close in time into lists
+        result = None
+        if len(self._current_angles) > 0:
+            if sample.timestamp > (self._current_ts + self.max_time_diff):
+                if len(self._current_angles) >= self.min_nr_of_bs_in_match:
+                    result = LhCfPoseSample(self._current_angles, timestamp=self._current_ts)
+
+                self._current_angles = {}
+
+        if len(self._current_angles) == 0:
+            self._current_ts = sample.timestamp
+
+        self._current_angles[sample.base_station_id] = sample.angles
+
+        return result
+
+    def purge(self) -> LhCfPoseSample | None:
+        """Purge the current angles and return a pose sample if available.
+
+        Returns:
+            LhCfPoseSample | None: a pose sample if available, otherwise None
         """
+        result = None
 
-        result = []
-        current: LhCfPoseSample = None
+        if len(self._current_angles) >= self.min_nr_of_bs_in_match:
+            result = LhCfPoseSample(self._current_angles, timestamp=self._current_ts)
 
-        for sample in samples:
-            ts = sample.timestamp
+        self._current_angles = {}
+        self._current_ts = 0.0
 
-            if current is None:
-                current = LhCfPoseSample(timestamp=ts)
-
-            if ts > (current.timestamp + max_time_diff):
-                cls._append_result(current, result, min_nr_of_bs_in_match)
-                current = LhCfPoseSample(timestamp=ts)
-
-            current.angles_calibrated[sample.base_station_id] = sample.angles
-
-        cls._append_result(current, result, min_nr_of_bs_in_match)
         return result
 
     @classmethod
-    def _append_result(cls, current: LhCfPoseSample, result: list[LhCfPoseSample], min_nr_of_bs_in_match: int):
-        if current is not None and len(current.angles_calibrated) >= min_nr_of_bs_in_match:
-            result.append(current)
+    def match(cls, samples: list[LhMeasurement], max_time_diff: float = 0.020,
+              min_nr_of_bs_in_match: int = 1) -> list[LhCfPoseSample]:
+        """
+        Aggregate samples in a list
+        """
+
+        result = []
+        matcher = cls(max_time_diff, min_nr_of_bs_in_match)
+
+        for sample in samples:
+            pose_sample = matcher.match_one(sample)
+            if pose_sample is not None:
+                result.append(pose_sample)
+
+        pose_sample = matcher.purge()
+        if pose_sample is not None:
+            result.append(pose_sample)
+
+        return result

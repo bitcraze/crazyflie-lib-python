@@ -38,7 +38,7 @@ dependencies = [
     "pyusb~=1.2",
     "libusb-package~=1.0",
     "scipy~=1.14",
-    "numpy~=2.3",
+    "numpy~=2.2",
     "packaging~=24.2",
 ]
 

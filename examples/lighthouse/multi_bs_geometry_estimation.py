@@ -61,11 +61,13 @@ from cflib.localization.lighthouse_config_manager import LighthouseConfigWriter
 from cflib.localization.lighthouse_geo_estimation_manager import LhGeoEstimationManager
 from cflib.localization.lighthouse_geo_estimation_manager import LhGeoInputContainer
 from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
+from cflib.localization.lighthouse_sweep_angle_reader import LighthouseMatchedSweepAngleReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
 from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 from cflib.localization.lighthouse_types import LhMeasurement
+from cflib.localization.user_action_detector import UserActionDetector
 from cflib.utils import uri_helper
 
 REFERENCE_DIST = 1.0
@@ -221,10 +223,11 @@ def load_from_file(name: str) -> LhGeoInputContainer:
 
 
 def solution_handler(solution: LighthouseGeometrySolution):
-    print('Solution ready:')
+    print('Solution ready --------------------------------------')
     print('  Base stations at:')
     bs_poses = solution.poses.bs_poses
     print_base_stations_poses(bs_poses)
+
     print(f'Converged: {solution.has_converged}')
     print(f'Progress info: {solution.progress_info}')
     print(f'Progress is ok: {solution.progress_is_ok}')
@@ -232,8 +235,7 @@ def solution_handler(solution: LighthouseGeometrySolution):
     print(f'X-axis: {solution.is_x_axis_samples_valid}, {solution.x_axis_samples_info}')
     print(f'XY-plane: {solution.is_xy_plane_samples_valid}, {solution.xy_plane_samples_info}')
     print(f'XYZ space: {solution.xyz_space_samples_info}')
-    # visualize(bs_poses)
-    # upload_geometry(thread.container.scf, bs_poses)
+    print(f'General info: {solution.general_failure_info}')
 
 
 def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):
@@ -313,6 +315,13 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         container = LhGeoInputContainer(LhDeck4SensorPositions.positions)
         print('Starting geometry estimation thread...')
+
+        def _local_solution_handler(solution: LighthouseGeometrySolution):
+            solution_handler(solution)
+            if solution.progress_is_ok:
+                upload_geometry(scf, solution.poses.bs_poses)
+                print('Geometry uploaded to Crazyflie.')
+
         thread = LhGeoEstimationManager.SolverThread(container, is_done_cb=solution_handler)
         thread.start()
 
@@ -334,26 +343,24 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
 
         print()
         print('Step 5. We will now record data from the space you plan to fly in and optimize the base station ' +
-              'geometry based on this data.')
-        recording_time_s = 1.0
-        first_attempt = True
+              'geometry based on this data. Sample a position by quickly rotating the Crazyflie ' +
+              'around the Z-axis. This will trigger a measurement of the base station angles. ')
 
+        def matched_angles_cb(sample: LhCfPoseSample):
+            print('Sampled position')
+            container.append_xyz_space_samples([sample])
+        angle_reader = LighthouseMatchedSweepAngleReader(scf.cf, matched_angles_cb)
+
+        def user_action_cb():
+            angle_reader.start()
+        detector = UserActionDetector(scf.cf, cb=user_action_cb)
+
+        detector.start()
         while True:
-            if first_attempt:
-                user_input = input('Press return to record a measurement: ').lower()
-                first_attempt = False
-            else:
-                user_input = input('Press return to record another measurement, or "q" to continue: ').lower()
+            time.sleep(0.5)
+            # TODO krri
 
-            if user_input == 'q':
-                break
-
-            measurement = record_angles_sequence(scf, recording_time_s)
-            if measurement is not None:
-                container.append_xyz_space_samples(measurement)
-            else:
-                print('No data recorded, please try again.')
-
+        detector.stop()
         thread.stop()
 
         # if file_name:

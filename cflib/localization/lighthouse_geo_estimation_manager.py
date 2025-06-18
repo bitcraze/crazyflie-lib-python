@@ -31,11 +31,9 @@ from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
-from cflib.localization.lighthouse_sample_matcher import LighthouseSampleMatcher
 from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
 from cflib.localization.lighthouse_system_scaler import LighthouseSystemScaler
 from cflib.localization.lighthouse_types import LhBsCfPoses
-from cflib.localization.lighthouse_types import LhMeasurement
 
 
 ArrayFloat = npt.NDArray[np.float_]
@@ -297,23 +295,22 @@ class LhGeoInputContainer():
         self._data.xy_plane.append(xy_plane)
         self._update_version()
 
-    def set_xyz_space_samples(self, samples: list[LhMeasurement]) -> None:
+    def set_xyz_space_samples(self, samples: list[LhCfPoseSample]) -> None:
         """Store/update the samples for the volume
 
         Args:
             samples (list[LhMeasurement]): the new samples
         """
-        self._data.xyz_space = LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
-        self._augment_samples(self._data.xyz_space, False)
-        self._update_version()
+        self._data.xyz_space = []
+        self.append_xyz_space_samples(samples)
 
-    def append_xyz_space_samples(self, samples: list[LhMeasurement]) -> None:
+    def append_xyz_space_samples(self, samples: list[LhCfPoseSample]) -> None:
         """Append to the samples for the volume
 
         Args:
             samples (LhMeasurement): the new samples
         """
-        new_samples = LighthouseSampleMatcher.match(samples, min_nr_of_bs_in_match=2)
+        new_samples = samples
         self._augment_samples(new_samples, False)
         self._data.xyz_space += new_samples
         self._update_version()

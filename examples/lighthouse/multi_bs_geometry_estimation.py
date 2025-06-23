@@ -60,6 +60,7 @@ from cflib.localization.lighthouse_cf_pose_sample import Pose
 from cflib.localization.lighthouse_config_manager import LighthouseConfigWriter
 from cflib.localization.lighthouse_geo_estimation_manager import LhGeoEstimationManager
 from cflib.localization.lighthouse_geo_estimation_manager import LhGeoInputContainer
+from cflib.localization.lighthouse_geo_estimation_manager import LhGeoInputContainerData
 from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseMatchedSweepAngleReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
@@ -211,18 +212,19 @@ def visualize(poses: LhBsCfPoses):
         plt.show()
 
 
-def write_to_file(name: str, container: LhGeoInputContainer):
-    with open(name, 'wb') as handle:
-        data = container
-        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+def write_to_file(name: str | None, container: LhGeoInputContainer):
+    if name:
+        with open(name, 'wb') as handle:
+            data = container.get_data_copy()
+            pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def load_from_file(name: str) -> LhGeoInputContainer:
+def load_from_file(name: str) -> LhGeoInputContainerData:
     with open(name, 'rb') as handle:
         return pickle.load(handle)
 
 
-def solution_handler(solution: LighthouseGeometrySolution):
+def print_solution(solution: LighthouseGeometrySolution):
     print('Solution ready --------------------------------------')
     print('  Base stations at:')
     bs_poses = solution.poses.bs_poses
@@ -259,11 +261,9 @@ def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):
 
 
 def estimate_from_file(file_name: str):
-    container = load_from_file(file_name)
-    thread = LhGeoEstimationManager.SolverThread(container, is_done_cb=solution_handler)
-    thread.start()
-    time.sleep(1)
-    thread.stop()
+    container_data = load_from_file(file_name)
+    solution = LhGeoEstimationManager.estimate_geometry(container_data)
+    print_solution(solution)
 
 
 def get_recording(scf: SyncCrazyflie) -> LhCfPoseSample:
@@ -317,12 +317,12 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
         print('Starting geometry estimation thread...')
 
         def _local_solution_handler(solution: LighthouseGeometrySolution):
-            solution_handler(solution)
+            print_solution(solution)
             if solution.progress_is_ok:
                 upload_geometry(scf, solution.poses.bs_poses)
                 print('Geometry uploaded to Crazyflie.')
 
-        thread = LhGeoEstimationManager.SolverThread(container, is_done_cb=solution_handler)
+        thread = LhGeoEstimationManager.SolverThread(container, is_done_cb=print_solution)
         thread.start()
 
         print('  Connected')
@@ -332,14 +332,17 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
         print('Step 2. Put the Crazyflie where you want the origin of your coordinate system.')
 
         container.set_origin_sample(get_recording(scf))
+        write_to_file(file_name, container)
 
         print(f'Step 3. Put the Crazyflie on the positive X-axis, exactly {REFERENCE_DIST} meters from the origin. ' +
               'This position defines the direction of the X-axis, but it is also used for scaling the system.')
         container.set_x_axis_sample(get_recording(scf))
+        write_to_file(file_name, container)
 
         print('Step 4. Put the Crazyflie somewhere in the XY-plane, but not on the X-axis.')
         print('Multiple samples can be recorded if you want to.')
         container.set_xy_plane_samples(get_multiple_recordings(scf))
+        write_to_file(file_name, container)
 
         print()
         print('Step 5. We will now record data from the space you plan to fly in and optimize the base station ' +
@@ -349,6 +352,7 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
         def matched_angles_cb(sample: LhCfPoseSample):
             print('Sampled position')
             container.append_xyz_space_samples([sample])
+            write_to_file(file_name, container)
         angle_reader = LighthouseMatchedSweepAngleReader(scf.cf, matched_angles_cb)
 
         def user_action_cb():
@@ -362,10 +366,6 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
 
         detector.stop()
         thread.stop()
-
-        # if file_name:
-        #     write_to_file(file_name, container)
-        #     print(f'Wrote data to file {file_name}')
 
 
 # Only output errors from the logging framework

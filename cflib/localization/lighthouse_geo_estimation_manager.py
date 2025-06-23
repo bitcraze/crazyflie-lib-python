@@ -46,7 +46,7 @@ class LhGeoEstimationManager():
     def align_and_scale_solution(cls, container: LhGeoInputContainerData, poses: LhBsCfPoses,
                                  reference_distance: float) -> LhBsCfPoses:
         start_idx_x_axis = 1
-        start_idx_xy_plane = 1 + len(container.x_axis)
+        start_idx_xy_plane = start_idx_x_axis + len(container.x_axis)
         start_idx_xyz_space = start_idx_xy_plane + len(container.xy_plane)
 
         origin_pos = poses.cf_poses[0].translation
@@ -128,6 +128,7 @@ class LhGeoEstimationManager():
         # Samples must contain at least two base stations
         for sample in matched_samples:
             if sample == container.origin:
+                result.append(sample)
                 continue  # The origin sample is already checked
 
             if len(sample.angles_calibrated) >= 2:

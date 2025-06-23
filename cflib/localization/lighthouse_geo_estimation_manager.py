@@ -185,6 +185,7 @@ class LhGeoEstimationManager():
                 is_done_cb: Callback function that is called when the solution is done.
             """
             threading.Thread.__init__(self, name='LhGeoEstimationManager.SolverThread')
+            self.daemon = True
 
             self.container = container
             self.latest_solved_data_version = container._data.version

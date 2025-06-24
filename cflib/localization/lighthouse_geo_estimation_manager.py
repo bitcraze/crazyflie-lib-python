@@ -221,11 +221,13 @@ class LhGeoEstimationManager():
 
             self.is_running = False
 
-        def stop(self):
+        def stop(self, do_join: bool = True):
             """Stop the solver thread"""
             self.time_to_stop = True
-            if self.is_running:
-                self.join()
+            if do_join:
+                # Wait for the thread to finish
+                if self.is_running:
+                    self.join()
 
 
 class LhGeoInputContainerData():

@@ -90,7 +90,8 @@ class LhGeoEstimationManager():
                 solution.poses = scaled_solution
 
         cls._humanize_error_info(solution, container)
-        # TODO krri indicate in the solution if there is a geometry
+
+        # TODO krri indicate in the solution if there is a geometry. progress_is_ok is not a good indicator
 
         return solution
 
@@ -147,6 +148,8 @@ class LhGeoEstimationManager():
     @classmethod
     def _humanize_error_info(cls, solution: LighthouseGeometrySolution, container: LhGeoInputContainerData) -> None:
         """Humanize the error info in the solution object"""
+
+        # There might already be an error reported earlier, so only check if we think the sample is valid
         if solution.is_origin_sample_valid:
             solution.is_origin_sample_valid, solution.origin_sample_info = cls._error_info_for(solution,
                                                                                                [container.origin])
@@ -189,7 +192,7 @@ class LhGeoEstimationManager():
             self.daemon = True
 
             self.container = container
-            self.latest_solved_data_version = container._data.version
+            self.latest_solved_data_version = -1
 
             self.is_done_cb = is_done_cb
 
@@ -317,6 +320,14 @@ class LhGeoInputContainer():
         new_samples = samples
         self._augment_samples(new_samples, False)
         self._data.xyz_space += new_samples
+        self._update_version()
+
+    def clear_all_samples(self) -> None:
+        """Clear all samples in the container"""
+        self._data.origin = self._data.EMPTY_POSE_SAMPLE
+        self._data.x_axis = []
+        self._data.xy_plane = []
+        self._data.xyz_space = []
         self._update_version()
 
     def _augment_sample(self, sample: LhCfPoseSample, is_mandatory: bool) -> None:

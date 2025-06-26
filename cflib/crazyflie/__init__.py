@@ -172,6 +172,11 @@ class Crazyflie():
         )
         return self.link_statistics.link_quality_updated
 
+    def delete(self):
+        self.incoming.should_exit = True
+        self.incoming.join(1)
+        print('Destructor called, Employee deleted.')
+
     def _disconnected(self, link_uri):
         """ Callback when disconnected."""
         self.connected_ts = None
@@ -397,6 +402,7 @@ class _IncomingPacketHandler(Thread):
         self.daemon = True
         self.cf = cf
         self.cb = []
+        self.should_exit = False
 
     def add_port_callback(self, port, cb):
         """Add a callback for data that comes on a specific port"""
@@ -433,6 +439,9 @@ class _IncomingPacketHandler(Thread):
 
     def run(self):
         while True:
+            if self.should_exit:
+                logger.info('Exiting incoming packet handler thread')
+                return
             if self.cf.link is None:
                 time.sleep(1)
                 continue

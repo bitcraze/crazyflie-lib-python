@@ -98,7 +98,7 @@ def run_sequence(cf, trajectory_id, duration, relative_yaw=False):
     takeoff_yaw = 3.14 / 2 if relative_yaw else 0.0
     commander.takeoff(1.0, 2.0, yaw=takeoff_yaw)
     time.sleep(3.0)
-    commander.start_trajectory(trajectory_id, 1.0, relative=True, relative_yaw=relative_yaw)
+    commander.start_trajectory(trajectory_id, 1.0, relative_position=True, relative_yaw=relative_yaw)
     time.sleep(duration)
     commander.land(0.0, 2.0)
     time.sleep(2)

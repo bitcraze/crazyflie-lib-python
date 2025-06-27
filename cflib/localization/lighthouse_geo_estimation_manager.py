@@ -302,6 +302,14 @@ class LhGeoInputContainer():
         self._data.xy_plane.append(xy_plane)
         self._update_version()
 
+    def xy_plane_sample_count(self) -> int:
+        """Get the number of samples in the xy-plane
+
+        Returns:
+            int: The number of samples in the xy-plane
+        """
+        return len(self._data.xy_plane)
+
     def set_xyz_space_samples(self, samples: list[LhCfPoseSample]) -> None:
         """Store/update the samples for the volume
 
@@ -321,6 +329,14 @@ class LhGeoInputContainer():
         self._augment_samples(new_samples, False)
         self._data.xyz_space += new_samples
         self._update_version()
+
+    def xyz_space_sample_count(self) -> int:
+        """Get the number of samples in the xyz space
+
+        Returns:
+            int: The number of samples in the xyz space
+        """
+        return len(self._data.xyz_space)
 
     def clear_all_samples(self) -> None:
         """Clear all samples in the container"""

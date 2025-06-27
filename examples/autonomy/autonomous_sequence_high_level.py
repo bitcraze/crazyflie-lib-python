@@ -6,7 +6,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2018 Bitcraze AB
+#  Copyright (C) 2025 Bitcraze AB
 #
 #  This program is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU General Public License
@@ -28,6 +28,7 @@ This example is intended to work with any positioning system (including LPS).
 It aims at documenting how to set the Crazyflie in position control mode
 and how to send setpoints using the high level commander.
 """
+import argparse
 import sys
 import time
 
@@ -87,17 +88,17 @@ def upload_trajectory(cf, trajectory_id, trajectory):
     return total_duration
 
 
-def run_sequence(cf, trajectory_id, duration):
+def run_sequence(cf, trajectory_id, duration, relative_yaw=False):
     commander = cf.high_level_commander
 
     # Arm the Crazyflie
     cf.platform.send_arming_request(True)
     time.sleep(1.0)
 
-    commander.takeoff(1.0, 2.0)
+    takeoff_yaw = 3.14 / 2 if relative_yaw else 0.0
+    commander.takeoff(1.0, 2.0, yaw=takeoff_yaw)
     time.sleep(3.0)
-    relative = True
-    commander.start_trajectory(trajectory_id, 1.0, relative)
+    commander.start_trajectory(trajectory_id, 1.0, relative_position=True, relative_yaw=relative_yaw)
     time.sleep(duration)
     commander.land(0.0, 2.0)
     time.sleep(2)
@@ -105,6 +106,16 @@ def run_sequence(cf, trajectory_id, duration):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Crazyflie trajectory demo')
+    parser.add_argument('--relative-yaw', action='store_true',
+                        help=(
+                            'Enable relative_yaw mode when running the trajectory. This demonstrates '
+                            'how the trajectory can be rotated based on the orientation from the prior command.'
+                        )
+                        )
+
+    args = parser.parse_args()
+
     cflib.crtp.init_drivers()
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
@@ -115,4 +126,4 @@ if __name__ == '__main__':
         duration = upload_trajectory(cf, trajectory_id, figure8)
         print('The sequence is {:.1f} seconds long'.format(duration))
         reset_estimator(cf)
-        run_sequence(cf, trajectory_id, duration)
+        run_sequence(cf, trajectory_id, duration, relative_yaw=args.relative_yaw)

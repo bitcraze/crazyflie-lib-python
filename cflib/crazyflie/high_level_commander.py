@@ -55,6 +55,7 @@ class HighLevelCommander():
     COMMAND_LAND_2 = 8
     COMMAND_SPIRAL = 11
     COMMAND_GO_TO_2 = 12
+    COMMAND_START_TRAJECTORY_2 = 13
 
     ALL_GROUPS = 0
 
@@ -230,8 +231,8 @@ class HighLevelCommander():
                                           ascent,
                                           duration_s))
 
-    def start_trajectory(self, trajectory_id, time_scale=1.0, relative=False,
-                         reversed=False, group_mask=ALL_GROUPS):
+    def start_trajectory(self, trajectory_id, time_scale=1.0, relative_position=False,
+                         relative_yaw=False, reversed=False, group_mask=ALL_GROUPS):
         """
         starts executing a specified trajectory
 
@@ -240,20 +241,35 @@ class HighLevelCommander():
         :param time_scale: Time factor; 1.0 = original speed;
                                         >1.0: slower;
                                         <1.0: faster
-        :param relative: Set to True, if trajectory should be shifted to
+        :param relative_position: Set to True, if trajectory should be shifted to
                current setpoint
+        :param relative_yaw: Set to True, if trajectory should be aligned to
+               current yaw
         :param reversed: Set to True, if trajectory should be executed in
                reverse
         :param group_mask: Mask for which CFs this should apply to
         :return:
         """
-        self._send_packet(struct.pack('<BBBBBf',
-                                      self.COMMAND_START_TRAJECTORY,
-                                      group_mask,
-                                      relative,
-                                      reversed,
-                                      trajectory_id,
-                                      time_scale))
+        if self._cf.platform.get_protocol_version() < 10:
+            if relative_yaw:
+                print('Warning: Relative yaw is not supported in protocol '
+                      'version < 9, update your Crazyflie\'s firmware')
+            self._send_packet(struct.pack('<BBBBBf',
+                                          self.COMMAND_START_TRAJECTORY,
+                                          group_mask,
+                                          relative_position,
+                                          reversed,
+                                          trajectory_id,
+                                          time_scale))
+        else:
+            self._send_packet(struct.pack('<BBBBBBf',
+                                          self.COMMAND_START_TRAJECTORY_2,
+                                          group_mask,
+                                          relative_position,
+                                          relative_yaw,
+                                          reversed,
+                                          trajectory_id,
+                                          time_scale))
 
     def define_trajectory(self, trajectory_id, offset, n_pieces, type=TRAJECTORY_TYPE_POLY4D):
         """

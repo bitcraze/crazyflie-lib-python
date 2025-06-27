@@ -54,7 +54,7 @@ class UserActionDetector:
         if not self._is_active:
             self._is_active = True
             self._reset()
-            self._cf.disconnected.add_callback(self.stop)
+            self._cf.disconnected.add_callback(self._disconnected_callback)
 
             self._lg_config = LogConfig(name='lighthouse_geo_estimator', period_in_ms=25)
             self._lg_config.add_variable('gyro.z', 'float')
@@ -69,8 +69,11 @@ class UserActionDetector:
                 self._lg_config.delete()
                 self._lg_config.data_received_cb.remove_callback(self._log_callback)
                 self._lg_config = None
-            self._cf.disconnected.remove_callback(self.stop)
+            self._cf.disconnected.remove_callback(self._disconnected_callback)
             self._is_active = False
+
+    def _disconnected_callback(self, uri):
+        self.stop()
 
     def _log_callback(self, ts, data, logblock):
         if self._is_active:

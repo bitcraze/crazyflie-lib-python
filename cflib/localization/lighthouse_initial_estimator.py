@@ -73,16 +73,14 @@ class LighthouseInitialEstimator:
         # bs, as seen from the first bs (in the first bs ref frame).
 
         bs_poses_ref_cfs, cleaned_matched_samples = cls._angles_to_poses(matched_samples, bs_positions, solution)
+        cls._build_link_stats(cleaned_matched_samples, solution)
         if not solution.progress_is_ok:
             return LhBsCfPoses(bs_poses={}, cf_poses=[]), cleaned_matched_samples
 
-        cls._build_link_stats(matched_samples, solution)
-        # TODO krri: This step should check that we have enough links between base stations and fail with good
-        # user information.
+        # TODO krri: We should check that we have enough links between base stations and fail with good
+        # user information if not.
         # We could also filter out base stations that are not linked instead of failing the solution (in
         # _estimate_bs_poses()).
-        if not solution.progress_is_ok:
-            return LhBsCfPoses(bs_poses={}, cf_poses=[]), cleaned_matched_samples
 
         # Calculate the pose of all base stations, based on the pose of one base station
         try:

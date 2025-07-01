@@ -185,7 +185,9 @@ class Swarm:
         Reset estimator on all members of the swarm and wait for a stable
         positions. Blocks until position estimators finds a position.
         """
+        print('Waiting for estimators to find positions...', end='\r')
         self.parallel_safe(self.__reset_estimator)
+        print('Waiting for estimators to find positions...success!')
 
     def sequential(self, func, args_dict=None):
         """

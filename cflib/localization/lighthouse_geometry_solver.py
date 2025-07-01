@@ -99,38 +99,38 @@ class LighthouseGeometrySolver:
 
     An examples matrix:
 
-                        bs0_pose, bs1_pose, bs2_pose, bs3_pose, cf1_pose, cf2_pose, ...
+    |                         | bs0_pose | bs1_pose | bs2_pose | bs3_pose | cf1_pose | cf2_pose |
+    |-------------------------|----------|----------|----------|----------|----------|----------|
+    | cf0/bs2/sens0/ang0      |          |          | X        |          |          |          |
+    | cf0/bs2/sens0/ang1      |          |          | X        |          |          |          |
+    | cf0/bs2/sens1/ang0      |          |          | X        |          |          |          |
+    | cf0/bs2/sens1/ang1      |          |          | X        |          |          |          |
+    |                         |          |          |          |          |          |          |
+    | cf0/bs3/sens0/ang0      |          |          |          | X        |          |          |
+    | cf0/bs3/sens0/ang1      |          |          |          | X        |          |          |
+    | cf0/bs3/sens1/ang0      |          |          |          | X        |          |          |
+    | cf0/bs3/sens1/ang1      |          |          |          | X        |          |          |
+    |                         |          |          |          |          |          |          |
+    | cf1/bs1/sens0/ang0      |          | X        |          |          | X        |          |
+    | cf1/bs1/sens0/ang1      |          | X        |          |          | X        |          |
+    | cf1/bs1/sens1/ang0      |          | X        |          |          | X        |          |
+    | cf1/bs1/sens1/ang1      |          | X        |          |          | X        |          |
+    |                         |          |          |          |          |          |          |
+    | cf1/bs2/sens0/ang0      |          |          | X        |          | X        |          |
+    | cf1/bs2/sens0/ang1      |          |          | X        |          | X        |          |
+    | cf1/bs2/sens1/ang0      |          |          | X        |          | X        |          |
+    | cf1/bs2/sens1/ang1      |          |          | X        |          | X        |          |
+    |                         |          |          |          |          |          |          |
+    | cf2/bs1/sens0/ang0      |          | X        |          |          |          | X        |
+    | cf2/bs1/sens0/ang1      |          | X        |          |          |          | X        |
+    | cf2/bs1/sens1/ang0      |          | X        |          |          |          | X        |
+    | cf2/bs1/sens1/ang1      |          | X        |          |          |          | X        |
+    |                         |          |          |          |          |          |          |
+    | cf2/bs3/sens0/ang0      |          |          |          | X        |          | X        |
+    | cf2/bs3/sens0/ang1      |          |          |          | X        |          | X        |
+    | cf2/bs3/sens1/ang0      |          |          |          | X        |          | X        |
+    | cf2/bs3/sens1/ang1      |          |          |          | X        |          | X        |
 
-    cf0/bs2/sens0/ang0                        X
-    cf0/bs2/sens0/ang1                        X
-    cf0/bs2/sens1/ang0                        X
-    cf0/bs2/sens1/ang1                        X
-    ...
-    cf0/bs3/sens0/ang0                                  X
-    cf0/bs3/sens0/ang1                                  X
-    cf0/bs3/sens1/ang0                                  X
-    cf0/bs3/sens1/ang1                                  X
-    ...
-    cf1/bs1/sens0/ang0              X                             X
-    cf1/bs1/sens0/ang1              X                             X
-    cf1/bs1/sens1/ang0              X                             X
-    cf1/bs1/sens1/ang1              X                             X
-    ...
-    cf1/bs2/sens0/ang0                        X                   X
-    cf1/bs2/sens0/ang1                        X                   X
-    cf1/bs2/sens1/ang0                        X                   X
-    cf1/bs2/sens1/ang1                        X                   X
-    ...
-    cf2/bs1/sens0/ang0              X                                      X
-    cf2/bs1/sens0/ang1              X                                      X
-    cf2/bs1/sens1/ang0              X                                      X
-    cf2/bs1/sens1/ang1              X                                      X
-    ...
-    cf2/bs3/sens0/ang0                                  X                  X
-    cf2/bs3/sens0/ang1                                  X                  X
-    cf2/bs3/sens1/ang0                                  X                  X
-    cf2/bs3/sens1/ang1                                  X                  X
-    ...
     """
 
     @classmethod

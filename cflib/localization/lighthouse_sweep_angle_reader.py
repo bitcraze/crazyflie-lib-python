@@ -20,6 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 from collections.abc import Callable
+from threading import Timer
 
 from cflib.crazyflie import Crazyflie
 from cflib.localization import LighthouseBsVector
@@ -173,11 +174,14 @@ class LighthouseMatchedSweepAngleReader():
     MATCHED_STREAM_MAX_TIME_PARAM = 'locSrv.maxTimeLhMtchStm'
     NR_OF_SENSORS = 4
 
-    def __init__(self, cf: Crazyflie, data_recevied_cb, sample_count: int = 1, min_bs: int = 2, max_time_ms: int = 25):
+    def __init__(self, cf: Crazyflie, data_recevied_cb, timeout_cb=None, sample_count: int = 1, min_bs: int = 2,
+                 max_time_ms: int = 25):
         self._cf = cf
-        self._cb = data_recevied_cb
+        self._data_cb = data_recevied_cb
+        self._timeout_cb = timeout_cb
         self._is_active = False
         self._sample_count = sample_count
+        self._sample_count_remaining = 0
 
         # The maximum number of base stations is limited in the CF due to memory considerations.
         if min_bs > 4:
@@ -189,18 +193,40 @@ class LighthouseMatchedSweepAngleReader():
         self._current_group_id = 0
         self._angles: dict[int, LighthouseBsVectors] = {}
 
-    def start(self):
-        """Start reading sweep angles"""
+        self._timeout_timer = None
+
+    def start(self, timeout: float = 0.0):
+        """Start reading sweep angles
+
+        Args:
+            timeout (float): timeout in seconds, 0.0 means no timeout
+        """
         self._cf.loc.receivedLocationPacket.add_callback(self._packet_received_cb)
         self._is_active = True
         self._angle_stream_activate(True)
+        self._sample_count_remaining = self._sample_count
+
+        self._clear_timer()
+        self._timeout_timer = Timer(timeout, self._timer_done_cb)
+        self._timeout_timer.start()
 
     def stop(self):
         """Stop reading sweep angles"""
         if self._is_active:
             self._is_active = False
+            self._clear_timer()
             self._cf.loc.receivedLocationPacket.remove_callback(self._packet_received_cb)
             self._angle_stream_activate(False)
+
+    def _clear_timer(self):
+        if self._timeout_timer is not None:
+            self._timeout_timer.cancel()
+            self._timeout_timer = None
+
+    def _timer_done_cb(self):
+        self.stop()
+        if self._timeout_cb:
+            self._timeout_cb()
 
     def _angle_stream_activate(self, is_active: bool):
         value = 0
@@ -226,7 +252,7 @@ class LighthouseMatchedSweepAngleReader():
                 if len(self._angles) >= self._min_bs:
                     # We have enough angles in the previous group even though all angles were not received
                     # Lost a packet?
-                    self._call_callback()
+                    self._call_data_callback()
 
                 # Reset
                 self._current_group_id = group_id
@@ -239,9 +265,15 @@ class LighthouseMatchedSweepAngleReader():
 
             if len(self._angles) == bs_count:
                 # We have received all angles for this group, call the callback
-                self._call_callback()
+                self._call_data_callback()
 
-    def _call_callback(self):
-        if self._cb:
-            self._cb(LhCfPoseSample(self._angles))
+            if self._sample_count_remaining <= 0:
+                # We have received enough samples, stop the reader
+                self.stop()
+
+    def _call_data_callback(self):
+        self._sample_count_remaining -= 1
+
+        if self._data_cb:
+            self._data_cb(LhCfPoseSample(self._angles))
             self._angles = {}

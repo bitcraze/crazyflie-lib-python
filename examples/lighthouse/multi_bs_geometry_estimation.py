@@ -144,11 +144,11 @@ def parse_recording_time(recording_time: str, default: int) -> int:
         return default
 
 
-def print_base_stations_poses(base_stations: dict[int, Pose]):
+def print_base_stations_poses(base_stations: dict[int, Pose], printer=print):
     """Pretty print of base stations pose"""
     for bs_id, pose in sorted(base_stations.items()):
         pos = pose.translation
-        print(f'    {bs_id + 1}: ({pos[0]}, {pos[1]}, {pos[2]})')
+        printer(f'    {bs_id + 1}: ({pos[0]}, {pos[1]}, {pos[2]})')
 
 
 def set_axes_equal(ax):
@@ -225,19 +225,21 @@ def load_from_file(name: str) -> LhGeoInputContainerData:
 
 
 def print_solution(solution: LighthouseGeometrySolution):
-    print('Solution ready --------------------------------------')
-    print('  Base stations at:')
+    def _print(msg: str):
+        print(f'      * {msg}')
+    _print('Solution ready --------------------------------------')
+    _print('  Base stations at:')
     bs_poses = solution.poses.bs_poses
-    print_base_stations_poses(bs_poses)
+    print_base_stations_poses(bs_poses, printer=_print)
 
-    print(f'Converged: {solution.has_converged}')
-    print(f'Progress info: {solution.progress_info}')
-    print(f'Progress is ok: {solution.progress_is_ok}')
-    print(f'Origin: {solution.is_origin_sample_valid}, {solution.origin_sample_info}')
-    print(f'X-axis: {solution.is_x_axis_samples_valid}, {solution.x_axis_samples_info}')
-    print(f'XY-plane: {solution.is_xy_plane_samples_valid}, {solution.xy_plane_samples_info}')
-    print(f'XYZ space: {solution.xyz_space_samples_info}')
-    print(f'General info: {solution.general_failure_info}')
+    _print(f'Converged: {solution.has_converged}')
+    _print(f'Progress info: {solution.progress_info}')
+    _print(f'Progress is ok: {solution.progress_is_ok}')
+    _print(f'Origin: {solution.is_origin_sample_valid}, {solution.origin_sample_info}')
+    _print(f'X-axis: {solution.is_x_axis_samples_valid}, {solution.x_axis_samples_info}')
+    _print(f'XY-plane: {solution.is_xy_plane_samples_valid}, {solution.xy_plane_samples_info}')
+    _print(f'XYZ space: {solution.xyz_space_samples_info}')
+    _print(f'General info: {solution.general_failure_info}')
 
 
 def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):
@@ -274,8 +276,10 @@ def get_recording(scf: SyncCrazyflie) -> LhCfPoseSample:
         measurement = record_angles_average(scf)
         if measurement is not None:
             data = measurement
+            scf.cf.platform.send_user_notification(True)
             break  # Exit the loop if a valid measurement is obtained
         else:
+            scf.cf.platform.send_user_notification(False)
             time.sleep(1)
             print('Invalid measurement, please try again.')
     return data
@@ -301,8 +305,10 @@ def get_multiple_recordings(scf: SyncCrazyflie) -> list[LhCfPoseSample]:
         print('  Recording...')
         measurement = record_angles_average(scf)
         if measurement is not None:
+            scf.cf.platform.send_user_notification(True)
             data.append(measurement)
         else:
+            scf.cf.platform.send_user_notification(False)
             time.sleep(1)
             print('Invalid measurement, please try again.')
 
@@ -322,7 +328,7 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
                 upload_geometry(scf, solution.poses.bs_poses)
                 print('Geometry uploaded to Crazyflie.')
 
-        thread = LhGeoEstimationManager.SolverThread(container, is_done_cb=print_solution)
+        thread = LhGeoEstimationManager.SolverThread(container, is_done_cb=_local_solution_handler)
         thread.start()
 
         print('  Connected')
@@ -350,19 +356,24 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
               'around the Z-axis. This will trigger a measurement of the base station angles. ')
 
         def matched_angles_cb(sample: LhCfPoseSample):
-            print('Sampled position')
+            print('Position stored')
+            scf.cf.platform.send_user_notification(True)
             container.append_xyz_space_samples([sample])
+            scf.cf.platform.send_user_notification()
             write_to_file(file_name, container)
-        angle_reader = LighthouseMatchedSweepAngleReader(scf.cf, matched_angles_cb)
+
+        def timeout_cb():
+            print('Timeout, no angles received. Please try again.')
+            scf.cf.platform.send_user_notification(False)
+        angle_reader = LighthouseMatchedSweepAngleReader(scf.cf, matched_angles_cb, timeout_cb=timeout_cb)
 
         def user_action_cb():
-            angle_reader.start()
+            print("Sampling...")
+            angle_reader.start(timeout=1.0)
         detector = UserActionDetector(scf.cf, cb=user_action_cb)
 
         detector.start()
-        while True:
-            time.sleep(0.5)
-            # TODO krri
+        input('Press return to terminate the script when all required positions have been sampled.')
 
         detector.stop()
         thread.stop()

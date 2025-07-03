@@ -240,6 +240,7 @@ def print_solution(solution: LighthouseGeometrySolution):
     _print(f'XY-plane: {solution.is_xy_plane_samples_valid}, {solution.xy_plane_samples_info}')
     _print(f'XYZ space: {solution.xyz_space_samples_info}')
     _print(f'General info: {solution.general_failure_info}')
+    _print(f'Error info: {solution.error_stats}')
 
 
 def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):
@@ -368,7 +369,7 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
         angle_reader = LighthouseMatchedSweepAngleReader(scf.cf, matched_angles_cb, timeout_cb=timeout_cb)
 
         def user_action_cb():
-            print("Sampling...")
+            print('Sampling...')
             angle_reader.start(timeout=1.0)
         detector = UserActionDetector(scf.cf, cb=user_action_cb)
 

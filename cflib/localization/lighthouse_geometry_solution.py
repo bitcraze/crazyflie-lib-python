@@ -1,3 +1,29 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+#     ||          ____  _ __
+#  +------+      / __ )(_) /_______________ _____  ___
+#  | 0xBC |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
+#  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
+#   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
+#
+#  Copyright (C) 2025 Bitcraze AB
+#
+#  Crazyflie Nano Quadcopter Client
+#
+#  This program is free software; you can redistribute it and/or
+#  modify it under the terms of the GNU General Public License
+#  as published by the Free Software Foundation; either version 2
+#  of the License, or (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+from collections import namedtuple
+
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhBsCfPoses
 
@@ -7,13 +33,14 @@ class LighthouseGeometrySolution:
     A class to represent the solution of a lighthouse geometry problem.
     """
 
+    ErrorStats = namedtuple('ErrorStats', ['mean', 'max', 'std'])
+
     def __init__(self):
         # The estimated poses of the base stations and the CF samples
         self.poses = LhBsCfPoses(bs_poses={}, cf_poses=[])
 
         # Information about errors in the solution
-        # TODO krri This data is not well structured
-        self.error_info = {}
+        self.error_stats = self.ErrorStats(0.0, 0.0, 0.0)
 
         # Indicates if the solution converged (True).
         # If it did not converge, the solution is possibly not good enough to use

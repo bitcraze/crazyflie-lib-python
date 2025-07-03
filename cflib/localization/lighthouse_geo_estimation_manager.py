@@ -34,6 +34,7 @@ from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEst
 from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
 from cflib.localization.lighthouse_system_scaler import LighthouseSystemScaler
 from cflib.localization.lighthouse_types import LhBsCfPoses
+from cflib.localization.lighthouse_utils import LighthouseCrossingBeam
 
 
 ArrayFloat = npt.NDArray[np.float_]
@@ -80,7 +81,6 @@ class LhGeoEstimationManager():
             initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(validated_matched_samples,
                                                                                          solution)
             solution.poses = initial_guess
-
             if solution.progress_is_ok:
                 solution.progress_info = 'Refining geometry solution'
                 LighthouseGeometrySolver.solve(initial_guess, cleaned_matched_samples, container.sensor_positions,
@@ -88,6 +88,8 @@ class LhGeoEstimationManager():
                 solution.progress_info = 'Align and scale solution'
                 scaled_solution = cls.align_and_scale_solution(container, solution.poses, cls.REFERENCE_DIST)
                 solution.poses = scaled_solution
+
+                cls._create_solution_stats(validated_matched_samples, solution)
 
         cls._humanize_error_info(solution, container)
 
@@ -173,6 +175,26 @@ class LhGeoEstimationManager():
             return False, ', '.join(info_strings)
         else:
             return True, ''
+
+    @classmethod
+    def _create_solution_stats(cls, matched_samples: list[LhCfPoseSample], solution: LighthouseGeometrySolution) -> None:
+        """Calculate statistics about the solution and store them in the solution object"""
+
+        # Estimated worst error for each sample based on crossing beams
+        estimated_errors: list[float] = []
+
+        for sample in matched_samples:
+            bs_ids = list(sample.angles_calibrated.keys())
+
+            bs_angle_list = [(solution.poses.bs_poses[bs_id], sample.angles_calibrated[bs_id]) for bs_id in bs_ids]
+            sample_error = LighthouseCrossingBeam.max_distance_all_permutations(bs_angle_list)
+            estimated_errors.append(sample_error)
+
+        solution.error_stats = LighthouseGeometrySolution.ErrorStats(
+            mean=np.mean(estimated_errors),
+            max=np.max(estimated_errors),
+            std=np.std(estimated_errors)
+        )
 
     class SolverThread(threading.Thread):
         """This class runs the geometry solver in a separate thread.

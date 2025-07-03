@@ -77,11 +77,6 @@ class LighthouseInitialEstimator:
         if not solution.progress_is_ok:
             return LhBsCfPoses(bs_poses={}, cf_poses=[]), cleaned_matched_samples
 
-        # TODO krri: We should check that we have enough links between base stations and fail with good
-        # user information if not.
-        # We could also filter out base stations that are not linked instead of failing the solution (in
-        # _estimate_bs_poses()).
-
         # Calculate the pose of all base stations, based on the pose of one base station
         try:
             bs_poses = cls._estimate_bs_poses(bs_poses_ref_cfs)

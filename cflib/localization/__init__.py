@@ -26,6 +26,7 @@ from .lighthouse_config_manager import LighthouseConfigWriter
 from .lighthouse_sweep_angle_reader import LighthouseMatchedSweepAngleReader
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
+from .lighthouse_utils import LighthouseCrossingBeam
 from .param_io import ParamFileManager
 
 __all__ = [
@@ -36,4 +37,5 @@ __all__ = [
     'LighthouseMatchedSweepAngleReader',
     'LighthouseConfigFileManager',
     'LighthouseConfigWriter',
-    'ParamFileManager']
+    'ParamFileManager',
+    'LighthouseCrossingBeam']

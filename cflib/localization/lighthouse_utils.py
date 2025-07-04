@@ -21,12 +21,11 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 from __future__ import annotations
 
-import math
-
 import numpy as np
 import numpy.typing as npt
 
-from cflib.localization.lighthouse_bs_vector import LighthouseBsVector, LighthouseBsVectors
+from cflib.localization.lighthouse_bs_vector import LighthouseBsVector
+from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
 from cflib.localization.lighthouse_types import Pose
 
 
@@ -146,7 +145,7 @@ class LighthouseCrossingBeam:
             float: The maximum distance between the beams from all permutations of base stations.
         """
         if len(bs_angles) < 2:
-            raise ValueError("At least two base stations are required to calculate the maximum distance.")
+            raise ValueError('At least two base stations are required to calculate the maximum distance.')
 
         max_distance = 0.0
         bs_count = len(bs_angles)

@@ -25,6 +25,7 @@ from typing import NamedTuple
 
 import numpy as np
 import numpy.typing as npt
+import yaml
 from scipy.spatial.transform import Rotation
 
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
@@ -134,6 +135,32 @@ class Pose:
         R = np.dot(inv_rot_matrix, pose.rot_matrix)
 
         return Pose(R_matrix=R, t_vec=t)
+
+    def __eq__(self, other):
+        if not isinstance(other, Pose):
+            return NotImplemented
+
+        return np.array_equal(self._R_matrix, other._R_matrix) and np.array_equal(self._t_vec, other._t_vec)
+
+    @staticmethod
+    def yaml_representer(dumper, data: Pose):
+        """Represent a Pose object in YAML"""
+        return dumper.represent_mapping('!Pose', {
+            'R_matrix': data.rot_matrix.tolist(),
+            't_vec': data.translation.tolist()
+        })
+
+    @staticmethod
+    def yaml_constructor(loader, node):
+        """Construct a Pose object from YAML"""
+        values = loader.construct_mapping(node, deep=True)
+        R_matrix = np.array(values['R_matrix'])
+        t_vec = np.array(values['t_vec'])
+        return Pose(R_matrix=R_matrix, t_vec=t_vec)
+
+
+yaml.add_representer(Pose, Pose.yaml_representer)
+yaml.add_constructor('!Pose', Pose.yaml_constructor)
 
 
 class LhMeasurement(NamedTuple):

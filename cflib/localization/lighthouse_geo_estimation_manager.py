@@ -23,9 +23,11 @@ from __future__ import annotations
 
 import copy
 import threading
+from typing import TextIO
 
 import numpy as np
 import numpy.typing as npt
+import yaml
 
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
@@ -177,7 +179,7 @@ class LhGeoEstimationManager():
             return True, ''
 
     @classmethod
-    def _create_solution_stats(cls, matched_samples: list[LhCfPoseSample], solution: LighthouseGeometrySolution) -> None:
+    def _create_solution_stats(cls, matched_samples: list[LhCfPoseSample], solution: LighthouseGeometrySolution):
         """Calculate statistics about the solution and store them in the solution object"""
 
         # Estimated worst error for each sample based on crossing beams
@@ -256,8 +258,9 @@ class LhGeoEstimationManager():
 
 
 class LhGeoInputContainerData():
-    def __init__(self, sensor_positions: ArrayFloat) -> None:
-        self.EMPTY_POSE_SAMPLE = LhCfPoseSample(angles_calibrated={})
+    EMPTY_POSE_SAMPLE = LhCfPoseSample(angles_calibrated={})
+
+    def __init__(self, sensor_positions: ArrayFloat, version: int = 0) -> None:
         self.sensor_positions = sensor_positions
 
         self.origin: LhCfPoseSample = self.EMPTY_POSE_SAMPLE
@@ -265,7 +268,8 @@ class LhGeoInputContainerData():
         self.xy_plane: list[LhCfPoseSample] = []
         self.xyz_space: list[LhCfPoseSample] = []
 
-        self.version = 0
+        # Used by LhGeoInputContainer to track changes in the data
+        self.version = version
 
     def get_matched_samples(self) -> list[LhCfPoseSample]:
         """Get all pose samples collected in a list
@@ -275,10 +279,50 @@ class LhGeoInputContainerData():
         """
         return [self.origin] + self.x_axis + self.xy_plane + self.xyz_space
 
+    @staticmethod
+    def yaml_representer(dumper, data: LhGeoInputContainerData):
+        return dumper.represent_mapping('!LhGeoInputContainerData', {
+            'origin': data.origin,
+            'x_axis': data.x_axis,
+            'xy_plane': data.xy_plane,
+            'xyz_space': data.xyz_space,
+            'sensor_positions': data.sensor_positions.tolist(),
+        })
+
+    @staticmethod
+    def yaml_constructor(loader, node):
+        values = loader.construct_mapping(node, deep=True)
+        sensor_positions = np.array(values['sensor_positions'], dtype=np.float_)
+        result = LhGeoInputContainerData(sensor_positions)
+
+        result.origin = values['origin']
+        result.x_axis = values['x_axis']
+        result.xy_plane = values['xy_plane']
+        result.xyz_space = values['xyz_space']
+
+        # Augment the samples with the sensor positions
+        result.origin.augment_with_ippe(sensor_positions)
+
+        for sample in result.x_axis:
+            sample.augment_with_ippe(sensor_positions)
+
+        for sample in result.xy_plane:
+            sample.augment_with_ippe(sensor_positions)
+
+        for sample in result.xyz_space:
+            sample.augment_with_ippe(sensor_positions)
+
+        return result
+
+
+yaml.add_representer(LhGeoInputContainerData, LhGeoInputContainerData.yaml_representer)
+yaml.add_constructor('!LhGeoInputContainerData', LhGeoInputContainerData.yaml_constructor)
+
 
 class LhGeoInputContainer():
     """This class holds the input data required by the geometry estimation functionality.
     """
+    FILE_TYPE_VERSION = 1
 
     def __init__(self, sensor_positions: ArrayFloat) -> None:
         self._data = LhGeoInputContainerData(sensor_positions)
@@ -362,19 +406,7 @@ class LhGeoInputContainer():
 
     def clear_all_samples(self) -> None:
         """Clear all samples in the container"""
-        self._data.origin = self._data.EMPTY_POSE_SAMPLE
-        self._data.x_axis = []
-        self._data.xy_plane = []
-        self._data.xyz_space = []
-        self._update_version()
-
-    def _augment_sample(self, sample: LhCfPoseSample, is_mandatory: bool) -> None:
-        sample.augment_with_ippe(self._data.sensor_positions)
-        sample.is_mandatory = is_mandatory
-
-    def _augment_samples(self, samples: list[LhCfPoseSample], is_mandatory: bool) -> None:
-        for sample in samples:
-            self._augment_sample(sample, is_mandatory)
+        self._set_new_data_container(LhGeoInputContainerData(self._data.sensor_positions))
 
     def get_data_version(self) -> int:
         """Get the current data version
@@ -391,6 +423,45 @@ class LhGeoInputContainer():
             LhGeoInputContainerData: A copy of the data in the container
         """
         return copy.deepcopy(self._data)
+
+    def save_as_yaml_file(self, text_io: TextIO):
+        """Get the data in the container as a YAML string suitable for saving to a file
+        Returns:
+            str: The data in the container as a YAML string
+        """
+        data = {
+            'file_type_version': self.FILE_TYPE_VERSION,
+            'data': self._data
+        }
+        yaml.dump(data, text_io, default_flow_style=False)
+
+    def populate_from_file_yaml(self, text_io: TextIO) -> None:
+        """Load the data from file
+
+        Args:
+            wrapper
+        """
+        file_yaml = yaml.load(text_io, Loader=yaml.FullLoader)
+        if file_yaml['file_type_version'] != self.FILE_TYPE_VERSION:
+            raise ValueError(f'Unsupported file type version: {file_yaml["file_type_version"]}')
+        self._data = file_yaml['data']
+        self._update_version()
+
+    def _set_new_data_container(self, new_data: LhGeoInputContainerData) -> None:
+        """Set a new data container and update the version"""
+        # Maintain version
+        current_version = self._data.version
+        self._data = new_data
+        self._data.version = current_version
+        self._update_version()
+
+    def _augment_sample(self, sample: LhCfPoseSample, is_mandatory: bool) -> None:
+        sample.augment_with_ippe(self._data.sensor_positions)
+        sample.is_mandatory = is_mandatory
+
+    def _augment_samples(self, samples: list[LhCfPoseSample], is_mandatory: bool) -> None:
+        for sample in samples:
+            self._augment_sample(sample, is_mandatory)
 
     def _update_version(self) -> None:
         """Update the data version and notify the waiting thread"""

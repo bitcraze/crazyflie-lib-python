@@ -2,6 +2,7 @@ from typing import NamedTuple
 
 import numpy as np
 import numpy.typing as npt
+import yaml
 
 from .ippe_cf import IppeCf
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
@@ -25,7 +26,8 @@ class LhCfPoseSample:
     The ippe solution is somewhat heavy and is only created on demand by calling augment_with_ippe()
     """
 
-    def __init__(self, angles_calibrated: dict[int, LighthouseBsVectors], timestamp: float = 0.0) -> None:
+    def __init__(self, angles_calibrated: dict[int, LighthouseBsVectors], timestamp: float = 0.0,
+                 is_mandatory: bool = False) -> None:
         self.timestamp: float = timestamp
 
         # Angles measured by the Crazyflie and compensated using calibration data
@@ -39,7 +41,7 @@ class LhCfPoseSample:
 
         # Some samples are mandatory and must not be removed, even if they appear to be outliers. For instance the
         # the samples that define the origin or x-axis
-        self.is_mandatory = False
+        self.is_mandatory = is_mandatory
 
     def augment_with_ippe(self, sensor_positions: ArrayFloat) -> None:
         if not self.is_augmented:
@@ -77,3 +79,31 @@ class LhCfPoseSample:
         t_2 = np.dot(rot_2, -estimates_ref_bs[1].t)
 
         return BsPairPoses(Pose(rot_1, t_1), Pose(rot_2, t_2))
+
+    def __eq__(self, other):
+        if not isinstance(other, LhCfPoseSample):
+            return NotImplemented
+
+        return (self.timestamp == other.timestamp and
+                self.angles_calibrated == other.angles_calibrated and
+                self.is_mandatory == other.is_mandatory)
+
+    @staticmethod
+    def yaml_representer(dumper, data: 'LhCfPoseSample'):
+        return dumper.represent_mapping('!LhCfPoseSample', {
+            'timestamp': data.timestamp,
+            'angles_calibrated': data.angles_calibrated,
+            'is_mandatory': data.is_mandatory
+        })
+
+    @staticmethod
+    def yaml_constructor(loader, node):
+        values = loader.construct_mapping(node, deep=True)
+        timestamp = values.get('timestamp', 0.0)
+        angles_calibrated = values.get('angles_calibrated', {})
+        is_mandatory = values.get('is_mandatory', False)
+        return LhCfPoseSample(angles_calibrated, timestamp, is_mandatory)
+
+
+yaml.add_representer(LhCfPoseSample, LhCfPoseSample.yaml_representer)
+yaml.add_constructor('!LhCfPoseSample', LhCfPoseSample.yaml_constructor)

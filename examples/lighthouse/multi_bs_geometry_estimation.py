@@ -44,7 +44,6 @@ received by the Crazyflie before this script is executed.
 from __future__ import annotations
 
 import logging
-import pickle
 import time
 from threading import Event
 
@@ -214,14 +213,15 @@ def visualize(poses: LhBsCfPoses):
 
 def write_to_file(name: str | None, container: LhGeoInputContainer):
     if name:
-        with open(name, 'wb') as handle:
-            data = container.get_data_copy()
-            pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(name, 'w', encoding='UTF8') as handle:
+            container.save_as_yaml_file(handle)
 
 
 def load_from_file(name: str) -> LhGeoInputContainerData:
-    with open(name, 'rb') as handle:
-        return pickle.load(handle)
+    container = LhGeoInputContainer(LhDeck4SensorPositions.positions)
+    with open(name, 'r', encoding='UTF8') as handle:
+        container.populate_from_file_yaml(handle)
+        return container.get_data_copy()
 
 
 def print_solution(solution: LighthouseGeometrySolution):
@@ -391,7 +391,7 @@ if __name__ == '__main__':
 
     # Set a file name to write the measurement data to file. Useful for debugging
     file_name = None
-    # file_name = 'lh_geo_estimate_data.pickle'
+    file_name = 'lh_geo_estimate_data.yaml'
 
     connect_and_estimate(uri, file_name=file_name)
 

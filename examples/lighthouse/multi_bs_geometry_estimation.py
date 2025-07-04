@@ -211,12 +211,6 @@ def visualize(poses: LhBsCfPoses):
         plt.show()
 
 
-def write_to_file(name: str | None, container: LhGeoInputContainer):
-    if name:
-        with open(name, 'w', encoding='UTF8') as handle:
-            container.save_as_yaml_file(handle)
-
-
 def load_from_file(name: str) -> LhGeoInputContainerData:
     container = LhGeoInputContainer(LhDeck4SensorPositions.positions)
     with open(name, 'r', encoding='UTF8') as handle:
@@ -321,6 +315,7 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
     print(f'Step 1. Connecting to the Crazyflie on uri {uri}...')
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         container = LhGeoInputContainer(LhDeck4SensorPositions.positions)
+        container.enable_auto_save('lh_geo_sessions')
         print('Starting geometry estimation thread...')
 
         def _local_solution_handler(solution: LighthouseGeometrySolution):
@@ -339,17 +334,14 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
         print('Step 2. Put the Crazyflie where you want the origin of your coordinate system.')
 
         container.set_origin_sample(get_recording(scf))
-        write_to_file(file_name, container)
 
         print(f'Step 3. Put the Crazyflie on the positive X-axis, exactly {REFERENCE_DIST} meters from the origin. ' +
               'This position defines the direction of the X-axis, but it is also used for scaling the system.')
         container.set_x_axis_sample(get_recording(scf))
-        write_to_file(file_name, container)
 
         print('Step 4. Put the Crazyflie somewhere in the XY-plane, but not on the X-axis.')
         print('Multiple samples can be recorded if you want to.')
         container.set_xy_plane_samples(get_multiple_recordings(scf))
-        write_to_file(file_name, container)
 
         print()
         print('Step 5. We will now record data from the space you plan to fly in and optimize the base station ' +
@@ -361,7 +353,6 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
             scf.cf.platform.send_user_notification(True)
             container.append_xyz_space_samples([sample])
             scf.cf.platform.send_user_notification()
-            write_to_file(file_name, container)
 
         def timeout_cb():
             print('Timeout, no angles received. Please try again.')

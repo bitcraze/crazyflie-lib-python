@@ -19,11 +19,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-import yaml
-from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
-from cflib.localization.lighthouse_bs_vector import LighthouseBsVector
-from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 from test.localization.lighthouse_test_base import LighthouseTestBase
+
+import yaml
+
+from cflib.localization.lighthouse_bs_vector import LighthouseBsVector
+from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
 
 
 class TestLhCfPoseSample(LighthouseTestBase):

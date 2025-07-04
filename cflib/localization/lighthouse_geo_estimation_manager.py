@@ -22,6 +22,9 @@
 from __future__ import annotations
 
 import copy
+import datetime
+import os
+import pathlib
 import threading
 from typing import TextIO
 
@@ -279,6 +282,17 @@ class LhGeoInputContainerData():
         """
         return [self.origin] + self.x_axis + self.xy_plane + self.xyz_space
 
+    def is_empty(self) -> bool:
+        """Check if the container is empty, meaning no samples are set
+
+        Returns:
+            bool: True if the container is empty, False otherwise
+        """
+        return (len(self.x_axis) == 0 and
+                len(self.xy_plane) == 0 and
+                len(self.xyz_space) == 0 and
+                self.origin == self.EMPTY_POSE_SAMPLE)
+
     @staticmethod
     def yaml_representer(dumper, data: LhGeoInputContainerData):
         return dumper.represent_mapping('!LhGeoInputContainerData', {
@@ -328,15 +342,20 @@ class LhGeoInputContainer():
         self._data = LhGeoInputContainerData(sensor_positions)
         self.is_modified_condition = threading.Condition()
 
+        self._session_name = None
+        self._session_path = os.getcwd()
+        self._auto_save = False
+
     def set_origin_sample(self, origin: LhCfPoseSample) -> None:
         """Store/update the sample to be used for the origin
 
         Args:
             origin (LhCfPoseSample): the new origin
         """
-        self._data.origin = origin
-        self._augment_sample(self._data.origin, True)
-        self._update_version()
+        with self.is_modified_condition:
+            self._data.origin = origin
+            self._augment_sample(self._data.origin, True)
+            self._handle_data_modification()
 
     def set_x_axis_sample(self, x_axis: LhCfPoseSample) -> None:
         """Store/update the sample to be used for the x_axis
@@ -344,9 +363,10 @@ class LhGeoInputContainer():
         Args:
             x_axis (LhCfPoseSample): the new x-axis sample
         """
-        self._data.x_axis = [x_axis]
-        self._augment_samples(self._data.x_axis, True)
-        self._update_version()
+        with self.is_modified_condition:
+            self._data.x_axis = [x_axis]
+            self._augment_samples(self._data.x_axis, True)
+            self._handle_data_modification()
 
     def set_xy_plane_samples(self, xy_plane: list[LhCfPoseSample]) -> None:
         """Store/update the samples to be used for the xy-plane
@@ -354,9 +374,10 @@ class LhGeoInputContainer():
         Args:
             xy_plane (list[LhCfPoseSample]): the new xy-plane samples
         """
-        self._data.xy_plane = xy_plane
-        self._augment_samples(self._data.xy_plane, True)
-        self._update_version()
+        with self.is_modified_condition:
+            self._data.xy_plane = xy_plane
+            self._augment_samples(self._data.xy_plane, True)
+            self._handle_data_modification()
 
     def append_xy_plane_sample(self, xy_plane: LhCfPoseSample) -> None:
         """append to the samples to be used for the xy-plane
@@ -364,9 +385,10 @@ class LhGeoInputContainer():
         Args:
             xy_plane (LhCfPoseSample): the new xy-plane sample
         """
-        self._augment_sample(xy_plane, True)
-        self._data.xy_plane.append(xy_plane)
-        self._update_version()
+        with self.is_modified_condition:
+            self._augment_sample(xy_plane, True)
+            self._data.xy_plane.append(xy_plane)
+            self._handle_data_modification()
 
     def xy_plane_sample_count(self) -> int:
         """Get the number of samples in the xy-plane
@@ -374,7 +396,8 @@ class LhGeoInputContainer():
         Returns:
             int: The number of samples in the xy-plane
         """
-        return len(self._data.xy_plane)
+        with self.is_modified_condition:
+            return len(self._data.xy_plane)
 
     def set_xyz_space_samples(self, samples: list[LhCfPoseSample]) -> None:
         """Store/update the samples for the volume
@@ -382,8 +405,12 @@ class LhGeoInputContainer():
         Args:
             samples (list[LhMeasurement]): the new samples
         """
-        self._data.xyz_space = []
-        self.append_xyz_space_samples(samples)
+        new_samples = samples
+        self._augment_samples(new_samples, False)
+        with self.is_modified_condition:
+            self._data.xyz_space = []
+            self.append_xyz_space_samples(new_samples)
+            self._handle_data_modification()
 
     def append_xyz_space_samples(self, samples: list[LhCfPoseSample]) -> None:
         """Append to the samples for the volume
@@ -393,8 +420,9 @@ class LhGeoInputContainer():
         """
         new_samples = samples
         self._augment_samples(new_samples, False)
-        self._data.xyz_space += new_samples
-        self._update_version()
+        with self.is_modified_condition:
+            self._data.xyz_space += new_samples
+            self._handle_data_modification()
 
     def xyz_space_sample_count(self) -> int:
         """Get the number of samples in the xyz space
@@ -402,7 +430,8 @@ class LhGeoInputContainer():
         Returns:
             int: The number of samples in the xyz space
         """
-        return len(self._data.xyz_space)
+        with self.is_modified_condition:
+            return len(self._data.xyz_space)
 
     def clear_all_samples(self) -> None:
         """Clear all samples in the container"""
@@ -414,7 +443,8 @@ class LhGeoInputContainer():
         Returns:
             int: The current data version
         """
-        return self._data.version
+        with self.is_modified_condition:
+            return self._data.version
 
     def get_data_copy(self) -> LhGeoInputContainerData:
         """Get a copy of the data in the container
@@ -422,38 +452,75 @@ class LhGeoInputContainer():
         Returns:
             LhGeoInputContainerData: A copy of the data in the container
         """
-        return copy.deepcopy(self._data)
+        with self.is_modified_condition:
+            return copy.deepcopy(self._data)
+
+    def is_empty(self) -> bool:
+        """Check if the container is empty
+
+        Returns:
+            bool: True if the container is empty, False otherwise
+        """
+        with self.is_modified_condition:
+            return self._data.is_empty()
 
     def save_as_yaml_file(self, text_io: TextIO):
-        """Get the data in the container as a YAML string suitable for saving to a file
-        Returns:
-            str: The data in the container as a YAML string
+        """Save the data container as a YAML file
+
+        Args:
+            text_io (TextIO): The text IO stream to write the YAML data to
         """
-        data = {
-            'file_type_version': self.FILE_TYPE_VERSION,
-            'data': self._data
+        with self.is_modified_condition:
+            self.save_data_container_as_yaml(self._data, text_io)
+
+    @classmethod
+    def save_data_container_as_yaml(cls, container_data: LhGeoInputContainerData, text_io: TextIO):
+        """Save the data container as a YAML string suitable for saving to a file
+
+        Args:
+            container_data (LhGeoInputContainerData): The data container to save
+            text_io (TextIO): The text IO stream to write the YAML data to
+        """
+        file_data = {
+            'file_type_version': cls.FILE_TYPE_VERSION,
+            'data': container_data
         }
-        yaml.dump(data, text_io, default_flow_style=False)
+        yaml.dump(file_data, text_io, default_flow_style=False)
 
     def populate_from_file_yaml(self, text_io: TextIO) -> None:
         """Load the data from file
 
         Args:
-            wrapper
+            text_io (TextIO): The text IO stream to read the YAML data from
+        Raises:
+            ValueError: If the file type version is not supported
         """
         file_yaml = yaml.load(text_io, Loader=yaml.FullLoader)
         if file_yaml['file_type_version'] != self.FILE_TYPE_VERSION:
             raise ValueError(f'Unsupported file type version: {file_yaml["file_type_version"]}')
-        self._data = file_yaml['data']
-        self._update_version()
+        self._set_new_data_container(file_yaml['data'])
+
+    def enable_auto_save(self, session_path: str = os.getcwd()) -> None:
+        """Enable auto-saving of the session data to a file in the specified path.
+        Session files will be named with the current date and time.
+
+        Args:
+            session_path (str): The path to save the session data to. Defaults to the current working directory.
+        """
+        self._session_path = session_path
+        self._auto_save = True
 
     def _set_new_data_container(self, new_data: LhGeoInputContainerData) -> None:
         """Set a new data container and update the version"""
+
         # Maintain version
-        current_version = self._data.version
-        self._data = new_data
-        self._data.version = current_version
-        self._update_version()
+        with self.is_modified_condition:
+            current_version = self._data.version
+            self._data = new_data
+            self._data.version = current_version
+
+            self._new_session()
+            self._handle_data_modification()
 
     def _augment_sample(self, sample: LhCfPoseSample, is_mandatory: bool) -> None:
         sample.augment_with_ippe(self._data.sensor_positions)
@@ -463,8 +530,24 @@ class LhGeoInputContainer():
         for sample in samples:
             self._augment_sample(sample, is_mandatory)
 
-    def _update_version(self) -> None:
+    def _handle_data_modification(self) -> None:
         """Update the data version and notify the waiting thread"""
         with self.is_modified_condition:
             self._data.version += 1
             self.is_modified_condition.notify()
+
+        self._save_session()
+
+    def _save_session(self) -> None:
+        if self._auto_save and not self.is_empty():
+            if self._session_name is None:
+                self._session_name = datetime.datetime.now().isoformat(timespec='seconds')
+
+            file_name = os.path.join(self._session_path, f'lh_geo_{self._session_name}.yaml')
+            pathlib.Path(self._session_path).mkdir(parents=True, exist_ok=True)
+            with open(file_name, 'w', encoding='UTF8') as handle:
+                self.save_as_yaml_file(handle)
+
+    def _new_session(self) -> None:
+        """Start a new session"""
+        self._session_name = None

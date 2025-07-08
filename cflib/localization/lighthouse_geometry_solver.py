@@ -383,6 +383,9 @@ class LighthouseGeometrySolver:
                           solution: LighthouseGeometrySolution) -> None:
         bss, cf_poses = cls._params_to_struct(lsq_result.x, defs)
 
+        # Clean previous solution
+        solution.poses = LhBsCfPoses(bs_poses={}, cf_poses=[])
+
         # Extract CF pose estimates
         # First pose (origin) is not in the parameter list
         solution.poses.cf_poses.append(Pose())

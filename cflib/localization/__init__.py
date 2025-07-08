@@ -23,6 +23,7 @@ from .lighthouse_bs_geo import LighthouseBsGeoEstimator
 from .lighthouse_bs_vector import LighthouseBsVector
 from .lighthouse_config_manager import LighthouseConfigFileManager
 from .lighthouse_config_manager import LighthouseConfigWriter
+from .lighthouse_geometry_solution import LighthouseGeometrySolution
 from .lighthouse_sweep_angle_reader import LighthouseMatchedSweepAngleReader
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
@@ -38,4 +39,5 @@ __all__ = [
     'LighthouseConfigFileManager',
     'LighthouseConfigWriter',
     'ParamFileManager',
-    'LighthouseCrossingBeam']
+    'LighthouseCrossingBeam',
+    'LighthouseGeometrySolution']

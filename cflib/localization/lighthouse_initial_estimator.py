@@ -191,6 +191,7 @@ class LighthouseInitialEstimator:
         result: list[dict[int, Pose]] = []
 
         cleaned_matched_samples: list[LhCfPoseSample] = []
+        outlier_count = 0
 
         for sample in matched_samples:
             solutions = sample.ippe_solutions
@@ -213,7 +214,8 @@ class LighthouseInitialEstimator:
                     if sample.is_mandatory:
                         solution.append_mandatory_issue_sample(sample, 'Outlier detected')
                     else:
-                        solution.xyz_space_samples_info = 'Sample(s) with outliers skipped'
+                        outlier_count += 1
+                        solution.xyz_space_samples_info = f'{outlier_count} sample(s) with outliers skipped'
                     break
 
             if is_sample_valid or sample.is_mandatory:

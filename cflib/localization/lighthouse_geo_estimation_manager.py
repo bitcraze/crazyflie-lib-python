@@ -33,12 +33,14 @@ import numpy.typing as npt
 import yaml
 
 from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleStatus
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleType
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleWrapper
 from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
 from cflib.localization.lighthouse_system_scaler import LighthouseSystemScaler
-from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.localization.lighthouse_utils import LighthouseCrossingBeam
 
 
@@ -49,21 +51,25 @@ class LhGeoEstimationManager():
     REFERENCE_DIST = 1.0  # Reference distance used for scaling the solution
 
     @classmethod
-    def align_and_scale_solution(cls, container: LhGeoInputContainerData, poses: LhBsCfPoses,
-                                 reference_distance: float) -> LhBsCfPoses:
+    def align_and_scale_solution(cls, container: LhGeoInputContainerData, solution: LighthouseGeometrySolution,
+                                 samples: list[LhCfPoseSampleWrapper], reference_distance: float):
+
+        # Note: samples is a subset of solution.samples
+        bs_poses = solution.bs_poses
+
         start_idx_x_axis = 1
         start_idx_xy_plane = start_idx_x_axis + len(container.x_axis)
         start_idx_xyz_space = start_idx_xy_plane + len(container.xy_plane)
 
-        origin_pos = poses.cf_poses[0].translation
-        x_axis_poses = poses.cf_poses[start_idx_x_axis:start_idx_x_axis + len(container.x_axis)]
-        x_axis_pos = list(map(lambda x: x.translation, x_axis_poses))
-        xy_plane_poses = poses.cf_poses[start_idx_xy_plane:start_idx_xyz_space]
-        xy_plane_pos = list(map(lambda x: x.translation, xy_plane_poses))
+        origin_pos = samples[0].pose.translation
+        x_axis_samples = samples[start_idx_x_axis:start_idx_x_axis + len(container.x_axis)]
+        x_axis_pos = list(map(lambda x: x.pose.translation, x_axis_samples))
+        xy_plane_samples = samples[start_idx_xy_plane:start_idx_xyz_space]
+        xy_plane_pos = list(map(lambda x: x.pose.translation, xy_plane_samples))
 
         # Align the solution
-        bs_aligned_poses, trnsfrm = LighthouseSystemAligner.align(origin_pos, x_axis_pos, xy_plane_pos, poses.bs_poses)
-        cf_aligned_poses = list(map(trnsfrm.rotate_translate_pose, poses.cf_poses))
+        bs_aligned_poses, trnsfrm = LighthouseSystemAligner.align(origin_pos, x_axis_pos, xy_plane_pos, bs_poses)
+        cf_aligned_poses = list(map(lambda sample: trnsfrm.rotate_translate_pose(sample.pose), samples))
 
         # Scale the solution
         bs_scaled_poses, cf_scaled_poses, scale = LighthouseSystemScaler.scale_fixed_point(bs_aligned_poses,
@@ -71,28 +77,28 @@ class LhGeoEstimationManager():
                                                                                            [reference_distance, 0, 0],
                                                                                            cf_aligned_poses[1])
 
-        return LhBsCfPoses(bs_poses=bs_scaled_poses, cf_poses=cf_scaled_poses)
+        # Update the solution with the aligned and scaled poses
+        solution.bs_poses = bs_scaled_poses
+        for sample, pose in zip(samples, cf_scaled_poses):
+            sample.pose = pose
 
     @classmethod
     def estimate_geometry(cls, container: LhGeoInputContainerData) -> LighthouseGeometrySolution:
         """Estimate the geometry of the system based on samples recorded by a Crazyflie"""
-        solution = LighthouseGeometrySolution()
-
         matched_samples = container.get_matched_samples()
+        solution = LighthouseGeometrySolution(samples=matched_samples)
+
         solution.progress_info = 'Data validation'
         validated_matched_samples = cls._data_validation(matched_samples, container, solution)
         if solution.progress_is_ok:
             solution.progress_info = 'Initial estimation of geometry'
-            initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(validated_matched_samples,
-                                                                                         solution)
-            solution.poses = initial_guess
+            cleaned_matched_samples = LighthouseInitialEstimator.estimate(validated_matched_samples, solution)
             if solution.progress_is_ok:
                 solution.progress_info = 'Refining geometry solution'
-                LighthouseGeometrySolver.solve(initial_guess, cleaned_matched_samples, container.sensor_positions,
-                                               solution)
+                LighthouseGeometrySolver.solve(cleaned_matched_samples, container.sensor_positions, solution)
                 solution.progress_info = 'Align and scale solution'
-                scaled_solution = cls.align_and_scale_solution(container, solution.poses, cls.REFERENCE_DIST)
-                solution.poses = scaled_solution
+                cls.align_and_scale_solution(container, solution, validated_matched_samples,
+                                             cls.REFERENCE_DIST)
 
                 cls._create_solution_stats(validated_matched_samples, solution)
 
@@ -103,21 +109,30 @@ class LhGeoEstimationManager():
         return solution
 
     @classmethod
-    def _data_validation(cls, matched_samples: list[LhCfPoseSample], container: LhGeoInputContainerData,
-                         solution: LighthouseGeometrySolution) -> list[LhCfPoseSample]:
+    def _data_validation(cls, matched_samples: list[LhCfPoseSampleWrapper], container: LhGeoInputContainerData,
+                         solution: LighthouseGeometrySolution) -> list[LhCfPoseSampleWrapper]:
         """Validate the data collected by the Crazyflie and update the solution object with the results"""
 
         result = []
 
         NO_DATA = 'No data'
-        TOO_FEW_BS = 'Too few base stations recorded'
 
         # Check the origin sample
-        origin = container.origin
-        if len(origin.angles_calibrated) == 0:
-            solution.append_mandatory_issue_sample(origin, NO_DATA)
-        elif len(origin.angles_calibrated) == 1:
-            solution.append_mandatory_issue_sample(origin, TOO_FEW_BS)
+        if len(matched_samples) == 0:
+            solution.is_origin_sample_valid = False
+            solution.origin_sample_info = NO_DATA
+            solution.progress_is_ok = False
+            return result
+        else:
+            origin = matched_samples[0]
+            if len(origin.angles_calibrated) == 0:
+                origin.status = LhCfPoseSampleStatus.NO_DATA
+                solution.progress_is_ok = False
+            elif len(origin.angles_calibrated) < 2:
+                origin.status = LhCfPoseSampleStatus.TOO_FEW_BS
+                solution.progress_is_ok = False
+
+            result.append(origin)
 
         # Check the x-axis samples
         if len(container.x_axis) == 0:
@@ -134,21 +149,16 @@ class LhGeoEstimationManager():
             solution.xyz_space_samples_info = NO_DATA
 
         # Samples must contain at least two base stations
-        for sample in matched_samples:
-            if sample == container.origin:
-                result.append(sample)
-                continue  # The origin sample is already checked
-
+        for sample in matched_samples[1:]:
             if len(sample.angles_calibrated) >= 2:
                 result.append(sample)
             else:
+                sample.status = LhCfPoseSampleStatus.TOO_FEW_BS
+
                 # If the sample is mandatory, we cannot remove it, but we can add an issue to the solution
                 if sample.is_mandatory:
-                    solution.append_mandatory_issue_sample(sample, TOO_FEW_BS)
-                else:
-                    # If the sample is not mandatory, we can ignore it
-                    solution.xyz_space_samples_info = 'Sample(s) with too few base stations skipped'
-                    continue
+                    result.append(sample)
+                    solution.progress_is_ok = False
 
         return result
 
@@ -158,23 +168,22 @@ class LhGeoEstimationManager():
 
         # There might already be an error reported earlier, so only check if we think the sample is valid
         if solution.is_origin_sample_valid:
-            solution.is_origin_sample_valid, solution.origin_sample_info = cls._error_info_for(solution,
-                                                                                               [container.origin])
+            solution.is_origin_sample_valid, solution.origin_sample_info = cls._error_info_for(
+                solution, LhCfPoseSampleType.ORIGIN)
         if solution.is_x_axis_samples_valid:
-            solution.is_x_axis_samples_valid, solution.x_axis_samples_info = cls._error_info_for(solution,
-                                                                                                 container.x_axis)
+            solution.is_x_axis_samples_valid, solution.x_axis_samples_info = cls._error_info_for(
+                solution, LhCfPoseSampleType.X_AXIS)
         if solution.is_xy_plane_samples_valid:
-            solution.is_xy_plane_samples_valid, solution.xy_plane_samples_info = cls._error_info_for(solution,
-                                                                                                     container.xy_plane)
+            solution.is_xy_plane_samples_valid, solution.xy_plane_samples_info = cls._error_info_for(
+                solution, LhCfPoseSampleType.XY_PLANE)
 
     @classmethod
-    def _error_info_for(cls, solution: LighthouseGeometrySolution, samples: list[LhCfPoseSample]) -> tuple[bool, str]:
+    def _error_info_for(cls, solution: LighthouseGeometrySolution, sample_type: LhCfPoseSampleType) -> tuple[bool, str]:
         """Check if any issue sample is registered and return a human readable error message"""
         info_strings = []
-        for sample in samples:
-            for issue_sample, issue in solution.mandatory_issue_samples:
-                if sample == issue_sample:
-                    info_strings.append(issue)
+        for sample in solution.samples:
+            if sample.sample_type == sample_type and sample.status != LhCfPoseSampleStatus.OK:
+                info_strings.append(f'{sample.status}')
 
         if len(info_strings) > 0:
             return False, ', '.join(info_strings)
@@ -182,7 +191,7 @@ class LhGeoEstimationManager():
             return True, ''
 
     @classmethod
-    def _create_solution_stats(cls, matched_samples: list[LhCfPoseSample], solution: LighthouseGeometrySolution):
+    def _create_solution_stats(cls, matched_samples: list[LhCfPoseSampleWrapper], solution: LighthouseGeometrySolution):
         """Calculate statistics about the solution and store them in the solution object"""
 
         # Estimated worst error for each sample based on crossing beams
@@ -191,11 +200,10 @@ class LhGeoEstimationManager():
         for sample in matched_samples:
             bs_ids = list(sample.angles_calibrated.keys())
 
-            bs_angle_list = [(solution.poses.bs_poses[bs_id], sample.angles_calibrated[bs_id]) for bs_id in bs_ids]
+            bs_angle_list = [(solution.bs_poses[bs_id], sample.angles_calibrated[bs_id]) for bs_id in bs_ids]
             sample_error = LighthouseCrossingBeam.max_distance_all_permutations(bs_angle_list)
+            sample.error_distance = sample_error
             cf_error.append(sample_error)
-
-        solution.cf_error = cf_error
 
         solution.error_stats = LighthouseGeometrySolution.ErrorStats(
             mean=np.mean(cf_error),
@@ -276,13 +284,18 @@ class LhGeoInputContainerData():
         # Used by LhGeoInputContainer to track changes in the data
         self.version = version
 
-    def get_matched_samples(self) -> list[LhCfPoseSample]:
+    def get_matched_samples(self) -> list[LhCfPoseSampleWrapper]:
         """Get all pose samples collected in a list
 
         Returns:
-            list[LhCfPoseSample]: _description_
+            list[LhCfPoseSampleWrapper]: A list of pose samples wrapped in LhCfPoseSampleWrapper
         """
-        return [self.origin] + self.x_axis + self.xy_plane + self.xyz_space
+        result = [LhCfPoseSampleWrapper(self.origin, sample_type=LhCfPoseSampleType.ORIGIN)]
+        result += [LhCfPoseSampleWrapper(sample, sample_type=LhCfPoseSampleType.X_AXIS) for sample in self.x_axis]
+        result += [LhCfPoseSampleWrapper(sample, sample_type=LhCfPoseSampleType.XY_PLANE) for sample in self.xy_plane]
+        result += [LhCfPoseSampleWrapper(sample, sample_type=LhCfPoseSampleType.XYZ_SPACE) for sample in self.xyz_space]
+
+        return result
 
     def is_empty(self) -> bool:
         """Check if the container is empty, meaning no samples are set
@@ -356,7 +369,7 @@ class LhGeoInputContainer():
         """
         with self.is_modified_condition:
             self._data.origin = origin
-            self._augment_sample(self._data.origin, True)
+            self._augment_sample(self._data.origin)
             self._handle_data_modification()
 
     def set_x_axis_sample(self, x_axis: LhCfPoseSample) -> None:
@@ -367,7 +380,7 @@ class LhGeoInputContainer():
         """
         with self.is_modified_condition:
             self._data.x_axis = [x_axis]
-            self._augment_samples(self._data.x_axis, True)
+            self._augment_samples(self._data.x_axis)
             self._handle_data_modification()
 
     def set_xy_plane_samples(self, xy_plane: list[LhCfPoseSample]) -> None:
@@ -378,7 +391,7 @@ class LhGeoInputContainer():
         """
         with self.is_modified_condition:
             self._data.xy_plane = xy_plane
-            self._augment_samples(self._data.xy_plane, True)
+            self._augment_samples(self._data.xy_plane)
             self._handle_data_modification()
 
     def append_xy_plane_sample(self, xy_plane: LhCfPoseSample) -> None:
@@ -388,7 +401,7 @@ class LhGeoInputContainer():
             xy_plane (LhCfPoseSample): the new xy-plane sample
         """
         with self.is_modified_condition:
-            self._augment_sample(xy_plane, True)
+            self._augment_sample(xy_plane)
             self._data.xy_plane.append(xy_plane)
             self._handle_data_modification()
 
@@ -408,7 +421,7 @@ class LhGeoInputContainer():
             samples (list[LhMeasurement]): the new samples
         """
         new_samples = samples
-        self._augment_samples(new_samples, False)
+        self._augment_samples(new_samples)
         with self.is_modified_condition:
             self._data.xyz_space = []
             self.append_xyz_space_samples(new_samples)
@@ -421,7 +434,7 @@ class LhGeoInputContainer():
             samples (LhMeasurement): the new samples
         """
         new_samples = samples
-        self._augment_samples(new_samples, False)
+        self._augment_samples(new_samples)
         with self.is_modified_condition:
             self._data.xyz_space += new_samples
             self._handle_data_modification()
@@ -524,13 +537,12 @@ class LhGeoInputContainer():
             self._new_session()
             self._handle_data_modification()
 
-    def _augment_sample(self, sample: LhCfPoseSample, is_mandatory: bool) -> None:
+    def _augment_sample(self, sample: LhCfPoseSample) -> None:
         sample.augment_with_ippe(self._data.sensor_positions)
-        sample.is_mandatory = is_mandatory
 
-    def _augment_samples(self, samples: list[LhCfPoseSample], is_mandatory: bool) -> None:
+    def _augment_samples(self, samples: list[LhCfPoseSample]) -> None:
         for sample in samples:
-            self._augment_sample(sample, is_mandatory)
+            self._augment_sample(sample)
 
     def _handle_data_modification(self) -> None:
         """Update the data version and notify the waiting thread"""

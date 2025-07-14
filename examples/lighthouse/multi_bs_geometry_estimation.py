@@ -64,7 +64,6 @@ from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySo
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseMatchedSweepAngleReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from cflib.localization.lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
-from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 from cflib.localization.lighthouse_types import LhMeasurement
 from cflib.localization.user_action_detector import UserActionDetector
@@ -177,38 +176,6 @@ def set_axes_equal(ax):
     ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
     ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
-
-
-def visualize(poses: LhBsCfPoses):
-    """Visualize positions of base stations and Crazyflie positions"""
-    # Set to True to visualize positions
-    # Requires PyPlot
-    visualize_positions = True
-    if visualize_positions:
-        import matplotlib.pyplot as plt
-
-        positions = np.array(list(map(lambda x: x.translation, poses.cf_poses)))
-
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
-
-        x_cf = positions[:, 0]
-        y_cf = positions[:, 1]
-        z_cf = positions[:, 2]
-
-        ax.scatter(x_cf, y_cf, z_cf)
-
-        positions = np.array(list(map(lambda x: x.translation, poses.bs_poses.values())))
-
-        x_bs = positions[:, 0]
-        y_bs = positions[:, 1]
-        z_bs = positions[:, 2]
-
-        ax.scatter(x_bs, y_bs, z_bs, c='red')
-
-        set_axes_equal(ax)
-        print('Close graph window to continue')
-        plt.show()
 
 
 def load_from_file(name: str) -> LhGeoInputContainerData:

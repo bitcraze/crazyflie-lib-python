@@ -25,10 +25,9 @@ import numpy as np
 import numpy.typing as npt
 import scipy.optimize
 
-from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleWrapper
 from cflib.localization.lighthouse_cf_pose_sample import Pose
 from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
-from cflib.localization.lighthouse_types import LhBsCfPoses
 
 
 class SolverData:
@@ -117,7 +116,7 @@ class LighthouseGeometrySolver:
     """
 
     @classmethod
-    def solve(cls, initial_guess: LhBsCfPoses, matched_samples: list[LhCfPoseSample],
+    def solve(cls, matched_samples: list[LhCfPoseSampleWrapper],
               sensor_positions: npt.ArrayLike, solution: LighthouseGeometrySolution) -> None:
         """
         Solve for the pose of base stations and CF samples.
@@ -127,23 +126,26 @@ class LighthouseGeometrySolver:
         iterations the solver is terminated. The has_converged member of the result will indicate if a solution was
         found or not. Note: the solution may still be good enough to use even if it did not converge.
 
-        :param initial_guess: Initial guess for the base stations and CF sample poses
-        :param matched_samples: List of matched samples.
+        :param matched_samples: List of matched samples. Note: matched_samples is a subset of solution.samples.
+
         :param sensor_positions: Sensor positions (3D), in the CF reference frame
         :param solution: an instance of LighthouseGeometrySolution that is filled with the result
         """
+        initial_guess_bs_poses = solution.bs_poses
+        initial_guess_cf_poses = [sample.pose for sample in matched_samples]
+
         defs = SolverData()
 
-        defs.n_bss = len(initial_guess.bs_poses)
+        defs.n_bss = len(initial_guess_bs_poses)
         defs.n_cfs = len(matched_samples)
         defs.n_cfs_in_params = len(matched_samples) - 1
         defs.n_sensors = len(sensor_positions)
-        defs.bs_id_to_index, defs.bs_index_to_id = cls._create_bs_map(initial_guess.bs_poses)
+        defs.bs_id_to_index, defs.bs_index_to_id = cls._create_bs_map(initial_guess_bs_poses)
 
         target_angles = cls._populate_target_angles(matched_samples)
         idx_agl_pr_to_bs, idx_agl_pr_to_cf, idx_agl_pr_to_sens_pos, jac_sparsity = cls._populate_indexes_and_jacobian(
             matched_samples, defs)
-        params_bs, params_cfs = cls._populate_initial_guess(initial_guess, defs)
+        params_bs, params_cfs = cls._populate_initial_guess(initial_guess_bs_poses, initial_guess_cf_poses, defs)
 
         # Extra arguments passed on to calc_residual()
         args = (defs, idx_agl_pr_to_bs, idx_agl_pr_to_cf, idx_agl_pr_to_sens_pos, target_angles, sensor_positions)
@@ -164,7 +166,7 @@ class LighthouseGeometrySolver:
         cls._condense_results(result, defs, matched_samples, solution)
 
     @classmethod
-    def _populate_target_angles(cls, matched_samples: list[LhCfPoseSample]) -> npt.NDArray:
+    def _populate_target_angles(cls, matched_samples: list[LhCfPoseSampleWrapper]) -> npt.NDArray:
         """
         A np.array of all measured angles, the target angles
         """
@@ -176,7 +178,7 @@ class LighthouseGeometrySolver:
         return np.array(result)
 
     @classmethod
-    def _populate_indexes_and_jacobian(cls, matched_samples: list[LhCfPoseSample], defs: SolverData
+    def _populate_indexes_and_jacobian(cls, matched_samples: list[LhCfPoseSampleWrapper], defs: SolverData
                                        ) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray]:
         """
         To speed up calculations all operations in the iteration phase are done on np.arrays of equal length (ish),
@@ -236,18 +238,18 @@ class LighthouseGeometrySolver:
                 jac_sparsity)
 
     @classmethod
-    def _populate_initial_guess(cls, initial_guess: LhBsCfPoses,
+    def _populate_initial_guess(cls, initial_guess_bs_poses: dict[int, Pose], initial_guess_cf_poses: list[Pose],
                                 defs: SolverData) -> tuple[npt.NDArray, npt.NDArray]:
         """
         Generate parameters for base stations and CFs, this is the initial guess we start to iterate from.
         """
         params_bs = np.zeros((defs.n_bss, defs.n_params_per_bs))
-        for bs_id, pose in initial_guess.bs_poses.items():
+        for bs_id, pose in initial_guess_bs_poses.items():
             params_bs[defs.bs_id_to_index[bs_id], :] = cls._pose_to_params(pose)
 
         # Skip the first CF pose, it is the definition of the origin and is not a parameter
         params_cfs = np.zeros((defs.n_cfs_in_params, defs.n_params_per_cf))
-        for index, inital_est_pose in enumerate(initial_guess.cf_poses[1:]):
+        for index, inital_est_pose in enumerate(initial_guess_cf_poses[1:]):
             params_cfs[index, :] = cls._pose_to_params(inital_est_pose)
 
         return params_bs, params_cfs
@@ -379,22 +381,23 @@ class LighthouseGeometrySolver:
         return bs_id_to_index, bs_index_to_id
 
     @classmethod
-    def _condense_results(cls, lsq_result, defs: SolverData, matched_samples: list[LhCfPoseSample],
+    def _condense_results(cls, lsq_result, defs: SolverData, matched_samples: list[LhCfPoseSampleWrapper],
                           solution: LighthouseGeometrySolution) -> None:
+        # Note: matched_samples is a subset of solution.samples.
+
         bss, cf_poses = cls._params_to_struct(lsq_result.x, defs)
 
-        # Clean previous solution
-        solution.poses = LhBsCfPoses(bs_poses={}, cf_poses=[])
+        solution.bs_poses = {}
 
         # Extract CF pose estimates
         # First pose (origin) is not in the parameter list
-        solution.poses.cf_poses.append(Pose())
+        matched_samples[0].pose = Pose()
         for i in range(len(matched_samples) - 1):
-            solution.poses.cf_poses.append(cls._params_to_pose(cf_poses[i], defs))
+            matched_samples[i + 1].pose = cls._params_to_pose(cf_poses[i], defs)
 
         # Extract base station pose estimates
         for index, pose in enumerate(bss):
             bs_id = defs.bs_index_to_id[index]
-            solution.poses.bs_poses[bs_id] = cls._params_to_pose(pose, defs)
+            solution.bs_poses[bs_id] = cls._params_to_pose(pose, defs)
 
         solution.has_converged = lsq_result.success

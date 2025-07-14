@@ -27,7 +27,7 @@ import numpy as np
 import numpy.typing as npt
 
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVector
-from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleWrapper
 from cflib.localization.lighthouse_cf_pose_sample import Pose
 
 
@@ -53,7 +53,8 @@ class LighthouseSystemScaler:
         return cls._scale_system(bs_poses, cf_poses, scale_factor)
 
     @classmethod
-    def scale_diagonals(cls, bs_poses: dict[int, Pose], cf_poses: list[Pose], matched_samples: list[LhCfPoseSample],
+    def scale_diagonals(cls, bs_poses: dict[int, Pose], cf_poses: list[Pose],
+                        matched_samples: list[LhCfPoseSampleWrapper],
                         expected_diagonal: float) -> tuple[dict[int, Pose], list[Pose], float]:
         """
         Scale a system based on where base station "rays" intersects the lighthouse deck in relation to sensor
@@ -89,7 +90,7 @@ class LighthouseSystemScaler:
 
     @classmethod
     def _calculate_mean_diagonal(cls, bs_poses: dict[int, Pose], cf_poses: list[Pose],
-                                 matched_samples: list[LhCfPoseSample]) -> float:
+                                 matched_samples: list[LhCfPoseSampleWrapper]) -> float:
         """
         Calculate the average diagonal sensor distance based on where the rays intersect the lighthouse deck
         """

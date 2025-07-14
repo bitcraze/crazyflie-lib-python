@@ -170,12 +170,6 @@ class LhMeasurement(NamedTuple):
     angles: LighthouseBsVectors
 
 
-class LhBsCfPoses(NamedTuple):
-    """Represents all poses of base stations and CF samples"""
-    bs_poses: dict[int, Pose]
-    cf_poses: list[Pose]
-
-
 class LhDeck4SensorPositions:
     """ Positions of the sensors on the Lighthouse 4 deck """
     # Sensor distances on the lighthouse deck

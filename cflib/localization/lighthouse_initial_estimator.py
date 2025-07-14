@@ -27,9 +27,9 @@ import numpy as np
 import numpy.typing as npt
 
 from cflib.localization.lighthouse_cf_pose_sample import BsPairPoses
-from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleStatus
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleWrapper
 from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
-from cflib.localization.lighthouse_types import LhBsCfPoses
 from cflib.localization.lighthouse_types import LhException
 from cflib.localization.lighthouse_types import Pose
 
@@ -53,8 +53,8 @@ class LighthouseInitialEstimator:
     OUTLIER_DETECTION_ERROR = 0.5
 
     @classmethod
-    def estimate(cls, matched_samples: list[LhCfPoseSample],
-                 solution: LighthouseGeometrySolution) -> tuple[LhBsCfPoses, list[LhCfPoseSample]]:
+    def estimate(cls, matched_samples: list[LhCfPoseSampleWrapper],
+                 solution: LighthouseGeometrySolution) -> list[LhCfPoseSampleWrapper]:
         """
         Make a rough estimate of the poses of all base stations and CF poses found in the samples.
 
@@ -62,10 +62,10 @@ class LighthouseInitialEstimator:
         global reference frame.
 
         :param matched_samples: A list of samples with lighthouse angles. It is assumed that all samples have data for
-                                two or more base stations.
+                                two or more base stations. Note: matched_samples is a subset of solution.samples.
+
         :param solution: A LighthouseGeometrySolution object to store progress information and issues in
-        :return: an estimate of base station and Crazyflie poses, as well as a cleaned version of matched_samples where
-                 outliers are removed.
+        :return: a subset of the matched_samples where outliers are removed.
         """
 
         bs_positions = cls._find_bs_to_bs_poses(matched_samples)
@@ -75,7 +75,7 @@ class LighthouseInitialEstimator:
         bs_poses_ref_cfs, cleaned_matched_samples = cls._angles_to_poses(matched_samples, bs_positions, solution)
         cls._build_link_stats(cleaned_matched_samples, solution)
         if not solution.progress_is_ok:
-            return LhBsCfPoses(bs_poses={}, cf_poses=[]), cleaned_matched_samples
+            return cleaned_matched_samples
 
         # Calculate the pose of all base stations, based on the pose of one base station
         try:
@@ -84,15 +84,20 @@ class LighthouseInitialEstimator:
             # At this point we might have too few base stations or we have islands of non-linked base stations.
             solution.progress_is_ok = False
             solution.general_failure_info = str(e)
-            return LhBsCfPoses(bs_poses={}, cf_poses=[]), cleaned_matched_samples
+            return cleaned_matched_samples
 
         # Now that we have estimated the base station poses, estimate the poses of the CF in all the samples
         cf_poses = cls._estimate_cf_poses(bs_poses_ref_cfs, bs_poses)
 
-        return LhBsCfPoses(bs_poses, cf_poses), cleaned_matched_samples
+        # Store the results in the solution
+        for pose, sample in zip(cf_poses, cleaned_matched_samples):
+            sample.pose = pose
+        solution.bs_poses = bs_poses
+
+        return cleaned_matched_samples
 
     @classmethod
-    def _build_link_stats(cls, matched_samples: list[LhCfPoseSample], solution: LighthouseGeometrySolution) -> None:
+    def _build_link_stats(cls, matched_samples: list[LhCfPoseSampleWrapper], solution: LighthouseGeometrySolution):
         """
         Build statistics about the number of links between base stations, based on the matched samples.
         :param matched_samples: List of matched samples
@@ -115,7 +120,7 @@ class LighthouseInitialEstimator:
                         increase_link_count(bs1, bs2)
 
     @classmethod
-    def _find_bs_to_bs_poses(cls, matched_samples: list[LhCfPoseSample]) -> dict[BsPairIds, ArrayFloat]:
+    def _find_bs_to_bs_poses(cls, matched_samples: list[LhCfPoseSampleWrapper]) -> dict[BsPairIds, ArrayFloat]:
         """
         Find the pose of all base stations, in the reference frame of other base stations.
 
@@ -174,8 +179,9 @@ class LighthouseInitialEstimator:
                                                    pose3.translation, pose4.translation])
 
     @classmethod
-    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample], bs_positions: dict[BsPairIds, ArrayFloat],
-                         solution: LighthouseGeometrySolution) -> tuple[list[dict[int, Pose]], list[LhCfPoseSample]]:
+    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSampleWrapper], bs_positions: dict[BsPairIds, ArrayFloat],
+                         solution: LighthouseGeometrySolution) -> tuple[list[dict[int, Pose]],
+                                                                        list[LhCfPoseSampleWrapper]]:
         """
         Estimate the base station poses in the Crazyflie reference frames, for each sample.
 
@@ -190,7 +196,7 @@ class LighthouseInitialEstimator:
         """
         result: list[dict[int, Pose]] = []
 
-        cleaned_matched_samples: list[LhCfPoseSample] = []
+        cleaned_matched_samples: list[LhCfPoseSampleWrapper] = []
         outlier_count = 0
 
         for sample in matched_samples:
@@ -211,8 +217,9 @@ class LighthouseInitialEstimator:
                     poses[pair_ids.bs2] = pair_poses.bs2
                 else:
                     is_sample_valid = False
+                    sample.status = LhCfPoseSampleStatus.OUTLIER
                     if sample.is_mandatory:
-                        solution.append_mandatory_issue_sample(sample, 'Outlier detected')
+                        solution.progress_is_ok = False
                     else:
                         outlier_count += 1
                         solution.xyz_space_samples_info = f'{outlier_count} sample(s) with outliers skipped'

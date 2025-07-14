@@ -24,8 +24,8 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 from collections import namedtuple
 
-from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
-from cflib.localization.lighthouse_types import LhBsCfPoses
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleWrapper
+from cflib.localization.lighthouse_types import Pose
 
 
 class LighthouseGeometrySolution:
@@ -35,15 +35,18 @@ class LighthouseGeometrySolution:
 
     ErrorStats = namedtuple('ErrorStats', ['mean', 'max', 'std'])
 
-    def __init__(self):
-        # The estimated poses of the base stations and the CF samples
-        self.poses = LhBsCfPoses(bs_poses={}, cf_poses=[])
+    def __init__(self, samples: list[LhCfPoseSampleWrapper]):
+        # The samples used to estimate the geometry of the system. The samples are wrapped in
+        # LhCfPoseSampleWrapper to provide additional information about the sample type and status. The status can be
+        # altered during the solution process to indicate if the sample is valid or not.
+        # The estimated pose of the CF is also stored in the wrapper.
+        self.samples = samples
+
+        # The estimated poses of the base stations. The keys are the base station ids and the values are the poses.
+        self.bs_poses: dict[int, Pose] = {}
 
         # Information about errors in the solution
         self.error_stats = self.ErrorStats(0.0, 0.0, 0.0)
-
-        # A list of errors corresponding to the cf_poses in self.poses.
-        self.cf_error = []
 
         # Indicates if the solution converged (True).
         # If it did not converge, the solution is possibly not good enough to use
@@ -66,10 +69,6 @@ class LighthouseGeometrySolution:
         # For the xyz space, there are not any stopping errors, this string may contain information for the user though
         self.xyz_space_samples_info = ''
 
-        # Samples that are mandatory for the solution but where problems were encountered. The tuples contain the sample
-        # and a description of the issue. This list is used to extract issue descriptions for the user interface.
-        self.mandatory_issue_samples: list[tuple[LhCfPoseSample, str]] = []
-
         # General failure information if the problem is not related to a specific sample
         self.general_failure_info = ''
 
@@ -77,13 +76,3 @@ class LighthouseGeometrySolution:
         # keys, mapped to a dictionary of base station ids and the number of links to other base stations.
         # For example: link_count[1][2] = 3 means that base station 1 has 3 links to base station 2.
         self.link_count: dict[int, dict[int, int]] = {}
-
-    def append_mandatory_issue_sample(self, sample: LhCfPoseSample, issue: str):
-        """
-        Append a sample with an issue to the list of mandatory issue samples.
-
-        :param sample: The CF pose sample that has an issue.
-        :param issue: A description of the issue with the sample.
-        """
-        self.mandatory_issue_samples.append((sample, issue))
-        self.progress_is_ok = False

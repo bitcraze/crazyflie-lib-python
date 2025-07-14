@@ -42,6 +42,9 @@ class LighthouseGeometrySolution:
         # Information about errors in the solution
         self.error_stats = self.ErrorStats(0.0, 0.0, 0.0)
 
+        # A list of errors corresponding to the cf_poses in self.poses.
+        self.cf_error = []
+
         # Indicates if the solution converged (True).
         # If it did not converge, the solution is possibly not good enough to use
         self.has_converged = False

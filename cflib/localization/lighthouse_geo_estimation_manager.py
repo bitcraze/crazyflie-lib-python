@@ -186,19 +186,21 @@ class LhGeoEstimationManager():
         """Calculate statistics about the solution and store them in the solution object"""
 
         # Estimated worst error for each sample based on crossing beams
-        estimated_errors: list[float] = []
+        cf_error: list[float] = []
 
         for sample in matched_samples:
             bs_ids = list(sample.angles_calibrated.keys())
 
             bs_angle_list = [(solution.poses.bs_poses[bs_id], sample.angles_calibrated[bs_id]) for bs_id in bs_ids]
             sample_error = LighthouseCrossingBeam.max_distance_all_permutations(bs_angle_list)
-            estimated_errors.append(sample_error)
+            cf_error.append(sample_error)
+
+        solution.cf_error = cf_error
 
         solution.error_stats = LighthouseGeometrySolution.ErrorStats(
-            mean=np.mean(estimated_errors),
-            max=np.max(estimated_errors),
-            std=np.std(estimated_errors)
+            mean=np.mean(cf_error),
+            max=np.max(cf_error),
+            std=np.std(cf_error)
         )
 
     class SolverThread(threading.Thread):

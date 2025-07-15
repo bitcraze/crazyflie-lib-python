@@ -139,8 +139,22 @@ class LhCfPoseSampleWrapper():
 
         self.status = LhCfPoseSampleStatus.OK
 
-        self.pose: Pose = self.NO_POSE  # The pose of the sample, if available
+        self._pose: Pose = self.NO_POSE  # The pose of the sample, if available
+        self._has_pose: bool = False  # Indicates if the pose is set
         self.error_distance: float = 0.0  # The error distance of the pose, if available
+
+    @property
+    def has_pose(self) -> bool:
+        return self._has_pose
+
+    @property
+    def pose(self) -> Pose:
+        return self._pose
+
+    @pose.setter
+    def pose(self, pose: Pose) -> None:
+        self._pose = pose
+        self._has_pose = True
 
     @property
     def angles_calibrated(self) -> dict[int, LighthouseBsVectors]:

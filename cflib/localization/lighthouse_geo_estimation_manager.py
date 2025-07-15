@@ -448,6 +448,39 @@ class LhGeoInputContainer():
         with self.is_modified_condition:
             return len(self._data.xyz_space)
 
+    def remove_sample(self, index: int) -> None:
+        """Remove a sample from the container by index, including origin, x-axis, xy-plane, or xyz-space samples.
+
+        Args:
+            index (int): The index of the sample to remove
+        """
+        with self.is_modified_condition:
+            if index < 0:
+                raise IndexError('Index out of range')
+
+            origin_idx = 0
+            x_axis_start_idx = 1
+            xy_plane_start_idx = x_axis_start_idx + len(self._data.x_axis)
+            xyz_space_start_idx = xy_plane_start_idx + len(self._data.xy_plane)
+
+            if index == origin_idx:
+                # Remove the origin sample
+                self._data.origin = LhGeoInputContainerData.EMPTY_POSE_SAMPLE
+            elif index < xy_plane_start_idx:
+                # Remove an x-axis sample
+                del self._data.x_axis[index - x_axis_start_idx]
+            elif index < xyz_space_start_idx:
+                # Remove an xy-plane sample
+                del self._data.xy_plane[index - xy_plane_start_idx]
+            else:
+                xyz_index = index - xyz_space_start_idx
+                if xyz_index > len(self._data.xyz_space):
+                    raise IndexError('Index out of range')
+                # Remove an xyz-space sample
+                del self._data.xyz_space[xyz_index]
+
+            self._handle_data_modification()
+
     def clear_all_samples(self) -> None:
         """Clear all samples in the container"""
         self._set_new_data_container(LhGeoInputContainerData(self._data.sensor_positions))

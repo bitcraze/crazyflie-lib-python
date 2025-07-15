@@ -124,6 +124,7 @@ class LhCfPoseSampleWrapper():
     """A wrapper of LhCfPoseSample that includes more information, useful in the estimation process and in a UI."""
 
     NO_POSE = Pose()
+    LARGE_ERROR_THRESHOLD = 0.01  # Threshold for large error distance, in meters
 
     def __init__(self, pose_sample: LhCfPoseSample,
                  sample_type: LhCfPoseSampleType = LhCfPoseSampleType.XYZ_SPACE) -> None:
@@ -172,3 +173,8 @@ class LhCfPoseSampleWrapper():
     def base_station_ids(self) -> list[int]:
         """Get the base station ids of the sample"""
         return list(self.angles_calibrated.keys())
+
+    @property
+    def is_error_large(self) -> bool:
+        """Check if the error distance is large enough to be considered an outlier"""
+        return self.error_distance > self.LARGE_ERROR_THRESHOLD

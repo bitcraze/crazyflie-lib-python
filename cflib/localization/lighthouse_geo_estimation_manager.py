@@ -104,8 +104,6 @@ class LhGeoEstimationManager():
 
         cls._humanize_error_info(solution, container)
 
-        # TODO krri indicate in the solution if there is a geometry. progress_is_ok is not a good indicator
-
         return solution
 
     @classmethod
@@ -216,7 +214,7 @@ class LhGeoEstimationManager():
         It is used to provide continuous updates of the solution as well as updating the geometry in the Crazyflie.
         """
 
-        def __init__(self, container: LhGeoInputContainer, is_done_cb) -> None:
+        def __init__(self, container: LhGeoInputContainer, is_done_cb, is_starting_estimation_cb=None) -> None:
             """This constructor initializes the solver thread and starts it.
             It takes a container with the input data and an callback that is called when the solution is done.
             The thread will run the geometry solver and return the solution in the callback as soon as the data in the
@@ -232,6 +230,7 @@ class LhGeoEstimationManager():
             self.latest_solved_data_version = -1
 
             self.is_done_cb = is_done_cb
+            self.is_starting_estimation_cb = is_starting_estimation_cb
 
             self.is_running = False
             self.is_done = False
@@ -248,6 +247,9 @@ class LhGeoEstimationManager():
 
                     if self.container.get_data_version() > self.latest_solved_data_version:
                         self.is_done = False
+
+                        if self.is_starting_estimation_cb:
+                            self.is_starting_estimation_cb()
 
                         # Copy the container as the original container may be modified while the solver is running
                         container_copy = self.container.get_data_copy()

@@ -1,4 +1,5 @@
 import enum
+import threading
 from typing import NamedTuple
 
 import numpy as np
@@ -18,6 +19,17 @@ class BsPairPoses(NamedTuple):
     bs2: Pose
 
 
+class AtomicCounter:
+    def __init__(self):
+        self.value = 0
+        self._lock = threading.Lock()
+
+    def increment(self, num=1):
+        with self._lock:
+            self.value += num
+            return self.value
+
+
 class LhCfPoseSample:
     """ Represents a sample of a Crazyflie pose in space, it contains:
     - lighthouse angles from one or more base stations
@@ -25,6 +37,8 @@ class LhCfPoseSample:
 
     The ippe solution is somewhat heavy and is only created on demand by calling augment_with_ippe()
     """
+
+    global_uid = AtomicCounter()
 
     def __init__(self, angles_calibrated: dict[int, LighthouseBsVectors]) -> None:
         # Angles measured by the Crazyflie and compensated using calibration data
@@ -35,6 +49,15 @@ class LhCfPoseSample:
         # stations found by IPPE, in the crazyflie reference frame.
         self.ippe_solutions: dict[int, BsPairPoses] = {}
         self.is_augmented = False
+
+        # A unique Id for each sample, at least guaranteed to be unique per session.
+        # Used to identify samples in the container.
+        self._uid = LhCfPoseSample.global_uid.increment()
+
+    @property
+    def uid(self) -> int:
+        """Get the unique identifier of the sample"""
+        return self._uid
 
     def augment_with_ippe(self, sensor_positions: ArrayFloat) -> None:
         if not self.is_augmented:
@@ -156,6 +179,11 @@ class LhCfPoseSampleWrapper():
     def pose(self, pose: Pose) -> None:
         self._pose = pose
         self._has_pose = True
+
+    @property
+    def uid (self) -> int:
+        """Get the unique identifier of the sample"""
+        return self.pose_sample.uid
 
     @property
     def angles_calibrated(self) -> dict[int, LighthouseBsVectors]:

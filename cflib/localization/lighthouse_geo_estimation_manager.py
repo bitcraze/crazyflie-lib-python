@@ -450,7 +450,19 @@ class LhGeoInputContainer():
         with self.is_modified_condition:
             return len(self._data.xyz_space)
 
-    def remove_sample(self, index: int) -> None:
+    def remove_sample(self, uid: int) -> None:
+        """Remove a sample from the container by UID, including origin, x-axis, xy-plane, or xyz-space samples.
+
+        Args:
+            uid (int): The UID of the sample to remove
+        """
+        with self.is_modified_condition:
+            for index, sample in enumerate(self._data.get_matched_samples()):
+                if sample.uid == uid:
+                    self.remove_sample_by_index(index)
+                    return
+
+    def remove_sample_by_index(self, index: int) -> None:
         """Remove a sample from the container by index, including origin, x-axis, xy-plane, or xyz-space samples.
 
         Args:

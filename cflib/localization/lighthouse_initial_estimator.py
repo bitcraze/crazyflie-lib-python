@@ -50,7 +50,7 @@ class LighthouseInitialEstimator:
     calculations.
     """
 
-    OUTLIER_DETECTION_ERROR = 0.5
+    AMBIGUOUS_DETECTION_ERROR = 0.5
 
     @classmethod
     def estimate(cls, matched_samples: list[LhCfPoseSampleWrapper],
@@ -65,7 +65,7 @@ class LighthouseInitialEstimator:
                                 two or more base stations. Note: matched_samples is a subset of solution.samples.
 
         :param solution: A LighthouseGeometrySolution object to store progress information and issues in
-        :return: a subset of the matched_samples where outliers are removed.
+        :return: a subset of the matched_samples where ambiguous samples are removed.
         """
 
         bs_positions = cls._find_bs_to_bs_poses(matched_samples)
@@ -192,12 +192,12 @@ class LighthouseInitialEstimator:
         :param bs_positions: Dictionary of base station positions (other base station ref frame)
         :param solution: A LighthouseGeometrySolution object to store issues in
         :return: A list of dictionaries from base station to Pose of all base stations, for each sample, as well as
-                 a version of the matched_samples where outliers are removed.
+                 a version of the matched_samples where ambiguous samples are removed.
         """
         result: list[dict[int, Pose]] = []
 
         cleaned_matched_samples: list[LhCfPoseSampleWrapper] = []
-        outlier_count = 0
+        ambiguous_count = 0
 
         for sample in matched_samples:
             solutions = sample.ippe_solutions
@@ -217,12 +217,12 @@ class LighthouseInitialEstimator:
                     poses[pair_ids.bs2] = pair_poses.bs2
                 else:
                     is_sample_valid = False
-                    sample.status = LhCfPoseSampleStatus.OUTLIER
+                    sample.status = LhCfPoseSampleStatus.AMBIGUOUS
                     if sample.is_mandatory:
                         solution.progress_is_ok = False
                     else:
-                        outlier_count += 1
-                        solution.xyz_space_samples_info = f'{outlier_count} sample(s) with outliers skipped'
+                        ambiguous_count += 1
+                        solution.xyz_space_samples_info = f'{ambiguous_count} sample(s) with ambiguities skipped'
                     break
 
             if is_sample_valid or sample.is_mandatory:
@@ -248,7 +248,7 @@ class LighthouseInitialEstimator:
                     min_dist = dist
                     best = BsPairPoses(solution_1, solution_2)
 
-        if min_dist > cls.OUTLIER_DETECTION_ERROR:
+        if min_dist > cls.AMBIGUOUS_DETECTION_ERROR:
             success = False
 
         return success, best

@@ -136,7 +136,7 @@ class LhCfPoseSampleStatus(enum.Enum):
     """An enum representing the status of a pose sample"""
     OK = 'OK'
     TOO_FEW_BS = 'Too few bs'
-    OUTLIER = 'Outlier'
+    AMBIGUOUS = 'Ambiguous'
     NO_DATA = 'No data'
 
     def __str__(self):
@@ -155,7 +155,7 @@ class LhCfPoseSampleWrapper():
 
         self.sample_type = sample_type
 
-        # Some samples are mandatory and must not be removed, even if they appear to be outliers. For instance the
+        # Some samples are mandatory and must not be removed, even if they appear to be ambiguous. For instance the
         # the samples that define the origin or x-axis
         self.is_mandatory = self.sample_type in (LhCfPoseSampleType.ORIGIN,
                                                  LhCfPoseSampleType.X_AXIS,

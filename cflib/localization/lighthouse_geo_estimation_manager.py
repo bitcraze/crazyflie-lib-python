@@ -53,18 +53,15 @@ class LhGeoEstimationManager():
     @classmethod
     def align_and_scale_solution(cls, container: LhGeoInputContainerData, solution: LighthouseGeometrySolution,
                                  samples: list[LhCfPoseSampleWrapper], reference_distance: float):
-
-        # Note: samples is a subset of solution.samples
         bs_poses = solution.bs_poses
 
-        start_idx_x_axis = 1
-        start_idx_xy_plane = start_idx_x_axis + len(container.x_axis)
-        start_idx_xyz_space = start_idx_xy_plane + len(container.xy_plane)
+        # Note: samples is a subset of solution.samples but samples are never removed from origin, x-axis or xy-plane
+        # so we can use the number of samples in the container to determine the indices in the sample list.
 
-        origin_pos = samples[0].pose.translation
-        x_axis_samples = samples[start_idx_x_axis:start_idx_x_axis + len(container.x_axis)]
+        origin_pos = samples[container.origin_index].pose.translation
+        x_axis_samples = samples[container.x_axis_slice]
         x_axis_pos = list(map(lambda x: x.pose.translation, x_axis_samples))
-        xy_plane_samples = samples[start_idx_xy_plane:start_idx_xyz_space]
+        xy_plane_samples = samples[container.xy_plane_slice]
         xy_plane_pos = list(map(lambda x: x.pose.translation, xy_plane_samples))
 
         # Align the solution
@@ -133,20 +130,21 @@ class LhGeoEstimationManager():
             result.append(origin)
 
         # Check the x-axis samples
-        if len(container.x_axis) == 0:
+        if container.x_axis_sample_count == 0:
             solution.is_x_axis_samples_valid = False
             solution.x_axis_samples_info = NO_DATA
             solution.progress_is_ok = False
 
-        if len(container.xy_plane) == 0:
+        if container.xy_plane_sample_count == 0:
             solution.is_xy_plane_samples_valid = False
             solution.xy_plane_samples_info = NO_DATA
             solution.progress_is_ok = False
 
-        if len(container.xyz_space) == 0:
+        if container.xyz_space_sample_count == 0:
             solution.xyz_space_samples_info = NO_DATA
 
-        # Samples must contain at least two base stations
+        # Samples must contain at least two base stations.
+        # Skip the origin sample as it is already checked above.
         for sample in matched_samples[1:]:
             if len(sample.angles_calibrated) >= 2:
                 result.append(sample)
@@ -285,6 +283,51 @@ class LhGeoInputContainerData():
 
         # Used by LhGeoInputContainer to track changes in the data
         self.version = version
+
+    @property
+    def origin_index(self) -> int:
+        """Get the index of the origin sample in the list of samples"""
+        return 0
+
+    @property
+    def x_axis_start_index(self) -> int:
+        """Get the index of the first x-axis sample in the list of samples"""
+        return self.origin_index + 1
+
+    @property
+    def x_axis_slice(self) -> slice:
+        """Get the slice for the x-axis samples in the list of samples"""
+        return slice(self.x_axis_start_index, self.x_axis_start_index + len(self.x_axis))
+
+    @property
+    def x_axis_sample_count(self) -> int:
+        """Get the count of x-axis samples in the list of samples"""
+        return len(self.x_axis)
+
+    @property
+    def xy_plane_start_index(self) -> int:
+        """Get the index of the first xy-plane sample in the list of samples"""
+        return self.x_axis_start_index + len(self.x_axis)
+
+    @property
+    def xy_plane_slice(self) -> slice:
+        """Get the slice for the xy-plane samples in the list of samples"""
+        return slice(self.xy_plane_start_index, self.xy_plane_start_index + len(self.xy_plane))
+
+    @property
+    def xy_plane_sample_count(self) -> int:
+        """Get the count of xy-plane samples in the list of samples"""
+        return len(self.xy_plane)
+
+    @property
+    def xyz_space_start_index(self) -> int:
+        """Get the index of the first xyz-space sample in the list of samples"""
+        return self.xy_plane_start_index + len(self.xy_plane)
+
+    @property
+    def xyz_space_sample_count(self) -> int:
+        """Get the count of xyz-space samples in the list of samples"""
+        return len(self.xyz_space)
 
     def get_matched_samples(self) -> list[LhCfPoseSampleWrapper]:
         """Get all pose samples collected in a list

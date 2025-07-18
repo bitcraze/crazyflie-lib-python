@@ -509,7 +509,7 @@ class LhGeoInputContainer():
             return len(self._data.xy_plane)
 
     def set_xyz_space_samples(self, samples: list[LhCfPoseSample]) -> None:
-        """Store/update the samples for the volume
+        """Store/update the samples for the xyz space
 
         Args:
             samples (list[LhMeasurement]): the new samples
@@ -522,10 +522,10 @@ class LhGeoInputContainer():
             self._handle_data_modification()
 
     def append_xyz_space_samples(self, samples: list[LhCfPoseSample]) -> None:
-        """Append to the samples for the volume
+        """Append to the samples for the xyz space
 
         Args:
-            samples (LhMeasurement): the new samples
+            samples (list[LhMeasurement]): the new samples
         """
         new_samples = samples
         self._augment_samples(new_samples)
@@ -541,6 +541,27 @@ class LhGeoInputContainer():
         """
         with self.is_modified_condition:
             return len(self._data.xyz_space)
+
+    def append_verification_samples(self, samples: list[LhCfPoseSample]) -> None:
+        """Append to the samples for verification
+
+        Args:
+            samples (list[LhCfPoseSample]): the new samples
+        """
+        new_samples = samples
+        self._augment_samples(new_samples)
+        with self.is_modified_condition:
+            self._data.verification += new_samples
+            self._handle_data_modification()
+
+    def verification_sample_count(self) -> int:
+        """Get the number of samples used for verification
+
+        Returns:
+            int: The number of samples used for verification
+        """
+        with self.is_modified_condition:
+            return len(self._data.verification)
 
     def remove_sample(self, uid: int) -> None:
         """Remove a sample from the container by UID.

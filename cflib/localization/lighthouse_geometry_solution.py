@@ -45,8 +45,11 @@ class LighthouseGeometrySolution:
         # The estimated poses of the base stations. The keys are the base station ids and the values are the poses.
         self.bs_poses: dict[int, Pose] = {}
 
-        # Information about errors in the solution
+        # Information about errors for the samples that are used in the solution
         self.error_stats = self.ErrorStats(0.0, 0.0, 0.0)
+
+        # Information about the verification samples
+        self.verification_stats: None | LighthouseGeometrySolution.ErrorStats = None
 
         # Indicates if the solution converged (True).
         # If it did not converge, the solution is possibly not good enough to use

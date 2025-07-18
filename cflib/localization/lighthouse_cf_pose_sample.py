@@ -126,6 +126,7 @@ class LhCfPoseSampleType(enum.Enum):
     X_AXIS = 'x-axis'
     XY_PLANE = 'xy-plane'
     XYZ_SPACE = 'xyz-space'
+    VERIFICATION = 'verification'
 
     def __str__(self):
         return self.value
@@ -181,7 +182,7 @@ class LhCfPoseSampleWrapper():
         self._has_pose = True
 
     @property
-    def uid (self) -> int:
+    def uid(self) -> int:
         """Get the unique identifier of the sample"""
         return self.pose_sample.uid
 

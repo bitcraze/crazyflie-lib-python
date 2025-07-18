@@ -41,6 +41,7 @@ from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolv
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
 from cflib.localization.lighthouse_system_scaler import LighthouseSystemScaler
+from cflib.localization.lighthouse_types import Pose
 from cflib.localization.lighthouse_utils import LighthouseCrossingBeam
 
 
@@ -49,6 +50,11 @@ ArrayFloat = npt.NDArray[np.float_]
 
 class LhGeoEstimationManager():
     REFERENCE_DIST = 1.0  # Reference distance used for scaling the solution
+
+    ESTIMATION_TYPES = (LhCfPoseSampleType.ORIGIN,
+                        LhCfPoseSampleType.X_AXIS,
+                        LhCfPoseSampleType.XY_PLANE,
+                        LhCfPoseSampleType.XYZ_SPACE)
 
     @classmethod
     def align_and_scale_solution(cls, container: LhGeoInputContainerData, solution: LighthouseGeometrySolution,
@@ -98,6 +104,7 @@ class LhGeoEstimationManager():
                                              cls.REFERENCE_DIST)
 
                 cls._create_solution_stats(validated_matched_samples, solution)
+                cls._create_verification_stats(solution)
 
         cls._humanize_error_info(solution, container)
 
@@ -106,7 +113,8 @@ class LhGeoEstimationManager():
     @classmethod
     def _data_validation(cls, matched_samples: list[LhCfPoseSampleWrapper], container: LhGeoInputContainerData,
                          solution: LighthouseGeometrySolution) -> list[LhCfPoseSampleWrapper]:
-        """Validate the data collected by the Crazyflie and update the solution object with the results"""
+        """Validate the data collected by the Crazyflie and update the solution object with the results.
+        Filter out samples that will not be used for the geometry estimation."""
 
         result = []
 
@@ -135,11 +143,13 @@ class LhGeoEstimationManager():
             solution.x_axis_samples_info = NO_DATA
             solution.progress_is_ok = False
 
+        # Check the xy-plane samples
         if container.xy_plane_sample_count == 0:
             solution.is_xy_plane_samples_valid = False
             solution.xy_plane_samples_info = NO_DATA
             solution.progress_is_ok = False
 
+        # Check the xyz-space samples
         if container.xyz_space_sample_count == 0:
             solution.xyz_space_samples_info = NO_DATA
 
@@ -147,7 +157,8 @@ class LhGeoEstimationManager():
         # Skip the origin sample as it is already checked above.
         for sample in matched_samples[1:]:
             if len(sample.angles_calibrated) >= 2:
-                result.append(sample)
+                if sample.sample_type in cls.ESTIMATION_TYPES:
+                    result.append(sample)
             else:
                 sample.status = LhCfPoseSampleStatus.TOO_FEW_BS
 
@@ -206,6 +217,29 @@ class LhGeoEstimationManager():
             max=np.max(cf_error),
             std=np.std(cf_error)
         )
+
+    @classmethod
+    def _create_verification_stats(cls, solution: LighthouseGeometrySolution):
+        """Compute poses and errors for the verification samples in the solution using the crossing beam method."""
+        # Estimated worst error for each sample based on crossing beams
+        cf_error: list[float] = []
+
+        for sample in solution.samples:
+            if sample.sample_type == LhCfPoseSampleType.VERIFICATION:
+                bs_ids = list(sample.angles_calibrated.keys())
+                bs_angle_list = [(solution.bs_poses[bs_id], sample.angles_calibrated[bs_id]) for bs_id in bs_ids]
+                position, error = LighthouseCrossingBeam.position_max_distance_all_permutations(bs_angle_list)
+
+                sample.pose = Pose.from_rot_vec(t_vec=position)
+                sample.error_distance = error
+                cf_error.append(error)
+
+        if len(cf_error) > 0:
+            solution.verification_stats = LighthouseGeometrySolution.ErrorStats(
+                mean=np.mean(cf_error),
+                max=np.max(cf_error),
+                std=np.std(cf_error)
+            )
 
     class SolverThread(threading.Thread):
         """This class runs the geometry solver in a separate thread.
@@ -281,6 +315,9 @@ class LhGeoInputContainerData():
         self.xy_plane: list[LhCfPoseSample] = []
         self.xyz_space: list[LhCfPoseSample] = []
 
+        # Samples that are used to verify the geometry but are not used for the geometry estimation
+        self.verification: list[LhCfPoseSample] = []
+
         # Used by LhGeoInputContainer to track changes in the data
         self.version = version
 
@@ -326,7 +363,7 @@ class LhGeoInputContainerData():
 
     @property
     def xyz_space_sample_count(self) -> int:
-        """Get the count of xyz-space samples in the list of samples"""
+        """Get the count of xyz-space samples in the container"""
         return len(self.xyz_space)
 
     def get_matched_samples(self) -> list[LhCfPoseSampleWrapper]:
@@ -339,6 +376,8 @@ class LhGeoInputContainerData():
         result += [LhCfPoseSampleWrapper(sample, sample_type=LhCfPoseSampleType.X_AXIS) for sample in self.x_axis]
         result += [LhCfPoseSampleWrapper(sample, sample_type=LhCfPoseSampleType.XY_PLANE) for sample in self.xy_plane]
         result += [LhCfPoseSampleWrapper(sample, sample_type=LhCfPoseSampleType.XYZ_SPACE) for sample in self.xyz_space]
+        result += [
+            LhCfPoseSampleWrapper(sample, sample_type=LhCfPoseSampleType.VERIFICATION) for sample in self.verification]
 
         return result
 
@@ -360,6 +399,7 @@ class LhGeoInputContainerData():
             'x_axis': data.x_axis,
             'xy_plane': data.xy_plane,
             'xyz_space': data.xyz_space,
+            'verification': data.verification,
             'sensor_positions': data.sensor_positions.tolist(),
         })
 
@@ -373,6 +413,12 @@ class LhGeoInputContainerData():
         result.x_axis = values['x_axis']
         result.xy_plane = values['xy_plane']
         result.xyz_space = values['xyz_space']
+        if 'verification' in values:
+            # If verification is not present, it will be an empty list
+            # This is to ensure backward compatibility with older versions of the data container
+            result.verification = values['verification']
+        else:
+            result.verification = []
 
         # Augment the samples with the sensor positions
         result.origin.augment_with_ippe(sensor_positions)
@@ -384,6 +430,9 @@ class LhGeoInputContainerData():
             sample.augment_with_ippe(sensor_positions)
 
         for sample in result.xyz_space:
+            sample.augment_with_ippe(sensor_positions)
+
+        for sample in result.verification:
             sample.augment_with_ippe(sensor_positions)
 
         return result
@@ -494,49 +543,42 @@ class LhGeoInputContainer():
             return len(self._data.xyz_space)
 
     def remove_sample(self, uid: int) -> None:
-        """Remove a sample from the container by UID, including origin, x-axis, xy-plane, or xyz-space samples.
+        """Remove a sample from the container by UID.
 
         Args:
             uid (int): The UID of the sample to remove
         """
         with self.is_modified_condition:
-            for index, sample in enumerate(self._data.get_matched_samples()):
-                if sample.uid == uid:
-                    self.remove_sample_by_index(index)
-                    return
+            sample = self._remove_sample_by_uid(uid)
+            if sample is not None:
+                self._handle_data_modification()
 
-    def remove_sample_by_index(self, index: int) -> None:
-        """Remove a sample from the container by index, including origin, x-axis, xy-plane, or xyz-space samples.
+    def convert_to_verification_sample(self, uid: int) -> None:
+        """Convert a sample to a verification sample by UID.
+        The sample will be moved to the verification list and removed from the other lists.
 
         Args:
-            index (int): The index of the sample to remove
+            uid (int): The UID of the sample to convert
+        """
+        print(f'Converting sample with UID {uid} to verification sample')
+        with self.is_modified_condition:
+            sample = self._remove_sample_by_uid(uid)
+            if sample is not None:
+                self._data.verification.append(sample)
+                self._handle_data_modification()
+
+    def convert_to_xyz_space_sample(self, uid: int) -> None:
+        """Convert a sample to a xyz-space sample by UID.
+        The sample will be moved to the xyz-space list and removed from the other lists.
+
+        Args:
+            uid (int): The UID of the sample to convert
         """
         with self.is_modified_condition:
-            if index < 0:
-                raise IndexError('Index out of range')
-
-            origin_idx = 0
-            x_axis_start_idx = 1
-            xy_plane_start_idx = x_axis_start_idx + len(self._data.x_axis)
-            xyz_space_start_idx = xy_plane_start_idx + len(self._data.xy_plane)
-
-            if index == origin_idx:
-                # Remove the origin sample
-                self._data.origin = LhGeoInputContainerData.EMPTY_POSE_SAMPLE
-            elif index < xy_plane_start_idx:
-                # Remove an x-axis sample
-                del self._data.x_axis[index - x_axis_start_idx]
-            elif index < xyz_space_start_idx:
-                # Remove an xy-plane sample
-                del self._data.xy_plane[index - xy_plane_start_idx]
-            else:
-                xyz_index = index - xyz_space_start_idx
-                if xyz_index > len(self._data.xyz_space):
-                    raise IndexError('Index out of range')
-                # Remove an xyz-space sample
-                del self._data.xyz_space[xyz_index]
-
-            self._handle_data_modification()
+            sample = self._remove_sample_by_uid(uid)
+            if sample is not None:
+                self._data.xyz_space.append(sample)
+                self._handle_data_modification()
 
     def clear_all_samples(self) -> None:
         """Clear all samples in the container"""
@@ -614,6 +656,39 @@ class LhGeoInputContainer():
         """
         self._session_path = session_path
         self._auto_save = True
+
+    def _remove_sample_by_uid(self, uid: int) -> LhCfPoseSample | None:
+        removed = None
+        if self._data.origin != LhGeoInputContainerData.EMPTY_POSE_SAMPLE:
+            if self._data.origin.uid == uid:
+                removed = self._data.origin
+                self._data.origin = LhGeoInputContainerData.EMPTY_POSE_SAMPLE
+
+        if removed is None:
+            for index, sample in enumerate(self._data.x_axis):
+                if sample.uid == uid:
+                    removed = self._data.x_axis.pop(index)
+                    break
+
+        if removed is None:
+            for index, sample in enumerate(self._data.xy_plane):
+                if sample.uid == uid:
+                    removed = self._data.xy_plane.pop(index)
+                    break
+
+        if removed is None:
+            for index, sample in enumerate(self._data.xyz_space):
+                if sample.uid == uid:
+                    removed = self._data.xyz_space.pop(index)
+                    break
+
+        if removed is None:
+            for index, sample in enumerate(self._data.verification):
+                if sample.uid == uid:
+                    removed = self._data.verification.pop(index)
+                    break
+
+        return removed
 
     def _set_new_data_container(self, new_data: LhGeoInputContainerData) -> None:
         """Set a new data container and update the version"""

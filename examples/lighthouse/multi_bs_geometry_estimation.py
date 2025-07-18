@@ -190,7 +190,7 @@ def print_solution(solution: LighthouseGeometrySolution):
         print(f'      * {msg}')
     _print('Solution ready --------------------------------------')
     _print('  Base stations at:')
-    bs_poses = solution.poses.bs_poses
+    bs_poses = solution.bs_poses
     print_base_stations_poses(bs_poses, printer=_print)
 
     _print(f'Converged: {solution.has_converged}')
@@ -202,6 +202,8 @@ def print_solution(solution: LighthouseGeometrySolution):
     _print(f'XYZ space: {solution.xyz_space_samples_info}')
     _print(f'General info: {solution.general_failure_info}')
     _print(f'Error info: {solution.error_stats}')
+    if solution.verification_stats:
+        _print(f'Verification info: {solution.verification_stats}')
 
 
 def upload_geometry(scf: SyncCrazyflie, bs_poses: dict[int, Pose]):

@@ -38,9 +38,9 @@ class LighthouseCrossingBeam:
     """
 
     @classmethod
-    def position_distance(cls,
-                          bs1: Pose, angles_bs1: LighthouseBsVector,
-                          bs2: Pose, angles_bs2: LighthouseBsVector) -> tuple[npt.NDArray, float]:
+    def position_distance_sensor(cls,
+                                 bs1: Pose, angles_bs1: LighthouseBsVector,
+                                 bs2: Pose, angles_bs2: LighthouseBsVector) -> tuple[npt.NDArray, float]:
         """Calculate the estimated position of the crossing point of the beams
         from two base stations as well as the distance.
 
@@ -62,9 +62,9 @@ class LighthouseCrossingBeam:
         return cls._position_distance(orig_1, vec_1, orig_2, vec_2)
 
     @classmethod
-    def position(cls,
-                 bs1: Pose, angles_bs1: LighthouseBsVector,
-                 bs2: Pose, angles_bs2: LighthouseBsVector) -> npt.NDArray:
+    def position_sensor(cls,
+                        bs1: Pose, angles_bs1: LighthouseBsVector,
+                        bs2: Pose, angles_bs2: LighthouseBsVector) -> npt.NDArray:
         """Calculate the estimated position of the crossing point of the beams
         from two base stations.
 
@@ -77,13 +77,13 @@ class LighthouseCrossingBeam:
         Returns:
             npt.NDArray: The estimated position of the crossing point of the two beams.
         """
-        position, _ = cls.position_distance(bs1, angles_bs1, bs2, angles_bs2)
+        position, _ = cls.position_distance_sensor(bs1, angles_bs1, bs2, angles_bs2)
         return position
 
     @classmethod
-    def distance(cls,
-                 bs1: Pose, angles_bs1: LighthouseBsVector,
-                 bs2: Pose, angles_bs2: LighthouseBsVector) -> float:
+    def distance_sensor(cls,
+                        bs1: Pose, angles_bs1: LighthouseBsVector,
+                        bs2: Pose, angles_bs2: LighthouseBsVector) -> float:
         """Calculate the minimum distance between the beams from two base stations.
 
         Args:
@@ -95,14 +95,14 @@ class LighthouseCrossingBeam:
         Returns:
             float: The shortest distance between the beams.
         """
-        _, distance = cls.position_distance(bs1, angles_bs1, bs2, angles_bs2)
+        _, distance = cls.position_distance_sensor(bs1, angles_bs1, bs2, angles_bs2)
         return distance
 
     @classmethod
-    def distances(cls,
-                  bs1: Pose, angles_bs1: LighthouseBsVectors,
-                  bs2: Pose, angles_bs2: LighthouseBsVectors) -> list[float]:
-        """Calculate the minimum distance between the beams from two base stations for all sensors.
+    def positions_distances(cls,
+                            bs1: Pose, angles_bs1: LighthouseBsVectors,
+                            bs2: Pose, angles_bs2: LighthouseBsVectors) -> list[tuple[npt.NDArray, float]]:
+        """Calculate the positions and minimum distance between the beams from two base stations for all sensors.
 
         Args:
             bs1 (Pose): The pose of the first base station.
@@ -111,15 +111,17 @@ class LighthouseCrossingBeam:
             angles_bs2 (LighthouseBsVectors): The sweep angles of the second base station.
 
         Returns:
-            list[float]: A list of the distances.
+            list[tuple[npt.NDArray, float]]: A list of the positions and distances for each sensor.
         """
-        return [cls.distance(bs1, angles1, bs2, angles2) for angles1, angles2 in zip(angles_bs1, angles_bs2)]
+        return [cls.position_distance_sensor(bs1, angles1, bs2, angles2) for angles1, angles2 in zip(
+            angles_bs1, angles_bs2)]
 
     @classmethod
-    def max_distance(cls,
-                     bs1: Pose, angles_bs1: LighthouseBsVectors,
-                     bs2: Pose, angles_bs2: LighthouseBsVectors) -> float:
-        """Calculate the maximum distance between the beams from two base stations for all sensors.
+    def position_max_distance(cls,
+                              bs1: Pose, angles_bs1: LighthouseBsVectors,
+                              bs2: Pose, angles_bs2: LighthouseBsVectors) -> tuple[npt.NDArray, float]:
+        """Calculate the position and maximum distance between the beams from two base stations.
+        The position is the average position for all sensors which is the center of the lighthouse deck.
 
         Args:
             bs1 (Pose): The pose of the first base station.
@@ -128,9 +130,12 @@ class LighthouseCrossingBeam:
             angles_bs2 (LighthouseBsVectors): The sweep angles of the second base station.
 
         Returns:
-            float: The maximum distance between the beams.
+            float: The position and maximum distance between the beams.
         """
-        return max(cls.distances(bs1, angles_bs1, bs2, angles_bs2))
+        position_distances = cls.positions_distances(bs1, angles_bs1, bs2, angles_bs2)
+        positions, distances = zip(*position_distances)
+
+        return np.mean(positions, axis=0), max(distances)
 
     @classmethod
     def max_distance_all_permutations(cls, bs_angles: list[tuple[Pose, LighthouseBsVectors]]) -> float:
@@ -154,10 +159,44 @@ class LighthouseCrossingBeam:
                 bs1, angles_bs1 = bs_angles[i1]
                 bs2, angles_bs2 = bs_angles[i2]
                 # Calculate the distance for this pair of base stations
-                distance = cls.max_distance(bs1, angles_bs1, bs2, angles_bs2)
+                _, distance = cls.position_max_distance(bs1, angles_bs1, bs2, angles_bs2)
                 max_distance = max(max_distance, distance)
 
         return max_distance
+
+    @classmethod
+    def position_max_distance_all_permutations(cls, bs_angles: list[tuple[Pose, LighthouseBsVectors]]
+                                               ) -> tuple[npt.NDArray, float]:
+        """Calculate the average position and the maximum distance between the beams from base stations
+        for all sensors. All permutations of base stations are considered.
+
+        The position will be an estimate of the position of the center of the lighthouse deck and the maximum distance
+        can be used as an estimation of the maximum error.
+
+        Args:
+            bs_angles (list[tuple[Pose, LighthouseBsVectors]]): A list of tuples containing the pose of the base
+            stations and their sweep angles.
+
+        Returns:
+            tuple[npt.NDArray, float]: The position and the maximum distance between the beams from all permutations of
+            base stations.
+        """
+        if len(bs_angles) < 2:
+            raise ValueError('At least two base stations are required.')
+
+        distances = []
+        positions = []
+        bs_count = len(bs_angles)
+        for i1 in range(bs_count - 1):
+            for i2 in range(i1 + 1, bs_count):
+                bs1, angles_bs1 = bs_angles[i1]
+                bs2, angles_bs2 = bs_angles[i2]
+                # Calculate the position and distance for this pair of base stations
+                position, distance = cls.position_max_distance(bs1, angles_bs1, bs2, angles_bs2)
+                positions.append(position)
+                distances.append(distance)
+
+        return np.mean(positions, axis=0), max(distances)
 
     @classmethod
     def _position_distance(cls,

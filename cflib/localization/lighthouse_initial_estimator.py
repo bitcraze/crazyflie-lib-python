@@ -119,6 +119,10 @@ class LighthouseInitialEstimator:
                     if bs1 != bs2:
                         increase_link_count(bs1, bs2)
 
+        solution.link_count_ok_threshold = 1
+        if len(solution.link_count) > 2:
+            solution.link_count_ok_threshold = 2
+
     @classmethod
     def _find_bs_to_bs_poses(cls, matched_samples: list[LhCfPoseSampleWrapper]) -> dict[BsPairIds, ArrayFloat]:
         """

@@ -21,6 +21,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 from .lighthouse_bs_geo import LighthouseBsGeoEstimator
 from .lighthouse_bs_vector import LighthouseBsVector
+from .lighthouse_cf_pose_sample import LhCfPoseSampleType
 from .lighthouse_config_manager import LighthouseConfigFileManager
 from .lighthouse_config_manager import LighthouseConfigWriter
 from .lighthouse_geometry_solution import LighthouseGeometrySolution
@@ -40,4 +41,5 @@ __all__ = [
     'LighthouseConfigWriter',
     'ParamFileManager',
     'LighthouseCrossingBeam',
-    'LighthouseGeometrySolution']
+    'LighthouseGeometrySolution',
+    'LhCfPoseSampleType']

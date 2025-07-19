@@ -79,3 +79,6 @@ class LighthouseGeometrySolution:
         # keys, mapped to a dictionary of base station ids and the number of links to other base stations.
         # For example: link_count[1][2] = 3 means that base station 1 has 3 links to base station 2.
         self.link_count: dict[int, dict[int, int]] = {}
+
+        # The threshold for the number of links between base stations that is considered ok.
+        self.link_count_ok_threshold = 1

@@ -227,12 +227,22 @@ class LhGeoEstimationManager():
         for sample in solution.samples:
             if sample.sample_type == LhCfPoseSampleType.VERIFICATION:
                 bs_ids = list(sample.angles_calibrated.keys())
-                bs_angle_list = [(solution.bs_poses[bs_id], sample.angles_calibrated[bs_id]) for bs_id in bs_ids]
-                position, error = LighthouseCrossingBeam.position_max_distance_all_permutations(bs_angle_list)
 
-                sample.pose = Pose.from_rot_vec(t_vec=position)
-                sample.error_distance = error
-                cf_error.append(error)
+                # Make sure all base stations in the sample are present in the solution
+                is_ok = True
+                for bs in bs_ids:
+                    if bs not in solution.bs_poses:
+                        sample.status = LhCfPoseSampleStatus.BS_UNKNOWN
+                        is_ok = False
+                        continue
+
+                if is_ok:
+                    bs_angle_list = [(solution.bs_poses[bs_id], sample.angles_calibrated[bs_id]) for bs_id in bs_ids]
+                    position, error = LighthouseCrossingBeam.position_max_distance_all_permutations(bs_angle_list)
+
+                    sample.pose = Pose.from_rot_vec(t_vec=position)
+                    sample.error_distance = error
+                    cf_error.append(error)
 
         if len(cf_error) > 0:
             solution.verification_stats = LighthouseGeometrySolution.ErrorStats(
@@ -409,16 +419,11 @@ class LhGeoInputContainerData():
         sensor_positions = np.array(values['sensor_positions'], dtype=np.float_)
         result = LhGeoInputContainerData(sensor_positions)
 
-        result.origin = values['origin']
-        result.x_axis = values['x_axis']
-        result.xy_plane = values['xy_plane']
-        result.xyz_space = values['xyz_space']
-        if 'verification' in values:
-            # If verification is not present, it will be an empty list
-            # This is to ensure backward compatibility with older versions of the data container
-            result.verification = values['verification']
-        else:
-            result.verification = []
+        result.origin = values['origin'] if 'origin' in values else LhGeoInputContainerData.EMPTY_POSE_SAMPLE
+        result.x_axis = values['x_axis'] if 'x_axis' in values else []
+        result.xy_plane = values['xy_plane'] if 'xy_plane' in values else []
+        result.xyz_space = values['xyz_space'] if 'xyz_space' in values else []
+        result.verification = values['verification'] if 'verification' in values else []
 
         # Augment the samples with the sensor positions
         result.origin.augment_with_ippe(sensor_positions)

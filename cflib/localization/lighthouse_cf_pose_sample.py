@@ -160,6 +160,7 @@ class LhCfPoseSampleStatus(enum.Enum):
     TOO_FEW_BS = 'Too few bs'
     AMBIGUOUS = 'Ambiguous'
     NO_DATA = 'No data'
+    BS_UNKNOWN = 'Bs unknown'
 
     def __str__(self):
         return self.value

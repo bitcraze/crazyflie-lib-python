@@ -1,8 +1,8 @@
 import cflib.crtp  # noqa
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-from cflib.utils import uri_helper
-from cflib.localization import LighthouseConfigFileManager, LighthouseConfigWriter
+from cflib.localization import LighthouseConfigFileManager
+from cflib.localization import LighthouseConfigWriter
 
 
 # Upload a geometry to one or more Crazyflies.
@@ -11,7 +11,7 @@ mgr = LighthouseConfigFileManager()
 geos, calibs, type = mgr.read('/path/to/your/geo.yaml')
 
 uri_list = [
-    "radio://0/70/2M/E7E7E7E770"
+    'radio://0/70/2M/E7E7E7E770'
 ]
 
 # Initialize the low-level drivers

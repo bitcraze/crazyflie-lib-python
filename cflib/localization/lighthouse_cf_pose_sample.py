@@ -31,7 +31,7 @@ from .ippe_cf import IppeCf
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
 from cflib.localization.lighthouse_types import Pose
 
-ArrayFloat = npt.NDArray[np.float_]
+ArrayFloat = npt.NDArray[np.float64]
 
 
 class BsPairPoses(NamedTuple):

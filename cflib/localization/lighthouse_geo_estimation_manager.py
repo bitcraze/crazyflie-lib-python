@@ -45,7 +45,7 @@ from cflib.localization.lighthouse_types import Pose
 from cflib.localization.lighthouse_utils import LighthouseCrossingBeam
 
 
-ArrayFloat = npt.NDArray[np.float_]
+ArrayFloat = npt.NDArray[np.float64]
 
 
 class LhGeoEstimationManager():
@@ -416,7 +416,7 @@ class LhGeoInputContainerData():
     @staticmethod
     def yaml_constructor(loader, node):
         values = loader.construct_mapping(node, deep=True)
-        sensor_positions = np.array(values['sensor_positions'], dtype=np.float_)
+        sensor_positions = np.array(values['sensor_positions'], dtype=np.float64)
         result = LhGeoInputContainerData(sensor_positions)
 
         result.origin = values['origin'] if 'origin' in values else LhGeoInputContainerData.EMPTY_POSE_SAMPLE

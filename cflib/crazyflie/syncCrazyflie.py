@@ -86,10 +86,18 @@ class SyncCrazyflie:
         self._connect_event = Event()
         self._params_updated_event.clear()
         self.cf.open_link(self._link_uri)
-        self._connect_event.wait()
+        if not self._connect_event.wait(timeout=10):  # 10 second timeout
+            # Connection timed out - ensure proper cleanup
+            self.cf.close_link()  # This will now trigger centralized cleanup
+            self._remove_callbacks()
+            self._params_updated_event.clear()
+            raise Exception('Timeout waiting for connection to establish')
         self._connect_event = None
 
         if not self._is_link_open:
+            # Connection failed - ensure cleanup happened
+            if self.cf.is_connected():  # Just in case cleanup didn't happen
+                self.cf.close_link()
             self._remove_callbacks()
             self._params_updated_event.clear()
             raise Exception(self._error_message)
@@ -112,8 +120,12 @@ class SyncCrazyflie:
             # At this point the connection sequence is finished
         ```
 
+        Raises:
+            Exception: If parameter update times out after 5 seconds
+
         """
-        self._params_updated_event.wait()
+        if not self._params_updated_event.wait(5):
+            raise Exception('Timeout waiting for parameter values to be updated')
 
     def __enter__(self):
         self.open_link()
@@ -126,9 +138,6 @@ class SyncCrazyflie:
             self._disconnect_event.wait()
             self._disconnect_event = None
             self._params_updated_event.clear()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close_link()
 
     def is_link_open(self):
         return self._is_link_open

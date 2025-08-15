@@ -127,7 +127,8 @@ class Bootloader:
             else:
                 print('Bootloader protocol 0x{:X} not '
                       'supported!'.format(self.protocol_version))
-
+        elif self._cload.link:
+            self._cload.link.close()
         return started
 
     def get_target(self, target_id):

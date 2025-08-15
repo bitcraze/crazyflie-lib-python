@@ -212,9 +212,15 @@ class Crazyflie():
         """Called from the link driver when there's an error"""
         logger.warning('Got link error callback [%s] in state [%s]',
                        errmsg, self.state)
-        if (self.link is not None):
-            self.link.close()
-        self.link = None
+        #
+        # if (self.link is not None):
+        #     self.link.close()
+        # self.link = None
+        #
+        # instead, perhaps;
+        # make sure we close links from all these callbacks
+        # below
+        #
         if (self.state == State.INITIALIZED):
             self.connection_failed.call(self.link_uri, errmsg)
         elif (self.state == State.CONNECTED or
@@ -223,7 +229,7 @@ class Crazyflie():
             self.connection_lost.call(self.link_uri, errmsg)
         elif (self.state == State.DISCONNECTED):
             self.disconnected_link_error.call(self.link_uri, errmsg)
-        self.state = State.DISCONNECTED
+        self.state = State.DISCONNECTED  # did we want this removed?
 
     def _check_for_initial_packet_cb(self, data):
         """
@@ -271,9 +277,7 @@ class Crazyflie():
                          ex, traceback.format_exc())
             exception_text = "Couldn't load link driver: %s\n\n%s" % (
                 ex, traceback.format_exc())
-            if self.link:
-                self.link.close()
-                self.link = None
+            self.close_link()
             self.connection_failed.call(link_uri, exception_text)
 
     def close_link(self):
@@ -284,7 +288,6 @@ class Crazyflie():
         if (self.link is not None):
             self.link.close()
             self.link = None
-        self._answer_patterns = {}
         self.disconnected.call(self.link_uri)
         self.state = State.DISCONNECTED
 
@@ -397,6 +400,8 @@ class _IncomingPacketHandler(Thread):
         self.daemon = True
         self.cf = cf
         self.cb = []
+        self.cf.disconnected.add_callback(self.close)
+        self._should_stop = False
 
     def add_port_callback(self, port, cb):
         """Add a callback for data that comes on a specific port"""
@@ -431,10 +436,15 @@ class _IncomingPacketHandler(Thread):
                     port_callback.callback == cb:
                 self.cb.remove(port_callback)
 
+    def close(self, uri):
+        logger.info('Disconnected from %s, stopping incoming packet handler', uri)
+        self._should_stop = True
+        self.join(timeout=1.0)
+
     def run(self):
-        while True:
+        while not self._should_stop:
             if self.cf.link is None:
-                time.sleep(1)
+                time.sleep(0.1)  # Reduced sleep time for faster shutdown
                 continue
             pk = self.cf.link.receive_packet(1)
 

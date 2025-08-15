@@ -298,6 +298,7 @@ class Param():
         """Disconnected callback from Crazyflie API"""
         if self.param_updater is not None:
             self.param_updater.close()
+            self.param_updater.join(timeout=1.0)
             self.param_updater = None
 
         # Do not clear self.is_updated here as we might get spurious parameter updates later
@@ -379,7 +380,7 @@ class Param():
         if not self._initialized.is_set():
             if self.cf.is_called_by_incoming_handler_thread():
                 raise Exception('Can not get parameter from callback until fully connected.')
-            if not self._initialized.wait(timeout=60):
+            if not self._initialized.wait(timeout):
                 raise Exception('Connection timed out')
 
         [group, name] = complete_name.split('.')

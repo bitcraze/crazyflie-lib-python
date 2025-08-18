@@ -114,7 +114,7 @@ class Cloader:
                 self.link = cflib.crtp.get_link_driver(f'radio://0/0/2M/{address}?safelink=0')
                 time.sleep(0.5)
                 return True
-
+        self.link.close()
         return False
 
     def reset_to_firmware(self, target_id: int, boot_delay: float = 0.0) -> bool:

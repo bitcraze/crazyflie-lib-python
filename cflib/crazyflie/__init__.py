@@ -288,7 +288,7 @@ class Crazyflie():
             callbacks = list(self.incoming.cb)
             if self.incoming.is_alive():
                 self.incoming.stop()
-                self.incoming.join()
+                self.incoming.join(timeout=1)
             self.incoming = _IncomingPacketHandler(self)
             self.incoming.cb = callbacks
             self.incoming.daemon = True

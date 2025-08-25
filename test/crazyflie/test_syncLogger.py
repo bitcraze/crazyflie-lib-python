@@ -229,7 +229,7 @@ class SyncLoggerTest(unittest.TestCase):
         # Assert
         # Nothing here. Just not expecting an exception
 
-    def test_getting_data_without_conection_raises_exception(self):
+    def test_getting_data_without_connection_raises_exception(self):
         # Fixture
 
         # Test

@@ -37,7 +37,7 @@ The following should be executed in the root of the crazyflie-lib-python file tr
 
 #### Virtualenv
 This section contains a very short description of how to use [virtualenv (local python environment)](https://virtualenv.pypa.io/en/latest/)
-with package dependencies. If you don't want to use virualenv and don't mind installing cflib dependencies system-wide
+with package dependencies. If you don't want to use virtualenv and don't mind installing cflib dependencies system-wide
 you can skip this section.
 
 * Install virtualenv: `pip install virtualenv`

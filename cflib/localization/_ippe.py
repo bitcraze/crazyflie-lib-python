@@ -377,7 +377,7 @@ def normalise2dpts(pts):
     T: The 3x3 transformation matrix, newpts = T*pts
     """
     if pts.shape[0] != 3:
-        print('Input shoud be 3')
+        print('Input should be 3')
 
     finiteind = np.nonzero(abs(pts[2, :]) > np.spacing(1))
 

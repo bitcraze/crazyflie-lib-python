@@ -35,7 +35,7 @@ class MemoryTester(MemoryElement):
     1. To verify reading:
       * Call read_data()
       * Wait for the callback to be called
-      * Verify that readValidationSucess is True
+      * Verify that readValidationSuccess is True
 
     2. To verify writing:
       * Set the parameter 'memTst.resetW' in the CF
@@ -53,7 +53,7 @@ class MemoryTester(MemoryElement):
         self._update_finished_cb = None
         self._write_finished_cb = None
 
-        self.readValidationSucess = True
+        self.readValidationSuccess = True
 
     def new_data(self, mem, start_address, data):
         """Callback for when new memory data has been fetched"""
@@ -64,7 +64,7 @@ class MemoryTester(MemoryElement):
 
                 if (actualValue != expectedValue):
                     address = start_address + i
-                    self.readValidationSucess = False
+                    self.readValidationSuccess = False
                     logger.error(
                         'Error in data - expected: {}, actual: {}, address:{}',
                         expectedValue, actualValue, address)

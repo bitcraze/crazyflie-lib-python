@@ -124,7 +124,7 @@ class LighthouseConfigWriter:
         The callback is called when done.
         If geos or calibs is None, no data will be written for that data type.
         If geos or calibs is a dictionary, the values for the base stations in the dictionary will
-        transfered to the Crazyflie, data for all other base stations will be invalidated.
+        transferred to the Crazyflie, data for all other base stations will be invalidated.
         """
         if self._data_stored_cb is not None:
             raise Exception('Write already in prgress')
@@ -189,8 +189,8 @@ class LighthouseConfigWriter:
         if tmp_callback is not None:
             tmp_callback(not self._write_failed_for_one_or_more_objects)
 
-    def _upload_done(self, sucess):
-        if not sucess:
+    def _upload_done(self, success):
+        if not success:
             self._write_failed_for_one_or_more_objects = True
         self._next()
 

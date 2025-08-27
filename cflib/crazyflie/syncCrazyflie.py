@@ -92,6 +92,7 @@ class SyncCrazyflie:
         if not self._is_link_open:
             self._remove_callbacks()
             self._params_updated_event.clear()
+            self.cf.close_link()
             raise Exception(self._error_message)
 
     def wait_for_params(self):

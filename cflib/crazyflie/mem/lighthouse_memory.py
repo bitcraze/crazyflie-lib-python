@@ -428,13 +428,13 @@ class LighthouseMemHelper:
                 self._write_fcn(id, data, self._data_written, write_failed_cb=self._write_failed)
             else:
                 tmp_cb = self._write_done_cb
-                is_sucess = not self._write_failed_for_one_or_more_objects
+                is_success = not self._write_failed_for_one_or_more_objects
 
                 self._objects_to_write = None
                 self._write_done_cb = None
                 self._write_failed_for_one_or_more_objects = False
 
-                tmp_cb(is_sucess)
+                tmp_cb(is_success)
 
         def _data_written(self, mem, addr):
             self._write_next_object()

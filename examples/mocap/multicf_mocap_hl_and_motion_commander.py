@@ -1,3 +1,33 @@
+# -*- coding: utf-8 -*-
+#
+# ,---------,       ____  _ __
+# |  ,-^-,  |      / __ )(_) /_______________ _____  ___
+# | (  O  ) |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
+# | / ,--'  |    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
+#    +------`   /_____/_/\__/\___/_/   \__,_/ /___/\___/
+#
+# Copyright (C) 2023 Bitcraze AB
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, in version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+"""
+Example of how to connect to a motion capture system and feed positions (only)
+to a multiple Crazyflie, using the motioncapture library.
+
+The script uses the high level and the motion commander to fly circles and waypoints.
+
+Set the uri to the radio settings of your Crazyflies, set the rigid body names and 
+modify the mocap setting matching your system.
+"""
 import time
 from threading import Thread, Lock
 
@@ -50,15 +80,11 @@ def run_sequence(scf):
     scf.cf.platform.send_arming_request(True)
     time.sleep(1.0)
 
-    ################################################################################
-    # .takeoff() is automatic when entering the "with PositionHlCommander" context #
-    ################################################################################
+    # .takeoff() is automatic when entering the "with PositionHlCommander" context
     if scf._link_uri == 'radio://0/80/2M/E7E7E7E7E7':
         with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             pc.set_default_velocity(0.5)
-            #################################################################################
-            # 6 repetitions, at .5 speed, take ~1':15 and drop the battery from 4.2 to 3.9V #
-            #################################################################################
+            # 6 repetitions, at .5 speed, take ~1':15 and drop the battery from 4.2 to 3.9V
             for i in range(6): # fly a triangle with changing altitude
                 pc.go_to(1.0, 1.0, 1.5)
                 pc.go_to(1.0, -1.0, 1.5)
@@ -67,18 +93,14 @@ def run_sequence(scf):
     elif scf._link_uri == 'radio://0/90/2M/E7E7E7E7E8':
         with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             pc.set_default_velocity(0.3)
-            ######################
-            # Scripted behaviour #
-            ######################
+            # Scripted behaviour
             for i in range(6): # fly side to side
                 pc.go_to(0.2, 1.0, 0.85)
                 pc.go_to(0.2, -1.0, 0.85)
             pc.go_to(0.0, 0.0, 0.15)
     elif scf._link_uri == 'radio://0/100/2M/E7E7E7E7E9':
         with MotionCommander(scf) as mc:
-            #################################################################################
-            # 3 right loops and 3 left loops take ~1' and drop the battery from 4.2 to 4.0V #
-            #################################################################################
+            # 3 right loops and 3 left loops take ~1' and drop the battery from 4.2 to 4.0V
             mc.back(0.8)
             time.sleep(1)
             mc.up(0.5)
@@ -90,9 +112,7 @@ def run_sequence(scf):
             mc.circle_left(0.5, velocity=0.4, angle_degrees=1080)
             time.sleep(1)
             mc.down(0.5)
-    #####################################################################################
-    # .land() is automatic when exiting the scope of context "with PositionHlCommander" #
-    #####################################################################################
+    # .land() is automatic when exiting the scope of context "with PositionHlCommander"
 
 if __name__ == '__main__':
     cflib.crtp.init_drivers()

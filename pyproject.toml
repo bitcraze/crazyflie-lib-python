@@ -39,7 +39,7 @@ dependencies = [
     "libusb-package~=1.0",
     "scipy~=1.14",
     "numpy~=2.2",
-    "packaging~=24.2",
+    "packaging~=25",
 ]
 
 [project.urls]

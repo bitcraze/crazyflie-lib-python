@@ -26,6 +26,9 @@ figure 8.
 
 Set the uri to the radio settings of the Crazyflie and modify the
 rigid_body_name to match the name of the Crazyflie in QTM.
+
+Requires the qualisys optional dependency:
+    pip install cflib[qualisys]
 """
 import asyncio
 import math

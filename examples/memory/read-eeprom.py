@@ -64,6 +64,7 @@ class EEPROMExample:
 
         # Variable used to keep main loop occupied until disconnect
         self.is_connected = True
+        self.should_disconnect = False
 
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
@@ -88,7 +89,7 @@ class EEPROMExample:
 
         self._mems_to_update -= 1
         if self._mems_to_update == 0:
-            self._cf.close_link()
+            self.should_disconnect = True
 
     def _stab_log_error(self, logconf, msg):
         """Callback from the log API when an error occurs"""
@@ -126,6 +127,8 @@ if __name__ == '__main__':
     # are just waiting until we are disconnected.
     try:
         while le.is_connected:
+            if le.should_disconnect:
+                le._cf.close_link()
             time.sleep(1)
     except KeyboardInterrupt:
         sys.exit(1)

@@ -17,7 +17,6 @@
 Flash the DS28E05 EEPROM via CRTP.
 """
 import datetime
-import os
 import sys
 import time
 
@@ -50,6 +49,7 @@ class Flasher(object):
 
         # Initialize variables
         self.connected = False
+        self.should_disconnect = False
 
     # Public methods
 
@@ -201,11 +201,7 @@ if __name__ == '__main__':
     # Callback function when data has been written
     def data_written(mem, addr):
         print('Data has been written to memory!')
-        flasher.disconnect()
-
-        # We need to use os.kill because this is a callback
-        SIGTERM = 15
-        os.kill(os.getpid(), SIGTERM)
+        flasher.should_disconnect = True
 
     # Write data
     sure = input('Are you sure? [y/n] ')
@@ -214,9 +210,12 @@ if __name__ == '__main__':
         abort()
     mem.write_data(data_written)
 
-    # Timeout 10 seconds
+    # Wait for completion or timeout (10 seconds)
     for _ in range(10 * 2):
+        if flasher.should_disconnect:
+            flasher.disconnect()
+            break
         time.sleep(0.5)
-    print('Apparently data could not be written to memory... :(')
-
-    flasher.disconnect()
+    else:
+        print('Apparently data could not be written to memory... :(')
+        flasher.disconnect()

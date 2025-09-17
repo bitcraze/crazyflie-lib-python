@@ -65,6 +65,7 @@ class ParamExample:
 
         # Variable used to keep main loop occupied until disconnect
         self.is_connected = True
+        self.should_disconnect = False
 
         self._param_check_list = []
         self._param_groups = []
@@ -129,8 +130,8 @@ class ParamExample:
         """Callback for pid_attitude.pitch_kd"""
         print('Read back: {0}={1}'.format(name, value))
 
-        # This is the end of the example, close link
-        self._cf.close_link()
+        # This is the end of the example, signal to close link
+        self.should_disconnect = True
 
     def _connection_failed(self, link_uri, msg):
         """Callback when connection initial connection fails (i.e no Crazyflie
@@ -160,4 +161,6 @@ if __name__ == '__main__':
     # alive, so this is where your application should do something. In our
     # case we are just waiting until we are disconnected.
     while pe.is_connected:
+        if pe.should_disconnect:
+            pe._cf.close_link()
         time.sleep(1)

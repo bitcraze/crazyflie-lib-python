@@ -34,14 +34,14 @@ The de facto standard network packet capture format is libpcap (pcap), which is 
 To tell the CFLIB to generate a PCAP file of what it thinks the CRTP traffic looks like you can go:
 
 ```bash
-$ CRTP_PCAP_LOG=filename.pcap python3 examples/swarm/hl-commander-swarm.py
+$ CRTP_PCAP_LOG=filename.pcap python3 examples/swarm/hl_commander_swarm.py
 $ wireshark filename.pcap
 ```
 and on Windows based computers in a shell window:
 
 ```bash
 > set CRTP_PCAP_LOG=filename.pcap
-> python3 examples/swarm/hl-commander-swarm.py
+> python3 examples/swarm/hl_commander_swarm.py
 > wireshark filename.pcap
 ```
 To generate a PCAP file and open it with Wireshark. You can also use the text based `tshark` tool, and you can add a filter, for instance, only shoow CRTP port 8 (Highlevel setpoint):

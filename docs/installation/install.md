@@ -75,11 +75,11 @@ pre-commit run --all-files
 
 This will run the lint checkers defined in `.pre-commit-config-yaml` on your proposed changes.
 
-### Testing with Docker and Toolbelt
+### Testing with the Toolbelt
 
 For information and installation of the [toolbelt](https://github.com/bitcraze/toolbelt):
 
 * Check to see if you pass tests: `tb test`
 * Check to see if you pass style guidelines: `tb verify`
 
-**Note**: Docker and the toolbelt is an optional way of running tests and reduces the work needed to maintain your Python environment.
+**Note**: The toolbelt is an optional way of running tests and reduces the work needed to maintain your Python environment.

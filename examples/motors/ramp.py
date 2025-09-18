@@ -27,7 +27,6 @@ the motors and disconnects.
 """
 import logging
 import time
-from threading import Thread
 
 import cflib
 from cflib.crazyflie import Crazyflie

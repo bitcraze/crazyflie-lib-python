@@ -152,5 +152,8 @@ if __name__ == '__main__':
         swarm.parallel_safe(start_position_printing)
         time.sleep(0.1)
 
+        swarm.parallel_safe(arm)
+        time.sleep(0.5)
+
         swarm.parallel_safe(async_flight)
         time.sleep(1)

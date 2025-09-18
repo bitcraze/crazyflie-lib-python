@@ -17,6 +17,8 @@ This project requires Python 3.10+.
 
 The Crazyradio is easily recognized on Linux, but you need to set up udev permissions. See the [USB permission instructions](/docs/installation/usb_permissions.md) to configure udev on Ubuntu/Linux.
 
+> **Note for Ubuntu 20.04 users**: Use `pip3` instead of `pip` in all installation commands below.
+
 ### Windows
 
 Install the Crazyradio drivers using the [Zadig instructions](https://www.bitcraze.io/documentation/repository/crazyradio-firmware/master/building/usbwindows/).
@@ -67,7 +69,7 @@ pip uninstall cflib
 If you want help maintaining Python coding standards, you can install hooks that verify your style at commit time:
 
 ```bash
-pip3 install pre-commit
+pip install pre-commit
 cd crazyflie-lib-python
 pre-commit install
 pre-commit run --all-files

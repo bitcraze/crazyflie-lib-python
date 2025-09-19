@@ -17,7 +17,7 @@ following steps:
 
 <!-- -->
 
-    python3 write-eeprom.py
+    python3 write_eeprom.py
 
 This will find your first Crazyflie (which is the one you connected over
 USB) and write the default values to the EEPROM.

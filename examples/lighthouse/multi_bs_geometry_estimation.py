@@ -35,6 +35,10 @@ This script works with 2 or more base stations (if supported by the CF firmware)
 This script is a temporary implementation until similar functionality has been
 added to the client.
 
+REQUIREMENTS:
+- Lighthouse v2 base stations are required for this example. The Lighthouse deck
+  will be set to Lighthouse v2 mode automatically.
+
 Prerequisites:
 1. The base station calibration data must have been
 received by the Crazyflie before this script is executed.
@@ -354,6 +358,10 @@ def connect_and_estimate(uri: str, file_name: str | None = None):
     print(f'Step 1. Connecting to the Crazyflie on uri {uri}...')
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         print('  Connected')
+
+        print('  Setting lighthouse deck to v2 mode...')
+        scf.cf.param.set_value('lighthouse.systemType', 2)
+        print('  Lighthouse deck set to v2 mode')
         print('')
         print('In the 3 following steps we will define the coordinate system.')
 

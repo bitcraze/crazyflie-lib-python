@@ -103,7 +103,7 @@ def run_sequence(scf):
                   0.0, 0.0, 0.0)
     print('land')
     send_setpoint(cf, 2.0,
-                  [0.0, 0.0, 0.2],
+                  [0.0, 0.0, 0.1],
                   [0.0, 0.0, 0.0],
                   [0.0, 0.0, 0.0],
                   quaternion_from_euler(0.0, 0.0, 0.0),

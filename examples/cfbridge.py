@@ -9,7 +9,7 @@ So, we need to constantly poll the receivers for bidirectional communication.
 
 @author: Dennis Shtatnov (densht@gmail.com)
 
-Based off example code from crazyflie-lib-python/examples/read-eeprom.py
+Based off example code from crazyflie-lib-python/examples/read_eeprom.py
 """
 # import struct
 import logging

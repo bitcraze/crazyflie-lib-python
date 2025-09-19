@@ -50,7 +50,8 @@ Issues = "https://github.com/bitcraze/crazyflie-lib-python/issues"
 
 [project.optional-dependencies]
 dev = ["pre-commit"]
-qualisys = ["qtm-rt>=3.0.2"]
+qualisys = ["qtm-rt~=3.0.2"]
+motioncapture = ["motioncapture~=1.0a4"]
 
 [tool.setuptools]
 include-package-data = true

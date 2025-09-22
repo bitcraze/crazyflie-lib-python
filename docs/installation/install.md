@@ -9,8 +9,6 @@ This project requires Python 3.10+.
 
 > **Recommendation**: Use a Python virtual environment to isolate dependencies. See the [official Python venv documentation](https://docs.python.org/3/library/venv.html) for setup instructions.
 
-***NOTE: Running with Python 3.13 on macOS is not officially supported***
-
 ## Platform Prerequisites
 
 ### Ubuntu/Linux

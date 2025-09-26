@@ -184,11 +184,11 @@ class MainWindow(QtWidgets.QWidget):
             self._imgDownload = ImageDownloader(self.cf.link.cpx, self.updateImage)
             self._imgDownload.start()
 
-            self.hover = {'x': 0.0, 'y': 0.0, 'z': 0.0, 'yaw': 0.0, 'height': 0.3}
-
             # Arm the Crazyflie
             self.cf.platform.send_arming_request(True)
             time.sleep(1.0)
+
+            self.hover = {'x': 0.0, 'y': 0.0, 'z': 0.0, 'yaw': 0.0, 'height': 0.3}
 
             self.hoverTimer = QtCore.QTimer()
             self.hoverTimer.timeout.connect(self.sendHoverCommand)

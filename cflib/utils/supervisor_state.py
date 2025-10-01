@@ -6,9 +6,17 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
 class SupervisorState:
     STATES = [
-        'Can be armed', 'Is armed', 'Auto armed', 'Can fly', 'Is flying',
-        'Is tumbled', 'Is locked', 'Is crashed', 'HL control is active',
-        'Finished HL trajectory', 'HL control is disabled'
+        'Can be armed',
+        'Is armed',
+        'Auto armed',
+        'Can fly',
+        'Is flying',
+        'Is tumbled',
+        'Is locked',
+        'Is crashed',
+        'HL control is active',
+        'Finished HL trajectory',
+        'HL control is disabled'
     ]
 
     def __init__(self, crazyflie):

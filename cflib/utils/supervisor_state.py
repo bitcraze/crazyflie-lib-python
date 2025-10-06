@@ -61,6 +61,7 @@ class SupervisorState:
             bitfield = None
 
         logconf.stop()
+        logconf.delete()
         return bitfield
 
     def read_supervisor_state_list(self):

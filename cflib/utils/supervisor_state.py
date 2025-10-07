@@ -6,7 +6,7 @@
 # | / ,--'  |    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #    +------`   /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-# Copyright (C) 2020 Bitcraze AB
+# Copyright (C) 2025 Bitcraze AB
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+"""
+This class is used to easily get the state of your Crazyflie by through
+the supervisor. Check the `reading_supervisor.py` example in
+examples/supervisor/ to better understand how it works.
+"""
 import threading
 
 from cflib.crazyflie.log import LogConfig
@@ -29,7 +34,7 @@ class SupervisorState:
     STATES = [
         'Can be armed',
         'Is armed',
-        'Auto armed',
+        'Is auto armed',
         'Can fly',
         'Is flying',
         'Is tumbled',
@@ -100,17 +105,17 @@ class SupervisorState:
         returns the names of all states whose bits are set.
         Bit 0 corresponds to states[0], Bit 1 to states[1], etc.
 
-        * Bit 0 = Can be armed - the system can be armed and will accept an arming command
-        * Bit 1 = is armed - the system is armed
-        * Bit 2 = auto arm - the system is configured to automatically arm
-        * Bit 3 = can fly - the Crazyflie is ready to fly
-        * Bit 4 = is flying - the Crazyflie is flying.
-        * Bit 5 = is tumbled - the Crazyflie is up side down.
-        * Bit 6 = is locked - the Crazyflie is in the locked state and must be restarted.
-        * Bit 7 = is crashed - the Crazyflie has crashed.
-        * Bit 8 = high level control is actively flying the drone
-        * Bit 9 = high level trajectory has finished
-        * Bit 10 = high level control is disabled and not producing setpoints
+        * Bit 0 = Can be armed - the system can be armed and will accept an arming command.
+        * Bit 1 = Is armed - the system is armed.
+        * Bit 2 = Is auto armed - the system is configured to automatically arm.
+        * Bit 3 = Can fly - the Crazyflie is ready to fly.
+        * Bit 4 = Is flying - the Crazyflie is flying.
+        * Bit 5 = Is tumbled - the Crazyflie is up side down.
+        * Bit 6 = Is locked - the Crazyflie is in the locked state and must be restarted.
+        * Bit 7 = Is crashed - the Crazyflie has crashed.
+        * Bit 8 = High level control is actively flying the drone.
+        * Bit 9 = High level trajectory has finished.
+        * Bit 10 = High level control is disabled and not producing setpoints.
         """
         if value < 0:
             raise ValueError('value must be >= 0')

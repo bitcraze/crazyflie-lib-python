@@ -56,6 +56,7 @@ def run_sequence(scf: SyncCrazyflie, sup: SupervisorState):
 
     try:
         if sup.can_be_armed():
+            print('The Crazyflie can be armed...arming!')
             safety_check(sup)
             scf.cf.platform.send_arming_request(True)
             time.sleep(1)

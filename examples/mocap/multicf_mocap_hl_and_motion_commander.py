@@ -6,7 +6,7 @@
 # | / ,--'  |    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #    +------`   /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-# Copyright (C) 2023 Bitcraze AB
+# Copyright (C) 2025 Bitcraze AB
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,33 +21,31 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 """
 Example of how to connect to a motion capture system and feed positions (only)
-to a multiple Crazyflie, using the motioncapture library.
+to multiple Crazyflies, using the motioncapture library.
 
-The script uses the high level and the motion commander to fly circles and waypoints.
+The script uses the position high level and the motion commander to fly circles and waypoints.
 
-Set the uri to the radio settings of your Crazyflies, set the rigid body names and 
+Set the uri to the radio settings of your Crazyflies, set the rigid body names and
 modify the mocap setting matching your system.
 """
 import time
-from threading import Thread, Lock
+from threading import Thread
 
 import motioncapture
 
 import cflib.crtp
 from cflib.crazyflie.swarm import CachedCfFactory
 from cflib.crazyflie.swarm import Swarm
-from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
-from cflib.utils.reset_estimator import reset_estimator
-from cflib.positioning.position_hl_commander import PositionHlCommander
 from cflib.positioning.motion_commander import MotionCommander
-
+from cflib.positioning.position_hl_commander import PositionHlCommander
 # The type of the mocap system
 # Valid options are: 'vicon', 'optitrack', 'optitrack_closed_source', 'qualisys', 'nokov', 'vrpn', 'motionanalysis'
 mocap_system_type = 'optitrack'
 
 # The host name or ip address of the mocap system
 host_name = '192.168.5.21'
+
 
 class MocapWrapper(Thread):
     def __init__(self, active_rbs_cfs):
@@ -75,8 +73,9 @@ class MocapWrapper(Thread):
             if self.counter == 200:
                 self.counter = 0
 
-def run_sequence(scf):
-    print("This is: ", scf._link_uri)
+
+def run_sequence(scf: SyncCrazyflie):
+    print('This is: ', scf._link_uri)
     scf.cf.platform.send_arming_request(True)
     time.sleep(1.0)
 
@@ -85,7 +84,7 @@ def run_sequence(scf):
         with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             pc.set_default_velocity(0.5)
             # 6 repetitions, at .5 speed, take ~1':15 and drop the battery from 4.2 to 3.9V
-            for i in range(6): # fly a triangle with changing altitude
+            for i in range(6):  # fly a triangle with changing altitude
                 pc.go_to(1.0, 1.0, 1.5)
                 pc.go_to(1.0, -1.0, 1.5)
                 pc.go_to(0.5, 0.0, 2.0)
@@ -94,7 +93,7 @@ def run_sequence(scf):
         with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             pc.set_default_velocity(0.3)
             # Scripted behaviour
-            for i in range(6): # fly side to side
+            for i in range(6):  # fly side to side
                 pc.go_to(0.2, 1.0, 0.85)
                 pc.go_to(0.2, -1.0, 0.85)
             pc.go_to(0.0, 0.0, 0.15)
@@ -114,24 +113,24 @@ def run_sequence(scf):
             mc.down(0.5)
     # .land() is automatic when exiting the scope of context "with PositionHlCommander"
 
+
 if __name__ == '__main__':
     cflib.crtp.init_drivers()
 
     # Uncomment the URIs to connect to
     uris = [
-            'radio://0/80/2M/E7E7E7E7E7',
-            # 'radio://0/90/2M/E7E7E7E7E8',
-            # 'radio://0/100/2M/E7E7E7E7E9',
-        ]
+        'radio://0/80/2M/E7E7E7E7E7',
+        # 'radio://0/90/2M/E7E7E7E7E8',
+        # 'radio://0/100/2M/E7E7E7E7E9',
+    ]
 
     # Maps the URIs to the rigid-body names as streamed by, e.g., OptiTrack's Motive
     rbs = {
-            'radio://0/80/2M/E7E7E7E7E7' : 'E7',
-            'radio://0/90/2M/E7E7E7E7E8' : 'E8',
-            'radio://0/100/2M/E7E7E7E7E9' : 'E9'
-        }
+        'radio://0/80/2M/E7E7E7E7E7': 'E7',
+        'radio://0/90/2M/E7E7E7E7E8': 'E8',
+        'radio://0/100/2M/E7E7E7E7E9': 'E9'
+    }
 
-    
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
         active_rbs_cfs = {rbs[uri]: scf.cf for uri, scf in swarm._cfs.items()}

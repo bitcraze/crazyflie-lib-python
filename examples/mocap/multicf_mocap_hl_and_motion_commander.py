@@ -46,6 +46,22 @@ mocap_system_type = 'optitrack'
 # The host name or ip address of the mocap system
 host_name = '192.168.5.21'
 
+# Uncomment the URIs to connect to
+uris = [
+    'radio://0/80/2M/E7E7E7E7E7',
+    'radio://0/80/2M/E7E7E7E7E8',
+    'radio://0/80/2M/E7E7E7E7E9',
+    # Add more URIs if you want more copters in the swarm
+    # URIs in a swarm using the same radio must also be on the same channel
+]
+
+# Maps the URIs to the rigid-body names as streamed by, e.g., OptiTrack's Motive
+rbs = {
+    uris[0]: 'cf1',
+    uris[1]: 'cf2',
+    uris[2]: 'cf3',
+}
+
 
 class MocapWrapper(Thread):
     def __init__(self, active_rbs_cfs):
@@ -80,7 +96,7 @@ def run_sequence(scf: SyncCrazyflie):
     time.sleep(1.0)
 
     # .takeoff() is automatic when entering the "with PositionHlCommander" context
-    if scf._link_uri == 'radio://0/80/2M/E7E7E7E7E7':
+    if scf._link_uri == uris[0]:
         with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             pc.set_default_velocity(0.5)
             # 6 repetitions, at .5 speed, take ~1':15 and drop the battery from 4.2 to 3.9V
@@ -89,7 +105,7 @@ def run_sequence(scf: SyncCrazyflie):
                 pc.go_to(1.0, -1.0, 1.5)
                 pc.go_to(0.5, 0.0, 2.0)
             pc.go_to(0.5, 0.0, 0.15)
-    elif scf._link_uri == 'radio://0/90/2M/E7E7E7E7E8':
+    elif scf._link_uri == uris[0]:
         with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             pc.set_default_velocity(0.3)
             # Scripted behaviour
@@ -97,7 +113,7 @@ def run_sequence(scf: SyncCrazyflie):
                 pc.go_to(0.2, 1.0, 0.85)
                 pc.go_to(0.2, -1.0, 0.85)
             pc.go_to(0.0, 0.0, 0.15)
-    elif scf._link_uri == 'radio://0/100/2M/E7E7E7E7E9':
+    elif scf._link_uri == uris[0]:
         with MotionCommander(scf) as mc:
             # 3 right loops and 3 left loops take ~1' and drop the battery from 4.2 to 4.0V
             mc.back(0.8)
@@ -116,20 +132,6 @@ def run_sequence(scf: SyncCrazyflie):
 
 if __name__ == '__main__':
     cflib.crtp.init_drivers()
-
-    # Uncomment the URIs to connect to
-    uris = [
-        'radio://0/80/2M/E7E7E7E7E7',
-        # 'radio://0/90/2M/E7E7E7E7E8',
-        # 'radio://0/100/2M/E7E7E7E7E9',
-    ]
-
-    # Maps the URIs to the rigid-body names as streamed by, e.g., OptiTrack's Motive
-    rbs = {
-        'radio://0/80/2M/E7E7E7E7E7': 'E7',
-        'radio://0/90/2M/E7E7E7E7E8': 'E8',
-        'radio://0/100/2M/E7E7E7E7E9': 'E9'
-    }
 
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:

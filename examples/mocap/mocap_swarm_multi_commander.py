@@ -85,9 +85,17 @@ class MocapWrapper(Thread):
                     # Only send positions
                     self.active_rbs_cfs[name].extpos.send_extpos(pos[0], pos[1], pos[2])
                     if self.counter == 200:
-                        print(f"Sent pos {pos} for {name}")
+                        print(f'Sent pos {pos} for {name}')
             if self.counter == 200:
                 self.counter = 0
+
+
+def activate_kalman_estimator(scf: SyncCrazyflie):
+    scf.cf.param.set_value('stabilizer.estimator', '2')
+
+    # Set the std deviation for the quaternion data pushed into the
+    # kalman filter. The default value seems to be a bit too low.
+    scf.cf.param.set_value('locSrv.extQuatStdDev', 0.06)
 
 
 def run_sequence(scf: SyncCrazyflie):
@@ -138,6 +146,8 @@ if __name__ == '__main__':
         active_rbs_cfs = {rbs[uri]: scf.cf for uri, scf in swarm._cfs.items()}
         mocap_thred = MocapWrapper(active_rbs_cfs)
 
+        swarm.parallel_safe(activate_kalman_estimator)
+        time.sleep(1)
         swarm.reset_estimators()
         time.sleep(2)
         swarm.parallel_safe(run_sequence)

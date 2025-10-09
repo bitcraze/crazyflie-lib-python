@@ -84,7 +84,7 @@ class MocapWrapper(Thread):
                     # Only send positions
                     self.active_rbs_cfs[name].extpos.send_extpos(pos[0], pos[1], pos[2])
                     if self.counter == 200:
-                        print(f"Sent pos {pos} for {name}")
+                        print(f'Sent pos {pos} for {name}')
             if self.counter == 200:
                 self.counter = 0
 

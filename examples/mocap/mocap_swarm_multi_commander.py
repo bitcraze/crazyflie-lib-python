@@ -139,7 +139,7 @@ if __name__ == '__main__':
     factory = CachedCfFactory(rw_cache='./cache')
     with Swarm(uris, factory=factory) as swarm:
         active_rbs_cfs = {rbs[uri]: scf.cf for uri, scf in swarm._cfs.items()}
-        mocap_thred = MocapWrapper(active_rbs_cfs)
+        mocap_thread = MocapWrapper(active_rbs_cfs)
 
         swarm.parallel_safe(activate_kalman_estimator)
         time.sleep(1)
@@ -147,4 +147,4 @@ if __name__ == '__main__':
         time.sleep(2)
         swarm.parallel_safe(run_sequence)
 
-    mocap_thred.close()
+    mocap_thread.close()

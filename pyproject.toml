@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "cflib"
@@ -40,6 +40,8 @@ dependencies = [
     "scipy~=1.14",
     "numpy~=2.2",
     "packaging~=25.0",
+    "maturin[patchelf]>=1.9.6",
+    "pre-commit>=4.3.0",
 ]
 
 [project.urls]
@@ -62,5 +64,12 @@ find = { exclude = ["examples", "test"] }
 [tool.setuptools.package-data]
 "cflib.resources.binaries" = ["cflib/resources/binaries/*.bin"]
 
-[tool.setuptools_scm]
-version_scheme = "no-guess-dev"
+[tool.maturin]
+# Path to Cargo.toml for the Rust extension
+manifest-path = "rust/Cargo.toml"
+# Python source directory
+python-source = "."
+# Include Python files from cflib
+module-name = "cflib._rust"
+# Compatibility with older Python versions using abi3
+features = ["pyo3/abi3-py310"]

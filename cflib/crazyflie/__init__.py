@@ -7,7 +7,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2011-2013 Bitcraze AB
+#  Copyright (C) 2011-2025 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #
@@ -23,36 +23,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-The Crazyflie module is used to easily connect/send/receive data
-from a Crazyflie.
+The Crazyflie module - Rust-powered implementation with backwards compatible API.
 
-Each function in the Crazyflie has a class in the module that can be used
-to access that functionality. The same design is then used in the Crazyflie
-firmware which makes the mapping 1:1 in most cases.
+This maintains the same API as the old Python implementation but uses Rust under the hood
+for performance and reliability.
 """
-import datetime
 import logging
-import warnings
-from collections import namedtuple
-from threading import current_thread
-from threading import Event
-from threading import Lock
-from threading import Thread
-from threading import Timer
 
-import cflib.crtp
-from .appchannel import Appchannel
-from .commander import Commander
-from .console import Console
-from .extpos import Extpos
-from .link_statistics import LinkStatistics
-from .localization import Localization
-from .log import Log
-from .mem import Memory
-from .param import Param
-from .platformservice import PlatformService
-from .toccache import TocCache
-from cflib.crazyflie.high_level_commander import HighLevelCommander
+from cflib._rust import Crazyflie as RustCrazyflie
 from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
@@ -62,418 +40,255 @@ logger = logging.getLogger(__name__)
 
 
 class State:
-    """Stat of the connection procedure"""
+    """State of the connection procedure"""
     DISCONNECTED = 0
     INITIALIZED = 1
     CONNECTED = 2
     SETUP_FINISHED = 3
 
 
-class Crazyflie():
-    """The Crazyflie class"""
+class Crazyflie:
+    """
+    The Crazyflie class - backwards compatible API with Rust implementation.
 
-    def __init__(self, link=None, ro_cache=None, rw_cache=None):
+    This maintains API compatibility with the old Python implementation while
+    using Rust for all the heavy lifting (link, subsystems, protocol).
+
+    Supports both old and new connection styles:
+
+    Old style:
+        >>> cf = Crazyflie()
+        >>> cf.open_link("radio://0/80/2M/E7E7E7E7E7")
+        >>> # ... use cf ...
+        >>> cf.close_link()
+
+    New style:
+        >>> with Crazyflie(link_uri="radio://0/80/2M/E7E7E7E7E7") as cf:
+        ...     # ... use cf ...
+    """
+
+    def __init__(self, link=None, ro_cache=None, rw_cache=None, link_uri=None):
         """
-        Create the objects from this module and register callbacks.
+        Create a Crazyflie object.
 
-        @param ro_cache Path to read-only cache (string)
-        @param rw_cache Path to read-write cache (string)
+        Args:
+            link: Deprecated, not used (Rust handles links)
+            ro_cache: Deprecated, not used (Rust handles TOC caching)
+            rw_cache: Deprecated, not used (Rust handles TOC caching)
+            link_uri: Optional URI to connect immediately (new style)
         """
-
-        # Called on disconnect, no matter the reason
+        # Callbacks for backwards compatibility
+        # assert(0)
         self.disconnected = Caller()
-        # Called on unintentional disconnect only
         self.connection_lost = Caller()
-        # Called when the first packet in a new link is received
         self.link_established = Caller()
-        # Called when the user requests a connection
         self.connection_requested = Caller()
-        # Called when the link is established and the TOCs (that are not cached) have been downloaded
         self.connected = Caller()
-        # Called when the the link is established and all data, including parameters have been downloaded
         self.fully_connected = Caller()
-
-        # Called if establishing of the link fails (i.e times out)
         self.connection_failed = Caller()
-        # Called if link driver has an error while state is DISCONNECTED
-        self.disconnected_link_error = Caller()
-        # Called for every packet received
-        self.packet_received = Caller()
-        # Called for every packet sent
-        self.packet_sent = Caller()
 
+        # State management
         self.state = State.DISCONNECTED
-
-        self.link = link
-        self._toc_cache = TocCache(ro_cache=ro_cache,
-                                   rw_cache=rw_cache)
-
-        self.incoming = _IncomingPacketHandler(self)
-        self.incoming.daemon = True
-        if self.link:
-            self.incoming.start()
-
-        self.commander = Commander(self)
-        self.high_level_commander = HighLevelCommander(self)
-        self.loc = Localization(self)
-        self.extpos = Extpos(self)
-        self.log = Log(self)
-        self.console = Console(self)
-        self.param = Param(self)
-        self.mem = Memory(self)
-        self.platform = PlatformService(self)
-        self.appchannel = Appchannel(self)
-        self.link_statistics = LinkStatistics(self)
-
         self.link_uri = ''
-
-        # Used for retry when no reply was sent back
-        self.packet_received.add_callback(self._check_for_initial_packet_cb)
-        self.packet_received.add_callback(self._check_for_answers)
-
-        self._answer_patterns = {}
-
-        self._send_lock = Lock()
-
         self.connected_ts = None
 
-        self.param.all_updated.add_callback(self._all_parameters_updated)
+        # Rust backend
+        self._rust_cf = None
+        self._commander = None
+        self._param = None
+        self._console = None
+        self._platform = None
 
-        # Connect callbacks to logger
-        self.disconnected.add_callback(
-            lambda uri: logger.info('Callback->Disconnected from [%s]', uri))
-        self.disconnected.add_callback(self._disconnected)
-        self.link_established.add_callback(
-            lambda uri: logger.info('Callback->Connected to [%s]', uri))
-        self.connection_lost.add_callback(
-            lambda uri, errmsg: logger.info('Callback->Connection lost to [%s]: %s', uri, errmsg))
-        self.connection_failed.add_callback(
-            lambda uri, errmsg: logger.info('Callback->Connected failed to [%s]: %s', uri, errmsg))
-        self.connection_requested.add_callback(
-            lambda uri: logger.info('Callback->Connection initialized[%s]', uri))
-        self.connected.add_callback(
-            lambda uri: logger.info('Callback->Connection setup finished [%s]', uri))
-        self.fully_connected.add_callback(
-            lambda uri: logger.info('Callback->Connection completed [%s]', uri))
-
-        self.connected.add_callback(
-            lambda uri: self.link_statistics.start())
-        self.disconnected.add_callback(
-            lambda uri: self.link_statistics.stop())
-
-    @property
-    def link_quality_updated(self):
-        # Issue a deprecation warning when the deprecated attribute is accessed
-        warnings.warn(
-            'link_quality_updated is deprecated and will be removed soon. '
-            'Please use link_statistics.link_quality_updated directly and/or update your client.',
-            DeprecationWarning,
-            stacklevel=2  # To point to the caller's code
-        )
-        return self.link_statistics.link_quality_updated
-
-    def _disconnected(self, link_uri):
-        """ Callback when disconnected."""
-        self.connected_ts = None
-
-    def _start_connection_setup(self):
-        """Start the connection setup by refreshing the TOCs"""
-        logger.info('We are connected[%s], request connection setup',
-                    self.link_uri)
-        self.platform.fetch_platform_informations(self._platform_info_fetched)
-
-    def _platform_info_fetched(self):
-        self.log.refresh_toc(self._log_toc_updated_cb, self._toc_cache)
-
-    def _param_toc_updated_cb(self):
-        """Called when the param TOC has been fully updated"""
-        logger.info('Param TOC finished updating')
-        self.connected_ts = datetime.datetime.now()
-        self.connected.call(self.link_uri)
-        # Trigger the update for all the parameters
-        self.param.request_update_of_all_params()
-
-    def _mems_updated_cb(self):
-        """Called when the memories have been identified"""
-        logger.info('Memories finished updating')
-        self.param.refresh_toc(self._param_toc_updated_cb, self._toc_cache)
-
-    def _log_toc_updated_cb(self):
-        """Called when the log TOC has been fully updated"""
-        logger.info('Log TOC finished updating')
-        self.mem.refresh(self._mems_updated_cb)
-
-    def _all_parameters_updated(self):
-        """Called when all parameters have been updated"""
-        logger.info('All parameters updated')
-        self.fully_connected.call(self.link_uri)
-
-    def _link_error_cb(self, errmsg):
-        """Called from the link driver when there's an error"""
-        logger.warning('Got link error callback [%s] in state [%s]',
-                       errmsg, self.state)
-        if (self.link is not None):
-            self.link.close()
-        self.link = None
-        if (self.state == State.INITIALIZED):
-            self.connection_failed.call(self.link_uri, errmsg)
-        elif (self.state == State.CONNECTED or
-                self.state == State.SETUP_FINISHED):
-            self.disconnected.call(self.link_uri)
-            self.connection_lost.call(self.link_uri, errmsg)
-        elif (self.state == State.DISCONNECTED):
-            self.disconnected_link_error.call(self.link_uri, errmsg)
-        self.state = State.DISCONNECTED
-
-    def _check_for_initial_packet_cb(self, data):
-        """
-        Called when first packet arrives from Crazyflie.
-
-        This is used to determine if we are connected to something that is
-        answering.
-        """
-        self.state = State.CONNECTED
-        self.link_established.call(self.link_uri)
-        self.packet_received.remove_callback(self._check_for_initial_packet_cb)
+        # New style: connect immediately if URI provided
+        if link_uri:
+            self.open_link(link_uri)
 
     def open_link(self, link_uri):
         """
-        Open the communication link to a copter at the given URI and setup the
-        connection (download log/parameter TOC).
+        Open the communication link to a Crazyflie at the given URI.
+
+        This connects to the Crazyflie and initializes all subsystems.
+
+        Args:
+            link_uri: URI string (e.g., "radio://0/80/2M/E7E7E7E7E7")
         """
         self.connection_requested.call(link_uri)
         self.state = State.INITIALIZED
         self.link_uri = link_uri
+
+        logger.info('Connecting to %s', link_uri)
+
         try:
-            self.link = cflib.crtp.get_link_driver(
-                link_uri, self.link_statistics.radio_link_statistics_callback, self._link_error_cb)
+            # Connect via Rust
+            self._rust_cf = RustCrazyflie.connect_from_uri(link_uri)
 
-            if not self.link:
-                message = 'No driver found or malformed URI: {}' \
-                    .format(link_uri)
-                logger.warning(message)
-                self.connection_failed.call(link_uri, message)
-            else:
-                if not self.incoming.is_alive():
-                    self.incoming.start()
-                # Add a callback so we can check that any data is coming
-                # back from the copter
-                self.packet_received.add_callback(
-                    self._check_for_initial_packet_cb)
+            # Update state
+            self.state = State.CONNECTED
+            self.link_established.call(link_uri)
 
-                self._start_connection_setup()
-        except Exception as ex:  # pylint: disable=W0703
-            # We want to catch every possible exception here and show
-            # it in the user interface
-            import traceback
+            # Import datetime here to avoid issues if not available
+            import datetime
+            self.connected_ts = datetime.datetime.now()
 
-            logger.error("Couldn't load link driver: %s\n\n%s",
-                         ex, traceback.format_exc())
-            exception_text = "Couldn't load link driver: %s\n\n%s" % (
-                ex, traceback.format_exc())
-            if self.link:
-                self.link.close()
-                self.link = None
-            self.connection_failed.call(link_uri, exception_text)
+            # Call callbacks
+            self.connected.call(link_uri)
+            self.fully_connected.call(link_uri)
+
+            logger.info('Connected to %s', link_uri)
+
+        except Exception as ex:
+            logger.error('Connection failed: %s', ex)
+            self._rust_cf = None
+            self.state = State.DISCONNECTED
+            self.connection_failed.call(link_uri, str(ex))
+            raise
 
     def close_link(self):
         """Close the communication link."""
-        logger.info('Closing link')
-        if (self.link is not None):
-            self.commander.send_setpoint(0, 0, 0, 0)
-        if (self.link is not None):
-            self.link.close()
-            self.link = None
-        if self.incoming:
-            callbacks = list(self.incoming.cb)
-            if self.incoming.is_alive():
-                self.incoming.stop()
-                self.incoming.join(timeout=1)
-            self.incoming = _IncomingPacketHandler(self)
-            self.incoming.cb = callbacks
-            self.incoming.daemon = True
-        self._answer_patterns = {}
+        logger.info('Closing link to %s', self.link_uri)
+
+        if self._rust_cf is not None:
+            try:
+                # Send stop setpoint for safety
+                self.commander.send_stop_setpoint()
+            except Exception:
+                pass  # Ignore errors during shutdown
+
+            self._rust_cf.disconnect()
+            self._rust_cf = None
+
         self.disconnected.call(self.link_uri)
         self.state = State.DISCONNECTED
+        self.connected_ts = None
 
-    """Check if the communication link is open or not."""
+    def disconnect(self):
+        """Alias for close_link() for new-style API."""
+        self.close_link()
 
     def is_connected(self):
+        """Check if connected to a Crazyflie."""
         return self.connected_ts is not None
 
-    def add_port_callback(self, port, cb):
-        """Add a callback to cb on port"""
-        self.incoming.add_port_callback(port, cb)
+    def __enter__(self):
+        """Context manager entry."""
+        return self
 
-    def remove_port_callback(self, port, cb):
-        """Remove the callback cb on port"""
-        self.incoming.remove_port_callback(port, cb)
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - automatically disconnect."""
+        if self.is_connected():
+            self.close_link()
+        return False
 
-    def add_header_callback(self, cb, port, channel, port_mask=0xFF, channel_mask=0xFF):
-        """Add a callback to cb on port and channel"""
-        self.incoming.add_header_callback(cb, port, channel, port_mask, channel_mask)
+    # Subsystem properties with lazy initialization
 
-    def remove_header_callback(self, cb, port, channel, port_mask=0xFF, channel_mask=0xFF):
-        """Remove the callback cb on port and channel"""
-        self.incoming.remove_header_callback(cb, port, channel, port_mask, channel_mask)
+    @property
+    def commander(self):
+        """Get the commander subsystem."""
+        if self._rust_cf is None:
+            raise RuntimeError('Not connected. Call open_link() first.')
+        if self._commander is None:
+            self._commander = self._rust_cf.commander()
+        return self._commander
 
-    def _no_answer_do_retry(self, pk, pattern):
-        """Resend packets that we have not gotten answers to"""
-        logger.info('Resending for pattern %s', pattern)
-        # Set the timer to None before trying to send again
-        self.send_packet(pk, expected_reply=pattern, resend=True)
+    @property
+    def param(self):
+        """Get the parameter subsystem."""
+        if self._rust_cf is None:
+            raise RuntimeError('Not connected. Call open_link() first.')
+        if self._param is None:
+            self._param = self._rust_cf.param()
+        return self._param
 
-    def _check_for_answers(self, pk):
-        """
-        Callback called for every packet received to check if we are
-        waiting for an answer on this port. If so, then cancel the retry
-        timer.
-        """
-        longest_match = ()
-        if len(self._answer_patterns) > 0:
-            data = (pk.header,) + tuple(pk.data)
-            for p in list(self._answer_patterns.keys()):
-                logger.debug('Looking for pattern match on %s vs %s', p, data)
-                if len(p) <= len(data):
-                    if p == data[0:len(p)]:
-                        match = data[0:len(p)]
-                        if len(match) >= len(longest_match):
-                            logger.debug('Found new longest match %s', match)
-                            longest_match = match
-        if len(longest_match) > 0:
-            self._answer_patterns[longest_match].cancel()
-            del self._answer_patterns[longest_match]
+    @property
+    def console(self):
+        """Get the console subsystem."""
+        if self._rust_cf is None:
+            raise RuntimeError('Not connected. Call open_link() first.')
+        if self._console is None:
+            self._console = self._rust_cf.console()
+        return self._console
+
+    @property
+    def platform(self):
+        """Get the platform subsystem."""
+        if self._rust_cf is None:
+            raise RuntimeError('Not connected. Call open_link() first.')
+        if self._platform is None:
+            self._platform = self._rust_cf.platform()
+        return self._platform
+
+    # Subsystems not yet implemented in Rust
+
+    @property
+    def log(self):
+        """Get the log subsystem (not yet implemented in Rust)."""
+        raise NotImplementedError(
+            'Log subsystem not yet implemented in Rust. '
+            'Coming soon!'
+        )
+
+    @property
+    def mem(self):
+        """Get the memory subsystem (not yet implemented in Rust)."""
+        raise NotImplementedError(
+            'Memory subsystem not yet implemented in Rust. '
+            'Coming soon!'
+        )
+
+    @property
+    def high_level_commander(self):
+        """Get the high-level commander (not yet implemented in Rust)."""
+        raise NotImplementedError(
+            'High-level commander not yet implemented in Rust. '
+            'Coming soon!'
+        )
+
+    @property
+    def loc(self):
+        """Get the localization subsystem (not yet implemented in Rust)."""
+        raise NotImplementedError(
+            'Localization subsystem not yet implemented in Rust. '
+            'Coming soon!'
+        )
+
+    @property
+    def extpos(self):
+        """Get the external position subsystem (not yet implemented in Rust)."""
+        raise NotImplementedError(
+            'External position subsystem not yet implemented in Rust. '
+            'Coming soon!'
+        )
+
+    @property
+    def appchannel(self):
+        """Get the app channel subsystem (not yet implemented in Rust)."""
+        raise NotImplementedError(
+            'App channel subsystem not yet implemented in Rust. '
+            'Coming soon!'
+        )
+
+    # Deprecated methods that don't make sense with Rust backend
+    # But kept for API compatibility
 
     def send_packet(self, pk, expected_reply=(), resend=False, timeout=0.2):
         """
-        Send a packet through the link interface.
+        Deprecated: Direct packet sending not supported with Rust backend.
 
-        @param pk Packet to send
-        @param expect_answer True if a packet from the Crazyflie is expected to
-                             be sent back, otherwise false
-
+        Use the subsystem methods instead (commander, param, etc.)
         """
-
-        if not pk.is_data_size_valid():
-            raise Exception('Data part of packet is too large')
-
-        self._send_lock.acquire()
-        if self.link is not None:
-            if len(expected_reply) > 0 and not resend and \
-                    self.link.needs_resending:
-                pattern = (pk.header,) + expected_reply
-                logger.debug(
-                    'Sending packet and expecting the %s pattern back',
-                    pattern)
-                new_timer = Timer(timeout,
-                                  lambda: self._no_answer_do_retry(pk,
-                                                                   pattern))
-                self._answer_patterns[pattern] = new_timer
-                new_timer.start()
-            elif resend:
-                # Check if we have gotten an answer, if not try again
-                pattern = expected_reply
-                if pattern in self._answer_patterns:
-                    logger.debug('We want to resend and the pattern is there')
-                    if self._answer_patterns[pattern]:
-                        new_timer = Timer(timeout,
-                                          lambda:
-                                          self._no_answer_do_retry(
-                                              pk, pattern))
-                        self._answer_patterns[pattern] = new_timer
-                        new_timer.start()
-                else:
-                    logger.debug('Resend requested, but no pattern found: %s',
-                                 self._answer_patterns)
-            self.link.send_packet(pk)
-            self.packet_sent.call(pk)
-        self._send_lock.release()
-
-    def is_called_by_incoming_handler_thread(self):
-        return current_thread() == self.incoming
-
-
-_CallbackContainer = namedtuple('CallbackConstainer',
-                                'port port_mask channel channel_mask callback')
-
-
-class _IncomingPacketHandler(Thread):
-    """Handles incoming packets and sends the data to the correct receivers"""
-
-    def __init__(self, cf):
-        Thread.__init__(self, name='IncomingPacketHandlerThread')
-        self.daemon = True
-        self.cf = cf
-        self.cb = []
-        self._stop_event = Event()
+        raise NotImplementedError(
+            'Direct packet sending not supported with Rust backend. '
+            'Use subsystem methods instead: cf.commander.send_setpoint(), etc.'
+        )
 
     def add_port_callback(self, port, cb):
-        """Add a callback for data that comes on a specific port"""
-        logger.debug('Adding callback on port [%d] to [%s]', port, cb)
-        self.add_header_callback(cb, port, 0, 0xff, 0x0)
+        """Deprecated: Port callbacks not supported with Rust backend."""
+        raise NotImplementedError(
+            'Port callbacks not supported with Rust backend.'
+        )
 
     def remove_port_callback(self, port, cb):
-        """Remove a callback for data that comes on a specific port"""
-        logger.debug('Removing callback on port [%d] to [%s]', port, cb)
-        self.remove_header_callback(cb, port, 0, 0xff, 0x0)
-
-    def add_header_callback(self, cb, port, channel, port_mask=0xFF,
-                            channel_mask=0xFF):
-        """
-        Add a callback for a specific port/header callback with the
-        possibility to add a mask for channel and port for multiple
-        hits for same callback.
-        """
-        self.cb.append(_CallbackContainer(port, port_mask,
-                                          channel, channel_mask, cb))
-
-    def remove_header_callback(self, cb, port, channel, port_mask=0xFF,
-                               channel_mask=0xFF):
-        """
-        Remove a callback for a specific port/header callback with the
-        possibility to add a mask for channel and port for multiple
-        hits for same callback.
-        """
-        for port_callback in self.cb:
-            if port_callback.port == port and port_callback.port_mask == port_mask and \
-                    port_callback.channel == channel and port_callback.channel_mask == channel_mask and \
-                    port_callback.callback == cb:
-                self.cb.remove(port_callback)
-
-    def stop(self):
-        """Signal the thread to stop."""
-        self._stop_event.set()
-
-    def run(self):
-        while not self._stop_event.is_set():
-            if self.cf.link is None:
-                self._stop_event.wait(1)
-                continue
-            pk = self.cf.link.receive_packet(1)
-
-            if pk is None:
-                continue
-
-            # All-packet callbacks
-            self.cf.packet_received.call(pk)
-
-            found = False
-            for cb in (cb for cb in self.cb
-                       if cb.port == (pk.port & cb.port_mask) and
-                       cb.channel == (pk.channel & cb.channel_mask)):
-                try:
-                    cb.callback(pk)
-                except Exception:  # pylint: disable=W0703
-                    # Disregard pylint warning since we want to catch all
-                    # exceptions and we can't know what will happen in
-                    # the callbacks.
-                    import traceback
-
-                    logger.error('Exception while doing callback on port'
-                                 ' [%d]\n\n%s', pk.port,
-                                 traceback.format_exc())
-                if cb.port != 0xFF:
-                    found = True
-
-            if not found:
-                pass
+        """Deprecated: Port callbacks not supported with Rust backend."""
+        raise NotImplementedError(
+            'Port callbacks not supported with Rust backend.'
+        )

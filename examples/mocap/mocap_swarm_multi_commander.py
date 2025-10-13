@@ -39,28 +39,25 @@ from cflib.crazyflie.swarm import Swarm
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.positioning.position_hl_commander import PositionHlCommander
+
 # The type of the mocap system
 # Valid options are: 'vicon', 'optitrack', 'optitrack_closed_source', 'qualisys', 'nokov', 'vrpn', 'motionanalysis'
 mocap_system_type = 'optitrack'
 
 # The host name or ip address of the mocap system
-host_name = '192.168.5.21'
-
-# Uncomment the URIs to connect to
-uris = [
-    'radio://0/80/2M/E7E7E7E7E7',
-    'radio://0/80/2M/E7E7E7E7E8',
-    'radio://0/80/2M/E7E7E7E7E9',
-    # Add more URIs if you want more copters in the swarm
-    # URIs in a swarm using the same radio must also be on the same channel
-]
+# host_name = '192.168.5.21'
+host_name = '10.223.0.31'
 
 # Maps the URIs to the rigid-body names as streamed by, e.g., OptiTrack's Motive
-rbs = {
-    uris[0]: 'cf1',
-    uris[1]: 'cf2',
-    uris[2]: 'cf3',
-}
+swarm_config = [
+    ('radio://0/80/2M/E7E7E7E7E7', 'cf1'),
+#    ('radio://0/90/2M/E7E7E7E7E8', 'cf2'),
+#    ('radio://0/100/2M/E7E7E7E7E9', 'cf3'),
+#   Add more URIs if you want more copters in the swarm
+]
+
+uris = [uri for uri, _ in swarm_config]
+rbs = {uri: name for uri, name in swarm_config}
 
 
 class MocapWrapper(Thread):
@@ -104,35 +101,33 @@ def run_sequence(scf: SyncCrazyflie):
     time.sleep(1.0)
 
     # .takeoff() is automatic when entering the "with PositionHlCommander" context
-    if scf._link_uri == uris[0]:
+    if rbs[scf._link_uri] == 'cf1':
         with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             pc.set_default_velocity(0.5)
-            # 6 repetitions, at .5 speed, take ~1':15 and drop the battery from 4.2 to 3.9V
-            for i in range(6):  # fly a triangle with changing altitude
+            for i in range(3):  # fly a triangle with changing altitude
                 pc.go_to(1.0, 1.0, 1.5)
                 pc.go_to(1.0, -1.0, 1.5)
                 pc.go_to(0.5, 0.0, 2.0)
             pc.go_to(0.5, 0.0, 0.15)
-    elif scf._link_uri == uris[0]:
+    elif rbs[scf._link_uri] == 'cf2':
         with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:
             pc.set_default_velocity(0.3)
-            # Scripted behaviour
-            for i in range(6):  # fly side to side
+            for i in range(3):  # fly side to side
                 pc.go_to(0.2, 1.0, 0.85)
                 pc.go_to(0.2, -1.0, 0.85)
             pc.go_to(0.0, 0.0, 0.15)
-    elif scf._link_uri == uris[0]:
+    elif rbs[scf._link_uri] == 'cf3':
         with MotionCommander(scf) as mc:
-            # 3 right loops and 3 left loops take ~1' and drop the battery from 4.2 to 4.0V
+            # 2 right loops and 2 left loops
             mc.back(0.8)
             time.sleep(1)
             mc.up(0.5)
             time.sleep(1)
-            mc.circle_right(0.5, velocity=0.4, angle_degrees=1080)
+            mc.circle_right(0.5, velocity=0.4, angle_degrees=720)
             time.sleep(1)
             mc.up(0.5)
             time.sleep(1)
-            mc.circle_left(0.5, velocity=0.4, angle_degrees=1080)
+            mc.circle_left(0.5, velocity=0.4, angle_degrees=720)
             time.sleep(1)
             mc.down(0.5)
     # .land() is automatic when exiting the scope of context "with PositionHlCommander"

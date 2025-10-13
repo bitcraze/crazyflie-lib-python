@@ -41,25 +41,22 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
 # The type of the mocap system
 # Valid options are: 'vicon', 'optitrack', 'optitrack_closed_source', 'qualisys', 'nokov', 'vrpn', 'motionanalysis'
-mocap_system_type = 'qualisys'
+mocap_system_type = 'optitrack'
 
 # The host name or ip address of the mocap system
-host_name = '192.168.5.21'
-
-uris = [
-    'radio://0/80/2M/E7E7E7E7E7',
-    'radio://0/80/2M/E7E7E7E7E8',
-    'radio://0/80/2M/E7E7E7E7E9',
-    # Add more URIs if you want more copters in the swarm
-    # URIs in a swarm using the same radio must also be on the same channel
-]
+# host_name = '192.168.5.21'
+host_name = '10.223.0.31'
 
 # Maps the URIs to the rigid-body names as streamed by, e.g., OptiTrack's Motive
-rbs = {
-    uris[0]: 'cf1',
-    uris[1]: 'cf2',
-    uris[2]: 'cf3',
-}
+swarm_config = [
+    ('radio://0/80/2M/E7E7E7E7E7', 'cf1'),
+#   ('radio://0/90/2M/E7E7E7E7E8', 'cf2'),
+#   ('radio://0/100/2M/E7E7E7E7E9', 'cf3'),
+#   Add more URIs if you want more copters in the swarm
+]
+
+uris = [uri for uri, _ in swarm_config]
+rbs = {uri: name for uri, name in swarm_config}
 
 
 class MocapWrapper(Thread):

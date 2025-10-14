@@ -44,14 +44,13 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 mocap_system_type = 'optitrack'
 
 # The host name or ip address of the mocap system
-# host_name = '192.168.5.21'
 host_name = '10.223.0.31'
 
 # Maps the URIs to the rigid-body names as streamed by, e.g., OptiTrack's Motive
 swarm_config = [
     ('radio://0/80/2M/E7E7E7E7E7', 'cf1'),
-    #   ('radio://0/90/2M/E7E7E7E7E8', 'cf2'),
-    #   ('radio://0/100/2M/E7E7E7E7E9', 'cf3'),
+    #   ('radio://0/80/2M/E7E7E7E7E8', 'cf2'),
+    #   ('radio://0/80/2M/E7E7E7E7E9', 'cf3'),
     #   Add more URIs if you want more copters in the swarm
 ]
 

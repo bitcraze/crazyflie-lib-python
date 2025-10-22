@@ -61,8 +61,9 @@ def cycle_colors(step: int) -> rgbw:
     return hsv_to_rgbw(hsv(h, s, v))
 
 
-def rgbw_to_rgbwuint32(input: rgbw) -> int:
-    return (input.r << 24) | (input.g << 16) | (input.b << 8) | input.w
+def pack_rgbw(input: rgbw) -> int:
+    """Pack RGBW values into uint32 format: 0xWWRRGGBB"""
+    return (input.w << 24) | (input.r << 16) | (input.g << 8) | input.b
 
 
 if __name__ == '__main__':
@@ -74,15 +75,15 @@ if __name__ == '__main__':
 
         # Thermal status callback
         def thermal_status_callback(timestamp, data, logconf):
-            throttle_pct = data['hprgbw.throttlePct']
+            throttle_pct = data['colorled.throttlePct']
             if throttle_pct > 0:
-                temp = data['hprgbw.deckTemp']
+                temp = data['colorled.deckTemp']
                 print(f'WARNING: Thermal throttling active! Temp: {temp}°C, Throttle: {throttle_pct}%')
 
         # Setup log configuration for thermal monitoring
         log_conf = LogConfig(name='ThermalStatus', period_in_ms=100)
-        log_conf.add_variable('hprgbw.deckTemp', 'uint8_t')
-        log_conf.add_variable('hprgbw.throttlePct', 'uint8_t')
+        log_conf.add_variable('colorled.deckTemp', 'uint8_t')
+        log_conf.add_variable('colorled.throttlePct', 'uint8_t')
 
         cf.log.add_config(log_conf)
         log_conf.data_received_cb.add_callback(thermal_status_callback)
@@ -91,19 +92,19 @@ if __name__ == '__main__':
         # Brightness correction: balances luminance across R/G/B/W channels
         # Set to 1 (enabled, default) for perceptually uniform colors
         # Set to 0 (disabled) for maximum brightness per channel
-        cf.param.set_value('hprgbw.brightnessCorr', 1)
+        cf.param.set_value('colorled.brightnessCorr', 1)
         time.sleep(0.1)
 
         try:
             print('Cycling through colors. Press Ctrl-C to stop.')
             while True:
                 for i in range(0, 360, 1):
-                    color = cycle_colors(i)
+                    color: rgbw = cycle_colors(i)
                     # print(color.r, color.g, color.b)
-                    color_uint32 = rgbw_to_rgbwuint32(color)
-                    cf.param.set_value('hprgbw.rgbw8888', str(color_uint32))
+                    color_uint32 = pack_rgbw(color)
+                    cf.param.set_value('colorled.rgbw8888', str(color_uint32))
                     time.sleep(0.01)
         except KeyboardInterrupt:
             print('\nStopping and turning off LED...')
-            cf.param.set_value('hprgbw.rgbw8888', '0')
+            cf.param.set_value('colorled.rgbw8888', '0')
             time.sleep(0.1)

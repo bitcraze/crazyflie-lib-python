@@ -43,7 +43,7 @@ if __name__ == '__main__':
             throttle_pct = data['colorled.throttlePct']
             if throttle_pct > 0:
                 temp = data['colorled.deckTemp']
-                print(f"WARNING: Thermal throttling active! Temp: {temp}°C, Throttle: {throttle_pct}%")
+                print(f'WARNING: Thermal throttling active! Temp: {temp}°C, Throttle: {throttle_pct}%')
 
         # Setup log configuration for thermal monitoring
         log_conf = LogConfig(name='ThermalStatus', period_in_ms=100)
@@ -78,7 +78,7 @@ if __name__ == '__main__':
             color_uint32 = pack_rgbw(color)
             cf.param.set_value('colorled.rgbw8888', color_uint32)
             time.sleep(0.01)
-            print(f"Setting LED to R={color.r}, G={color.g}, B={color.b}, W={color.w}")
+            print(f'Setting LED to R={color.r}, G={color.g}, B={color.b}, W={color.w}')
             print('Press Ctrl-C to turn off LED and exit.')
             while True:
                 time.sleep(0.1)

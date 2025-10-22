@@ -77,7 +77,7 @@ if __name__ == '__main__':
             throttle_pct = data['hprgbw.throttlePct']
             if throttle_pct > 0:
                 temp = data['hprgbw.deckTemp']
-                print(f"WARNING: Thermal throttling active! Temp: {temp}°C, Throttle: {throttle_pct}%")
+                print(f'WARNING: Thermal throttling active! Temp: {temp}°C, Throttle: {throttle_pct}%')
 
         # Setup log configuration for thermal monitoring
         log_conf = LogConfig(name='ThermalStatus', period_in_ms=100)

@@ -40,15 +40,15 @@ if __name__ == '__main__':
 
         # Thermal status callback
         def thermal_status_callback(timestamp, data, logconf):
-            throttle_pct = data['hprgbw.throttlePct']
+            throttle_pct = data['colorled.throttlePct']
             if throttle_pct > 0:
-                temp = data['hprgbw.deckTemp']
+                temp = data['colorled.deckTemp']
                 print(f"WARNING: Thermal throttling active! Temp: {temp}°C, Throttle: {throttle_pct}%")
 
         # Setup log configuration for thermal monitoring
         log_conf = LogConfig(name='ThermalStatus', period_in_ms=100)
-        log_conf.add_variable('hprgbw.deckTemp', 'uint8_t')
-        log_conf.add_variable('hprgbw.throttlePct', 'uint8_t')
+        log_conf.add_variable('colorled.deckTemp', 'uint8_t')
+        log_conf.add_variable('colorled.throttlePct', 'uint8_t')
 
         cf.log.add_config(log_conf)
         log_conf.data_received_cb.add_callback(thermal_status_callback)
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         # Brightness correction: balances luminance across R/G/B/W channels
         # Set to 1 (enabled, default) for perceptually uniform colors
         # Set to 0 (disabled) for maximum brightness per channel
-        cf.param.set_value('hprgbw.brightnessCorr', 1)
+        cf.param.set_value('colorled.brightnessCorr', 1)
         time.sleep(0.1)
 
         try:
@@ -76,7 +76,7 @@ if __name__ == '__main__':
             # ========================================
 
             color_uint32 = pack_rgbw(color)
-            cf.param.set_value('hprgbw.rgbw8888', color_uint32)
+            cf.param.set_value('colorled.rgbw8888', color_uint32)
             time.sleep(0.01)
             print(f"Setting LED to R={color.r}, G={color.g}, B={color.b}, W={color.w}")
             print('Press Ctrl-C to turn off LED and exit.')
@@ -84,5 +84,5 @@ if __name__ == '__main__':
                 time.sleep(0.1)
         except KeyboardInterrupt:
             print('\nStopping and turning off LED...')
-            cf.param.set_value('hprgbw.rgbw8888', 0)
+            cf.param.set_value('colorled.rgbw8888', 0)
             time.sleep(0.1)

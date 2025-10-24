@@ -136,3 +136,37 @@ class Platform:
     def get_device_type_name(self) -> str:
         """Get device type name"""
         ...
+
+    def set_continuous_wave(self, activate: bool) -> None:
+        """
+        Set radio in continuous wave mode.
+
+        Args:
+            activate: If True, transmit continuous wave; if False, disable
+
+        Warning:
+            - Will disconnect the radio link (use over USB)
+            - Will jam nearby radios including WiFi/Bluetooth
+            - For testing purposes only in controlled environments
+        """
+        ...
+
+    def send_arming_request(self, do_arm: bool) -> None:
+        """
+        Send system arm/disarm request.
+
+        Arms or disarms the Crazyflie's safety systems. When disarmed,
+        motors will not spin even if thrust commands are sent.
+
+        Args:
+            do_arm: True to arm, False to disarm
+        """
+        ...
+
+    def send_crash_recovery_request(self) -> None:
+        """
+        Send crash recovery request.
+
+        Requests recovery from a crash state detected by the Crazyflie.
+        """
+        ...

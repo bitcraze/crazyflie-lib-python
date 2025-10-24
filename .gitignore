@@ -18,7 +18,3 @@ build/
 dist/
 *.egg-info/
 target/
-
-# Auto-generated type stubs from PyO3
-_rust.pyi
-cflib/_rust.pyi

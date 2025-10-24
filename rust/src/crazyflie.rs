@@ -54,10 +54,7 @@ impl Crazyflie {
 
     /// Get the console subsystem
     fn console(&self) -> Console {
-        Console {
-            cf: self.inner.clone(),
-            runtime: self.runtime.clone(),
-        }
+        Console::new(self.inner.clone(), self.runtime.clone())
     }
 
     /// Get the param subsystem

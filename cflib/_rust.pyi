@@ -1,6 +1,4 @@
-"""Type stubs for cflib._rust (generated from Rust PyO3 bindings)"""
-
-from typing import Any
+"""Type stubs for cflib._rust"""
 
 class LinkContext:
     """Link context for scanning and discovering Crazyflies"""

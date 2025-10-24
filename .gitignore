@@ -1,27 +1,2 @@
-*.pyc
-build/*
-dist/*
-*.egg-info/
-.coverage
-.venv*
-.tox*
-venv*
-**/cache/*.json
-
-#eclipse generated files
-.project
-.pydevproject
-.settings/*
-
-#jekyll generated pages
-docs/.jekyll-metadata
-docs/api/cflib/*
-
-# Generated documentation
-tools/build-docs/.local
-tools/build-docs/.cache
-docs/api/cflib
-!docs/api/cflib/index.md
-
-#vscode config folder
-.vscode/
+.claude
+.venv

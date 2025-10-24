@@ -17,8 +17,51 @@
 ## Installation
 
 ```bash
-# TODO: Add installation instructions
+# TODO: Add installation instructions for end users
 ```
+
+---
+
+## Development Setup
+
+### Prerequisites
+- Rust toolchain (cargo)
+- Python 3.10+
+- [uv](https://docs.astral.sh/uv/) package manager
+
+### Initial Setup
+
+1. **Install dependencies:**
+   ```bash
+   uv sync --group dev
+   ```
+
+2. **Install pre-commit hooks:**
+   ```bash
+   uv run pre-commit install
+   ```
+
+3. **Build the project:**
+   ```bash
+   cargo build --manifest-path rust/Cargo.toml && \
+   uv run maturin develop && \
+   uv sync && \
+   uvx ruff check . && \
+   uvx ruff format .
+   ```
+
+### Development Workflow
+
+After making changes to Rust code, rebuild with:
+```bash
+cargo build --manifest-path rust/Cargo.toml && \
+uv run maturin develop && \
+uv sync && \
+uvx ruff check . && \
+uvx ruff format .
+```
+
+Pre-commit hooks will automatically run linting and formatting on commit.
 
 ---
 

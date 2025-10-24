@@ -51,8 +51,11 @@ motioncapture = ["motioncapture~=1.0a4"]
 
 [dependency-groups]
 dev = [
-    "ruff>=0.14.2",
+    "pre-commit>=4.3.0",
 ]
+
+[tool.ruff.lint]
+select = ["ANN"]
 
 [tool.setuptools]
 include-package-data = true
@@ -73,3 +76,5 @@ module-name = "cflib._rust"
 # Compatibility with older Python versions using abi3
 features = ["pyo3/abi3-py310"]
 
+[tool.uv]
+package = true

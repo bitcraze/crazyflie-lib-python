@@ -1,2 +1,24 @@
 .claude
 .venv
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Compiled extensions
+*.so
+*.pyd
+*.dll
+*.dylib
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+target/
+
+# Auto-generated type stubs from PyO3
+_rust.pyi
+cflib/_rust.pyi

@@ -51,6 +51,16 @@ class SupervisorState:
         else:
             self.cf = crazyflie
 
+        self.logconf = LogConfig(name='SupervisorInfo', period_in_ms=100)
+        self.logconf.add_variable('supervisor.info', 'uint16_t')
+        self.cf.log.add_config(self.logconf)
+
+    def close(self):
+        try:
+            self.logconf.delete()
+        except Exception as e:
+            print(f'Warning: failed to delete logconf: {e}')
+
     def read_supervisor_state_bitfield(self):
         """
         Reads 'supervisor.info' once from the Crazyflie.
@@ -67,18 +77,9 @@ class SupervisorState:
             print(f'Error when logging {logconf.name}: {msg}')
             event.set()
 
-        logconf = LogConfig(name='SupervisorInfo', period_in_ms=100)
-        logconf.add_variable('supervisor.info', 'uint16_t')
-
-        try:
-            self.cf.log.add_config(logconf)
-        except KeyError as e:
-            print('Could not add log config:', e)
-            return None
-
-        logconf.data_received_cb.add_callback(log_callback)
-        logconf.error_cb.add_callback(log_error)
-        logconf.start()
+        self.logconf.data_received_cb.add_callback(log_callback)
+        self.logconf.error_cb.add_callback(log_error)
+        self.logconf.start()
 
         if event.wait(2.0):
             bitfield = value_holder['val']
@@ -86,8 +87,10 @@ class SupervisorState:
             print('Timeout waiting for supervisor.info')
             bitfield = None
 
-        logconf.stop()
-        logconf.delete()
+        self.logconf.stop()
+        self.logconf.data_received_cb.remove_callback(log_callback)
+        self.logconf.error_cb.remove_callback(log_error)
+
         return bitfield
 
     def read_supervisor_state_list(self):

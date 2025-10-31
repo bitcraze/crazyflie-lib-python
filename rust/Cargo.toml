@@ -10,8 +10,6 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = { version = "0.26", features = ["extension-module"] }
 pyo3-async-runtimes = { version = "0.26", features = ["tokio-runtime"] }
-# Reference your existing Rust library
-# crazyflie-lib = "0.2.0"
 crazyflie-lib = "0.3.0"
 crazyflie-link = "0.3.0"
 tokio = { version = "1.48", features = ["full"] }

@@ -1,5 +1,7 @@
 """Type stubs for cflib._rust"""
 
+from __future__ import annotations
+
 class LinkContext:
     """Link context for scanning and discovering Crazyflies"""
 
@@ -58,6 +60,10 @@ class Crazyflie:
 
     def platform(self) -> Platform:
         """Get the platform subsystem"""
+        ...
+
+    def log(self) -> Log:
+        """Get the log subsystem"""
         ...
 
 class Commander:
@@ -168,5 +174,80 @@ class Platform:
         Send crash recovery request.
 
         Requests recovery from a crash state detected by the Crazyflie.
+        """
+        ...
+
+class Log:
+    """Log subsystem"""
+
+    def names(self) -> list[str]:
+        """Get list of all log variable names"""
+        ...
+
+    def get_type(self, name: str) -> str:
+        """
+        Get the type of a log variable by name.
+
+        Args:
+            name: Log variable name
+
+        Returns:
+            Type as string (e.g., "u8", "i16", "f32")
+        """
+        ...
+
+    def create_block(self) -> LogBlock:
+        """
+        Create a new log block for streaming telemetry data.
+
+        Returns:
+            A new LogBlock instance that can have variables added to it
+        """
+        ...
+
+class LogBlock:
+    """Log block for collecting telemetry data"""
+
+    def add_variable(self, name: str) -> None:
+        """
+        Add a variable to the log block.
+
+        Args:
+            name: Variable name (e.g., "stateEstimate.roll")
+        """
+        ...
+
+    def start(self, period_ms: int) -> LogStream:
+        """
+        Start streaming data from this log block.
+
+        Args:
+            period_ms: Sampling period in milliseconds (10-2550)
+
+        Returns:
+            A LogStream for reading data
+        """
+        ...
+
+class LogStream:
+    """Active log stream returning telemetry data"""
+
+    def next(self) -> dict:
+        """
+        Get the next data sample from the stream.
+
+        Returns:
+            Dictionary with two keys:
+            - 'timestamp' (int): Sample timestamp in milliseconds
+            - 'data' (dict[str, int | float]): Variable names mapped to their values
+        """
+        ...
+
+    def stop(self) -> LogBlock:
+        """
+        Stop the log stream and return the log block.
+
+        Returns:
+            The original LogBlock that can be restarted
         """
         ...

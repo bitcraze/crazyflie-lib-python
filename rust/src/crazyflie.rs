@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tokio::runtime::Runtime;
 
 use crate::error::to_pyerr;
-use crate::subsystems::{Commander, Console, Param, Platform};
+use crate::subsystems::{Commander, Console, Param, Platform, Log};
 
 /// Wrapper for the Crazyflie struct
 ///
@@ -50,6 +50,14 @@ impl Crazyflie {
             self.inner.disconnect().await;
             Ok(())
         })
+    }
+
+    /// Get the log subsystem
+    fn log(&self) -> Log {
+        Log {
+            cf: self.inner.clone(),
+            runtime: self.runtime.clone(),
+        }
     }
 
     /// Get the console subsystem

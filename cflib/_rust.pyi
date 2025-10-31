@@ -69,22 +69,119 @@ class Crazyflie:
 class Commander:
     """Commander subsystem - send control setpoints to the Crazyflie"""
 
-    def send_setpoint(
+    def send_setpoint_rpyt(
         self, roll: float, pitch: float, yaw_rate: float, thrust: int
     ) -> None:
         """
-        Send a setpoint with roll, pitch, yaw rate, and thrust.
+        Sends a Roll, Pitch, Yawrate, and Thrust setpoint to the Crazyflie.
+
+        By default, unless modified by parameters, the arguments are interpreted as:
 
         Args:
-            roll: Roll in degrees
-            pitch: Pitch in degrees
-            yaw_rate: Yaw rate in degrees/second
-            thrust: Thrust (0-65535)
+            roll: Desired roll angle (degrees)
+            pitch: Desired pitch angle (degrees)
+            yaw_rate: Desired yaw rate (degrees/second)
+            thrust: Thrust as a 16-bit value (0 = 0% thrust, 65535 = 100% thrust)
+
+        Note:
+            Thrust is locked by default for safety. To unlock, send a setpoint with
+            thrust = 0 once before sending nonzero thrust values.
+        """
+        ...
+
+    def send_setpoint_position(self, x: float, y: float, z: float, yaw: float) -> None:
+        """
+        Sends an absolute position setpoint in world coordinates, with yaw as an absolute orientation.
+
+        Args:
+            x: Target x position (meters, world frame)
+            y: Target y position (meters, world frame)
+            z: Target z position (meters, world frame)
+            yaw: Target yaw angle (degrees, absolute)
+        """
+        ...
+
+    def send_setpoint_velocity_world(
+        self, vx: float, vy: float, vz: float, yawrate: float
+    ) -> None:
+        """
+        Sends a velocity setpoint in the world frame, with yaw rate control.
+
+        Args:
+            vx: Target velocity in x (meters/second, world frame)
+            vy: Target velocity in y (meters/second, world frame)
+            vz: Target velocity in z (meters/second, world frame)
+            yawrate: Target yaw rate (degrees/second)
+        """
+        ...
+
+    def send_setpoint_zdistance(
+        self, roll: float, pitch: float, yawrate: float, zdistance: float
+    ) -> None:
+        """
+        Sends a setpoint with absolute height (distance to the surface below), roll, pitch, and yaw rate commands.
+
+        Args:
+            roll: Desired roll angle (degrees)
+            pitch: Desired pitch angle (degrees)
+            yawrate: Desired yaw rate (degrees/second)
+            zdistance: Target height above ground (meters)
+        """
+        ...
+
+    def send_setpoint_hover(
+        self, vx: float, vy: float, yawrate: float, zdistance: float
+    ) -> None:
+        """
+        Sends a setpoint with absolute height (distance to the surface below), and x/y velocity commands in the body-fixed frame.
+
+        Args:
+            vx: Target velocity in x (meters/second, body frame)
+            vy: Target velocity in y (meters/second, body frame)
+            yawrate: Target yaw rate (degrees/second)
+            zdistance: Target height above ground (meters)
+        """
+        ...
+
+    def send_setpoint_manual(
+        self,
+        roll: float,
+        pitch: float,
+        yawrate: float,
+        thrust_percentage: float,
+        rate: bool,
+    ) -> None:
+        """
+        Sends a manual control setpoint for roll, pitch, yaw rate, and thrust percentage.
+
+        If rate is false, roll and pitch are interpreted as angles (degrees).
+        If rate is true, they are interpreted as rates (degrees/second).
+
+        Args:
+            roll: Desired roll (degrees or degrees/second, depending on rate)
+            pitch: Desired pitch (degrees or degrees/second, depending on rate)
+            yawrate: Desired yaw rate (degrees/second)
+            thrust_percentage: Thrust as a percentage (0 to 100)
+            rate: If true, use rate mode; if false, use angle mode
         """
         ...
 
     def send_stop_setpoint(self) -> None:
-        """Send a stop command (sets all values to 0)"""
+        """Sends a STOP setpoint, immediately stopping the motors. The Crazyflie will lose lift and may fall."""
+        ...
+
+    def send_notify_setpoint_stop(self, remain_valid_milliseconds: int) -> None:
+        """
+        Notify the firmware that low-level setpoints have stopped.
+
+        This tells the Crazyflie to drop the current low-level setpoint priority,
+        allowing the High-level commander (or other sources) to take control again.
+
+        Args:
+            remain_valid_milliseconds: How long (in ms) the last low-level setpoint
+                should remain valid before it is considered stale. Use 0 to make the
+                hand-off immediate; small non-zero values can smooth transitions if needed.
+        """
         ...
 
 class Console:

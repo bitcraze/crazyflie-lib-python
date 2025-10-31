@@ -5,7 +5,9 @@ use tokio::runtime::Runtime;
 
 use crate::error::to_pyerr;
 
-/// Log subsystem wrapper
+/// Access to the Crazyflie Log Subsystem
+///
+/// This struct provide functions to interact with the Crazyflie Log subsystem.
 #[pyclass]
 pub struct Log {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
@@ -14,12 +16,15 @@ pub struct Log {
 
 #[pymethods]
 impl Log {
-    /// Get list of all log variable names
+    /// Get the names of all the log variables
+    ///
+    /// The names contain group and name of the log variable formatted as
+    /// "group.name".
     fn names(&self) -> Vec<String> {
         self.cf.log.names()
     }
 
-    /// Get the type of a log variable by name
+    /// Return the type of a log variable or an Error if the parameter does not exist.
     ///
     /// Args:
     ///     name: Log variable name
@@ -47,7 +52,22 @@ impl Log {
         Ok(type_str.to_string())
     }
 
-    /// Create a new log block for streaming telemetry data
+    /// Create a Log block
+    ///
+    /// This will create a log block in the Crazyflie firmware and return a
+    /// LogBlock object that can be used to add variable to the block and start
+    /// logging
+    ///
+    /// This function can fail if there is no more log block ID available: each
+    /// log block is assigned a 8 bit ID by the lib and so far they are not
+    /// re-used. So during a Crazyflie connection lifetime, up to 256 log
+    /// blocks can be created. If this becomes a problem for any use-case, it
+    /// can be solved by a more clever ID generation algorithm.
+    ///
+    /// The Crazyflie firmware also has a limit in number of active log block,
+    /// this function will fail if this limit is reached. Unlike for the ID, the
+    /// active log blocks in the Crazyflie are cleaned-up when the LogBlock
+    /// object is dropped.
     ///
     /// Returns:
     ///     A new LogBlock instance that can have variables added to it
@@ -63,7 +83,12 @@ impl Log {
     }
 }
 
-/// Log block for collecting telemetry data
+/// Log Block
+///
+/// This object represent an IDLE LogBlock in the Crazyflie.
+///
+/// If the LogBlock object is dropped or its associated LogStream, the
+/// Log Block will be deleted in the Crazyflie freeing resources.
 #[pyclass]
 pub struct LogBlock {
     runtime: Arc<Runtime>,
@@ -73,6 +98,12 @@ pub struct LogBlock {
 #[pymethods]
 impl LogBlock {
     /// Add a variable to the log block
+    ///
+    /// A packet will be sent to the Crazyflie to add the variable. The variable is logged in the same format as
+    /// it is stored in the Crazyflie (ie. there is no conversion done)
+    ///
+    /// This function can fail if the variable is not found in the toc or of the Crazyflie returns an error
+    /// The most common error reported by the Crazyflie would be if the log block is already too full.
     ///
     /// Args:
     ///     name: Variable name (e.g., "stateEstimate.roll")
@@ -87,7 +118,15 @@ impl LogBlock {
         Ok(())
     }
 
-    /// Start streaming data from this log block
+    /// Start log block and return a stream to read the value
+    ///
+    /// Since a log-block cannot be modified after being started, this function
+    /// consumes the LogBlock object and return a LogStream. The function
+    /// LogStream.stop() can be called on the LogStream to get back the LogBlock object.
+    ///
+    /// This function can fail if there is a protocol error or an error
+    /// reported by the Crazyflie. In such case, the LogBlock object will be
+    /// dropped and the block will be deleted in the Crazyflie
     ///
     /// Args:
     ///     period_ms: Sampling period in milliseconds (10-2550)
@@ -111,7 +150,13 @@ impl LogBlock {
     }
 }
 
-/// Active log stream returning telemetry data
+/// Log Stream
+///
+/// This object represents a started log block that is currently returning data
+/// at regular intervals.
+///
+/// Dropping this object or the associated LogBlock will delete the log block
+/// in the Crazyflie.
 #[pyclass]
 pub struct LogStream {
     runtime: Arc<Runtime>,
@@ -120,7 +165,12 @@ pub struct LogStream {
 
 #[pymethods]
 impl LogStream {
-    /// Get the next data sample from the stream
+    /// Get the next log data from the log block stream
+    ///
+    /// This function will wait for the data and only return a value when the
+    /// next data is available.
+    ///
+    /// This function will return an error if the Crazyflie gets disconnected.
     ///
     /// Returns:
     ///     Dictionary with timestamp and variable values
@@ -159,7 +209,13 @@ impl LogStream {
         })
     }
 
-    /// Stop the log stream and return the log block
+    /// Stops the log block from streaming
+    ///
+    /// This method consumes the stream and returns back the log block object so that it can be started again later
+    /// with a different period.
+    ///
+    /// This function can only fail on unexpected protocol error. If it does, the log block is dropped and will be
+    /// cleaned-up next time a log block is created.
     ///
     /// Returns:
     ///     The original LogBlock that can be restarted

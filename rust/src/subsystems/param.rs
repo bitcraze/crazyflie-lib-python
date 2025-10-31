@@ -8,7 +8,7 @@ use crate::error::to_pyerr;
 
 /// Access to the Crazyflie Param Subsystem
 ///
-/// This struct provide methods to interact with the parameter subsystem.
+/// This struct provides methods to interact with the parameter subsystem.
 ///
 /// The Crazyflie exposes a param subsystem that allows to easily declare parameter
 /// variables in the Crazyflie and to discover, read and write them from the ground.
@@ -71,7 +71,7 @@ impl Param {
         })
     }
 
-    /// Set a parameter from a f64 potentially loosing data
+    /// Set a parameter from a f64 potentially losing data
     ///
     /// This function is a forgiving version of set. It allows
     /// to set any parameter of any type from a numeric value. This allows to set

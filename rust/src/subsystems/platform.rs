@@ -19,7 +19,7 @@ pub struct Platform {
 
 #[pymethods]
 impl Platform {
-    /// Fetch the protocol version from Crazyflie
+    /// Fetch the protocol version from the Crazyflie
     ///
     /// The protocol version is updated when new message or breaking change are
     /// implemented in the protocol.
@@ -43,7 +43,7 @@ impl Platform {
 
     /// Fetch the device type.
     ///
-    /// The Crazyflie firmware can run on multiple device. This function returns the name of the device. For example
+    /// The Crazyflie firmware can run on multiple devices. This function returns the name of the device. For example
     /// ```Crazyflie 2.1``` is returned in the case of a Crazyflie 2.1.
     fn get_device_type_name(&self) -> PyResult<String> {
         self.runtime.block_on(async {
@@ -51,12 +51,12 @@ impl Platform {
         }).map_err(to_pyerr)
     }
 
-    /// Set radio in continious wave mode
+    /// Set radio in continuous wave mode
     ///
-    /// If activate is set to true, the Crazyflie's radio will transmit a continious wave at the current channel
+    /// If activate is set to true, the Crazyflie's radio will transmit a continuous wave at the current channel
     /// frequency. This will be active until the Crazyflie is reset or this function is called with activate to false.
     ///
-    /// Setting continious wave will:
+    /// Setting continuous wave will:
     ///  - Disconnect the radio link. So this function should practically only be used when connected over USB
     ///  - Jam any radio running on the same frequency, this includes Wifi and Bluetooth
     ///

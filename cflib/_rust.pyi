@@ -211,7 +211,7 @@ class Param:
     """
     Access to the Crazyflie Param Subsystem
 
-    This struct provide methods to interact with the parameter subsystem.
+    This struct provides methods to interact with the parameter subsystem.
 
     The Crazyflie exposes a param subsystem that allows to easily declare parameter
     variables in the Crazyflie and to discover, read and write them from the ground.
@@ -253,7 +253,7 @@ class Param:
 
     def set(self, name: str, value: float) -> None:
         """
-        Set a parameter from a f64 potentially loosing data
+        Set a parameter from a f64 potentially losing data
 
         This function is a forgiving version of set. It allows
         to set any parameter of any type from a numeric value. This allows to set
@@ -287,7 +287,7 @@ class Platform:
 
     def get_protocol_version(self) -> int:
         """
-        Fetch the protocol version from Crazyflie
+        Fetch the protocol version from the Crazyflie
 
         The protocol version is updated when new message or breaking change are
         implemented in the protocol.
@@ -309,19 +309,19 @@ class Platform:
         """
         Fetch the device type.
 
-        The Crazyflie firmware can run on multiple device. This function returns the name of the device. For example
+        The Crazyflie firmware can run on multiple devices. This function returns the name of the device. For example
         ```Crazyflie 2.1``` is returned in the case of a Crazyflie 2.1.
         """
         ...
 
     def set_continuous_wave(self, activate: bool) -> None:
         """
-        Set radio in continious wave mode
+        Set radio in continuous wave mode
 
-        If activate is set to true, the Crazyflie's radio will transmit a continious wave at the current channel
+        If activate is set to true, the Crazyflie's radio will transmit a continuous wave at the current channel
         frequency. This will be active until the Crazyflie is reset or this function is called with activate to false.
 
-        Setting continious wave will:
+        Setting continuous wave will:
          - Disconnect the radio link. So this function should practically only be used when connected over USB
          - Jam any radio running on the same frequency, this includes Wifi and Bluetooth
 
@@ -356,7 +356,7 @@ class Log:
     """
     Access to the Crazyflie Log Subsystem
 
-    This struct provide functions to interact with the Crazyflie Log subsystem.
+    This struct provides functions to interact with the Crazyflie Log subsystem.
     """
 
     def names(self) -> list[str]:
@@ -408,7 +408,7 @@ class LogBlock:
     """
     Log Block
 
-    This object represent an IDLE LogBlock in the Crazyflie.
+    This object represents an IDLE LogBlock in the Crazyflie.
 
     If the LogBlock object is dropped or its associated LogStream, the
     Log Block will be deleted in the Crazyflie freeing resources.

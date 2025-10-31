@@ -7,7 +7,7 @@ use crate::error::to_pyerr;
 
 /// Access to the Crazyflie Log Subsystem
 ///
-/// This struct provide functions to interact with the Crazyflie Log subsystem.
+/// This struct provides functions to interact with the Crazyflie Log subsystem.
 #[pyclass]
 pub struct Log {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
@@ -85,7 +85,7 @@ impl Log {
 
 /// Log Block
 ///
-/// This object represent an IDLE LogBlock in the Crazyflie.
+/// This object represents an IDLE LogBlock in the Crazyflie.
 ///
 /// If the LogBlock object is dropped or its associated LogStream, the
 /// Log Block will be deleted in the Crazyflie freeing resources.

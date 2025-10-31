@@ -185,11 +185,22 @@ class Commander:
         ...
 
 class Console:
-    """Console subsystem - read text output from the Crazyflie"""
+    """
+    Access to the console subsystem
+
+    The Crazyflie has a text console that is used to communicate various information
+    and debug message to the ground.
+    """
 
     def get_lines(self) -> list[str]:
         """
-        Get console lines as they arrive.
+        Get console lines as they arrive
+
+        This function returns console lines line-by-line. It buffers lines internally
+        and returns up to 100 lines per call with a 10ms timeout per line.
+
+        The lib keeps track of the console history since connection, so the first
+        call to this function will return all lines received since connection.
 
         Returns:
             List of console output lines (up to 100 with 10ms timeout)
@@ -197,18 +208,43 @@ class Console:
         ...
 
 class Param:
-    """Parameter subsystem - read and write configuration parameters"""
+    """
+    Access to the Crazyflie Param Subsystem
+
+    This struct provide methods to interact with the parameter subsystem.
+
+    The Crazyflie exposes a param subsystem that allows to easily declare parameter
+    variables in the Crazyflie and to discover, read and write them from the ground.
+
+    Variables are defined in a table of content that is downloaded upon connection.
+    Each param variable have a unique name composed from a group and a variable name.
+    Functions that accesses variables, take a `name` parameter that accepts a string
+    in the format "group.variable"
+
+    During connection, the full param table of content is downloaded form the
+    Crazyflie as well as the values of all the variable. If a variable value
+    is modified by the Crazyflie during runtime, it sends a packet with the new
+    value which updates the local value cache.
+    """
 
     def names(self) -> list[str]:
-        """Get list of all parameter names"""
+        """
+        Get the names of all the parameters
+
+        The names contain group and name of the parameter variable formatted as
+        "group.name".
+        """
         ...
 
     def get(self, name: str) -> int | float:
         """
-        Get a parameter value by name.
+        Get param value
+
+        Get value of a parameter. This function takes the value from a local
+        cache and so is quick.
 
         Args:
-            name: Parameter name
+            name: Parameter name in format "group.name"
 
         Returns:
             Parameter value (int or float depending on parameter type)
@@ -217,40 +253,82 @@ class Param:
 
     def set(self, name: str, value: float) -> None:
         """
-        Set a parameter value by name using lossy conversion from float.
+        Set a parameter from a f64 potentially loosing data
+
+        This function is a forgiving version of set. It allows
+        to set any parameter of any type from a numeric value. This allows to set
+        parameters without caring about the type and risking a type mismatch
+        runtime error. Since there is no type or value check, loss of information
+        can happen when using this function.
+
+        Loss of information can happen in the following cases:
+         - When setting an integer, the value is truncated to the number of bit of the parameter
+           - Example: Setting `257` to a `u8` variable will set it to the value `1`
+         - Similarly floating point precision will be truncated to the parameter precision. Rounding is undefined.
+         - Setting a floating point outside the range of the parameter is undefined.
+         - It is not possible to represent accurately a `u64` parameter in a `f64`.
+
+        Returns an error if the param does not exists.
 
         Args:
-            name: Parameter name
+            name: Parameter name in format "group.name"
             value: New parameter value
         """
         ...
 
 class Platform:
-    """Platform subsystem - query device information and firmware details"""
+    """
+    Access to platform services
+
+    The platform CRTP port hosts a couple of utility services. This range from fetching the version of the firmware
+    and CRTP protocol, communication with apps using the App layer to setting the continuous wave radio mode for
+    radio testing.
+    """
 
     def get_protocol_version(self) -> int:
-        """Get platform protocol version"""
+        """
+        Fetch the protocol version from Crazyflie
+
+        The protocol version is updated when new message or breaking change are
+        implemented in the protocol.
+        Compatibility is checked at connection time.
+        """
         ...
 
     def get_firmware_version(self) -> str:
-        """Get firmware version string"""
+        """
+        Fetch the firmware version
+
+        If this firmware is a stable release, the release name will be returned for example ```2021.06```.
+        If this firmware is a git build, between releases, the number of commit since the last release will be added
+        for example ```2021.06 +128```.
+        """
         ...
 
     def get_device_type_name(self) -> str:
-        """Get device type name"""
+        """
+        Fetch the device type.
+
+        The Crazyflie firmware can run on multiple device. This function returns the name of the device. For example
+        ```Crazyflie 2.1``` is returned in the case of a Crazyflie 2.1.
+        """
         ...
 
     def set_continuous_wave(self, activate: bool) -> None:
         """
-        Set radio in continuous wave mode.
+        Set radio in continious wave mode
+
+        If activate is set to true, the Crazyflie's radio will transmit a continious wave at the current channel
+        frequency. This will be active until the Crazyflie is reset or this function is called with activate to false.
+
+        Setting continious wave will:
+         - Disconnect the radio link. So this function should practically only be used when connected over USB
+         - Jam any radio running on the same frequency, this includes Wifi and Bluetooth
+
+        As such, this shall only be used for test purpose in a controlled environment.
 
         Args:
             activate: If True, transmit continuous wave; if False, disable
-
-        Warning:
-            - Will disconnect the radio link (use over USB)
-            - Will jam nearby radios including WiFi/Bluetooth
-            - For testing purposes only in controlled environments
         """
         ...
 

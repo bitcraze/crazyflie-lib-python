@@ -9,7 +9,10 @@ use std::pin::Pin;
 
 type LineStream = Pin<Box<dyn Stream<Item = String> + Send>>;
 
-/// Console subsystem wrapper
+/// Access to the console subsystem
+///
+/// The Crazyflie has a text console that is used to communicate various information
+/// and debug message to the ground.
 #[pyclass]
 pub struct Console {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
@@ -31,6 +34,12 @@ impl Console {
 #[pymethods]
 impl Console {
     /// Get console lines as they arrive
+    ///
+    /// This function returns console lines line-by-line. It buffers lines internally
+    /// and returns up to 100 lines per call with a 10ms timeout per line.
+    ///
+    /// The lib keeps track of the console history since connection, so the first
+    /// call to this function will return all lines received since connection.
     ///
     /// Returns:
     ///     List of console output lines (up to 100 with 10ms timeout)

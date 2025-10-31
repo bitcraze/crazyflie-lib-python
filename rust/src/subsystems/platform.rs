@@ -6,7 +6,11 @@ use tokio::runtime::Runtime;
 
 use crate::error::to_pyerr;
 
-/// Platform subsystem wrapper
+/// Access to platform services
+///
+/// The platform CRTP port hosts a couple of utility services. This range from fetching the version of the firmware
+/// and CRTP protocol, communication with apps using the App layer to setting the continuous wave radio mode for
+/// radio testing.
 #[pyclass]
 pub struct Platform {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
@@ -15,36 +19,51 @@ pub struct Platform {
 
 #[pymethods]
 impl Platform {
-    /// Get platform protocol version
+    /// Fetch the protocol version from Crazyflie
+    ///
+    /// The protocol version is updated when new message or breaking change are
+    /// implemented in the protocol.
+    /// Compatibility is checked at connection time.
     fn get_protocol_version(&self) -> PyResult<u8> {
         self.runtime.block_on(async {
             self.cf.platform.protocol_version().await
         }).map_err(to_pyerr)
     }
 
-    /// Get firmware version string
+    /// Fetch the firmware version
+    ///
+    /// If this firmware is a stable release, the release name will be returned for example ```2021.06```.
+    /// If this firmware is a git build, between releases, the number of commit since the last release will be added
+    /// for example ```2021.06 +128```.
     fn get_firmware_version(&self) -> PyResult<String> {
         self.runtime.block_on(async {
             self.cf.platform.firmware_version().await
         }).map_err(to_pyerr)
     }
 
-    /// Get device type name
+    /// Fetch the device type.
+    ///
+    /// The Crazyflie firmware can run on multiple device. This function returns the name of the device. For example
+    /// ```Crazyflie 2.1``` is returned in the case of a Crazyflie 2.1.
     fn get_device_type_name(&self) -> PyResult<String> {
         self.runtime.block_on(async {
             self.cf.platform.device_type_name().await
         }).map_err(to_pyerr)
     }
 
-    /// Set radio in continuous wave mode
+    /// Set radio in continious wave mode
+    ///
+    /// If activate is set to true, the Crazyflie's radio will transmit a continious wave at the current channel
+    /// frequency. This will be active until the Crazyflie is reset or this function is called with activate to false.
+    ///
+    /// Setting continious wave will:
+    ///  - Disconnect the radio link. So this function should practically only be used when connected over USB
+    ///  - Jam any radio running on the same frequency, this includes Wifi and Bluetooth
+    ///
+    /// As such, this shall only be used for test purpose in a controlled environment.
     ///
     /// Args:
     ///     activate: If True, transmit continuous wave; if False, disable
-    ///
-    /// Warning:
-    ///     - Will disconnect the radio link (use over USB)
-    ///     - Will jam nearby radios including WiFi/Bluetooth
-    ///     - For testing purposes only in controlled environments
     fn set_continuous_wave(&self, activate: bool) -> PyResult<()> {
         self.runtime.block_on(async {
             self.cf.platform.set_cont_wave(activate).await

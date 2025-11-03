@@ -31,12 +31,12 @@ from cflib.utils import uri_helper
 URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 
-class rgbw:
-    def __init__(self, r: int, g: int, b: int, w: int = 0):
+class wrgb:
+    def __init__(self, w: int, r: int, g: int, b: int):
+        self.w = w
         self.r = r
         self.g = g
         self.b = b
-        self.w = w
 
 
 class rgb:
@@ -47,8 +47,8 @@ class rgb:
         self.b = b - self.w
 
 
-def pack_rgbw(input: rgbw | rgb) -> int:
-    """Pack RGBW values into uint32 format: 0xWWRRGGBB"""
+def pack_wrgb(input: wrgb | rgb) -> int:
+    """Pack WRGB values into uint32 format: 0xWWRRGGBB"""
     return (input.w << 24) | (input.r << 16) | (input.g << 8) | input.b
 
 
@@ -86,18 +86,18 @@ if __name__ == '__main__':
             # Set your desired color here:
             # ========================================
             # Examples:
-            #   color = rgbw(r=255, g=0, b=0, w=0)      # Pure red
-            #   color = rgbw(r=0, g=255, b=0, w=0)      # Pure green
-            #   color = rgbw(r=0, g=0, b=255, w=0)      # Pure blue
-            #   color = rgbw(r=0, g=0, b=0, w=255)      # Pure white LED
-            #   color = rgbw(r=255, g=128, b=0, w=50)   # Orange + white
+            #   color = wrgb(w=0, r=255, g=0, b=0)      # Pure red
+            #   color = wrgb(w=0, r=0, g=255, b=0)      # Pure green
+            #   color = wrgb(w=0, r=0, g=0, b=255)      # Pure blue
+            #   color = wrgb(w=255, r=0, g=0, b=0)      # Pure white LED
+            #   color = wrgb(w=50, r=255, g=128, b=0)   # Orange + white
             #   color = rgb(r=255, g=255, b=255)        # White (auto W extraction)
 
-            color = rgbw(r=255, g=0, b=100, w=0)
+            color = wrgb(w=0, r=255, g=0, b=100)
             # ========================================
 
-            color_uint32 = pack_rgbw(color)
-            cf.param.set_value('colorled.rgbw8888', color_uint32)
+            color_uint32 = pack_wrgb(color)
+            cf.param.set_value('colorled.wrgb8888', color_uint32)
             time.sleep(0.01)
             print(f'Setting LED to R={color.r}, G={color.g}, B={color.b}, W={color.w}')
             print('Press Ctrl-C to turn off LED and exit.')
@@ -105,5 +105,5 @@ if __name__ == '__main__':
                 time.sleep(0.1)
         except KeyboardInterrupt:
             print('\nStopping and turning off LED...')
-            cf.param.set_value('colorled.rgbw8888', 0)
+            cf.param.set_value('colorled.wrgb8888', 0)
             time.sleep(0.1)

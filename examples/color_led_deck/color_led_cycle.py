@@ -31,12 +31,12 @@ from cflib.utils import uri_helper
 URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 
-class rgbw:
-    def __init__(self, r: int, g: int, b: int, w: int = 0):
+class wrgb:
+    def __init__(self, w: int, r: int, g: int, b: int):
+        self.w = w
         self.r = r
         self.g = g
         self.b = b
-        self.w = w
 
 
 class hsv:
@@ -46,7 +46,7 @@ class hsv:
         self.v = v
 
 
-def hsv_to_rgbw(input: hsv) -> rgbw:
+def hsv_to_wrgb(input: hsv) -> wrgb:
     h, s, v = input.h, input.s / 255.0, input.v / 255.0
 
     if s == 0:
@@ -72,18 +72,18 @@ def hsv_to_rgbw(input: hsv) -> rgbw:
         else:
             r, g, b = v, p, q
 
-    return rgbw(int(r * 255), int(g * 255), int(b * 255), 0)
+    return wrgb(0, int(r * 255), int(g * 255), int(b * 255))
 
 
-def cycle_colors(step: int) -> rgbw:
+def cycle_colors(step: int) -> wrgb:
     h = step % 360
     s = 255
     v = 255
-    return hsv_to_rgbw(hsv(h, s, v))
+    return hsv_to_wrgb(hsv(h, s, v))
 
 
-def pack_rgbw(input: rgbw) -> int:
-    """Pack RGBW values into uint32 format: 0xWWRRGGBB"""
+def pack_wrgb(input: wrgb) -> int:
+    """Pack WRGB values into uint32 format: 0xWWRRGGBB"""
     return (input.w << 24) | (input.r << 16) | (input.g << 8) | input.b
 
 
@@ -110,7 +110,7 @@ if __name__ == '__main__':
         log_conf.data_received_cb.add_callback(thermal_status_callback)
         log_conf.start()
 
-        # Brightness correction: balances luminance across R/G/B/W channels
+        # Brightness correction: balances luminance across W/R/G/B channels
         # Set to 1 (enabled, default) for perceptually uniform colors
         # Set to 0 (disabled) for maximum brightness per channel
         cf.param.set_value('colorled.brightnessCorr', 1)
@@ -120,12 +120,12 @@ if __name__ == '__main__':
             print('Cycling through colors. Press Ctrl-C to stop.')
             while True:
                 for i in range(0, 360, 1):
-                    color: rgbw = cycle_colors(i)
+                    color: wrgb = cycle_colors(i)
                     # print(color.r, color.g, color.b)
-                    color_uint32 = pack_rgbw(color)
-                    cf.param.set_value('colorled.rgbw8888', str(color_uint32))
+                    color_uint32 = pack_wrgb(color)
+                    cf.param.set_value('colorled.wrgb8888', str(color_uint32))
                     time.sleep(0.01)
         except KeyboardInterrupt:
             print('\nStopping and turning off LED...')
-            cf.param.set_value('colorled.rgbw8888', '0')
+            cf.param.set_value('colorled.wrgb8888', '0')
             time.sleep(0.1)

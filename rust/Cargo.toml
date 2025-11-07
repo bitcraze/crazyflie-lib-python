@@ -5,7 +5,7 @@ edition = "2021"
 
 [lib]
 name = "cflib_rust"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 pyo3 = { version = "0.26", features = ["extension-module"] }
@@ -14,6 +14,8 @@ crazyflie-lib = "0.3.0"
 crazyflie-link = "0.3.0"
 tokio = { version = "1.48", features = ["full"] }
 futures = "0.3.31"
+pyo3-stub-gen-derive = "0.17.0"
+pyo3-stub-gen = "0.17.0"
 
 [build-dependencies]
 pyo3-build-config = "0.26"

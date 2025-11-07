@@ -2,22 +2,25 @@
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyRuntimeError;
+use pyo3_stub_gen_derive::*;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 
 use crate::error::to_pyerr;
-use crate::subsystems::{Commander, Console, Param, Platform, Log};
+use crate::subsystems::{Commander, Console, HighLevelCommander, Param, Platform, Log};
 
 /// Wrapper for the Crazyflie struct
 ///
 /// This provides a Python interface to the Rust Crazyflie implementation.
 /// Since the Rust library is async, we wrap it with a Tokio runtime.
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct Crazyflie {
     pub(crate) inner: Arc<crazyflie_lib::Crazyflie>,
     pub(crate) runtime: Arc<Runtime>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Crazyflie {
     /// Connect to a Crazyflie from a URI string
@@ -52,9 +55,9 @@ impl Crazyflie {
         })
     }
 
-    /// Get the log subsystem
-    fn log(&self) -> Log {
-        Log {
+    /// Get the commander subsystem
+    fn commander(&self) -> Commander {
+        Commander {
             cf: self.inner.clone(),
             runtime: self.runtime.clone(),
         }
@@ -65,17 +68,24 @@ impl Crazyflie {
         Console::new(self.inner.clone(), self.runtime.clone())
     }
 
-    /// Get the param subsystem
-    fn param(&self) -> Param {
-        Param {
+    fn high_level_commander(&self) -> HighLevelCommander {
+        HighLevelCommander {
             cf: self.inner.clone(),
             runtime: self.runtime.clone(),
         }
     }
 
-    /// Get the commander subsystem
-    fn commander(&self) -> Commander {
-        Commander {
+    /// Get the log subsystem
+    fn log(&self) -> Log {
+        Log {
+            cf: self.inner.clone(),
+            runtime: self.runtime.clone(),
+        }
+    }
+
+    /// Get the param subsystem
+    fn param(&self) -> Param {
+        Param {
             cf: self.inner.clone(),
             runtime: self.runtime.clone(),
         }

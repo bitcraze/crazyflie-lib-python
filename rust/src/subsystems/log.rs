@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
+use pyo3_stub_gen_derive::*;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 
@@ -8,12 +9,14 @@ use crate::error::to_pyerr;
 /// Access to the Crazyflie Log Subsystem
 ///
 /// This struct provides functions to interact with the Crazyflie Log subsystem.
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct Log {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
     pub(crate) runtime: Arc<Runtime>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Log {
     /// Get the names of all the log variables
@@ -89,12 +92,14 @@ impl Log {
 ///
 /// If the LogBlock object is dropped or its associated LogStream, the
 /// Log Block will be deleted in the Crazyflie freeing resources.
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct LogBlock {
     runtime: Arc<Runtime>,
     inner: Option<crazyflie_lib::subsystems::log::LogBlock>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl LogBlock {
     /// Add a variable to the log block
@@ -157,12 +162,14 @@ impl LogBlock {
 ///
 /// Dropping this object or the associated LogBlock will delete the log block
 /// in the Crazyflie.
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct LogStream {
     runtime: Arc<Runtime>,
     inner: Option<crazyflie_lib::subsystems::log::LogStream>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl LogStream {
     /// Get the next log data from the log block stream

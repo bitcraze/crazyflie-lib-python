@@ -1,6 +1,7 @@
 //! Console subsystem - read text output from the Crazyflie
 
 use pyo3::prelude::*;
+use pyo3_stub_gen::derive::*;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tokio::sync::Mutex;
@@ -13,6 +14,7 @@ type LineStream = Pin<Box<dyn Stream<Item = String> + Send>>;
 ///
 /// The Crazyflie has a text console that is used to communicate various information
 /// and debug message to the ground.
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct Console {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
@@ -31,6 +33,7 @@ impl Console {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Console {
     /// Get console lines as they arrive

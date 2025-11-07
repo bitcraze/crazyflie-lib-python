@@ -7,7 +7,7 @@ use pyo3::prelude::*;
 mod crazyflie;
 mod error;
 mod link_context;
-mod subsystems;
+pub mod subsystems;
 
 use crazyflie::Crazyflie;
 use link_context::LinkContext;
@@ -26,4 +26,15 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Param>()?;
     m.add_class::<Platform>()?;
     Ok(())
+}
+
+// Custom stub info gatherer that looks for pyproject.toml in the parent directory
+pub fn stub_info() -> pyo3_stub_gen::Result<pyo3_stub_gen::StubInfo> {
+    use std::path::PathBuf;
+
+    // CARGO_MANIFEST_DIR is rust/, so go up one level to find pyproject.toml
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let pyproject_path = manifest_dir.parent().unwrap().join("pyproject.toml");
+
+    pyo3_stub_gen::StubInfo::from_pyproject_toml(pyproject_path)
 }

@@ -1,6 +1,7 @@
 //! Platform subsystem - query device information and firmware details
 
 use pyo3::prelude::*;
+use pyo3_stub_gen_derive::*;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 
@@ -11,12 +12,14 @@ use crate::error::to_pyerr;
 /// The platform CRTP port hosts a couple of utility services. This range from fetching the version of the firmware
 /// and CRTP protocol, communication with apps using the App layer to setting the continuous wave radio mode for
 /// radio testing.
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct Platform {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
     pub(crate) runtime: Arc<Runtime>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Platform {
     /// Fetch the protocol version from the Crazyflie
@@ -43,7 +46,7 @@ impl Platform {
 
     /// Fetch the device type.
     ///
-    /// The Crazyflie firmware can run on multiple devices. This function returns the name of the device. For example
+    /// The Crazyflie firmware can run on multiple device. This function returns the name of the device. For example
     /// ```Crazyflie 2.1``` is returned in the case of a Crazyflie 2.1.
     fn get_device_type_name(&self) -> PyResult<String> {
         self.runtime.block_on(async {
@@ -61,9 +64,6 @@ impl Platform {
     ///  - Jam any radio running on the same frequency, this includes Wifi and Bluetooth
     ///
     /// As such, this shall only be used for test purpose in a controlled environment.
-    ///
-    /// Args:
-    ///     activate: If True, transmit continuous wave; if False, disable
     fn set_continuous_wave(&self, activate: bool) -> PyResult<()> {
         self.runtime.block_on(async {
             self.cf.platform.set_cont_wave(activate).await
@@ -72,11 +72,11 @@ impl Platform {
 
     /// Send system arm/disarm request
     ///
-    /// Arms or disarms the Crazyflie's safety systems. When disarmed,
-    /// motors will not spin even if thrust commands are sent.
+    /// Arms or disarms the Crazyflie's safety systems. When disarmed, the motors
+    /// will not spin even if thrust commands are sent.
     ///
-    /// Args:
-    ///     do_arm: True to arm, False to disarm
+    /// # Arguments
+    /// * `do_arm` - true to arm, false to disarm
     fn send_arming_request(&self, do_arm: bool) -> PyResult<()> {
         self.runtime.block_on(async {
             self.cf.platform.send_arming_request(do_arm).await

@@ -77,7 +77,7 @@ class _ReadRequest:
     Class used to handle memory reads that will split up the read in multiple
     packets if necessary
     """
-    MAX_DATA_LENGTH = 20
+    MAX_DATA_LENGTH = 24
 
     def __init__(self, mem, addr, length, cf):
         """Initialize the object with good defaults"""
@@ -141,7 +141,7 @@ class _WriteRequest:
     Class used to handle memory reads that will split up the read in multiple
     packets in necessary
     """
-    MAX_DATA_LENGTH = 25
+    MAX_DATA_LENGTH = 24
 
     def __init__(self, mem, addr, data, cf, progress_cb=None):
         """Initialize the object with good defaults"""

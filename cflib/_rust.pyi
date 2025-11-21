@@ -184,6 +184,10 @@ class Crazyflie:
         Get the console subsystem
         """
     def high_level_commander(self) -> HighLevelCommander: ...
+    def localization(self) -> Localization:
+        r"""
+        Get the localization subsystem
+        """
     def log(self) -> Log:
         r"""
         Get the log subsystem
@@ -198,7 +202,68 @@ class Crazyflie:
         """
 
 @typing.final
+class EmergencyControl:
+    r"""
+    Emergency control interface
+
+    Provides emergency stop functionality that immediately stops all motors.
+    """
+    def send_emergency_stop(self) -> None:
+        r"""
+        Send emergency stop command
+
+        Immediately stops all motors and puts the Crazyflie into a locked state.
+        The drone will require a reboot before it can fly again.
+        """
+    def send_emergency_stop_watchdog(self) -> None:
+        r"""
+        Send emergency stop watchdog
+
+        Activates/resets a watchdog failsafe that will automatically emergency stop
+        the drone if this message isn't sent every 1000ms. Once activated by the first
+        call, you must continue sending this periodically forever or the drone will
+        automatically emergency stop. Use only if you need automatic failsafe behavior.
+        """
+
+@typing.final
+class ExternalPose:
+    r"""
+    External pose interface
+
+    Provides functionality to send external position and pose data from motion
+    capture systems or other external tracking sources to the Crazyflie's
+    onboard state estimator.
+    """
+    def send_external_position(self, pos: typing.Sequence[builtins.float]) -> None:
+        r"""
+        Send external position (x, y, z) to the Crazyflie
+
+        Updates the Crazyflie's position estimate with 3D position data.
+
+        # Arguments
+        * `pos` - Position array [x, y, z] in meters
+        """
+    def send_external_pose(
+        self,
+        pos: typing.Sequence[builtins.float],
+        quat: typing.Sequence[builtins.float],
+    ) -> None:
+        r"""
+        Send external pose (position + quaternion) to the Crazyflie
+
+        Updates the Crazyflie's position estimate with full 6DOF pose data.
+        Includes both position and orientation.
+
+        # Arguments
+        * `pos` - Position array [x, y, z] in meters
+        * `quat` - Quaternion array [qx, qy, qz, qw]
+        """
+
+@typing.final
 class HighLevelCommander:
+    r"""
+    High-level commander subsystem wrapper
+    """
     def set_group_mask(self, group_mask: builtins.int) -> None:
         r"""
         Set the group mask for the high-level commander.
@@ -380,6 +445,125 @@ class HighLevelCommander:
         * `reversed` - If `true`, execute the trajectory in reverse.
         * `group_mask` - Mask selecting which Crazyflies this applies to.
           If `None`, defaults to all Crazyflies.
+        """
+
+@typing.final
+class Lighthouse:
+    r"""
+    Lighthouse positioning system interface
+
+    Provides functionality to receive lighthouse sweep angle data and manage
+    lighthouse base station configuration persistence.
+    """
+    def get_angle_data(self) -> builtins.list[LighthouseAngleData]:
+        r"""
+        Get lighthouse angle measurements as they arrive
+
+        This function returns lighthouse angle data for base stations. It buffers data internally
+        and returns up to 100 angle measurements per call with a 10ms timeout per measurement.
+
+        To receive angle data, you must first enable the angle stream by setting the parameter
+        `locSrv.enLhAngleStream` to 1.
+
+        The lib keeps track of angle data since the stream was enabled, so the first
+        call to this function will return all measurements received since the stream was enabled.
+
+        Returns:
+            List of LighthouseAngleData (up to 100 with 10ms timeout)
+        """
+    def persist_lighthouse_data(
+        self,
+        geo_list: typing.Sequence[builtins.int],
+        calib_list: typing.Sequence[builtins.int],
+    ) -> builtins.bool:
+        r"""
+        Persist lighthouse geometry and calibration data to permanent storage
+
+        Sends a command to persist lighthouse geometry and/or calibration data
+        to permanent storage in the Crazyflie, then waits for confirmation.
+        The geometry and calibration data must have been previously written to
+        RAM via the memory subsystem.
+
+        # Arguments
+        * `geo_list` - List of base station IDs (0-15) for which to persist geometry data
+        * `calib_list` - List of base station IDs (0-15) for which to persist calibration data
+
+        # Returns
+        * `True` if data was successfully persisted
+        * `False` if persistence failed
+        """
+
+@typing.final
+class LighthouseAngleData:
+    r"""
+    Lighthouse angle sweep data
+    """
+    @property
+    def base_station(self) -> builtins.int:
+        r"""
+        Base station ID
+        """
+    @property
+    def angles(self) -> LighthouseAngles:
+        r"""
+        Angle measurements
+        """
+
+@typing.final
+class LighthouseAngles:
+    r"""
+    Lighthouse sweep angles for all 4 sensors
+    """
+    @property
+    def x(self) -> builtins.list[builtins.float]:
+        r"""
+        Horizontal angles for 4 sensors [rad]
+        """
+    @property
+    def y(self) -> builtins.list[builtins.float]:
+        r"""
+        Vertical angles for 4 sensors [rad]
+        """
+
+@typing.final
+class Localization:
+    r"""
+    Localization subsystem wrapper
+    """
+    def emergency(self) -> EmergencyControl:
+        r"""
+        Get the emergency control interface
+        """
+    def external_pose(self) -> ExternalPose:
+        r"""
+        Get the external pose interface
+        """
+    def lighthouse(self) -> Lighthouse:
+        r"""
+        Get the lighthouse interface
+        """
+    def loco_positioning(self) -> LocoPositioning:
+        r"""
+        Get the loco positioning interface
+        """
+
+@typing.final
+class LocoPositioning:
+    r"""
+    Loco Positioning System (UWB) interface
+
+    Provides functionality to send Loco Positioning Protocol (LPP) packets
+    to ultra-wide-band positioning nodes.
+    """
+    def send_short_lpp_packet(
+        self, dest_id: builtins.int, data: typing.Sequence[builtins.int]
+    ) -> None:
+        r"""
+        Send Loco Positioning Protocol (LPP) packet to a specific destination
+
+        # Arguments
+        * `dest_id` - Destination node ID
+        * `data` - LPP packet payload
         """
 
 @typing.final

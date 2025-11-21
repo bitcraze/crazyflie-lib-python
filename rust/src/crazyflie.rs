@@ -7,7 +7,7 @@ use std::sync::Arc;
 use tokio::runtime::Runtime;
 
 use crate::error::to_pyerr;
-use crate::subsystems::{Commander, Console, HighLevelCommander, Param, Platform, Log};
+use crate::subsystems::{Commander, Console, HighLevelCommander, Localization, Param, Platform, Log};
 
 /// Wrapper for the Crazyflie struct
 ///
@@ -70,6 +70,14 @@ impl Crazyflie {
 
     fn high_level_commander(&self) -> HighLevelCommander {
         HighLevelCommander {
+            cf: self.inner.clone(),
+            runtime: self.runtime.clone(),
+        }
+    }
+
+    /// Get the localization subsystem
+    fn localization(&self) -> Localization {
+        Localization {
             cf: self.inner.clone(),
             runtime: self.runtime.clone(),
         }

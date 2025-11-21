@@ -11,7 +11,11 @@ pub mod subsystems;
 
 use crazyflie::Crazyflie;
 use link_context::LinkContext;
-use subsystems::{Commander, Console, Log, LogBlock, LogStream, Param, Platform};
+use subsystems::{
+    Commander, Console, Log, LogBlock, LogStream, Param, Platform,
+    Localization, EmergencyControl, ExternalPose, Lighthouse, LocoPositioning,
+    LighthouseAngleData, LighthouseAngles,
+};
 
 /// Python module definition
 #[pymodule]
@@ -25,6 +29,13 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<LogStream>()?;
     m.add_class::<Param>()?;
     m.add_class::<Platform>()?;
+    m.add_class::<Localization>()?;
+    m.add_class::<EmergencyControl>()?;
+    m.add_class::<ExternalPose>()?;
+    m.add_class::<Lighthouse>()?;
+    m.add_class::<LocoPositioning>()?;
+    m.add_class::<LighthouseAngleData>()?;
+    m.add_class::<LighthouseAngles>()?;
     Ok(())
 }
 

@@ -8,6 +8,7 @@ mod crazyflie;
 mod error;
 mod link_context;
 pub mod subsystems;
+mod toc_cache;
 
 use crazyflie::Crazyflie;
 use link_context::LinkContext;
@@ -16,6 +17,7 @@ use subsystems::{
     Localization, EmergencyControl, ExternalPose, Lighthouse, LocoPositioning,
     LighthouseAngleData, LighthouseAngles,
 };
+use toc_cache::{NoTocCache, InMemoryTocCache, FileTocCache};
 
 /// Python module definition
 #[pymodule]
@@ -36,6 +38,9 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<LocoPositioning>()?;
     m.add_class::<LighthouseAngleData>()?;
     m.add_class::<LighthouseAngles>()?;
+    m.add_class::<NoTocCache>()?;
+    m.add_class::<InMemoryTocCache>()?;
+    m.add_class::<FileTocCache>()?;
     Ok(())
 }
 

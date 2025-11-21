@@ -8,6 +8,33 @@ use tokio::runtime::Runtime;
 
 use crate::error::to_pyerr;
 use crate::subsystems::{Commander, Console, HighLevelCommander, Localization, Param, Platform, Log};
+use crate::toc_cache::{NoTocCache, InMemoryTocCache, FileTocCache};
+
+/// Internal enum to hold any of the cache types
+#[derive(Clone)]
+enum AnyCacheWrapper {
+    NoCache(NoTocCache),
+    InMemory(InMemoryTocCache),
+    File(FileTocCache),
+}
+
+impl crazyflie_lib::TocCache for AnyCacheWrapper {
+    fn get_toc(&self, crc32: u32) -> Option<String> {
+        match self {
+            AnyCacheWrapper::NoCache(c) => crazyflie_lib::TocCache::get_toc(c, crc32),
+            AnyCacheWrapper::InMemory(c) => crazyflie_lib::TocCache::get_toc(c, crc32),
+            AnyCacheWrapper::File(c) => crazyflie_lib::TocCache::get_toc(c, crc32),
+        }
+    }
+
+    fn store_toc(&self, crc32: u32, toc: &str) {
+        match self {
+            AnyCacheWrapper::NoCache(c) => crazyflie_lib::TocCache::store_toc(c, crc32, toc),
+            AnyCacheWrapper::InMemory(c) => crazyflie_lib::TocCache::store_toc(c, crc32, toc),
+            AnyCacheWrapper::File(c) => crazyflie_lib::TocCache::store_toc(c, crc32, toc),
+        }
+    }
+}
 
 /// Wrapper for the Crazyflie struct
 ///
@@ -27,18 +54,40 @@ impl Crazyflie {
     ///
     /// Args:
     ///     uri: Connection URI (e.g., "radio://0/80/2M/E7E7E7E7E7")
+    ///     toc_cache: Optional TOC cache instance (NoTocCache, InMemoryTocCache, or FileTocCache)
+    ///                If not provided, defaults to NoTocCache (no caching)
     ///
     /// Returns:
     ///     Connected Crazyflie instance
     #[staticmethod]
-    fn connect_from_uri(uri: String) -> PyResult<Self> {
+    #[pyo3(signature = (uri, toc_cache=None))]
+    fn connect_from_uri(uri: String,  #[gen_stub(override_type(type_repr = "typing.Optional[typing.Union[NoTocCache, InMemoryTocCache, FileTocCache]]"))] toc_cache: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
         let runtime = Arc::new(Runtime::new().map_err(|e| {
             PyRuntimeError::new_err(format!("Failed to create Tokio runtime: {}", e))
         })?);
 
+        // Extract cache from Python object
+        let cache = if let Some(cache_obj) = toc_cache {
+            // Try to extract each cache type
+            if let Ok(no_cache) = cache_obj.extract::<NoTocCache>() {
+                AnyCacheWrapper::NoCache(no_cache)
+            } else if let Ok(mem_cache) = cache_obj.extract::<InMemoryTocCache>() {
+                AnyCacheWrapper::InMemory(mem_cache)
+            } else if let Ok(file_cache) = cache_obj.extract::<FileTocCache>() {
+                AnyCacheWrapper::File(file_cache)
+            } else {
+                return Err(PyRuntimeError::new_err(
+                    "toc_cache must be NoTocCache, InMemoryTocCache, or FileTocCache"
+                ));
+            }
+        } else {
+            // Default to NoTocCache
+            AnyCacheWrapper::NoCache(NoTocCache)
+        };
+
         let inner = runtime.block_on(async {
             let link_context = crazyflie_link::LinkContext::new();
-            crazyflie_lib::Crazyflie::connect_from_uri(&link_context, &uri).await
+            crazyflie_lib::Crazyflie::connect_from_uri(&link_context, &uri, cache).await
         }).map_err(to_pyerr)?;
 
         Ok(Crazyflie {

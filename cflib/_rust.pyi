@@ -161,12 +161,19 @@ class Crazyflie:
     Since the Rust library is async, we wrap it with a Tokio runtime.
     """
     @staticmethod
-    def connect_from_uri(uri: builtins.str) -> Crazyflie:
+    def connect_from_uri(
+        uri: builtins.str,
+        toc_cache: typing.Optional[
+            typing.Union[NoTocCache, InMemoryTocCache, FileTocCache]
+        ] = None,
+    ) -> Crazyflie:
         r"""
         Connect to a Crazyflie from a URI string
 
         Args:
             uri: Connection URI (e.g., "radio://0/80/2M/E7E7E7E7E7")
+            toc_cache: Optional TOC cache instance (NoTocCache, InMemoryTocCache, or FileTocCache)
+                       If not provided, defaults to NoTocCache (no caching)
 
         Returns:
             Connected Crazyflie instance
@@ -257,6 +264,41 @@ class ExternalPose:
         # Arguments
         * `pos` - Position array [x, y, z] in meters
         * `quat` - Quaternion array [qx, qy, qz, qw]
+        """
+
+@typing.final
+class FileTocCache:
+    r"""
+    File-based TOC cache that persists to disk
+
+    This cache stores TOCs as individual JSON files in a specified directory.
+    Each TOC is stored as {crc32}.json. The cache persists across Python process
+    restarts, making it ideal for production use.
+
+    The cache directory is created automatically if it doesn't exist.
+
+    Example:
+        cache = FileTocCache("/tmp/cf_toc_cache")
+        cf = Crazyflie.connect_from_uri("radio://0/80/2M/E7E7E7E7E7", toc_cache=cache)
+    """
+    def __new__(cls, cache_dir: builtins.str) -> FileTocCache:
+        r"""
+        Create a new FileTocCache instance
+
+        Args:
+            cache_dir: Directory path where TOC files will be stored
+        """
+    def clear(self) -> None:
+        r"""
+        Clear all cached TOC files
+        """
+    def size(self) -> builtins.int:
+        r"""
+        Get the number of cached TOCs (from memory cache)
+        """
+    def get_cache_dir(self) -> builtins.str:
+        r"""
+        Get the cache directory path
         """
 
 @typing.final
@@ -445,6 +487,33 @@ class HighLevelCommander:
         * `reversed` - If `true`, execute the trajectory in reverse.
         * `group_mask` - Mask selecting which Crazyflies this applies to.
           If `None`, defaults to all Crazyflies.
+        """
+
+@typing.final
+class InMemoryTocCache:
+    r"""
+    In-memory TOC cache using a HashMap
+
+    This cache stores TOCs in memory for fast access. The cache is lost when the
+    Python process exits. Multiple Crazyflie connections can share the same cache
+    instance for improved performance.
+
+    Example:
+        cache = InMemoryTocCache()
+        cf1 = Crazyflie.connect_from_uri("radio://0/80/2M/E7E7E7E7E7", toc_cache=cache)
+        cf2 = Crazyflie.connect_from_uri("radio://0/80/2M/E7E7E7E7E8", toc_cache=cache)
+    """
+    def __new__(cls) -> InMemoryTocCache:
+        r"""
+        Create a new InMemoryTocCache instance
+        """
+    def clear(self) -> None:
+        r"""
+        Clear all cached TOCs
+        """
+    def size(self) -> builtins.int:
+        r"""
+        Get the number of cached TOCs
         """
 
 @typing.final
@@ -690,6 +759,19 @@ class LogStream:
 
         Returns:
             The original LogBlock that can be restarted
+        """
+
+@typing.final
+class NoTocCache:
+    r"""
+    No-op TOC cache that doesn't store anything
+
+    This is the default cache used when no cache is provided to connect_from_uri.
+    It provides no caching functionality, meaning TOCs will be downloaded on every connection.
+    """
+    def __new__(cls) -> NoTocCache:
+        r"""
+        Create a new NoTocCache instance
         """
 
 @typing.final

@@ -14,4 +14,4 @@ pub use high_level_commander::HighLevelCommander;
 pub use localization::{Localization, EmergencyControl, ExternalPose, Lighthouse, LocoPositioning, LighthouseAngleData, LighthouseAngles};
 pub use log::{Log, LogBlock, LogStream};
 pub use param::Param;
-pub use platform::Platform;
+pub use platform::{Platform, AppChannel};

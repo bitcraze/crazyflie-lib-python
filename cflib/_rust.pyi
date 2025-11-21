@@ -5,6 +5,42 @@ import builtins
 import typing
 
 @typing.final
+class AppChannel:
+    r"""
+    Bidirectional communication channel with Crazyflie apps
+
+    The app channel provides both send and receive capabilities for custom
+    communication with apps running on the Crazyflie firmware. Packets are
+    limited to 31 bytes (APPCHANNEL_MTU).
+    """
+    def send(self, data: typing.Sequence[builtins.int]) -> None:
+        r"""
+        Send a data packet to the Crazyflie app
+
+        Sends raw bytes to a custom app running on the Crazyflie. The packet
+        must not exceed 31 bytes (APPCHANNEL_MTU).
+
+        Args:
+            data: Bytes to send (maximum 31 bytes)
+
+        Raises:
+            ValueError: If data exceeds 31 bytes
+        """
+    def receive(self) -> builtins.list[builtins.list[builtins.int]]:
+        r"""
+        Receive buffered data packets from the Crazyflie app
+
+        Returns all buffered packets received from the Crazyflie app. This
+        function will return up to 100 packets with a 10ms timeout per packet.
+
+        The library keeps track of all packets received since the channel was
+        acquired, so the first call may return multiple buffered packets.
+
+        Returns:
+            List of received data packets (each up to 31 bytes)
+        """
+
+@typing.final
 class Commander:
     r"""
     Commander subsystem wrapper
@@ -906,4 +942,18 @@ class Platform:
         Send crash recovery request
 
         Requests recovery from a crash state detected by the Crazyflie.
+        """
+    def get_app_channel(self) -> typing.Optional[AppChannel]:
+        r"""
+        Get the bidirectional app channel for custom communication
+
+        The app channel allows bidirectional communication between ground software
+        and custom apps running on the Crazyflie. This is useful for implementing
+        custom protocols without defining new CRTP packets.
+
+        Note: This channel can only be acquired once per connection. Subsequent
+        calls will return None.
+
+        Returns:
+            Optional AppChannel object, or None if already acquired
         """

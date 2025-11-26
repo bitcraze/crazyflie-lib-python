@@ -94,17 +94,40 @@ if __name__ == '__main__':
     with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
         cf = scf.cf
 
+        # Detect which color LED deck is present (bottom or top)
+        # We check for whichever deck is attached and use the first one found
+        # Check for bottom-facing deck first
+        if str(cf.param.get_value('deck.bcColorLedBot')) == '1':
+            deck_params = {
+                'color': 'colorLedBot.wrgb8888',
+                'brightness': 'colorLedBot.brightCorr',
+                'throttle': 'colorLedBot.throttlePct',
+                'temp': 'colorLedBot.deckTemp'
+            }
+            print('Detected bottom-facing color LED deck')
+        # Check for top-facing deck
+        elif str(cf.param.get_value('deck.bcColorLedTop')) == '1':
+            deck_params = {
+                'color': 'colorLedTop.wrgb8888',
+                'brightness': 'colorLedTop.brightCorr',
+                'throttle': 'colorLedTop.throttlePct',
+                'temp': 'colorLedTop.deckTemp'
+            }
+            print('Detected top-facing color LED deck')
+        else:
+            raise RuntimeError('No color LED deck detected!')
+
         # Thermal status callback
         def thermal_status_callback(timestamp, data, logconf):
-            throttle_pct = data['colorled.throttlePct']
+            throttle_pct = data[deck_params['throttle']]
             if throttle_pct > 0:
-                temp = data['colorled.deckTemp']
+                temp = data[deck_params['temp']]
                 print(f'WARNING: Thermal throttling active! Temp: {temp}°C, Throttle: {throttle_pct}%')
 
         # Setup log configuration for thermal monitoring
         log_conf = LogConfig(name='ThermalStatus', period_in_ms=100)
-        log_conf.add_variable('colorled.deckTemp', 'uint8_t')
-        log_conf.add_variable('colorled.throttlePct', 'uint8_t')
+        log_conf.add_variable(deck_params['temp'], 'uint8_t')
+        log_conf.add_variable(deck_params['throttle'], 'uint8_t')
 
         cf.log.add_config(log_conf)
         log_conf.data_received_cb.add_callback(thermal_status_callback)
@@ -113,7 +136,7 @@ if __name__ == '__main__':
         # Brightness correction: balances luminance across W/R/G/B channels
         # Set to 1 (enabled, default) for perceptually uniform colors
         # Set to 0 (disabled) for maximum brightness per channel
-        cf.param.set_value('colorled.brightnessCorr', 1)
+        cf.param.set_value(deck_params['brightness'], 1)
         time.sleep(0.1)
 
         try:
@@ -123,9 +146,9 @@ if __name__ == '__main__':
                     color: wrgb = cycle_colors(i)
                     # print(color.r, color.g, color.b)
                     color_uint32 = pack_wrgb(color)
-                    cf.param.set_value('colorled.wrgb8888', str(color_uint32))
+                    cf.param.set_value(deck_params['color'], str(color_uint32))
                     time.sleep(0.01)
         except KeyboardInterrupt:
             print('\nStopping and turning off LED...')
-            cf.param.set_value('colorled.wrgb8888', '0')
+            cf.param.set_value(deck_params['color'], '0')
             time.sleep(0.1)

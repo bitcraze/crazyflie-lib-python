@@ -66,6 +66,7 @@ class Localization():
     EXT_POSE_PACKED = 9
     LH_ANGLE_STREAM = 10
     LH_PERSIST_DATA = 11
+    LH_MATCHED_ANGLE_STREAM = 12
 
     def __init__(self, crazyflie=None):
         """
@@ -105,6 +106,8 @@ class Localization():
             decoded_data = bool(data[0])
         elif pk_type == self.LH_ANGLE_STREAM:
             decoded_data = self._decode_lh_angle(data)
+        elif pk_type == self.LH_MATCHED_ANGLE_STREAM:
+            decoded_data = self._decode_matched_lh_angle(data)
 
         pk = LocalizationPacket(pk_type, data, decoded_data)
         self.receivedLocationPacket.call(pk)
@@ -125,6 +128,27 @@ class Localization():
         decoded_data['y'][1] = raw_data[5] - fp16_to_float(raw_data[6])
         decoded_data['y'][2] = raw_data[5] - fp16_to_float(raw_data[7])
         decoded_data['y'][3] = raw_data[5] - fp16_to_float(raw_data[8])
+
+        return decoded_data
+
+    def _decode_matched_lh_angle(self, data):
+        decoded_data = {}
+
+        raw_data = struct.unpack('<BfhhhfhhhB', data)
+
+        decoded_data['basestation'] = raw_data[0]
+        decoded_data['x'] = [0, 0, 0, 0]
+        decoded_data['x'][0] = raw_data[1]
+        decoded_data['x'][1] = raw_data[1] - fp16_to_float(raw_data[2])
+        decoded_data['x'][2] = raw_data[1] - fp16_to_float(raw_data[3])
+        decoded_data['x'][3] = raw_data[1] - fp16_to_float(raw_data[4])
+        decoded_data['y'] = [0, 0, 0, 0]
+        decoded_data['y'][0] = raw_data[5]
+        decoded_data['y'][1] = raw_data[5] - fp16_to_float(raw_data[6])
+        decoded_data['y'][2] = raw_data[5] - fp16_to_float(raw_data[7])
+        decoded_data['y'][3] = raw_data[5] - fp16_to_float(raw_data[8])
+        decoded_data['group_id'] = raw_data[9] >> 4
+        decoded_data['bs_count'] = raw_data[9] & 0x0F
 
         return decoded_data
 

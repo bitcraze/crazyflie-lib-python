@@ -20,3 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 """Crazyflie Python Library"""
+
+from cflib._rust import Crazyflie, LinkContext
+
+__all__ = ["Crazyflie", "LinkContext"]

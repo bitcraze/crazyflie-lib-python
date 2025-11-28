@@ -20,11 +20,11 @@ class AppChannel:
         Sends raw bytes to a custom app running on the Crazyflie. The packet
         must not exceed 31 bytes (APPCHANNEL_MTU).
 
-        Args:
-            data: Bytes to send (maximum 31 bytes)
+        # Arguments
+        * `data` - Bytes to send (maximum 31 bytes)
 
-        Raises:
-            ValueError: If data exceeds 31 bytes
+        # Raises
+        * ValueError - If data exceeds 31 bytes
         """
     def receive(self) -> builtins.list[builtins.list[builtins.int]]:
         r"""
@@ -36,8 +36,8 @@ class AppChannel:
         The library keeps track of all packets received since the channel was
         acquired, so the first call may return multiple buffered packets.
 
-        Returns:
-            List of received data packets (each up to 31 bytes)
+        # Returns
+        * List of received data packets (each up to 31 bytes)
         """
 
 @typing.final
@@ -954,6 +954,6 @@ class Platform:
         Note: This channel can only be acquired once per connection. Subsequent
         calls will return None.
 
-        Returns:
-            Optional AppChannel object, or None if already acquired
+        # Returns
+        * Optional AppChannel object, or None if already acquired
         """

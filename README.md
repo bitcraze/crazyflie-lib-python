@@ -1,8 +1,10 @@
-# cflib: Crazyflie python library [![CI](https://github.com/bitcraze/crazyflie-lib-python/workflows/CI/badge.svg)](https://github.com/bitcraze/crazyflie-lib-python/actions)
+# cflib: Crazyflie Python library [![CI](https://github.com/bitcraze/crazyflie-lib-python/workflows/CI/badge.svg)](https://github.com/bitcraze/crazyflie-lib-python/actions)
 
-cflib is an API written in Python that is used to communicate with the Crazyflie
-and Crazyflie 2.0 quadcopters. It is intended to be used by client software to
-communicate with and control a Crazyflie quadcopter. For instance the [Crazyflie PC client](https://www.github.com/bitcraze/crazyflie-clients-python)  uses the cflib.
+`cflib` is a Python library for communicating with and controlling Crazyflie quadcopters, 
+including the Crazyflie 2.1(+), Crazyflie 2.1 Brushless, and 
+Crazyflie Bolt. This library provides a Python API for direct programmatic control 
+through Python scripts, and is also used as the backend communication layer for 
+applications like [`cfclient`](https://www.github.com/bitcraze/crazyflie-clients-python).
 
 See [below](#platform-notes) for platform specific instruction.
 For more info see our [documentation](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/).

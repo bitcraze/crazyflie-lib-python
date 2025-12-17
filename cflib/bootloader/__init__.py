@@ -326,7 +326,7 @@ class Bootloader:
                         self.progress_cb('Deck updated! Restarting...', int(100))
                     if current_index != -1:
                         PowerSwitch(self.clink).reboot_to_fw()
-                        time.sleep(2.0 + boot_delay)
+                        time.sleep(5.0 + boot_delay)
 
                 # Put the crazyflie back in Bootloader mode to exit the function in the same state we entered it
                 self.start_bootloader(warm_boot=True, cf=cf)

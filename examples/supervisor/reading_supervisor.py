@@ -39,7 +39,7 @@ from cflib.utils import uri_helper
 logging.basicConfig(level=logging.INFO)
 
 # URI to the Crazyflie to connect to
-uri = uri_helper.uri_from_env(default='radio://0/30/2M/BADC0DE010')
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 
 if __name__ == '__main__':

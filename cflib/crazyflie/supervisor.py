@@ -20,19 +20,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 """
-Provides access to the supervisor modue of the Crazyflie platform.
+Provides access to the supervisor module of the Crazyflie platform.
 """
 import logging
 import time
 
-from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 
 __author__ = 'Bitcraze AB'
-__all__ = ['SupervisorState']
+__all__ = ['Supervisor']
 
 logger = logging.getLogger(__name__)
+
+SUPERVISOR_CH_INFO = 0
+SUPERVISOR_CH_COMMAND = 1
 
 # Bit positions
 BIT_CAN_BE_ARMED = 0
@@ -48,14 +50,21 @@ BIT_HL_TRAJ_FINISHED = 9
 BIT_HL_CONTROL_DISABLED = 10
 
 CMD_GET_STATE_BITFIELD = 0x0C
-SUPERVISOR_CH_INFO = 0
+
+CMD_ARM_SYSTEM = 0x01
+CMD_RECOVER_SYSTEM = 0x02
 
 
-class SupervisorState:
+class Supervisor:
     """
-    This class is used to easily get the state of your Crazyflie through
-    the supervisor. Check the `reading_supervisor.py` example in
-    examples/supervisor/ to better understand how to use it.
+    This class provides two main functionalities:
+
+    1. **Reading the system state**
+       Accesses the Crazyflie's supervisor bitfield to determine the current state,
+       such as whether it can be armed, is flying or crashed.
+
+    2. **Sending system commands**
+       Sends arming/disarming requests and crash recovery commands to the Crazyflie.
     """
     STATES = [
         'Can be armed',
@@ -72,10 +81,7 @@ class SupervisorState:
     ]
 
     def __init__(self, crazyflie):
-        if isinstance(crazyflie, SyncCrazyflie):
-            self._cf = crazyflie.cf
-        else:
-            self._cf = crazyflie
+        self._cf = crazyflie
 
         self._cache_timeout = 0.1   # seconds
         self._last_fetch_time = 0
@@ -216,3 +222,26 @@ class SupervisorState:
     @property
     def hl_control_disabled(self):
         return self._bit(BIT_HL_CONTROL_DISABLED)
+
+    def send_arming_request(self, do_arm: bool):
+        """
+        Send system arm/disarm request.
+
+        Args:
+            do_arm (bool): True = arm the system, False = disarm the system
+        """
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
+        pk.data = (CMD_ARM_SYSTEM, do_arm)
+        self._cf.send_packet(pk)
+        logger.debug(f"Sent arming request: do_arm={do_arm}")
+
+    def send_crash_recovery_request(self):
+        """
+        Send crash recovery request.
+        """
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
+        pk.data = (CMD_RECOVER_SYSTEM,)
+        self._cf.send_packet(pk)
+        logger.debug('Sent crash recovery request')

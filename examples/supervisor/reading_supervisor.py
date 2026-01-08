@@ -32,7 +32,6 @@ import time
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie.supervisor import SupervisorState
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 
@@ -47,7 +46,7 @@ if __name__ == '__main__':
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         time.sleep(1)
-        supervisor = SupervisorState(scf)
+        supervisor = scf.cf.supervisor
         time.sleep(1)
         try:
             while True:

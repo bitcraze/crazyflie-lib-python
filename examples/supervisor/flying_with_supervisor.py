@@ -32,7 +32,6 @@ import time
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie.supervisor import SupervisorState
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 
@@ -41,7 +40,7 @@ from cflib.utils import uri_helper
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 
-def safety_check(sup: SupervisorState):
+def safety_check(sup):
     if sup.is_crashed:
         raise Exception('Crazyflie crashed!')
     if sup.is_locked:
@@ -50,7 +49,7 @@ def safety_check(sup: SupervisorState):
         raise Exception('Crazyflie tumbled!')
 
 
-def run_sequence(scf: SyncCrazyflie, sup: SupervisorState):
+def run_sequence(scf: SyncCrazyflie, sup):
     commander = scf.cf.high_level_commander
 
     try:
@@ -58,7 +57,7 @@ def run_sequence(scf: SyncCrazyflie, sup: SupervisorState):
         if sup.can_be_armed:
             print('The Crazyflie can be armed...arming!')
             safety_check(sup)
-            scf.cf.platform.send_arming_request(True)
+            sup.send_arming_request(True)
             time.sleep(1)
 
         safety_check(sup)
@@ -84,6 +83,6 @@ if __name__ == '__main__':
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         time.sleep(1)
-        supervisor = SupervisorState(scf)
+        supervisor = scf.cf.supervisor
         time.sleep(1)
         run_sequence(scf, supervisor)

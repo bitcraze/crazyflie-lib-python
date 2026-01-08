@@ -26,6 +26,7 @@
 Used for sending control setpoints to the Crazyflie
 """
 import logging
+import warnings
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
@@ -40,8 +41,6 @@ VERSION_COMMAND = 1
 APP_CHANNEL = 2
 
 PLATFORM_SET_CONT_WAVE = 0
-PLATFORM_REQUEST_ARMING = 1
-PLATFORM_REQUEST_CRASH_RECOVERY = 2
 
 VERSION_GET_PROTOCOL = 0
 VERSION_GET_FIRMWARE = 1
@@ -90,25 +89,38 @@ class PlatformService():
 
     def send_arming_request(self, do_arm: bool):
         """
-        Send system arm/disarm request
+        Send system arm/disarm request (deprecated).
 
         Args:
             do_arm (bool): True = arm the system, False = disarm the system
+
+        Deprecated:
+            Use `supervisor.send_arming_request(do_arm)` instead.
         """
-        pk = CRTPPacket()
-        pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
-        pk.data = (PLATFORM_REQUEST_ARMING, do_arm)
-        self._cf.send_packet(pk)
+        warnings.warn(
+            'platform.send_arming_request is deprecated. '
+            'Use supervisor.send_arming_request(do_arm) instead.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+
+        self._cf.supervisor.send_arming_request(do_arm)
 
     def send_crash_recovery_request(self):
         """
-        Send crash recovery request
+        Send crash recovery request (deprecated).
 
+        Deprecated:
+            Use `supervisor.send_crash_recovery_request()` instead.
         """
-        pk = CRTPPacket()
-        pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
-        pk.data = (PLATFORM_REQUEST_CRASH_RECOVERY, )
-        self._cf.send_packet(pk)
+        warnings.warn(
+            'platform.send_crash_recovery_request is deprecated. '
+            'Use supervisor.send_crash_recovery_request() instead.',
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+
+        self._cf.supervisor.send_crash_recovery_request()
 
     def get_protocol_version(self):
         """

@@ -244,7 +244,7 @@ class Supervisor:
         pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
         pk.data = (CMD_ARM_SYSTEM, do_arm)
         self._cf.send_packet(pk)
-        logger.debug(f"Sent arming request: do_arm={do_arm}")
+        logger.debug(f'Sent arming request: do_arm={do_arm}')
 
     def send_crash_recovery_request(self):
         """

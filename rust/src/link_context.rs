@@ -2,16 +2,28 @@
 
 use pyo3::prelude::*;
 use pyo3::exceptions::PyRuntimeError;
+use pyo3_stub_gen_derive::*;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 
-/// Link context for scanning
+/// Link context for scanning and discovering Crazyflies
+///
+/// The LinkContext provides methods to scan for available Crazyflies on the network.
+/// It can scan on specific addresses or use the default broadcast address.
+///
+/// Example:
+///     context = LinkContext()
+///     uris = context.scan()  # Scan on default address E7E7E7E7E7
+///     for uri in uris:
+///         print(f"Found: {uri}")
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct LinkContext {
     inner: crazyflie_link::LinkContext,
     runtime: Arc<Runtime>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl LinkContext {
     #[new]
@@ -28,11 +40,11 @@ impl LinkContext {
 
     /// Scan for Crazyflies on a specific address
     ///
-    /// Args:
-    ///     address: Optional 5-byte address to scan (defaults to [0xE7, 0xE7, 0xE7, 0xE7, 0xE7])
+    /// # Arguments
+    /// * `address` - Optional 5-byte address to scan (defaults to [0xE7, 0xE7, 0xE7, 0xE7, 0xE7])
     ///
-    /// Returns:
-    ///     List of URIs found
+    /// # Returns
+    /// List of URIs found
     #[pyo3(signature = (address=None))]
     fn scan(&self, address: Option<Vec<u8>>) -> PyResult<Vec<String>> {
         // Default to E7E7E7E7E7 if no address provided

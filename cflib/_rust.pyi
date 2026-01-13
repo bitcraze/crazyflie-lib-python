@@ -631,6 +631,34 @@ class LighthouseAngles:
         """
 
 @typing.final
+class LinkContext:
+    r"""
+    Link context for scanning and discovering Crazyflies
+
+    The LinkContext provides methods to scan for available Crazyflies on the network.
+    It can scan on specific addresses or use the default broadcast address.
+
+    Example:
+        context = LinkContext()
+        uris = context.scan()  # Scan on default address E7E7E7E7E7
+        for uri in uris:
+            print(f"Found: {uri}")
+    """
+    def __new__(cls) -> LinkContext: ...
+    def scan(
+        self, address: typing.Optional[typing.Sequence[builtins.int]] = None
+    ) -> builtins.list[builtins.str]:
+        r"""
+        Scan for Crazyflies on a specific address
+
+        # Arguments
+        * `address` - Optional 5-byte address to scan (defaults to [0xE7, 0xE7, 0xE7, 0xE7, 0xE7])
+
+        # Returns
+        List of URIs found
+        """
+
+@typing.final
 class Localization:
     r"""
     Localization subsystem wrapper

@@ -39,7 +39,7 @@ import argparse
 import math
 import time
 
-from cflib._rust import Crazyflie
+from cflib import Crazyflie
 
 
 def euler_to_quaternion(roll: float, pitch: float, yaw: float) -> list[float]:

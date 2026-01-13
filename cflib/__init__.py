@@ -21,6 +21,19 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 """Crazyflie Python Library"""
 
-from cflib._rust import Crazyflie, LinkContext
+from cflib._rust import (
+    Crazyflie,
+    LinkContext,
+    # TOC cache classes (passed to Crazyflie.connect_from_uri)
+    NoTocCache,
+    InMemoryTocCache,
+    FileTocCache,
+)
 
-__all__ = ["Crazyflie", "LinkContext"]
+__all__ = [
+    "Crazyflie",
+    "LinkContext",
+    "NoTocCache",
+    "InMemoryTocCache",
+    "FileTocCache",
+]

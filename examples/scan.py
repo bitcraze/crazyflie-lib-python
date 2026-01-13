@@ -27,7 +27,7 @@ Example usage:
 
 import argparse
 
-from cflib._rust import LinkContext
+from cflib import LinkContext
 
 
 def main() -> None:

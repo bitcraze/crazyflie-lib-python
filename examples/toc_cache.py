@@ -45,7 +45,7 @@ import tempfile
 from pathlib import Path
 from typing import Union
 
-from cflib._rust import Crazyflie, NoTocCache, InMemoryTocCache, FileTocCache
+from cflib import Crazyflie, NoTocCache, InMemoryTocCache, FileTocCache
 
 
 def main() -> int:

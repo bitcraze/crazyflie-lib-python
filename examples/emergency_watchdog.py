@@ -41,7 +41,7 @@ import argparse
 import sys
 import time
 
-from cflib._rust import Crazyflie
+from cflib import Crazyflie
 
 
 def main() -> None:

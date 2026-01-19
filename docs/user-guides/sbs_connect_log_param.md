@@ -198,14 +198,14 @@ Here you will add the logs variables you would like to read out. If you are unsu
 
 Use the same connect_log_param.py script, and add the following function above `simple_connect()` and underneath URI:
  ```python
-def simple_log(scf, lg_stab):
+def simple_log(scf, logconf):
 
  ```
 Notice that now you will need to include the SyncCrazyflie instance (`scf`) and the logging configuration.
 
 Now the logging instances will be inserted by adding the following after you configured the lg_stab:
  ```python
-    with SyncLogger(scf, lg_stab) as logger:
+    with SyncLogger(scf, logconf) as logger:
 
         for log_entry in logger:
 

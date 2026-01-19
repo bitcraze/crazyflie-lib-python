@@ -221,7 +221,7 @@ Now the logging instances will be inserted by adding the following after you con
 
 ### Test the script:
 
-First change the `simple_connect()` in _main_ in `simple_log(scf, lg_stab)`. Now run the script (`python3 connect_log_param.py`) like before.
+First change the `simple_connect()` in _main_ to `simple_log(scf, lg_stab)`. Now run the script (`python3 connect_log_param.py`) like before.
 
 If everything is fine it should continuously print the logging variables, like this:
 

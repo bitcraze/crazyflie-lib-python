@@ -317,10 +317,12 @@ This callback will be called once the log variables have received it and prints 
 Then the log configuration would need to be started manually, and then stopped after a few seconds:
 
 ```python
-    logconf.start()
+    lg_stab.start()
     time.sleep(5)
-    logconf.stop()
+    lg_stab.stop()
 ```
+
+Instead of ```time.sleep(5)```, you have the possibility to interact with the Crazyflie in other ways, meaning you now have an asynchronous logging setup.
 
 ## Run the script
 
@@ -354,9 +356,6 @@ def simple_log_async(scf, logconf):
     cf = scf.cf
     cf.log.add_config(logconf)
     logconf.data_received_cb.add_callback(log_stab_callback)
-    logconf.start()
-    time.sleep(5)
-    logconf.stop()
 
 (...)
 
@@ -372,6 +371,10 @@ if __name__ == '__main__':
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
 
         simple_log_async(scf, lg_stab)
+
+        lg_stab.start()
+        time.sleep(5) # Your possibility to interact with the Crazyflie
+        lg_stab.stop()
 ```
 
 ## Step 3. Parameters

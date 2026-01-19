@@ -308,7 +308,7 @@ def log_stab_callback(timestamp, data, logconf):
     print('[%d][%s]: %s' % (timestamp, logconf.name, data))
 ```
 
-This callback will be called once the log variables have received it and prints the contents. The callback function added to the logging framework by adding it to the log config in `simple_log_async(..)`:
+This callback will be called once the log variables have received it and prints the contents. The callback function is added to the logging framework by adding it to the log config in `simple_log_async(..)`:
 
 ```python
     logconf.data_received_cb.add_callback(log_stab_callback)

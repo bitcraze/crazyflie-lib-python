@@ -296,7 +296,7 @@ def simple_log_async(scf, logconf):
     cf.log.add_config(logconf)
 ```
 
-Here you add the logging configuration to to the logging framework of the Crazyflie. It will check if the log configuration is part of the TOC, which is a list of all the logging variables defined in the Crazyflie. You can test this out by changing one of the `lg_stab` variables to a completely bogus name like `'not.real'`. In this case you would receive the following message:
+Here you add the logging configuration to the logging framework of the Crazyflie. It will check if the log configuration is part of the TOC, which is a list of all the logging variables defined in the Crazyflie. You can test this out by changing one of the `lg_stab` variables to a completely bogus name like `'not.real'`. In this case you would receive the following message:
 
 `KeyError: 'Variable not.real not in TOC'`
 

@@ -373,9 +373,9 @@ class LighthouseInitialEstimator:
         """
         def q_average(Q, W=None):
             if W is not None:
-                Q *= W[:, None]
-            eigvals, eigvecs = np.linalg.eig(Q.T@Q)
-            return eigvecs[:, eigvals.argmax()]
+                Q = Q * W[:, None]
+            _, eigvecs = np.linalg.eigh(Q.T @ Q)
+            return eigvecs[:, -1]
 
         positions = map(lambda x: x.translation, poses)
         average_pos = np.average(np.array(list(positions)), axis=0)

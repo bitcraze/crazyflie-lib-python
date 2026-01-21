@@ -32,6 +32,7 @@ import struct
 from threading import Lock
 
 from .deck_memory import DeckMemoryManager
+from .deckctrl_element import DeckCtrlElement
 from .i2c_element import I2CElement
 from .led_driver_memory import LEDDriverMemory
 from .led_timings_driver_memory import LEDTimingsDriverMemory
@@ -533,6 +534,10 @@ class Memory():
                 logger.debug(mem)
                 self.mem_read_cb.add_callback(mem.new_data)
                 self.mem_read_failed_cb.add_callback(mem.read_failed)
+            elif mem_type == MemoryElement.TYPE_DECKCTRL:
+                mem = DeckCtrlElement(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
+                logger.debug(mem)
+                self.mem_read_cb.add_callback(mem.new_data)
             else:
                 mem = MemoryElement(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
                 logger.debug(mem)

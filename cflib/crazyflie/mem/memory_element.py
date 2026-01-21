@@ -40,6 +40,8 @@ class MemoryElement(object):
     TYPE_DECK_MEMORY = 0x19
     TYPE_DECK_MULTIRANGER = 0x1A
     TYPE_DECK_PAA3905 = 0x1B
+    TYPE_DECKCTRL_DFU = 0x20
+    TYPE_DECKCTRL = 0x21
 
     def __init__(self, id, type, size, mem_handler):
         """Initialize the element with default values"""
@@ -69,6 +71,10 @@ class MemoryElement(object):
             return 'Lighthouse positioning'
         if t == MemoryElement.TYPE_MEMORY_TESTER:
             return 'Memory tester'
+        if t == MemoryElement.TYPE_DECKCTRL:
+            return 'DeckCtrl'
+        if t == MemoryElement.TYPE_DECKCTRL_DFU:
+            return 'DeckCtrl DFU'
         return 'Unknown'
 
     def new_data(self, mem, addr, data):

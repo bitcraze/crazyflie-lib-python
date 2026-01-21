@@ -15,7 +15,7 @@ We will assume that you already know this before you start with the tutorial:
 
 ## Get the script started
 
-Since you should have installed cflib in the previous step by step tutorial, you are all ready to got now. Open up an new python script called `motion_flying.py`. First you will start by adding the following import to the script:
+Since you should have installed cflib in the previous step by step tutorial, you are all ready to go now. Open up an new python script called `motion_flying.py`. First you will start by adding the following import to the script:
 
 ```python
 import logging
@@ -46,7 +46,7 @@ This probably all looks pretty familiar, except for one thing line, namely:
 
 `from cflib.positioning.motion_commander import MotionCommander`
 
-This imports the motion commander, which is pretty much a wrapper around the position setpoint frame work of the crazyflie. You probably have unknowingly experienced this a when trying out the assist modes in this [tutorial with the flow deck in the cfclient](https://www.bitcraze.io/documentation/tutorials/getting-started-with-flow-deck/)
+This imports the motion commander, which is pretty much a wrapper around the position setpoint frame work of the crazyflie. You probably have unknowingly experienced this when trying out the assist modes in this [tutorial with the flow deck in the cfclient](https://www.bitcraze.io/documentation/tutorials/getting-started-with-flow-deck/)
 
 ## Step 1: Security before flying
 

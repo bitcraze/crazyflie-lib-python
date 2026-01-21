@@ -538,6 +538,7 @@ class Memory():
                 mem = DeckCtrlElement(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
                 logger.debug(mem)
                 self.mem_read_cb.add_callback(mem.new_data)
+                self.mem_read_failed_cb.add_callback(mem.read_failed)
             else:
                 mem = MemoryElement(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
                 logger.debug(mem)

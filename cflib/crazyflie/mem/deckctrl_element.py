@@ -76,6 +76,14 @@ class DeckCtrlElement(MemoryElement):
                     self._update_finished_cb(self)
                     self._update_finished_cb = None
 
+    def read_failed(self, mem, addr):
+        """Callback for when a memory read fails"""
+        if mem.id == self.id:
+            logger.warning('DeckCtrl memory read failed for id {}'.format(self.id))
+            if self._update_finished_cb:
+                self._update_finished_cb(self)
+                self._update_finished_cb = None
+
     def _parse_and_check_info(self, data):
         """Parse and validate the DeckCtrl info block"""
         if len(data) < DECKCTRL_INFO_SIZE:

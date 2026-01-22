@@ -103,6 +103,8 @@ class ParamTocElement:
         self.ident = ident
         self.persistent = False
         self.extended = False
+        self.extended_type = 0  # Actual extended type value (e.g., EXTENDED_PERSISTENT)
+        self.default_value = None  # Default value for persistent parameters
         if (data):
             strs = struct.unpack('s' * len(data[1:]), data[1:])
             s = ''
@@ -134,6 +136,14 @@ class ParamTocElement:
 
     def is_extended(self):
         return self.extended
+
+    def get_extended_type(self):
+        return self.extended_type
+
+    def set_extended_type(self, extended_type):
+        self.extended_type = extended_type
+        if extended_type == ParamTocElement.EXTENDED_PERSISTENT:
+            self.mark_persistent()
 
     def mark_persistent(self):
         self.persistent = True
@@ -264,26 +274,10 @@ class Param():
         """
         Initiate a refresh of the parameter TOC.
         """
-        def refresh_done():
-            extended_elements = list()
-
-            for group in self.toc.toc:
-                for element in self.toc.toc[group].values():
-                    if element.is_extended():
-                        extended_elements.append(element)
-
-            if len(extended_elements) > 0:
-                extended_type_fetcher = _ExtendedTypeFetcher(self.cf, self.toc)
-                extended_type_fetcher.start()
-                extended_type_fetcher.set_callback(refresh_done_callback)
-                extended_type_fetcher.request_extended_types(extended_elements)
-            else:
-                refresh_done_callback()
-
         self._useV2 = self.cf.platform.get_protocol_version() >= 4
         toc_fetcher = TocFetcher(self.cf, ParamTocElement,
                                  CRTPPort.PARAM, self.toc,
-                                 refresh_done, toc_cache)
+                                 refresh_done_callback, toc_cache)
         toc_fetcher.start()
 
     def _connection_requested(self, uri):
@@ -571,8 +565,9 @@ class _ExtendedTypeFetcher(Thread):
                     # V1: [CMD, ID_L, ID_H, VALUE...]
                     extended_type = pk.data[3]
 
-                if extended_type == ParamTocElement.EXTENDED_PERSISTENT:
-                    self._toc.get_element_by_id(var_id).mark_persistent()
+                # Store the extended_type value (will be cached)
+                element = self._toc.get_element_by_id(var_id)
+                element.set_extended_type(extended_type)
                 self._count -= 1
                 if self._count == 0:
                     if self._done_callback is not None:
@@ -594,6 +589,102 @@ class _ExtendedTypeFetcher(Thread):
             pk = CRTPPacket()
             pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
 
+            pk.data = struct.pack('<BH', self._cmd, element.ident)
+            self.request_queue.put(pk)
+
+    def _close(self):
+        # First empty the queue from all packets
+        try:
+            while True:
+                self.request_queue.get(block=False)
+        except Empty:
+            pass
+        self.request_queue.put(None)  # Make sure we exit the run loop
+        self._should_close = True
+        self._cf.remove_port_callback(CRTPPort.PARAM, self._new_packet_cb)
+
+        # Then force an unlock of the mutex if we are waiting for a packet
+        # we didn't get back due to a disconnect for example.
+        try:
+            self._lock.release()
+        except RuntimeError:
+            pass
+
+    def run(self):
+        while not self._should_close:
+            pk = self.request_queue.get()  # Wait for request update
+            if pk is None:
+                continue
+            self._lock.acquire()
+            if self._cf.link:
+                self._req_param = struct.unpack('<H', pk.data[1:3])[0]
+                self._cf.send_packet(pk, expected_reply=(tuple(pk.data[:3])))
+            else:
+                self._lock.release()
+
+
+class _DefaultValueFetcher(Thread):
+    """Fetches default values for persistent parameters during TOC fetch"""
+
+    def __init__(self, cf, toc):
+        Thread.__init__(self, name='DefaultValueFetcherThread')
+        self.daemon = True
+        self._lock = Lock()
+
+        self._cf = cf
+        self._toc = toc
+        self._done_callback = None
+
+        self.request_queue = Queue()
+        self._cf.add_port_callback(CRTPPort.PARAM, self._new_packet_cb)
+        self._should_close = False
+        self._req_param = -1
+        self._count = -1
+        # Protocol 11+ uses V2 command with unambiguous status byte
+        self._use_v2 = self._cf.platform.get_protocol_version() >= 11
+        self._cmd = MISC_GET_DEFAULT_VALUE_V2 if self._use_v2 else MISC_GET_DEFAULT_VALUE
+
+    def _new_packet_cb(self, pk):
+        """Callback for newly arrived packets"""
+        if pk.channel == MISC_CHANNEL and pk.data[0] == self._cmd:
+            var_id = struct.unpack('<H', pk.data[1:3])[0]
+
+            if self._req_param == var_id:
+                element = self._toc.get_element_by_id(var_id)
+
+                if self._use_v2:
+                    # V2: [CMD, ID_L, ID_H, STATUS, VALUE...] on success
+                    #     [CMD, ID_L, ID_H, ERROR_CODE] on error
+                    if pk.data[3] == 0:
+                        default_value, = struct.unpack(element.pytype, pk.data[4:])
+                        element.default_value = default_value
+                else:
+                    # V1: [CMD, ID_L, ID_H, VALUE...]
+                    # Skip if error (ENOENT = 0x02, but ambiguous with u8 value 2)
+                    if pk.data[3] != errno.ENOENT:
+                        default_value, = struct.unpack(element.pytype, pk.data[3:])
+                        element.default_value = default_value
+
+                self._count -= 1
+                if self._count == 0:
+                    if self._done_callback is not None:
+                        self._done_callback()
+                    self._close()
+
+                self._req_param = -1
+                try:
+                    self._lock.release()
+                except Exception:
+                    pass
+
+    def set_callback(self, callback):
+        self._done_callback = callback
+
+    def request_default_values(self, elements):
+        self._count = len(elements)
+        for element in elements:
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
             pk.data = struct.pack('<BH', self._cmd, element.ident)
             self.request_queue.put(pk)
 

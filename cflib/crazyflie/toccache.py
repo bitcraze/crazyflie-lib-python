@@ -110,6 +110,9 @@ class TocCache():
 
         if isinstance(obj, ParamTocElement):
             encoded['extended'] = obj.extended
+            encoded['extended_type'] = obj.extended_type
+            if obj.default_value is not None:
+                encoded['default_value'] = obj.default_value
 
         return encoded
         raise TypeError(repr(obj) + ' is not JSON serializable')
@@ -126,5 +129,10 @@ class TocCache():
             elem.access = obj['access']
             if isinstance(elem, ParamTocElement):
                 elem.extended = obj['extended']
+                # Restore extended_type if present (may not be in older caches)
+                # Using set_extended_type() ensures persistent flag is set correctly
+                elem.set_extended_type(obj.get('extended_type', 0))
+                # Restore default_value if present
+                elem.default_value = obj.get('default_value', None)
             return elem
         return obj

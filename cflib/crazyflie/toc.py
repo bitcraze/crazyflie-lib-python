@@ -150,6 +150,63 @@ class TocFetcher:
         logger.debug('[%d]: Done!', self.port)
         self.finished_callback()
 
+    def _save_cache_and_finish(self):
+        """Save cache and call finished callback"""
+        self._toc_cache.insert(self._crc, self.toc.toc)
+        self._toc_fetch_finished()
+
+    def _fetch_default_values_if_needed(self):
+        """Check if we need to fetch default values for persistent parameters"""
+        # Import here to avoid circular dependency
+        from .param import ParamTocElement, _DefaultValueFetcher
+
+        persistent_elements = []
+        for group in self.toc.toc:
+            for element in self.toc.toc[group].values():
+                if isinstance(element, ParamTocElement) and element.is_persistent():
+                    # Only fetch if not already in cache (default_value is None)
+                    if element.default_value is None:
+                        persistent_elements.append(element)
+
+        if len(persistent_elements) > 0:
+            logger.info('Fetching default values for %d persistent parameters', len(persistent_elements))
+            fetcher = _DefaultValueFetcher(self.cf, self.toc)
+            fetcher.start()
+            fetcher.set_callback(self._save_cache_and_finish)
+            fetcher.request_default_values(persistent_elements)
+        else:
+            if len([e for group in self.toc.toc for e in self.toc.toc[group].values()
+                    if isinstance(e, ParamTocElement) and e.is_persistent()]) > 0:
+                logger.info('All default values loaded from cache, skipping queries')
+            self._save_cache_and_finish()
+
+    def _fetch_extended_types_if_needed(self):
+        """Check if we need to fetch extended types for parameters"""
+        # Import here to avoid circular dependency
+        from .param import ParamTocElement, _ExtendedTypeFetcher
+
+        extended_elements = []
+        for group in self.toc.toc:
+            for element in self.toc.toc[group].values():
+                if isinstance(element, ParamTocElement) and element.is_extended():
+                    # Only fetch if not already in cache (extended_type == 0)
+                    if element.get_extended_type() == 0:
+                        extended_elements.append(element)
+
+        if len(extended_elements) > 0:
+            logger.info('Fetching extended types for %d parameters', len(extended_elements))
+            fetcher = _ExtendedTypeFetcher(self.cf, self.toc)
+            fetcher.start()
+            # Chain to default value fetching after extended types are done
+            fetcher.set_callback(self._fetch_default_values_if_needed)
+            fetcher.request_extended_types(extended_elements)
+        else:
+            if len([e for group in self.toc.toc for e in self.toc.toc[group].values()
+                    if isinstance(e, ParamTocElement) and e.is_extended()]) > 0:
+                logger.info('All extended types loaded from cache, skipping queries')
+            # Continue to default value fetching
+            self._fetch_default_values_if_needed()
+
     def _new_packet_cb(self, packet):
         """Handle a newly arrived packet"""
         chan = packet.channel
@@ -179,8 +236,7 @@ class TocFetcher:
                     self._request_toc_element(self.requested_index)
                 else:
                     logger.debug('No TOC entries for port [%s]' % self.port)
-                    self._toc_cache.insert(self._crc, self.toc.toc)
-                    self._toc_fetch_finished()
+                    self._save_cache_and_finish()
 
         elif (self.state == GET_TOC_ELEMENT):
             # Always add new element, but only request new if it's not the
@@ -203,8 +259,7 @@ class TocFetcher:
                 self.requested_index += 1
                 self._request_toc_element(self.requested_index)
             else:  # No more variables in TOC
-                self._toc_cache.insert(self._crc, self.toc.toc)
-                self._toc_fetch_finished()
+                self._fetch_extended_types_if_needed()
 
     def _request_toc_element(self, index):
         """Request information about a specific item in the TOC"""

@@ -159,11 +159,12 @@ The reason for the crazyflie to immediately take off, is that the motion command
 
 ### Changing the height
 
-Currently the motion commander had 0.3 meters height as default but this can of course be changed.
+Currently the motion commander has 0.3 meters height as default but this can of course be changed.
 
-Change the  following line in `take_off_simple(...)`:
+Change the  following lines in `take_off_simple(...)`:
 ```python
     with MotionCommander(scf) as mc:
+        time.sleep(3)
         mc.up(0.3)
         time.sleep(3)
         mc.stop()

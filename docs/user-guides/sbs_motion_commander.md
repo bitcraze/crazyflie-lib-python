@@ -150,7 +150,6 @@ Now make the function `take_off_simple(..)` above `__main__`, which will contain
 def take_off_simple(scf):
     with MotionCommander(scf) as mc:
         time.sleep(3)
-        mc.stop()
 ```
 
 If you run the python script, you will see the crazyflie connect and immediately take off. After flying for 3 seconds it will land again.
@@ -167,7 +166,6 @@ Change the  following lines in `take_off_simple(...)`:
         time.sleep(3)
         mc.up(0.3)
         time.sleep(3)
-        mc.stop()
 ```
 
 Run the script again. The crazyflie will first take off to 0.3 meters and then goes up for another 0.3 meters.
@@ -209,7 +207,6 @@ logging.basicConfig(level=logging.ERROR)
 def take_off_simple(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
         time.sleep(3)
-        mc.stop()
 
 
 def param_deck_flow(name, value_str):

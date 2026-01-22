@@ -30,11 +30,9 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.utils import uri_helper
 
-
 URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
-DEFAULT_HEIGHT = 0.5
-BOX_LIMIT = 0.5
+logging.basicConfig(level=logging.ERROR)
 
 if __name__ == '__main__':
 
@@ -150,7 +148,7 @@ Now make the function `take_off_simple(..)` above `__main__`, which will contain
 
 ```python
 def take_off_simple(scf):
-    with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
+    with MotionCommander(scf) as mc:
         time.sleep(3)
         mc.stop()
 ```

@@ -199,8 +199,8 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
                 bs_id1: self.fixtures.angles_cf_origin_bs1,
             }),
             LhCfPoseSample(angles_calibrated={
-                bs_id2: self.fixtures.angles_cf1_bs1,
-                bs_id3: self.fixtures.angles_cf1_bs2,
+                bs_id1: self.fixtures.angles_cf1_bs1,
+                bs_id2: self.fixtures.angles_cf1_bs2,
             }),
             LhCfPoseSample(angles_calibrated={
                 bs_id0: self.fixtures.angles_cf2_bs0,
@@ -217,9 +217,45 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         # Assert
         assert solution.link_count == {
             bs_id0: {bs_id1: 2, bs_id2: 1, bs_id3: 1},
-            bs_id1: {bs_id0: 2, bs_id2: 1, bs_id3: 1},
-            bs_id2: {bs_id0: 1, bs_id1: 1, bs_id3: 2},
-            bs_id3: {bs_id0: 1, bs_id1: 1, bs_id2: 2},
+            bs_id1: {bs_id0: 2, bs_id2: 2, bs_id3: 1},
+            bs_id2: {bs_id0: 1, bs_id1: 2, bs_id3: 1},
+            bs_id3: {bs_id0: 1, bs_id1: 1, bs_id2: 1},
+        }
+
+    def test_that_bs_sample_count_is_right(self):
+        # Fixture
+        bs_id0 = 3
+        bs_id1 = 1
+        bs_id2 = 2
+        bs_id3 = 4
+        samples = self.augment_and_wrap([
+            LhCfPoseSample(angles_calibrated={
+                bs_id0: self.fixtures.angles_cf_origin_bs0,
+                bs_id1: self.fixtures.angles_cf_origin_bs1,
+            }),
+            LhCfPoseSample(angles_calibrated={
+                bs_id1: self.fixtures.angles_cf1_bs1,
+                bs_id2: self.fixtures.angles_cf1_bs2,
+                bs_id3: self.fixtures.angles_cf1_bs3,
+            }),
+            LhCfPoseSample(angles_calibrated={
+                bs_id0: self.fixtures.angles_cf2_bs0,
+                bs_id1: self.fixtures.angles_cf2_bs1,
+                bs_id2: self.fixtures.angles_cf2_bs2,
+                bs_id3: self.fixtures.angles_cf2_bs3,
+            }),
+        ])
+        solution = LighthouseGeometrySolution(samples)
+
+        # Test
+        LighthouseInitialEstimator.estimate(samples, solution)
+
+        # Assert
+        assert solution.bs_sample_count == {
+            bs_id0: 2,
+            bs_id1: 3,
+            bs_id2: 2,
+            bs_id3: 2,
         }
 
 # helpers

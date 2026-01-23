@@ -69,7 +69,8 @@ class LighthouseGeometrySolution:
         self.x_axis_samples_info = ''
         self.is_xy_plane_samples_valid = True
         self.xy_plane_samples_info = ''
-        # For the xyz space, there are not any stopping errors, this string may contain information for the user though
+
+        # For the xyz space there are not any stopping errors, this string may contain information for the user though
         self.xyz_space_samples_info = ''
 
         # General failure information if the problem is not related to a specific sample
@@ -79,6 +80,9 @@ class LighthouseGeometrySolution:
         # keys, mapped to a dictionary of base station ids and the number of links to other base stations.
         # For example: link_count[1][2] = 3 means that base station 1 has 3 links to base station 2.
         self.link_count: dict[int, dict[int, int]] = {}
+
+        # The number of samples that contain data for each base station
+        self.bs_sample_count: dict[int, int] = {}
 
         # The threshold for the number of links between base stations that is considered ok.
         self.link_count_ok_threshold = 1

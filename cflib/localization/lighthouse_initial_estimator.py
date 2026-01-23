@@ -112,9 +112,16 @@ class LighthouseInitialEstimator:
                 solution.link_count[bs1][bs2] = 0
             solution.link_count[bs1][bs2] += 1
 
+        def increase_sample_count(bs: int):
+            """Increase the sample count for a base station"""
+            if bs not in solution.bs_sample_count:
+                solution.bs_sample_count[bs] = 0
+            solution.bs_sample_count[bs] += 1
+
         for sample in matched_samples:
             bs_in_sample = sample.angles_calibrated.keys()
             for bs1 in bs_in_sample:
+                increase_sample_count(bs1)
                 for bs2 in bs_in_sample:
                     if bs1 != bs2:
                         increase_link_count(bs1, bs2)

@@ -203,7 +203,7 @@ class Crazyflie:
         toc_cache: typing.Optional[
             typing.Union[NoTocCache, InMemoryTocCache, FileTocCache]
         ] = None,
-    ) -> Crazyflie:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, Crazyflie]:
         r"""
         Connect to a Crazyflie from a URI string
 
@@ -216,7 +216,7 @@ class Crazyflie:
         Returns:
             Connected Crazyflie instance
         """
-    def disconnect(self) -> None:
+    def disconnect(self) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Disconnect from the Crazyflie
         """
@@ -228,7 +228,10 @@ class Crazyflie:
         r"""
         Get the console subsystem
         """
-    def high_level_commander(self) -> HighLevelCommander: ...
+    def high_level_commander(self) -> HighLevelCommander:
+        r"""
+        Get the high-level commander subsystem
+        """
     def localization(self) -> Localization:
         r"""
         Get the localization subsystem
@@ -345,7 +348,9 @@ class HighLevelCommander:
     r"""
     High-level commander subsystem wrapper
     """
-    def set_group_mask(self, group_mask: builtins.int) -> None:
+    def set_group_mask(
+        self, group_mask: builtins.int
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Set the group mask for the high-level commander.
 
@@ -358,14 +363,14 @@ class HighLevelCommander:
         yaw: typing.Optional[builtins.float],
         duration: builtins.float,
         group_mask: typing.Optional[builtins.int],
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Take off vertically from the current x-y position to the given target height.
 
         # Arguments
         * `height` - Target height (meters) above the world origin.
         * `yaw` - Target yaw (radians). Use `None` to maintain the current yaw.
-        * `duration` - Time (seconds) to reach the target height. This method blocks for this duration.
+        * `duration` - Time (seconds) to reach the target height.
         * `group_mask` - Bitmask selecting which Crazyflies to command. Use `None` for all Crazyflies.
         """
     def land(
@@ -374,17 +379,19 @@ class HighLevelCommander:
         yaw: typing.Optional[builtins.float],
         duration: builtins.float,
         group_mask: typing.Optional[builtins.int],
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Land vertically from the current x-y position to the given target height.
 
         # Arguments
         * `height` - Target height (meters) above the world origin.
         * `yaw` - Target yaw (radians). Use `None` to maintain the current yaw.
-        * `duration` - Time (seconds) to reach the target height. This method blocks for this duration.
+        * `duration` - Time (seconds) to reach the target height.
         * `group_mask` - Bitmask selecting which Crazyflies to command. Use `None` for all Crazyflies.
         """
-    def stop(self, group_mask: typing.Optional[builtins.int]) -> None:
+    def stop(
+        self, group_mask: typing.Optional[builtins.int]
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Stop the current high-level command and disable motors.
 
@@ -404,7 +411,7 @@ class HighLevelCommander:
         relative: builtins.bool,
         linear: builtins.bool,
         group_mask: typing.Optional[builtins.int],
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Move to an absolute or relative position with smooth path planning.
 
@@ -424,7 +431,7 @@ class HighLevelCommander:
         * `y` - Target y-position in meters
         * `z` - Target z-position in meters
         * `yaw` - Target yaw angle in radians
-        * `duration` - Time in seconds to reach the target position. This method blocks for this duration.
+        * `duration` - Time in seconds to reach the target position.
         * `relative` - If `true`, positions and yaw are relative to current position; if `false`, absolute
         * `linear` - If `true`, use linear interpolation; if `false`, use polynomial trajectory
         * `group_mask` - Bitmask selecting which Crazyflies to command. Use `None` for all Crazyflies.
@@ -439,7 +446,7 @@ class HighLevelCommander:
         sideways: builtins.bool,
         clockwise: builtins.bool,
         group_mask: typing.Optional[builtins.int],
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Fly a spiral segment.
 
@@ -479,7 +486,7 @@ class HighLevelCommander:
         * `final_radius` - Ending radius in meters (≥ 0).
         * `altitude_gain` - Vertical displacement in meters (positive = climb,
           negative = descent).
-        * `duration` - Time in seconds to complete the spiral. This method blocks for this duration.
+        * `duration` - Time in seconds to complete the spiral.
         * `sideways` - If `true`, heading points toward the spiral center;
           if `false`, heading follows the spiral tangent.
         * `clockwise` - If `true`, fly clockwise; otherwise counter-clockwise.
@@ -491,7 +498,7 @@ class HighLevelCommander:
         memory_offset: builtins.int,
         num_pieces: builtins.int,
         trajectory_type: typing.Optional[builtins.int],
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Define a trajectory previously uploaded to memory.
 
@@ -509,7 +516,7 @@ class HighLevelCommander:
         relative_yaw: builtins.bool,
         reversed: builtins.bool,
         group_mask: typing.Optional[builtins.int],
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Start executing a previously defined trajectory.
 
@@ -644,14 +651,14 @@ class LinkContext:
 
     Example:
         context = LinkContext()
-        uris = context.scan()  # Scan on default address E7E7E7E7E7
+        uris = await context.scan()  # Scan on default address E7E7E7E7E7
         for uri in uris:
             print(f"Found: {uri}")
     """
     def __new__(cls) -> LinkContext: ...
     def scan(
         self, address: typing.Optional[typing.Sequence[builtins.int]] = None
-    ) -> builtins.list[builtins.str]:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, builtins.list[builtins.str]]:
         r"""
         Scan for Crazyflies on a specific address
 

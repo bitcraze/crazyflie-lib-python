@@ -4,7 +4,6 @@ use pyo3::prelude::*;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3_stub_gen_derive::*;
 use std::sync::Arc;
-use tokio::runtime::Runtime;
 
 /// Link context for scanning and discovering Crazyflies
 ///
@@ -13,14 +12,13 @@ use tokio::runtime::Runtime;
 ///
 /// Example:
 ///     context = LinkContext()
-///     uris = context.scan()  # Scan on default address E7E7E7E7E7
+///     uris = await context.scan()  # Scan on default address E7E7E7E7E7
 ///     for uri in uris:
 ///         print(f"Found: {uri}")
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct LinkContext {
     pub(crate) inner: Arc<crazyflie_link::LinkContext>,
-    pub(crate) runtime: Arc<Runtime>,
 }
 
 #[gen_stub_pymethods]
@@ -28,13 +26,8 @@ pub struct LinkContext {
 impl LinkContext {
     #[new]
     fn new() -> PyResult<Self> {
-        let runtime = Arc::new(Runtime::new().map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to create Tokio runtime: {}", e))
-        })?);
-
         Ok(LinkContext {
             inner: Arc::new(crazyflie_link::LinkContext::new()),
-            runtime,
         })
     }
 
@@ -46,7 +39,8 @@ impl LinkContext {
     /// # Returns
     /// List of URIs found
     #[pyo3(signature = (address=None))]
-    fn scan(&self, address: Option<Vec<u8>>) -> PyResult<Vec<String>> {
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, builtins.list[builtins.str]]"))]
+    fn scan<'py>(&self, py: Python<'py>, address: Option<Vec<u8>>) -> PyResult<Bound<'py, PyAny>> {
         // Default to E7E7E7E7E7 if no address provided
         let addr = if let Some(addr_vec) = address {
             if addr_vec.len() != 5 {
@@ -61,10 +55,11 @@ impl LinkContext {
             [0xE7; 5]
         };
 
-        let uris = self.runtime.block_on(async {
-            self.inner.scan(addr).await
-        }).map_err(|e| PyRuntimeError::new_err(format!("Scan failed: {:?}", e)))?;
-
-        Ok(uris.into_iter().map(|uri| uri.to_string()).collect())
+        let inner = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let uris = inner.scan(addr).await
+                .map_err(|e| PyRuntimeError::new_err(format!("Scan failed: {:?}", e)))?;
+            Ok(uris.into_iter().map(|uri| uri.to_string()).collect::<Vec<_>>())
+        })
     }
 }

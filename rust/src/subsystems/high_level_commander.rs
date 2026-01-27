@@ -7,7 +7,6 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use std::sync::Arc;
-use tokio::runtime::Runtime;
 
 use crate::error::to_pyerr;
 
@@ -17,7 +16,6 @@ use crate::error::to_pyerr;
 #[pyclass]
 pub struct HighLevelCommander {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
-    pub(crate) runtime: Arc<Runtime>,
 }
 
 #[gen_stub_pymethods]
@@ -27,11 +25,14 @@ impl HighLevelCommander {
     ///
     /// # Arguments
     /// * `group_mask` - The group mask to set. Use `ALL_GROUPS` to set the mask for all Crazyflies.
-    fn set_group_mask(&self, group_mask: u8) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.high_level_commander.set_group_mask(group_mask).await
-        }).map_err(to_pyerr)?;
-        Ok(())
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn set_group_mask<'py>(&self, py: Python<'py>, group_mask: u8) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.high_level_commander.set_group_mask(group_mask).await
+                .map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Take off vertically from the current x-y position to the given target height.
@@ -39,13 +40,16 @@ impl HighLevelCommander {
     /// # Arguments
     /// * `height` - Target height (meters) above the world origin.
     /// * `yaw` - Target yaw (radians). Use `None` to maintain the current yaw.
-    /// * `duration` - Time (seconds) to reach the target height. This method blocks for this duration.
+    /// * `duration` - Time (seconds) to reach the target height.
     /// * `group_mask` - Bitmask selecting which Crazyflies to command. Use `None` for all Crazyflies.
-    fn take_off(&self, height: f32, yaw: Option<f32>, duration: f32, group_mask: Option<u8>) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.high_level_commander.take_off(height, yaw, duration, group_mask).await
-        }).map_err(to_pyerr)?;
-        Ok(())
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn take_off<'py>(&self, py: Python<'py>, height: f32, yaw: Option<f32>, duration: f32, group_mask: Option<u8>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.high_level_commander.take_off(height, yaw, duration, group_mask).await
+                .map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Land vertically from the current x-y position to the given target height.
@@ -53,13 +57,16 @@ impl HighLevelCommander {
     /// # Arguments
     /// * `height` - Target height (meters) above the world origin.
     /// * `yaw` - Target yaw (radians). Use `None` to maintain the current yaw.
-    /// * `duration` - Time (seconds) to reach the target height. This method blocks for this duration.
+    /// * `duration` - Time (seconds) to reach the target height.
     /// * `group_mask` - Bitmask selecting which Crazyflies to command. Use `None` for all Crazyflies.
-    fn land(&self, height: f32, yaw: Option<f32>, duration: f32, group_mask: Option<u8>) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.high_level_commander.land(height, yaw, duration, group_mask).await
-        }).map_err(to_pyerr)?;
-        Ok(())
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn land<'py>(&self, py: Python<'py>, height: f32, yaw: Option<f32>, duration: f32, group_mask: Option<u8>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.high_level_commander.land(height, yaw, duration, group_mask).await
+                .map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Stop the current high-level command and disable motors.
@@ -69,11 +76,14 @@ impl HighLevelCommander {
     ///
     /// # Arguments
     /// * `group_mask` - Bitmask selecting which Crazyflies to command. Use `None` for all Crazyflies.
-    fn stop(&self, group_mask: Option<u8>) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.high_level_commander.stop(group_mask).await
-        }).map_err(to_pyerr)?;
-        Ok(())
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn stop<'py>(&self, py: Python<'py>, group_mask: Option<u8>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.high_level_commander.stop(group_mask).await
+                .map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Move to an absolute or relative position with smooth path planning.
@@ -94,15 +104,18 @@ impl HighLevelCommander {
     /// * `y` - Target y-position in meters
     /// * `z` - Target z-position in meters
     /// * `yaw` - Target yaw angle in radians
-    /// * `duration` - Time in seconds to reach the target position. This method blocks for this duration.
+    /// * `duration` - Time in seconds to reach the target position.
     /// * `relative` - If `true`, positions and yaw are relative to current position; if `false`, absolute
     /// * `linear` - If `true`, use linear interpolation; if `false`, use polynomial trajectory
     /// * `group_mask` - Bitmask selecting which Crazyflies to command. Use `None` for all Crazyflies.
-    fn go_to(&self, x: f32, y: f32, z: f32, yaw: f32, duration: f32, relative: bool, linear: bool, group_mask: Option<u8>) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.high_level_commander.go_to(x, y, z, yaw, duration, relative, linear, group_mask).await
-        }).map_err(to_pyerr)?;
-        Ok(())
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn go_to<'py>(&self, py: Python<'py>, x: f32, y: f32, z: f32, yaw: f32, duration: f32, relative: bool, linear: bool, group_mask: Option<u8>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.high_level_commander.go_to(x, y, z, yaw, duration, relative, linear, group_mask).await
+                .map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Fly a spiral segment.
@@ -143,16 +156,19 @@ impl HighLevelCommander {
     /// * `final_radius` - Ending radius in meters (≥ 0).
     /// * `altitude_gain` - Vertical displacement in meters (positive = climb,
     ///   negative = descent).
-    /// * `duration` - Time in seconds to complete the spiral. This method blocks for this duration.
+    /// * `duration` - Time in seconds to complete the spiral.
     /// * `sideways` - If `true`, heading points toward the spiral center;
     ///   if `false`, heading follows the spiral tangent.
     /// * `clockwise` - If `true`, fly clockwise; otherwise counter-clockwise.
     /// * `group_mask` - Bitmask selecting which Crazyflies this applies to.
-    fn spiral(&self, angle: f32, initial_radius: f32, final_radius: f32, altitude_gain: f32, duration: f32, sideways: bool, clockwise: bool, group_mask: Option<u8>) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.high_level_commander.spiral(angle, initial_radius, final_radius, altitude_gain, duration, sideways, clockwise, group_mask).await
-        }).map_err(to_pyerr)?;
-        Ok(())
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn spiral<'py>(&self, py: Python<'py>, angle: f32, initial_radius: f32, final_radius: f32, altitude_gain: f32, duration: f32, sideways: bool, clockwise: bool, group_mask: Option<u8>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.high_level_commander.spiral(angle, initial_radius, final_radius, altitude_gain, duration, sideways, clockwise, group_mask).await
+                .map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Define a trajectory previously uploaded to memory.
@@ -162,11 +178,14 @@ impl HighLevelCommander {
     /// * `memory_offset` - Byte offset into trajectory memory where the data begins.
     /// * `num_pieces` - Number of segments (pieces) in the trajectory.
     /// * `trajectory_type` - Type of the trajectory data (e.g. Poly4D).
-    fn define_trajectory(&self, trajectory_id: u8, memory_offset: u32, num_pieces: u8, trajectory_type: Option<u8>) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.high_level_commander.define_trajectory(trajectory_id, memory_offset, num_pieces, trajectory_type).await
-        }).map_err(to_pyerr)?;
-        Ok(())
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn define_trajectory<'py>(&self, py: Python<'py>, trajectory_id: u8, memory_offset: u32, num_pieces: u8, trajectory_type: Option<u8>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.high_level_commander.define_trajectory(trajectory_id, memory_offset, num_pieces, trajectory_type).await
+                .map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Start executing a previously defined trajectory.
@@ -184,12 +203,13 @@ impl HighLevelCommander {
     /// * `reversed` - If `true`, execute the trajectory in reverse.
     /// * `group_mask` - Mask selecting which Crazyflies this applies to.
     ///   If `None`, defaults to all Crazyflies.
-    fn start_trajectory(&self, trajectory_id: u8, time_scale: f32, relative_position: bool, relative_yaw: bool, reversed: bool, group_mask: Option<u8>) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.high_level_commander.start_trajectory(trajectory_id, time_scale, relative_position, relative_yaw, reversed, group_mask).await
-        }).map_err(to_pyerr)?;
-        Ok(())
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn start_trajectory<'py>(&self, py: Python<'py>, trajectory_id: u8, time_scale: f32, relative_position: bool, relative_yaw: bool, reversed: bool, group_mask: Option<u8>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.high_level_commander.start_trajectory(trajectory_id, time_scale, relative_position, relative_yaw, reversed, group_mask).await
+                .map_err(to_pyerr)?;
+            Ok(())
+        })
     }
-
-
 }

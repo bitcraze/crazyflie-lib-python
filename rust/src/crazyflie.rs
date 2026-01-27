@@ -11,6 +11,7 @@ use crate::link_context::LinkContext;
 use crate::subsystems::{Commander, Console, HighLevelCommander, Localization, Param, Platform, Log};
 use crate::toc_cache::{NoTocCache, InMemoryTocCache, FileTocCache};
 
+
 /// Internal enum to hold any of the cache types
 #[derive(Clone)]
 enum AnyCacheWrapper {
@@ -63,9 +64,14 @@ impl Crazyflie {
     ///     Connected Crazyflie instance
     #[staticmethod]
     #[pyo3(signature = (link_context, uri, toc_cache=None))]
-    fn connect_from_uri(link_context: &LinkContext, uri: String, #[gen_stub(override_type(type_repr = "typing.Optional[typing.Union[NoTocCache, InMemoryTocCache, FileTocCache]]"))] toc_cache: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
-        let runtime = link_context.runtime.clone();
-
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, Crazyflie]"))]
+    fn connect_from_uri<'py>(
+        py: Python<'py>,
+        link_context: &LinkContext,
+        uri: String,
+        #[gen_stub(override_type(type_repr = "typing.Optional[typing.Union[NoTocCache, InMemoryTocCache, FileTocCache]]"))]
+        toc_cache: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
         // Extract cache from Python object
         let cache = if let Some(cache_obj) = toc_cache {
             // Try to extract each cache type
@@ -85,20 +91,30 @@ impl Crazyflie {
             AnyCacheWrapper::NoCache(NoTocCache)
         };
 
-        let inner = runtime.block_on(async {
-            crazyflie_lib::Crazyflie::connect_from_uri(&link_context.inner, &uri, cache).await
-        }).map_err(to_pyerr)?;
+        let link_context_inner = link_context.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let inner = crazyflie_lib::Crazyflie::connect_from_uri(&link_context_inner, &uri, cache)
+                .await
+                .map_err(to_pyerr)?;
 
-        Ok(Crazyflie {
-            inner: Arc::new(inner),
-            runtime,
+            // Create a runtime for subsystems that aren't async yet
+            let runtime = Arc::new(Runtime::new().map_err(|e| {
+                PyRuntimeError::new_err(format!("Failed to create Tokio runtime: {}", e))
+            })?);
+
+            Ok(Crazyflie {
+                inner: Arc::new(inner),
+                runtime,
+            })
         })
     }
 
     /// Disconnect from the Crazyflie
-    fn disconnect(&self) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.inner.disconnect().await;
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn disconnect<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            inner.disconnect().await;
             Ok(())
         })
     }
@@ -116,10 +132,10 @@ impl Crazyflie {
         Console::new(self.inner.clone(), self.runtime.clone())
     }
 
+    /// Get the high-level commander subsystem
     fn high_level_commander(&self) -> HighLevelCommander {
         HighLevelCommander {
             cf: self.inner.clone(),
-            runtime: self.runtime.clone(),
         }
     }
 

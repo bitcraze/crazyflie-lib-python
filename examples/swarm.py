@@ -32,12 +32,26 @@ Example usage:
 """
 
 import argparse
+import asyncio
 import sys
 
 from cflib import Crazyflie, LinkContext
 
 
-def main() -> None:
+def get_info(cf: Crazyflie) -> tuple[str, str]:
+    """Get firmware version and device type.
+
+    This is a regular blocking function - all calls inside run sequentially.
+    We run one instance per drone in separate threads via asyncio.to_thread(),
+    so multiple drones execute this function in parallel.
+    """
+    platform = cf.platform()
+    fw = platform.get_firmware_version()
+    device = platform.get_device_type_name()
+    return fw, device
+
+
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Connect to multiple Crazyflies using shared LinkContext"
     )
@@ -52,38 +66,33 @@ def main() -> None:
         print("Please provide at least 2 URIs to demonstrate swarming")
         sys.exit(1)
 
-    # Create a SINGLE shared LinkContext for all connections
-    print("Creating shared LinkContext...")
+    # Shared LinkContext for all connections
     context = LinkContext()
 
-    crazyflies: list[Crazyflie] = []
+    # Connect to all concurrently - each connection runs in its own thread,
+    # asyncio.gather() waits for all to complete before continuing
+    print(f"Connecting to {len(args.uris)} Crazyflies...")
+    cfs = await asyncio.gather(
+        *[
+            asyncio.to_thread(Crazyflie.connect_from_uri, context, uri)
+            for uri in args.uris
+        ]
+    )
+    print("All connected!\n")
 
     try:
-        # Connect to all Crazyflies using the same context
-        for uri in args.uris:
-            print(f"Connecting to {uri}...")
-            cf = Crazyflie.connect_from_uri(context, uri)
-            crazyflies.append(cf)
-            print(f"  Connected!")
+        # Run get_info() for each drone in parallel threads, wait for all to finish
+        infos = await asyncio.gather(*[asyncio.to_thread(get_info, cf) for cf in cfs])
 
-        print(f"\nSuccessfully connected to {len(crazyflies)} Crazyflies!\n")
-
-        # Read platform info from each Crazyflie
-        for i, cf in enumerate(crazyflies):
-            platform = cf.platform()
-            fw_version = platform.get_firmware_version()
-            device_type = platform.get_device_type_name()
-            print(
-                f"Crazyflie {i + 1} ({args.uris[i]}): {device_type}, firmware {fw_version}"
-            )
+        for uri, (fw, device) in zip(args.uris, infos):
+            print(f"{uri}: {device}, firmware {fw}")
 
     finally:
-        # Disconnect all
-        print("\nDisconnecting all Crazyflies...")
-        for cf in crazyflies:
-            cf.disconnect()
+        # Disconnect all concurrently
+        print("\nDisconnecting...")
+        await asyncio.gather(*[asyncio.to_thread(cf.disconnect) for cf in cfs])
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

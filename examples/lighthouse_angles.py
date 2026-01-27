@@ -39,12 +39,12 @@ Example usage:
 """
 
 import argparse
-import time
+import asyncio
 
 from cflib import Crazyflie, LinkContext
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Stream lighthouse angle data from the Crazyflie"
     )
@@ -58,7 +58,7 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     param = cf.param()
@@ -68,17 +68,19 @@ def main() -> None:
     try:
         # Set lighthouse to V2 mode
         print("\n1. Setting lighthouse to V2 mode...")
-        param.set("lighthouse.systemType", 2)
+        await param.set("lighthouse.systemType", 2)
         print("   ✓ Lighthouse set to V2 mode")
 
         # Enable angle streaming
         print("\n2. Enabling lighthouse angle stream...")
-        param.set("locSrv.enLhAngleStream", 1)
+        await param.set("locSrv.enLhAngleStream", 1)
         print("   ✓ Angle streaming enabled")
 
         print("\n3. Streaming lighthouse angles for 10 seconds...")
         print("   Move the Crazyflie around to see different base stations")
         print("   Press Ctrl+C to stop early\n")
+
+        import time
 
         start_time = time.time()
         duration = 10.0  # seconds
@@ -87,7 +89,7 @@ def main() -> None:
 
         while time.time() - start_time < duration:
             # Get angle data (buffered, up to 100 measurements)
-            angle_data_list = lighthouse.get_angle_data()
+            angle_data_list = await lighthouse.get_angle_data()
 
             for angle_data in angle_data_list:
                 sample_count += 1
@@ -105,11 +107,11 @@ def main() -> None:
                 )
 
             # Small delay to avoid busy-waiting
-            time.sleep(0.001)
+            await asyncio.sleep(0.001)
 
         # Disable angle streaming
         print("\n4. Disabling angle stream...")
-        param.set("locSrv.enLhAngleStream", 0)
+        await param.set("locSrv.enLhAngleStream", 0)
         print("   ✓ Angle streaming disabled")
 
         # Show summary
@@ -127,16 +129,16 @@ def main() -> None:
         print("\n\nInterrupted by user")
         print("\nDisabling angle stream...")
         try:
-            param.set("locSrv.enLhAngleStream", 0)
+            await param.set("locSrv.enLhAngleStream", 0)
             print("   ✓ Angle streaming disabled")
         except Exception as e:
             print(f"   ⚠️  Could not disable angle stream: {e}")
 
     finally:
         print("\nDisconnecting...")
-        cf.disconnect()
+        await cf.disconnect()
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

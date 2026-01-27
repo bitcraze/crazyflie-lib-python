@@ -48,11 +48,12 @@ Example usage:
 """
 
 import argparse
+import asyncio
 
 from cflib import Crazyflie, LinkContext
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Persist lighthouse data to permanent storage"
     )
@@ -80,7 +81,7 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     localization = cf.localization()
@@ -105,7 +106,7 @@ def main() -> None:
         print("\n1. Persisting lighthouse data...")
         print("   Waiting for confirmation (5 second timeout)...")
 
-        success = lighthouse.persist_lighthouse_data(
+        success = await lighthouse.persist_lighthouse_data(
             geo_list=args.geo, calib_list=args.calib
         )
 
@@ -135,9 +136,9 @@ def main() -> None:
 
     finally:
         print("\nDisconnecting...")
-        cf.disconnect()
+        await cf.disconnect()
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

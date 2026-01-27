@@ -38,13 +38,13 @@ Example usage:
 """
 
 import argparse
+import asyncio
 import sys
-import time
 
 from cflib import Crazyflie, LinkContext
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Demonstrate emergency watchdog failsafe"
     )
@@ -58,7 +58,7 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     platform = cf.platform()
@@ -75,26 +75,28 @@ def main() -> None:
 
         # Arm the Crazyflie
         print("\n1. Arming the Crazyflie...")
-        platform.send_arming_request(do_arm=True)
-        time.sleep(0.3)
+        await platform.send_arming_request(do_arm=True)
+        await asyncio.sleep(0.3)
         print("   ✓ Armed!")
 
         # Send unlock setpoint
         print("\n2. Sending unlock setpoint...")
-        commander.send_setpoint_rpyt(roll=0.0, pitch=0.0, yaw_rate=0.0, thrust=0)
-        time.sleep(0.1)
+        await commander.send_setpoint_rpyt(roll=0.0, pitch=0.0, yaw_rate=0.0, thrust=0)
+        await asyncio.sleep(0.1)
         print("   ✓ Unlocked!")
 
         # Start spinning motors at low thrust
         print("\n3. Starting motors at low thrust...")
         for _ in range(3):
-            commander.send_setpoint_rpyt(roll=0.0, pitch=0.0, yaw_rate=0.0, thrust=8000)
-            time.sleep(0.1)
+            await commander.send_setpoint_rpyt(
+                roll=0.0, pitch=0.0, yaw_rate=0.0, thrust=8000
+            )
+            await asyncio.sleep(0.1)
         print("   ✓ Motors spinning!")
 
         # Activate watchdog
         print("\n4. Activating watchdog (1000ms timeout)...")
-        emergency.send_emergency_stop_watchdog()
+        await emergency.send_emergency_stop_watchdog()
         print("   ✓ Watchdog activated!")
 
         print(
@@ -109,14 +111,14 @@ def main() -> None:
             sys.stdout.flush()
 
             # Send watchdog message
-            emergency.send_emergency_stop_watchdog()
+            await emergency.send_emergency_stop_watchdog()
 
             # Keep motors spinning and wait 800ms
             for _ in range(8):
-                commander.send_setpoint_rpyt(
+                await commander.send_setpoint_rpyt(
                     roll=0.0, pitch=0.0, yaw_rate=0.0, thrust=8000
                 )
-                time.sleep(0.1)
+                await asyncio.sleep(0.1)
 
             sys.stdout.write("...✓\n")
             sys.stdout.flush()
@@ -128,8 +130,10 @@ def main() -> None:
         # The watchdog will trigger after 1000ms
         elapsed = 0
         while elapsed < 2.0:  # Wait 2 seconds total
-            commander.send_setpoint_rpyt(roll=0.0, pitch=0.0, yaw_rate=0.0, thrust=8000)
-            time.sleep(0.1)
+            await commander.send_setpoint_rpyt(
+                roll=0.0, pitch=0.0, yaw_rate=0.0, thrust=8000
+            )
+            await asyncio.sleep(0.1)
             elapsed += 0.1
 
         print("\n⚠️  Watchdog TRIGGERED! Motors stopped automatically.")
@@ -139,16 +143,16 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\n\n⚠️  Interrupted! Attempting to disarm for safety...")
         try:
-            platform.send_arming_request(do_arm=False)
+            await platform.send_arming_request(do_arm=False)
             print("   ✓ Disarmed!")
         except Exception:
             print("   ⚠️  Could not disarm (may already be in emergency state)")
 
     finally:
         print("\nDisconnecting...")
-        cf.disconnect()
+        await cf.disconnect()
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

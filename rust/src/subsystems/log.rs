@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3_stub_gen_derive::*;
 use std::sync::Arc;
-use tokio::runtime::Runtime;
+use tokio::sync::Mutex;
 
 use crate::error::to_pyerr;
 
@@ -13,7 +13,6 @@ use crate::error::to_pyerr;
 #[pyclass]
 pub struct Log {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
-    pub(crate) runtime: Arc<Runtime>,
 }
 
 #[gen_stub_pymethods]
@@ -74,14 +73,15 @@ impl Log {
     ///
     /// Returns:
     ///     A new LogBlock instance that can have variables added to it
-    fn create_block(&self) -> PyResult<LogBlock> {
-        let log_block = self.runtime.block_on(async {
-            self.cf.log.create_block().await
-        }).map_err(to_pyerr)?;
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, LogBlock]"))]
+    fn create_block<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let log_block = cf.log.create_block().await.map_err(to_pyerr)?;
 
-        Ok(LogBlock {
-            runtime: self.runtime.clone(),
-            inner: Some(log_block),
+            Ok(LogBlock {
+                inner: Arc::new(Mutex::new(Some(log_block))),
+            })
         })
     }
 }
@@ -95,8 +95,7 @@ impl Log {
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct LogBlock {
-    runtime: Arc<Runtime>,
-    inner: Option<crazyflie_lib::subsystems::log::LogBlock>,
+    inner: Arc<Mutex<Option<crazyflie_lib::subsystems::log::LogBlock>>>,
 }
 
 #[gen_stub_pymethods]
@@ -112,15 +111,17 @@ impl LogBlock {
     ///
     /// Args:
     ///     name: Variable name (e.g., "stateEstimate.roll")
-    fn add_variable(&mut self, name: &str) -> PyResult<()> {
-        let inner = self.inner.as_mut()
-            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("LogBlock has been consumed"))?;
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn add_variable<'py>(&self, py: Python<'py>, name: String) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let mut guard = inner.lock().await;
+            let block = guard.as_mut()
+                .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("LogBlock has been consumed"))?;
 
-        self.runtime.block_on(async {
-            inner.add_variable(name).await
-        }).map_err(to_pyerr)?;
-
-        Ok(())
+            block.add_variable(&name).await.map_err(to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Start log block and return a stream to read the value
@@ -138,19 +139,20 @@ impl LogBlock {
     ///
     /// Returns:
     ///     A LogStream for reading data
-    fn start(&mut self, period_ms: u64) -> PyResult<LogStream> {
-        let inner = self.inner.take()
-            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("LogBlock already started"))?;
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, LogStream]"))]
+    fn start<'py>(&self, py: Python<'py>, period_ms: u64) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let mut guard = inner.lock().await;
+            let block = guard.take()
+                .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("LogBlock already started"))?;
 
-        let period = crazyflie_lib::subsystems::log::LogPeriod::from_millis(period_ms).map_err(to_pyerr)?;
+            let period = crazyflie_lib::subsystems::log::LogPeriod::from_millis(period_ms).map_err(to_pyerr)?;
+            let log_stream = block.start(period).await.map_err(to_pyerr)?;
 
-        let log_stream = self.runtime.block_on(async {
-            inner.start(period).await
-        }).map_err(to_pyerr)?;
-
-        Ok(LogStream {
-            runtime: self.runtime.clone(),
-            inner: Some(log_stream),
+            Ok(LogStream {
+                inner: Arc::new(Mutex::new(Some(log_stream))),
+            })
         })
     }
 }
@@ -165,8 +167,7 @@ impl LogBlock {
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct LogStream {
-    runtime: Arc<Runtime>,
-    inner: Option<crazyflie_lib::subsystems::log::LogStream>,
+    inner: Arc<Mutex<Option<crazyflie_lib::subsystems::log::LogStream>>>,
 }
 
 #[gen_stub_pymethods]
@@ -181,38 +182,42 @@ impl LogStream {
     ///
     /// Returns:
     ///     Dictionary with timestamp and variable values
-    fn next(&self) -> PyResult<Py<PyDict>> {
-        let inner = self.inner.as_ref()
-            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("LogStream has been stopped"))?;
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, dict]"))]
+    fn next<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let guard = inner.lock().await;
+            let stream = guard.as_ref()
+                .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("LogStream has been stopped"))?;
 
-        let log_data = self.runtime.block_on(async {
-            inner.next().await
-        }).map_err(to_pyerr)?;
+            let log_data = stream.next().await.map_err(to_pyerr)?;
 
-        Python::attach(|py| {
-            let dict = PyDict::new(py);
-            dict.set_item("timestamp", log_data.timestamp)?;
+            // Convert to Python dict
+            Python::attach(|py| {
+                let dict = PyDict::new(py);
+                dict.set_item("timestamp", log_data.timestamp)?;
 
-            let data = PyDict::new(py);
-            for (name, value) in log_data.data {
-                let py_value = match value {
-                    crazyflie_lib::Value::U8(v) => v.into_pyobject(py)?.into_any().unbind(),
-                    crazyflie_lib::Value::U16(v) => v.into_pyobject(py)?.into_any().unbind(),
-                    crazyflie_lib::Value::U32(v) => v.into_pyobject(py)?.into_any().unbind(),
-                    crazyflie_lib::Value::U64(v) => v.into_pyobject(py)?.into_any().unbind(),
-                    crazyflie_lib::Value::I8(v) => v.into_pyobject(py)?.into_any().unbind(),
-                    crazyflie_lib::Value::I16(v) => v.into_pyobject(py)?.into_any().unbind(),
-                    crazyflie_lib::Value::I32(v) => v.into_pyobject(py)?.into_any().unbind(),
-                    crazyflie_lib::Value::I64(v) => v.into_pyobject(py)?.into_any().unbind(),
-                    crazyflie_lib::Value::F16(v) => v.to_f32().into_pyobject(py)?.into_any().unbind(),
-                    crazyflie_lib::Value::F32(v) => v.into_pyobject(py)?.into_any().unbind(),
-                    crazyflie_lib::Value::F64(v) => v.into_pyobject(py)?.into_any().unbind(),
-                };
-                data.set_item(name, py_value)?;
-            }
+                let data = PyDict::new(py);
+                for (name, value) in log_data.data {
+                    let py_value = match value {
+                        crazyflie_lib::Value::U8(v) => v.into_pyobject(py)?.into_any().unbind(),
+                        crazyflie_lib::Value::U16(v) => v.into_pyobject(py)?.into_any().unbind(),
+                        crazyflie_lib::Value::U32(v) => v.into_pyobject(py)?.into_any().unbind(),
+                        crazyflie_lib::Value::U64(v) => v.into_pyobject(py)?.into_any().unbind(),
+                        crazyflie_lib::Value::I8(v) => v.into_pyobject(py)?.into_any().unbind(),
+                        crazyflie_lib::Value::I16(v) => v.into_pyobject(py)?.into_any().unbind(),
+                        crazyflie_lib::Value::I32(v) => v.into_pyobject(py)?.into_any().unbind(),
+                        crazyflie_lib::Value::I64(v) => v.into_pyobject(py)?.into_any().unbind(),
+                        crazyflie_lib::Value::F16(v) => v.to_f32().into_pyobject(py)?.into_any().unbind(),
+                        crazyflie_lib::Value::F32(v) => v.into_pyobject(py)?.into_any().unbind(),
+                        crazyflie_lib::Value::F64(v) => v.into_pyobject(py)?.into_any().unbind(),
+                    };
+                    data.set_item(name, py_value)?;
+                }
 
-            dict.set_item("data", data)?;
-            Ok(dict.unbind())
+                dict.set_item("data", data)?;
+                Ok(dict.unbind())
+            })
         })
     }
 
@@ -226,17 +231,19 @@ impl LogStream {
     ///
     /// Returns:
     ///     The original LogBlock that can be restarted
-    fn stop(&mut self) -> PyResult<LogBlock> {
-        let inner = self.inner.take()
-            .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("LogStream already stopped"))?;
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, LogBlock]"))]
+    fn stop<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let inner = self.inner.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let mut guard = inner.lock().await;
+            let stream = guard.take()
+                .ok_or_else(|| pyo3::exceptions::PyRuntimeError::new_err("LogStream already stopped"))?;
 
-        let log_block = self.runtime.block_on(async {
-            inner.stop().await
-        }).map_err(to_pyerr)?;
+            let log_block = stream.stop().await.map_err(to_pyerr)?;
 
-        Ok(LogBlock {
-            runtime: self.runtime.clone(),
-            inner: Some(log_block),
+            Ok(LogBlock {
+                inner: Arc::new(Mutex::new(Some(log_block))),
+            })
         })
     }
 }

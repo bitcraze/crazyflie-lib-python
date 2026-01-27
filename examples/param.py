@@ -31,11 +31,12 @@ Example usage:
 """
 
 import argparse
+import asyncio
 
 from cflib import Crazyflie, LinkContext
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Get/set Crazyflie parameters (demonstrates pm.lowVoltage)"
     )
@@ -49,7 +50,7 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     param = cf.param()
@@ -58,28 +59,28 @@ def main() -> None:
     try:
         # Get original value
         print(f"\n1. Getting original value of '{param_name}'...")
-        original_value: int | float = param.get(param_name)
+        original_value: int | float = await param.get(param_name)
         print(f"   Original value: {original_value}V")
 
         # Set new value
         new_value: float = 3.8
         print(f"\n2. Setting '{param_name}' to {new_value}V...")
-        param.set(param_name, new_value)
+        await param.set(param_name, new_value)
         print(f"   Set complete!")
 
         # Get new value to confirm
         print(f"\n3. Reading back '{param_name}'...")
-        current_value: int | float = param.get(param_name)
+        current_value: int | float = await param.get(param_name)
         print(f"   Current value: {current_value}V")
 
         # Restore original value
         print(f"\n4. Restoring '{param_name}' to original value ({original_value}V)...")
-        param.set(param_name, float(original_value))
+        await param.set(param_name, float(original_value))
         print(f"   Restored!")
 
         # Get final value to confirm restoration
         print(f"\n5. Verifying restoration of '{param_name}'...")
-        final_value: int | float = param.get(param_name)
+        final_value: int | float = await param.get(param_name)
         print(f"   Final value: {final_value}V")
 
         if final_value == original_value:
@@ -91,9 +92,9 @@ def main() -> None:
 
     finally:
         print("\nDisconnecting...")
-        cf.disconnect()
+        await cf.disconnect()
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

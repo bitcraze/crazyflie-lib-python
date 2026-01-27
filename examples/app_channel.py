@@ -32,13 +32,13 @@ Example usage:
 """
 
 import argparse
+import asyncio
 import struct
-import time
 
 from cflib import Crazyflie, LinkContext
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(description="Test bidirectional app channel")
     parser.add_argument(
         "uri",
@@ -50,15 +50,15 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     platform = cf.platform()
-    app_channel = platform.get_app_channel()
+    app_channel = await platform.get_app_channel()
 
     if app_channel is None:
         print("Error: Could not acquire app channel (already in use?)")
-        cf.disconnect()
+        await cf.disconnect()
         return
 
     print("\nApp channel acquired!")
@@ -72,9 +72,9 @@ def main() -> None:
         app_channel.send(packet)
 
         # Wait a bit for response
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
 
-        responses = app_channel.receive()
+        responses = await app_channel.receive()
         if responses:
             result = struct.unpack("<f", responses[0])[0]
             print(f"Received: {result}")
@@ -88,9 +88,9 @@ def main() -> None:
         app_channel.send(packet)
 
         # Wait a bit for response
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
 
-        responses = app_channel.receive()
+        responses = await app_channel.receive()
         if responses:
             result = struct.unpack("<f", responses[0])[0]
             expected = a + b + c
@@ -105,9 +105,9 @@ def main() -> None:
         app_channel.send(packet)
 
         # Wait a bit for response
-        time.sleep(0.1)
+        await asyncio.sleep(0.1)
 
-        responses = app_channel.receive()
+        responses = await app_channel.receive()
         if responses:
             result = struct.unpack("<f", responses[0])[0]
             expected = a + b + c
@@ -125,9 +125,9 @@ def main() -> None:
         print("Interrupted by user")
     finally:
         print("\nDisconnecting...")
-        cf.disconnect()
+        await cf.disconnect()
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

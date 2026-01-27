@@ -4,7 +4,6 @@ use pyo3::prelude::*;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3_stub_gen_derive::*;
 use std::sync::Arc;
-use tokio::runtime::Runtime;
 
 use crate::error::to_pyerr;
 use crate::link_context::LinkContext;
@@ -41,12 +40,11 @@ impl crazyflie_lib::TocCache for AnyCacheWrapper {
 /// Wrapper for the Crazyflie struct
 ///
 /// This provides a Python interface to the Rust Crazyflie implementation.
-/// Since the Rust library is async, we wrap it with a Tokio runtime.
+/// All methods are async and return Python coroutines.
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct Crazyflie {
     pub(crate) inner: Arc<crazyflie_lib::Crazyflie>,
-    pub(crate) runtime: Arc<Runtime>,
 }
 
 #[gen_stub_pymethods]
@@ -97,14 +95,8 @@ impl Crazyflie {
                 .await
                 .map_err(to_pyerr)?;
 
-            // Create a runtime for subsystems that aren't async yet
-            let runtime = Arc::new(Runtime::new().map_err(|e| {
-                PyRuntimeError::new_err(format!("Failed to create Tokio runtime: {}", e))
-            })?);
-
             Ok(Crazyflie {
                 inner: Arc::new(inner),
-                runtime,
             })
         })
     }
@@ -123,13 +115,12 @@ impl Crazyflie {
     fn commander(&self) -> Commander {
         Commander {
             cf: self.inner.clone(),
-            runtime: self.runtime.clone(),
         }
     }
 
     /// Get the console subsystem
     fn console(&self) -> Console {
-        Console::new(self.inner.clone(), self.runtime.clone())
+        Console::new(self.inner.clone())
     }
 
     /// Get the high-level commander subsystem
@@ -143,7 +134,6 @@ impl Crazyflie {
     fn localization(&self) -> Localization {
         Localization {
             cf: self.inner.clone(),
-            runtime: self.runtime.clone(),
         }
     }
 
@@ -151,7 +141,6 @@ impl Crazyflie {
     fn log(&self) -> Log {
         Log {
             cf: self.inner.clone(),
-            runtime: self.runtime.clone(),
         }
     }
 
@@ -159,7 +148,6 @@ impl Crazyflie {
     fn param(&self) -> Param {
         Param {
             cf: self.inner.clone(),
-            runtime: self.runtime.clone(),
         }
     }
 
@@ -167,7 +155,6 @@ impl Crazyflie {
     fn platform(&self) -> Platform {
         Platform {
             cf: self.inner.clone(),
-            runtime: self.runtime.clone(),
         }
     }
 }

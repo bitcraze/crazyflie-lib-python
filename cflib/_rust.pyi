@@ -26,7 +26,11 @@ class AppChannel:
         # Raises
         * ValueError - If data exceeds 31 bytes
         """
-    def receive(self) -> builtins.list[builtins.list[builtins.int]]:
+    def receive(
+        self,
+    ) -> collections.abc.Coroutine[
+        typing.Any, typing.Any, builtins.list[builtins.list[builtins.int]]
+    ]:
         r"""
         Receive buffered data packets from the Crazyflie app
 
@@ -51,7 +55,7 @@ class Commander:
         pitch: builtins.float,
         yaw_rate: builtins.float,
         thrust: builtins.int,
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Sends a Roll, Pitch, Yawrate, and Thrust setpoint to the Crazyflie.
 
@@ -69,7 +73,7 @@ class Commander:
         y: builtins.float,
         z: builtins.float,
         yaw: builtins.float,
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Sends an absolute position setpoint in world coordinates, with yaw as an absolute orientation.
 
@@ -85,7 +89,7 @@ class Commander:
         vy: builtins.float,
         vz: builtins.float,
         yawrate: builtins.float,
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Sends a velocity setpoint in the world frame, with yaw rate control.
 
@@ -101,7 +105,7 @@ class Commander:
         pitch: builtins.float,
         yawrate: builtins.float,
         zdistance: builtins.float,
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Sends a setpoint with absolute height (distance to the surface below), roll, pitch, and yaw rate commands.
 
@@ -117,7 +121,7 @@ class Commander:
         vy: builtins.float,
         yawrate: builtins.float,
         zdistance: builtins.float,
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Sends a setpoint with absolute height (distance to the surface below), and x/y velocity commands in the body-fixed frame.
 
@@ -134,7 +138,7 @@ class Commander:
         yawrate: builtins.float,
         thrust_percentage: builtins.float,
         rate: builtins.bool,
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Sends a manual control setpoint for roll, pitch, yaw rate, and thrust percentage.
 
@@ -147,13 +151,15 @@ class Commander:
         * `thrust_percentage` - Thrust as a percentage (0 to 100)
         * `rate` - If true, use rate mode; if false, use angle mode
         """
-    def send_stop_setpoint(self) -> None:
+    def send_stop_setpoint(
+        self,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Sends a STOP setpoint, immediately stopping the motors. The Crazyflie will lose lift and may fall.
         """
     def send_notify_setpoint_stop(
         self, remain_valid_milliseconds: builtins.int
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Notify the firmware that low-level setpoints have stopped.
 
@@ -174,7 +180,9 @@ class Console:
     The Crazyflie has a text console that is used to communicate various information
     and debug message to the ground.
     """
-    def get_lines(self) -> builtins.list[builtins.str]:
+    def get_lines(
+        self,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, builtins.list[builtins.str]]:
         r"""
         Get console lines as they arrive
 
@@ -194,7 +202,7 @@ class Crazyflie:
     Wrapper for the Crazyflie struct
 
     This provides a Python interface to the Rust Crazyflie implementation.
-    Since the Rust library is async, we wrap it with a Tokio runtime.
+    All methods are async and return Python coroutines.
     """
     @staticmethod
     def connect_from_uri(
@@ -256,14 +264,18 @@ class EmergencyControl:
 
     Provides emergency stop functionality that immediately stops all motors.
     """
-    def send_emergency_stop(self) -> None:
+    def send_emergency_stop(
+        self,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Send emergency stop command
 
         Immediately stops all motors and puts the Crazyflie into a locked state.
         The drone will require a reboot before it can fly again.
         """
-    def send_emergency_stop_watchdog(self) -> None:
+    def send_emergency_stop_watchdog(
+        self,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Send emergency stop watchdog
 
@@ -282,7 +294,9 @@ class ExternalPose:
     capture systems or other external tracking sources to the Crazyflie's
     onboard state estimator.
     """
-    def send_external_position(self, pos: typing.Sequence[builtins.float]) -> None:
+    def send_external_position(
+        self, pos: typing.Sequence[builtins.float]
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Send external position (x, y, z) to the Crazyflie
 
@@ -295,7 +309,7 @@ class ExternalPose:
         self,
         pos: typing.Sequence[builtins.float],
         quat: typing.Sequence[builtins.float],
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Send external pose (position + quaternion) to the Crazyflie
 
@@ -571,7 +585,11 @@ class Lighthouse:
     Provides functionality to receive lighthouse sweep angle data and manage
     lighthouse base station configuration persistence.
     """
-    def get_angle_data(self) -> builtins.list[LighthouseAngleData]:
+    def get_angle_data(
+        self,
+    ) -> collections.abc.Coroutine[
+        typing.Any, typing.Any, builtins.list[LighthouseAngleData]
+    ]:
         r"""
         Get lighthouse angle measurements as they arrive
 
@@ -591,7 +609,7 @@ class Lighthouse:
         self,
         geo_list: typing.Sequence[builtins.int],
         calib_list: typing.Sequence[builtins.int],
-    ) -> builtins.bool:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, builtins.bool]:
         r"""
         Persist lighthouse geometry and calibration data to permanent storage
 
@@ -701,7 +719,7 @@ class LocoPositioning:
     """
     def send_short_lpp_packet(
         self, dest_id: builtins.int, data: typing.Sequence[builtins.int]
-    ) -> None:
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Send Loco Positioning Protocol (LPP) packet to a specific destination
 
@@ -734,7 +752,9 @@ class Log:
         Returns:
             Type as string (e.g., "u8", "i16", "f32")
         """
-    def create_block(self) -> LogBlock:
+    def create_block(
+        self,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, LogBlock]:
         r"""
         Create a Log block
 
@@ -767,7 +787,9 @@ class LogBlock:
     If the LogBlock object is dropped or its associated LogStream, the
     Log Block will be deleted in the Crazyflie freeing resources.
     """
-    def add_variable(self, name: builtins.str) -> None:
+    def add_variable(
+        self, name: builtins.str
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Add a variable to the log block
 
@@ -780,7 +802,9 @@ class LogBlock:
         Args:
             name: Variable name (e.g., "stateEstimate.roll")
         """
-    def start(self, period_ms: builtins.int) -> LogStream:
+    def start(
+        self, period_ms: builtins.int
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, LogStream]:
         r"""
         Start log block and return a stream to read the value
 
@@ -810,7 +834,7 @@ class LogStream:
     Dropping this object or the associated LogBlock will delete the log block
     in the Crazyflie.
     """
-    def next(self) -> dict:
+    def next(self) -> collections.abc.Coroutine[typing.Any, typing.Any, dict]:
         r"""
         Get the next log data from the log block stream
 
@@ -822,7 +846,7 @@ class LogStream:
         Returns:
             Dictionary with timestamp and variable values
         """
-    def stop(self) -> LogBlock:
+    def stop(self) -> collections.abc.Coroutine[typing.Any, typing.Any, LogBlock]:
         r"""
         Stops the log block from streaming
 
@@ -888,7 +912,9 @@ class Param:
         # Returns
         String representing the parameter type
         """
-    def get(self, name: builtins.str) -> int | float:
+    def get(
+        self, name: builtins.str
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, int | float]:
         r"""
         Get param value
 
@@ -901,7 +927,9 @@ class Param:
         # Returns
         Parameter value (int or float depending on parameter type)
         """
-    def set(self, name: builtins.str, value: int | float) -> None:
+    def set(
+        self, name: builtins.str, value: int | float
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Set a parameter value
 
@@ -930,7 +958,9 @@ class Platform:
     and CRTP protocol, communication with apps using the App layer to setting the continuous wave radio mode for
     radio testing.
     """
-    def get_protocol_version(self) -> builtins.int:
+    def get_protocol_version(
+        self,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, builtins.int]:
         r"""
         Fetch the protocol version from the Crazyflie
 
@@ -938,7 +968,9 @@ class Platform:
         implemented in the protocol.
         Compatibility is checked at connection time.
         """
-    def get_firmware_version(self) -> builtins.str:
+    def get_firmware_version(
+        self,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, builtins.str]:
         r"""
         Fetch the firmware version
 
@@ -946,14 +978,18 @@ class Platform:
         If this firmware is a git build, between releases, the number of commit since the last release will be added
         for example ```2021.06 +128```.
         """
-    def get_device_type_name(self) -> builtins.str:
+    def get_device_type_name(
+        self,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, builtins.str]:
         r"""
         Fetch the device type.
 
         The Crazyflie firmware can run on multiple device. This function returns the name of the device. For example
         ```Crazyflie 2.1``` is returned in the case of a Crazyflie 2.1.
         """
-    def set_continuous_wave(self, activate: builtins.bool) -> None:
+    def set_continuous_wave(
+        self, activate: builtins.bool
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Set radio in continuous wave mode
 
@@ -966,7 +1002,9 @@ class Platform:
 
         As such, this shall only be used for test purpose in a controlled environment.
         """
-    def send_arming_request(self, do_arm: builtins.bool) -> None:
+    def send_arming_request(
+        self, do_arm: builtins.bool
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Send system arm/disarm request
 
@@ -976,13 +1014,17 @@ class Platform:
         # Arguments
         * `do_arm` - true to arm, false to disarm
         """
-    def send_crash_recovery_request(self) -> None:
+    def send_crash_recovery_request(
+        self,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, None]:
         r"""
         Send crash recovery request
 
         Requests recovery from a crash state detected by the Crazyflie.
         """
-    def get_app_channel(self) -> typing.Optional[AppChannel]:
+    def get_app_channel(
+        self,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, typing.Optional[AppChannel]]:
         r"""
         Get the bidirectional app channel for custom communication
 

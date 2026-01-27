@@ -30,6 +30,7 @@ Example usage:
 """
 
 import argparse
+import asyncio
 
 from cflib import Crazyflie, LinkContext
 
@@ -37,7 +38,7 @@ from cflib import Crazyflie, LinkContext
 LOG_INTERVAL = 100  # ms
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Stream accelerometer data from the Crazyflie"
     )
@@ -51,23 +52,23 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     log = cf.log()
 
     # Create log block and add accelerometer variables
-    block = log.create_block()
-    block.add_variable("acc.x")
-    block.add_variable("acc.y")
-    block.add_variable("acc.z")
+    block = await log.create_block()
+    await block.add_variable("acc.x")
+    await block.add_variable("acc.y")
+    await block.add_variable("acc.z")
 
-    log_stream = block.start(LOG_INTERVAL)
+    log_stream = await block.start(LOG_INTERVAL)
     print(f"\nStreaming at {LOG_INTERVAL}ms intervals. Press Ctrl+C to stop.\n")
 
     try:
         while True:
-            data = log_stream.next()
+            data = await log_stream.next()
             timestamp = data["timestamp"]
             values = data["data"]
 
@@ -82,10 +83,10 @@ def main() -> None:
     except Exception as e:
         print(f"\nError: {e}")
     finally:
-        log_stream.stop()
-        cf.disconnect()
+        await log_stream.stop()
+        await cf.disconnect()
         print("Disconnected")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

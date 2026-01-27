@@ -40,15 +40,16 @@ Example usage:
 """
 
 import argparse
-import time
+import asyncio
 import tempfile
+import time
 from pathlib import Path
 from typing import Union
 
 from cflib import Crazyflie, LinkContext, NoTocCache, InMemoryTocCache, FileTocCache
 
 
-def main() -> int:
+async def main() -> int:
     parser = argparse.ArgumentParser(
         description="Connect to Crazyflie with different TOC cache options"
     )
@@ -109,17 +110,17 @@ def main() -> int:
         start_time = time.time()
 
         try:
-            cf = Crazyflie.connect_from_uri(context, args.uri, toc_cache=cache)
+            cf = await Crazyflie.connect_from_uri(context, args.uri, toc_cache=cache)
             connect_time = time.time() - start_time
             connection_times.append(connect_time)
 
             print(f"{connect_time:.3f}s")
 
-            cf.disconnect()
+            await cf.disconnect()
 
             # Brief pause between connections
             if attempt < args.connections:
-                time.sleep(0.5)
+                await asyncio.sleep(0.5)
 
         except Exception as e:
             print(f"FAILED - {e}")
@@ -135,4 +136,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    exit(main())
+    exit(asyncio.run(main()))

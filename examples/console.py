@@ -26,12 +26,12 @@ Example usage:
 """
 
 import argparse
-import time
+import asyncio
 
 from cflib import Crazyflie, LinkContext
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(description="Stream Crazyflie console output")
     parser.add_argument(
         "uri",
@@ -43,7 +43,7 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     console = cf.console()
@@ -53,12 +53,12 @@ def main() -> None:
         print("-" * 60)
 
         while True:
-            lines: list[str] = console.get_lines()
+            lines: list[str] = await console.get_lines()
             for line in lines:
                 print(line)
 
             # Small delay to avoid busy-waiting
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
 
     except KeyboardInterrupt:
         print("\n" + "-" * 60)
@@ -66,9 +66,9 @@ def main() -> None:
 
     finally:
         print("Disconnecting...")
-        cf.disconnect()
+        await cf.disconnect()
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

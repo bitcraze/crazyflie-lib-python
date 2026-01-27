@@ -26,11 +26,12 @@ Example usage:
 """
 
 import argparse
+import asyncio
 
 from cflib import LinkContext
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(description="Scan for Crazyflies")
     parser.add_argument(
         "--address",
@@ -49,7 +50,7 @@ def main() -> None:
     print(f"Scanning for Crazyflies on address {args.address}...")
 
     context = LinkContext()
-    uris = context.scan(address=list(address_bytes))
+    uris = await context.scan(address=list(address_bytes))
 
     if uris:
         print(f"\nFound {len(uris)} Crazyflie(s):")
@@ -60,4 +61,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

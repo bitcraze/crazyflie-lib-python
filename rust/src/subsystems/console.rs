@@ -3,7 +3,6 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use std::sync::Arc;
-use tokio::runtime::Runtime;
 use tokio::sync::Mutex;
 use futures::stream::Stream;
 use std::pin::Pin;
@@ -18,16 +17,14 @@ type LineStream = Pin<Box<dyn Stream<Item = String> + Send>>;
 #[pyclass]
 pub struct Console {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
-    pub(crate) runtime: Arc<Runtime>,
     stream: Arc<Mutex<Option<LineStream>>>,
 }
 
 impl Console {
     /// Create a new Console instance
-    pub fn new(cf: Arc<crazyflie_lib::Crazyflie>, runtime: Arc<Runtime>) -> Self {
+    pub fn new(cf: Arc<crazyflie_lib::Crazyflie>) -> Self {
         Console {
             cf,
-            runtime,
             stream: Arc::new(Mutex::new(None)),
         }
     }
@@ -46,26 +43,30 @@ impl Console {
     ///
     /// Returns:
     ///     List of console output lines (up to 100 with 10ms timeout)
-    fn get_lines(&self) -> PyResult<Vec<String>> {
-        self.runtime.block_on(async {
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, builtins.list[builtins.str]]"))]
+    fn get_lines<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        let stream = self.stream.clone();
+
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             use futures::StreamExt;
 
-            let mut stream_guard = self.stream.lock().await;
+            let mut stream_guard = stream.lock().await;
 
             // Initialize stream if not already created
             if stream_guard.is_none() {
-                let new_stream = self.cf.console.line_stream().await;
+                let new_stream = cf.console.line_stream().await;
                 *stream_guard = Some(Box::pin(new_stream));
             }
 
-            let stream = stream_guard.as_mut().unwrap();
+            let stream_ref = stream_guard.as_mut().unwrap();
             let mut lines = Vec::new();
 
             // Get up to 100 lines or timeout
             for _ in 0..100 {
                 if let Ok(Some(line)) = tokio::time::timeout(
                     std::time::Duration::from_millis(10),
-                    stream.next()
+                    stream_ref.next()
                 ).await {
                     lines.push(line);
                 } else {

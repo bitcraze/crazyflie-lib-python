@@ -3,7 +3,6 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use std::sync::Arc;
-use tokio::runtime::Runtime;
 use futures::stream::Stream;
 use std::pin::Pin;
 
@@ -14,7 +13,6 @@ type AngleStream = Pin<Box<dyn Stream<Item = crazyflie_lib::subsystems::localiza
 #[pyclass]
 pub struct Localization {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
-    pub(crate) runtime: Arc<Runtime>,
 }
 
 #[gen_stub_pymethods]
@@ -24,7 +22,6 @@ impl Localization {
     fn emergency(&self) -> EmergencyControl {
         EmergencyControl {
             cf: self.cf.clone(),
-            runtime: self.runtime.clone(),
         }
     }
 
@@ -32,20 +29,18 @@ impl Localization {
     fn external_pose(&self) -> ExternalPose {
         ExternalPose {
             cf: self.cf.clone(),
-            runtime: self.runtime.clone(),
         }
     }
 
     /// Get the lighthouse interface
     fn lighthouse(&self) -> Lighthouse {
-        Lighthouse::new(self.cf.clone(), self.runtime.clone())
+        Lighthouse::new(self.cf.clone())
     }
 
     /// Get the loco positioning interface
     fn loco_positioning(&self) -> LocoPositioning {
         LocoPositioning {
             cf: self.cf.clone(),
-            runtime: self.runtime.clone(),
         }
     }
 }
@@ -57,7 +52,6 @@ impl Localization {
 #[pyclass]
 pub struct EmergencyControl {
     cf: Arc<crazyflie_lib::Crazyflie>,
-    runtime: Arc<Runtime>,
 }
 
 #[gen_stub_pymethods]
@@ -67,10 +61,14 @@ impl EmergencyControl {
     ///
     /// Immediately stops all motors and puts the Crazyflie into a locked state.
     /// The drone will require a reboot before it can fly again.
-    fn send_emergency_stop(&self) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.localization.emergency.send_emergency_stop().await
-        }).map_err(crate::error::to_pyerr)
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn send_emergency_stop<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.localization.emergency.send_emergency_stop().await
+                .map_err(crate::error::to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Send emergency stop watchdog
@@ -79,10 +77,14 @@ impl EmergencyControl {
     /// the drone if this message isn't sent every 1000ms. Once activated by the first
     /// call, you must continue sending this periodically forever or the drone will
     /// automatically emergency stop. Use only if you need automatic failsafe behavior.
-    fn send_emergency_stop_watchdog(&self) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.localization.emergency.send_emergency_stop_watchdog().await
-        }).map_err(crate::error::to_pyerr)
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn send_emergency_stop_watchdog<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.localization.emergency.send_emergency_stop_watchdog().await
+                .map_err(crate::error::to_pyerr)?;
+            Ok(())
+        })
     }
 }
 
@@ -95,7 +97,6 @@ impl EmergencyControl {
 #[pyclass]
 pub struct ExternalPose {
     cf: Arc<crazyflie_lib::Crazyflie>,
-    runtime: Arc<Runtime>,
 }
 
 #[gen_stub_pymethods]
@@ -107,17 +108,21 @@ impl ExternalPose {
     ///
     /// # Arguments
     /// * `pos` - Position array [x, y, z] in meters
-    fn send_external_position(&self, pos: Vec<f32>) -> PyResult<()> {
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn send_external_position<'py>(&self, py: Python<'py>, pos: Vec<f32>) -> PyResult<Bound<'py, PyAny>> {
         if pos.len() != 3 {
             return Err(pyo3::exceptions::PyValueError::new_err(
                 "Position must be a sequence of 3 floats [x, y, z]"
             ));
         }
         let pos_array: [f32; 3] = [pos[0], pos[1], pos[2]];
+        let cf = self.cf.clone();
 
-        self.runtime.block_on(async {
-            self.cf.localization.external_pose.send_external_position(pos_array).await
-        }).map_err(crate::error::to_pyerr)
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.localization.external_pose.send_external_position(pos_array).await
+                .map_err(crate::error::to_pyerr)?;
+            Ok(())
+        })
     }
 
     /// Send external pose (position + quaternion) to the Crazyflie
@@ -128,7 +133,8 @@ impl ExternalPose {
     /// # Arguments
     /// * `pos` - Position array [x, y, z] in meters
     /// * `quat` - Quaternion array [qx, qy, qz, qw]
-    fn send_external_pose(&self, pos: Vec<f32>, quat: Vec<f32>) -> PyResult<()> {
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn send_external_pose<'py>(&self, py: Python<'py>, pos: Vec<f32>, quat: Vec<f32>) -> PyResult<Bound<'py, PyAny>> {
         if pos.len() != 3 {
             return Err(pyo3::exceptions::PyValueError::new_err(
                 "Position must be a sequence of 3 floats [x, y, z]"
@@ -142,10 +148,13 @@ impl ExternalPose {
 
         let pos_array: [f32; 3] = [pos[0], pos[1], pos[2]];
         let quat_array: [f32; 4] = [quat[0], quat[1], quat[2], quat[3]];
+        let cf = self.cf.clone();
 
-        self.runtime.block_on(async {
-            self.cf.localization.external_pose.send_external_pose(pos_array, quat_array).await
-        }).map_err(crate::error::to_pyerr)
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.localization.external_pose.send_external_pose(pos_array, quat_array).await
+                .map_err(crate::error::to_pyerr)?;
+            Ok(())
+        })
     }
 }
 
@@ -157,15 +166,13 @@ impl ExternalPose {
 #[pyclass]
 pub struct Lighthouse {
     cf: Arc<crazyflie_lib::Crazyflie>,
-    runtime: Arc<Runtime>,
     stream: Arc<tokio::sync::Mutex<Option<AngleStream>>>,
 }
 
 impl Lighthouse {
-    fn new(cf: Arc<crazyflie_lib::Crazyflie>, runtime: Arc<Runtime>) -> Self {
+    fn new(cf: Arc<crazyflie_lib::Crazyflie>) -> Self {
         Lighthouse {
             cf,
-            runtime,
             stream: Arc::new(tokio::sync::Mutex::new(None)),
         }
     }
@@ -187,26 +194,30 @@ impl Lighthouse {
     ///
     /// Returns:
     ///     List of LighthouseAngleData (up to 100 with 10ms timeout)
-    fn get_angle_data(&self) -> PyResult<Vec<LighthouseAngleData>> {
-        self.runtime.block_on(async {
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, builtins.list[LighthouseAngleData]]"))]
+    fn get_angle_data<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        let stream = self.stream.clone();
+
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             use futures::StreamExt;
 
-            let mut stream_guard = self.stream.lock().await;
+            let mut stream_guard = stream.lock().await;
 
             // Initialize stream if not already created
             if stream_guard.is_none() {
-                let new_stream = self.cf.localization.lighthouse.angle_stream().await;
+                let new_stream = cf.localization.lighthouse.angle_stream().await;
                 *stream_guard = Some(Box::pin(new_stream));
             }
 
-            let stream = stream_guard.as_mut().unwrap();
+            let stream_ref = stream_guard.as_mut().unwrap();
             let mut angle_data_list = Vec::new();
 
             // Get up to 100 angle measurements or timeout
             for _ in 0..100 {
                 if let Ok(Some(angle_data)) = tokio::time::timeout(
                     std::time::Duration::from_millis(10),
-                    stream.next()
+                    stream_ref.next()
                 ).await {
                     angle_data_list.push(LighthouseAngleData::from(angle_data));
                 } else {
@@ -231,10 +242,13 @@ impl Lighthouse {
     /// # Returns
     /// * `True` if data was successfully persisted
     /// * `False` if persistence failed
-    fn persist_lighthouse_data(&self, geo_list: Vec<u8>, calib_list: Vec<u8>) -> PyResult<bool> {
-        self.runtime.block_on(async {
-            self.cf.localization.lighthouse.persist_lighthouse_data(&geo_list, &calib_list).await
-        }).map_err(crate::error::to_pyerr)
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, builtins.bool]"))]
+    fn persist_lighthouse_data<'py>(&self, py: Python<'py>, geo_list: Vec<u8>, calib_list: Vec<u8>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.localization.lighthouse.persist_lighthouse_data(&geo_list, &calib_list).await
+                .map_err(crate::error::to_pyerr)
+        })
     }
 }
 
@@ -314,7 +328,6 @@ impl LighthouseAngles {
 #[pyclass]
 pub struct LocoPositioning {
     cf: Arc<crazyflie_lib::Crazyflie>,
-    runtime: Arc<Runtime>,
 }
 
 #[gen_stub_pymethods]
@@ -325,9 +338,13 @@ impl LocoPositioning {
     /// # Arguments
     /// * `dest_id` - Destination node ID
     /// * `data` - LPP packet payload
-    fn send_short_lpp_packet(&self, dest_id: u8, data: Vec<u8>) -> PyResult<()> {
-        self.runtime.block_on(async {
-            self.cf.localization.loco_positioning.send_short_lpp_packet(dest_id, &data).await
-        }).map_err(crate::error::to_pyerr)
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn send_short_lpp_packet<'py>(&self, py: Python<'py>, dest_id: u8, data: Vec<u8>) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.localization.loco_positioning.send_short_lpp_packet(dest_id, &data).await
+                .map_err(crate::error::to_pyerr)?;
+            Ok(())
+        })
     }
 }

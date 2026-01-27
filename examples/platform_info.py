@@ -30,11 +30,12 @@ Example usage:
 """
 
 import argparse
+import asyncio
 
 from cflib import Crazyflie, LinkContext
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(description="Read Crazyflie platform information")
     parser.add_argument(
         "uri",
@@ -46,7 +47,7 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     platform = cf.platform()
@@ -56,15 +57,15 @@ def main() -> None:
         print("-" * 60)
 
         # Get protocol version
-        protocol_version: int = platform.get_protocol_version()
+        protocol_version: int = await platform.get_protocol_version()
         print(f"Protocol version: {protocol_version}")
 
         # Get firmware version
-        firmware_version: str = platform.get_firmware_version()
+        firmware_version: str = await platform.get_firmware_version()
         print(f"Firmware version: {firmware_version}")
 
         # Get device type name
-        device_type: str = platform.get_device_type_name()
+        device_type: str = await platform.get_device_type_name()
         print(f"Device type:      {device_type}")
 
         print("-" * 60)
@@ -72,9 +73,9 @@ def main() -> None:
 
     finally:
         print("\nDisconnecting...")
-        cf.disconnect()
+        await cf.disconnect()
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

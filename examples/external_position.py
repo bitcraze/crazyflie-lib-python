@@ -36,8 +36,8 @@ Example usage:
 """
 
 import argparse
+import asyncio
 import math
-import time
 
 from cflib import Crazyflie, LinkContext
 
@@ -79,7 +79,7 @@ def euler_to_quaternion(roll: float, pitch: float, yaw: float) -> list[float]:
     return [qx, qy, qz, qw]
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Send external pose data to Kalman filter"
     )
@@ -93,7 +93,7 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     param = cf.param()
@@ -104,45 +104,45 @@ def main() -> None:
     try:
         # Configure Kalman filter estimator
         print("\n1. Configuring Kalman filter estimator...")
-        param.set("stabilizer.estimator", 2)  # 2 = Kalman filter
+        await param.set("stabilizer.estimator", 2)  # 2 = Kalman filter
         print("   ✓ Set estimator to Kalman filter")
 
         # Set standard deviation for quaternion data
         print("\n2. Configuring orientation sensitivity...")
-        param.set("locSrv.extQuatStdDev", 0.008)  # 8.0e-3
+        await param.set("locSrv.extQuatStdDev", 0.008)  # 8.0e-3
         print("   ✓ Set quaternion std deviation to 0.008")
 
         # Reset the estimator
         print("\n3. Resetting Kalman filter...")
-        param.set("kalman.resetEstimation", 1)
-        time.sleep(0.1)
-        param.set("kalman.resetEstimation", 0)
+        await param.set("kalman.resetEstimation", 1)
+        await asyncio.sleep(0.1)
+        await param.set("kalman.resetEstimation", 0)
         print("   ✓ Estimator reset")
 
         # Wait for estimator to stabilize
         print("\n4. Waiting for estimator to stabilize (2 seconds)...")
-        time.sleep(2)
+        await asyncio.sleep(2)
         print("   ✓ Estimator ready")
 
         # Create log blocks for monitoring state estimate
         print("\n5. Setting up log blocks...")
-        quat_block = log.create_block()
-        quat_block.add_variable("stateEstimate.qx")
-        quat_block.add_variable("stateEstimate.qy")
-        quat_block.add_variable("stateEstimate.qz")
-        quat_block.add_variable("stateEstimate.qw")
+        quat_block = await log.create_block()
+        await quat_block.add_variable("stateEstimate.qx")
+        await quat_block.add_variable("stateEstimate.qy")
+        await quat_block.add_variable("stateEstimate.qz")
+        await quat_block.add_variable("stateEstimate.qw")
 
-        pos_block = log.create_block()
-        pos_block.add_variable("stateEstimate.x")
-        pos_block.add_variable("stateEstimate.y")
-        pos_block.add_variable("stateEstimate.z")
+        pos_block = await log.create_block()
+        await pos_block.add_variable("stateEstimate.x")
+        await pos_block.add_variable("stateEstimate.y")
+        await pos_block.add_variable("stateEstimate.z")
 
         log_period_ms = 100
         update_period_ms = 50
         log_every_n = log_period_ms // update_period_ms
 
-        quat_stream = quat_block.start(log_period_ms)
-        pos_stream = pos_block.start(log_period_ms)
+        quat_stream = await quat_block.start(log_period_ms)
+        pos_stream = await pos_block.start(log_period_ms)
         print("   ✓ Log blocks created and started")
 
         # Send circular trajectory with pose data
@@ -169,12 +169,12 @@ def main() -> None:
             quat = euler_to_quaternion(roll, pitch, yaw)
 
             # Send pose to Crazyflie
-            external_pose.send_external_pose(pos=[x, y, z], quat=quat)
+            await external_pose.send_external_pose(pos=[x, y, z], quat=quat)
 
             # Log every N iterations
             if iteration % log_every_n == 0:
-                pos_data = pos_stream.next()
-                quat_data = quat_stream.next()
+                pos_data = await pos_stream.next()
+                quat_data = await quat_stream.next()
 
                 pos_values = pos_data["data"]
                 quat_values = quat_data["data"]
@@ -197,7 +197,7 @@ def main() -> None:
                 )
 
             iteration += 1
-            time.sleep(update_period_ms / 1000.0)
+            await asyncio.sleep(update_period_ms / 1000.0)
 
         print("\n✓ External pose demonstration complete!")
 
@@ -206,9 +206,9 @@ def main() -> None:
 
     finally:
         print("\nDisconnecting...")
-        cf.disconnect()
+        await cf.disconnect()
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

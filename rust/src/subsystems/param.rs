@@ -3,7 +3,6 @@
 use pyo3::prelude::*;
 use pyo3_stub_gen_derive::*;
 use std::sync::Arc;
-use tokio::runtime::Runtime;
 
 use crate::error::to_pyerr;
 
@@ -27,7 +26,6 @@ use crate::error::to_pyerr;
 #[pyclass]
 pub struct Param {
     pub(crate) cf: Arc<crazyflie_lib::Crazyflie>,
-    pub(crate) runtime: Arc<Runtime>,
 }
 
 #[gen_stub_pymethods]
@@ -55,8 +53,6 @@ impl Param {
         Ok(format!("{:?}", param_type))
     }
 
-
-
     /// Get param value
     ///
     /// Get value of a parameter. This function takes the value from a local
@@ -67,26 +63,28 @@ impl Param {
     ///
     /// # Returns
     /// Parameter value (int or float depending on parameter type)
-    #[gen_stub(override_return_type(type_repr = "int | float"))]
-    fn get(&self, name: &str) -> PyResult<Py<PyAny>> {
-        Python::attach(|py| {
-            let value: crazyflie_lib::Value = self.runtime.block_on(async {
-                self.cf.param.get(name).await
-            }).map_err(to_pyerr)?;
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, int | float]"))]
+    fn get<'py>(&self, py: Python<'py>, name: String) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let value: crazyflie_lib::Value = cf.param.get(&name).await.map_err(to_pyerr)?;
 
             // Convert Rust Value to Python object
-            Ok(match value {
-                crazyflie_lib::Value::U8(v) => v.into_pyobject(py)?.into_any().unbind(),
-                crazyflie_lib::Value::U16(v) => v.into_pyobject(py)?.into_any().unbind(),
-                crazyflie_lib::Value::U32(v) => v.into_pyobject(py)?.into_any().unbind(),
-                crazyflie_lib::Value::U64(v) => v.into_pyobject(py)?.into_any().unbind(),
-                crazyflie_lib::Value::I8(v) => v.into_pyobject(py)?.into_any().unbind(),
-                crazyflie_lib::Value::I16(v) => v.into_pyobject(py)?.into_any().unbind(),
-                crazyflie_lib::Value::I32(v) => v.into_pyobject(py)?.into_any().unbind(),
-                crazyflie_lib::Value::I64(v) => v.into_pyobject(py)?.into_any().unbind(),
-                crazyflie_lib::Value::F16(v) => v.to_f32().into_pyobject(py)?.into_any().unbind(),
-                crazyflie_lib::Value::F32(v) => v.into_pyobject(py)?.into_any().unbind(),
-                crazyflie_lib::Value::F64(v) => v.into_pyobject(py)?.into_any().unbind(),
+            // We need to acquire the GIL to create Python objects
+            Python::attach(|py| {
+                Ok(match value {
+                    crazyflie_lib::Value::U8(v) => v.into_pyobject(py)?.into_any().unbind(),
+                    crazyflie_lib::Value::U16(v) => v.into_pyobject(py)?.into_any().unbind(),
+                    crazyflie_lib::Value::U32(v) => v.into_pyobject(py)?.into_any().unbind(),
+                    crazyflie_lib::Value::U64(v) => v.into_pyobject(py)?.into_any().unbind(),
+                    crazyflie_lib::Value::I8(v) => v.into_pyobject(py)?.into_any().unbind(),
+                    crazyflie_lib::Value::I16(v) => v.into_pyobject(py)?.into_any().unbind(),
+                    crazyflie_lib::Value::I32(v) => v.into_pyobject(py)?.into_any().unbind(),
+                    crazyflie_lib::Value::I64(v) => v.into_pyobject(py)?.into_any().unbind(),
+                    crazyflie_lib::Value::F16(v) => v.to_f32().into_pyobject(py)?.into_any().unbind(),
+                    crazyflie_lib::Value::F32(v) => v.into_pyobject(py)?.into_any().unbind(),
+                    crazyflie_lib::Value::F64(v) => v.into_pyobject(py)?.into_any().unbind(),
+                })
             })
         })
     }
@@ -107,65 +105,64 @@ impl Param {
     /// - The parameter does not exist
     /// - The value is out of range for the parameter type
     /// - The value cannot be represented accurately (e.g., fractional value for integer param)
-    fn set(&self, name: &str, #[gen_stub(override_type(type_repr = "int | float"))] value: Py<PyAny>) -> PyResult<()> {
-        Python::attach(|py| {
-            // Get the parameter type
-            let param_type = self.cf.param.get_type(name).map_err(to_pyerr)?;
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, None]"))]
+    fn set<'py>(&self, py: Python<'py>, name: String, #[gen_stub(override_type(type_repr = "int | float"))] value: Py<PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        // Get the parameter type (sync, no GIL needed for this)
+        let param_type = self.cf.param.get_type(&name).map_err(to_pyerr)?;
 
-            // Convert Python value to appropriate Rust Value based on param type
-            use crazyflie_lib::{Value, ValueType};
-            let rust_value = match param_type {
-                ValueType::U8 => {
-                    let v = value.extract::<u8>(py)?;
-                    Value::U8(v)
-                }
-                ValueType::U16 => {
-                    let v = value.extract::<u16>(py)?;
-                    Value::U16(v)
-                }
-                ValueType::U32 => {
-                    let v = value.extract::<u32>(py)?;
-                    Value::U32(v)
-                }
-                ValueType::U64 => {
-                    let v = value.extract::<u64>(py)?;
-                    Value::U64(v)
-                }
-                ValueType::I8 => {
-                    let v = value.extract::<i8>(py)?;
-                    Value::I8(v)
-                }
-                ValueType::I16 => {
-                    let v = value.extract::<i16>(py)?;
-                    Value::I16(v)
-                }
-                ValueType::I32 => {
-                    let v = value.extract::<i32>(py)?;
-                    Value::I32(v)
-                }
-                ValueType::I64 => {
-                    let v = value.extract::<i64>(py)?;
-                    Value::I64(v)
-                }
-                ValueType::F16 => {
-                    let v = value.extract::<f32>(py)?;
-                    Value::F32(v) // F16 converts to F32
-                }
-                ValueType::F32 => {
-                    let v = value.extract::<f32>(py)?;
-                    Value::F32(v)
-                }
-                ValueType::F64 => {
-                    let v = value.extract::<f64>(py)?;
-                    Value::F64(v)
-                }
-            };
+        // Convert Python value to appropriate Rust Value based on param type
+        // This must be done while we have the GIL
+        use crazyflie_lib::{Value, ValueType};
+        let rust_value = match param_type {
+            ValueType::U8 => {
+                let v = value.extract::<u8>(py)?;
+                Value::U8(v)
+            }
+            ValueType::U16 => {
+                let v = value.extract::<u16>(py)?;
+                Value::U16(v)
+            }
+            ValueType::U32 => {
+                let v = value.extract::<u32>(py)?;
+                Value::U32(v)
+            }
+            ValueType::U64 => {
+                let v = value.extract::<u64>(py)?;
+                Value::U64(v)
+            }
+            ValueType::I8 => {
+                let v = value.extract::<i8>(py)?;
+                Value::I8(v)
+            }
+            ValueType::I16 => {
+                let v = value.extract::<i16>(py)?;
+                Value::I16(v)
+            }
+            ValueType::I32 => {
+                let v = value.extract::<i32>(py)?;
+                Value::I32(v)
+            }
+            ValueType::I64 => {
+                let v = value.extract::<i64>(py)?;
+                Value::I64(v)
+            }
+            ValueType::F16 => {
+                let v = value.extract::<f32>(py)?;
+                Value::F32(v) // F16 converts to F32
+            }
+            ValueType::F32 => {
+                let v = value.extract::<f32>(py)?;
+                Value::F32(v)
+            }
+            ValueType::F64 => {
+                let v = value.extract::<f64>(py)?;
+                Value::F64(v)
+            }
+        };
 
-            // Set the parameter with type-safe value
-            self.runtime.block_on(async {
-                self.cf.param.set(name, rust_value).await
-            }).map_err(to_pyerr)?;
-
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            cf.param.set(&name, rust_value).await.map_err(to_pyerr)?;
             Ok(())
         })
     }

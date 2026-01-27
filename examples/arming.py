@@ -32,12 +32,12 @@ Example usage:
 """
 
 import argparse
-import time
+import asyncio
 
 from cflib import Crazyflie, LinkContext
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(description="Arm and disarm the Crazyflie")
     parser.add_argument(
         "uri",
@@ -49,7 +49,7 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     platform = cf.platform()
@@ -62,7 +62,7 @@ def main() -> None:
 
         # Arm the Crazyflie
         print("\n1. Arming the Crazyflie...")
-        platform.send_arming_request(do_arm=True)
+        await platform.send_arming_request(do_arm=True)
         print("   ✓ Armed! Motors can now spin.")
 
         # Wait a few seconds
@@ -70,25 +70,25 @@ def main() -> None:
         print(f"\n2. Waiting {wait_time} seconds...")
         for i in range(wait_time, 0, -1):
             print(f"   {i}...")
-            time.sleep(1)
+            await asyncio.sleep(1)
 
         # Disarm the Crazyflie
         print("\n3. Disarming the Crazyflie...")
-        platform.send_arming_request(do_arm=False)
+        await platform.send_arming_request(do_arm=False)
         print("   ✓ Disarmed! Motors are now disabled.")
 
         print("\n✓ Arming cycle complete!")
 
     except KeyboardInterrupt:
         print("\n\n⚠️  Interrupted! Disarming for safety...")
-        platform.send_arming_request(do_arm=False)
+        await platform.send_arming_request(do_arm=False)
         print("   ✓ Disarmed!")
 
     finally:
         print("\nDisconnecting...")
-        cf.disconnect()
+        await cf.disconnect()
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

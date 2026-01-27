@@ -33,12 +33,12 @@ Example usage:
 """
 
 import argparse
-import time
+import asyncio
 
 from cflib import Crazyflie, LinkContext
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(description="Demonstrate emergency stop")
     parser.add_argument(
         "uri",
@@ -50,7 +50,7 @@ def main() -> None:
 
     print(f"Connecting to {args.uri}...")
     context = LinkContext()
-    cf = Crazyflie.connect_from_uri(context, args.uri)
+    cf = await Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     platform = cf.platform()
@@ -67,30 +67,30 @@ def main() -> None:
 
         # Arm the Crazyflie
         print("\n1. Arming the Crazyflie...")
-        platform.send_arming_request(do_arm=True)
-        time.sleep(0.3)
+        await platform.send_arming_request(do_arm=True)
+        await asyncio.sleep(0.3)
         print("   ✓ Armed!")
 
         # Send unlock setpoint
         print("\n2. Sending unlock setpoint...")
-        commander.send_setpoint_rpyt(roll=0.0, pitch=0.0, yaw_rate=0.0, thrust=0)
-        time.sleep(0.1)
+        await commander.send_setpoint_rpyt(roll=0.0, pitch=0.0, yaw_rate=0.0, thrust=0)
+        await asyncio.sleep(0.1)
         print("   ✓ Unlocked!")
 
         # Spin motors for 1 second
         print("\n3. Spinning motors at medium thrust for 1 second...")
-        start_time = time.time()
-        while time.time() - start_time < 1.0:
-            commander.send_setpoint_rpyt(
+        start_time = asyncio.get_event_loop().time()
+        while asyncio.get_event_loop().time() - start_time < 1.0:
+            await commander.send_setpoint_rpyt(
                 roll=0.0, pitch=0.0, yaw_rate=0.0, thrust=15000
             )
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
         print("   ✓ Motors spinning!")
 
         # Send emergency stop
         print("\n4. Sending emergency stop command...")
-        emergency.send_emergency_stop()
-        time.sleep(0.5)
+        await emergency.send_emergency_stop()
+        await asyncio.sleep(0.5)
         print("   ✓ Emergency stop sent!")
 
         print("\n⚠️  Drone is now LOCKED and requires a REBOOT to function again.")
@@ -99,16 +99,16 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\n\n⚠️  Interrupted! Attempting to disarm for safety...")
         try:
-            platform.send_arming_request(do_arm=False)
+            await platform.send_arming_request(do_arm=False)
             print("   ✓ Disarmed!")
         except Exception:
             print("   ⚠️  Could not disarm (may already be in emergency state)")
 
     finally:
         print("\nDisconnecting...")
-        cf.disconnect()
+        await cf.disconnect()
         print("Done!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

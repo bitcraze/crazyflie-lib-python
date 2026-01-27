@@ -42,16 +42,14 @@ from pathlib import Path
 from cflib import Crazyflie, LinkContext, FileTocCache, NoTocCache
 
 
-def get_info(cf: Crazyflie) -> tuple[str, str]:
+async def get_info(cf: Crazyflie) -> tuple[str, str]:
     """Get firmware version and device type.
 
-    This is a regular blocking function - all calls inside run sequentially.
-    We run one instance per drone in separate threads via asyncio.to_thread(),
-    so multiple drones execute this function in parallel.
+    Async function that directly uses async methods.
     """
     platform = cf.platform()
-    fw = platform.get_firmware_version()
-    device = platform.get_device_type_name()
+    fw = await platform.get_firmware_version()
+    device = await platform.get_device_type_name()
     return fw, device
 
 
@@ -86,20 +84,16 @@ async def main() -> None:
     # Shared LinkContext for all connections
     context = LinkContext()
 
-    # Connect to all concurrently - each connection runs in its own thread,
-    # asyncio.gather() waits for all to complete before continuing
+    # Connect to all concurrently
     print(f"Connecting to {len(args.uris)} Crazyflies...")
     cfs = await asyncio.gather(
-        *[
-            asyncio.to_thread(Crazyflie.connect_from_uri, context, uri, cache)
-            for uri in args.uris
-        ]
+        *[Crazyflie.connect_from_uri(context, uri, cache) for uri in args.uris]
     )
     print("All connected!\n")
 
     try:
-        # Run get_info() for each drone in parallel threads, wait for all to finish
-        infos = await asyncio.gather(*[asyncio.to_thread(get_info, cf) for cf in cfs])
+        # Run get_info() for each drone in parallel, wait for all to finish
+        infos = await asyncio.gather(*[get_info(cf) for cf in cfs])
 
         for uri, (fw, device) in zip(args.uris, infos):
             print(f"{uri}: {device}, firmware {fw}")
@@ -107,7 +101,7 @@ async def main() -> None:
     finally:
         # Disconnect all concurrently
         print("\nDisconnecting...")
-        await asyncio.gather(*[asyncio.to_thread(cf.disconnect) for cf in cfs])
+        await asyncio.gather(*[cf.disconnect() for cf in cfs])
         print("Done!")
 
 

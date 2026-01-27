@@ -198,6 +198,7 @@ class Crazyflie:
     """
     @staticmethod
     def connect_from_uri(
+        link_context: LinkContext,
         uri: builtins.str,
         toc_cache: typing.Optional[
             typing.Union[NoTocCache, InMemoryTocCache, FileTocCache]
@@ -207,6 +208,7 @@ class Crazyflie:
         Connect to a Crazyflie from a URI string
 
         Args:
+            link_context: LinkContext instance for connection management
             uri: Connection URI (e.g., "radio://0/80/2M/E7E7E7E7E7")
             toc_cache: Optional TOC cache instance (NoTocCache, InMemoryTocCache, or FileTocCache)
                        If not provided, defaults to NoTocCache (no caching)
@@ -314,8 +316,9 @@ class FileTocCache:
     The cache directory is created automatically if it doesn't exist.
 
     Example:
+        context = LinkContext()
         cache = FileTocCache("/tmp/cf_toc_cache")
-        cf = Crazyflie.connect_from_uri("radio://0/80/2M/E7E7E7E7E7", toc_cache=cache)
+        cf = Crazyflie.connect_from_uri(context, "radio://0/80/2M/E7E7E7E7E7", toc_cache=cache)
     """
     def __new__(cls, cache_dir: builtins.str) -> FileTocCache:
         r"""
@@ -535,9 +538,10 @@ class InMemoryTocCache:
     instance for improved performance.
 
     Example:
+        context = LinkContext()
         cache = InMemoryTocCache()
-        cf1 = Crazyflie.connect_from_uri("radio://0/80/2M/E7E7E7E7E7", toc_cache=cache)
-        cf2 = Crazyflie.connect_from_uri("radio://0/80/2M/E7E7E7E7E8", toc_cache=cache)
+        cf1 = Crazyflie.connect_from_uri(context, "radio://0/80/2M/E7E7E7E7E7", toc_cache=cache)
+        cf2 = Crazyflie.connect_from_uri(context, "radio://0/80/2M/E7E7E7E7E8", toc_cache=cache)
     """
     def __new__(cls) -> InMemoryTocCache:
         r"""

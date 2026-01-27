@@ -45,7 +45,7 @@ import tempfile
 from pathlib import Path
 from typing import Union
 
-from cflib import Crazyflie, NoTocCache, InMemoryTocCache, FileTocCache
+from cflib import Crazyflie, LinkContext, NoTocCache, InMemoryTocCache, FileTocCache
 
 
 def main() -> int:
@@ -101,6 +101,7 @@ def main() -> int:
 
     # Connect multiple times to demonstrate cache performance
     connection_times = []
+    context = LinkContext()
 
     for attempt in range(1, args.connections + 1):
         print(f"Connection {attempt}/{args.connections}: ", end="", flush=True)
@@ -108,7 +109,7 @@ def main() -> int:
         start_time = time.time()
 
         try:
-            cf = Crazyflie.connect_from_uri(args.uri, toc_cache=cache)
+            cf = Crazyflie.connect_from_uri(context, args.uri, toc_cache=cache)
             connect_time = time.time() - start_time
             connection_times.append(connect_time)
 

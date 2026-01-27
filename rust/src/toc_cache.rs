@@ -45,9 +45,10 @@ impl TocCache for NoTocCache {
 /// instance for improved performance.
 ///
 /// Example:
+///     context = LinkContext()
 ///     cache = InMemoryTocCache()
-///     cf1 = Crazyflie.connect_from_uri("radio://0/80/2M/E7E7E7E7E7", toc_cache=cache)
-///     cf2 = Crazyflie.connect_from_uri("radio://0/80/2M/E7E7E7E7E8", toc_cache=cache)
+///     cf1 = Crazyflie.connect_from_uri(context, "radio://0/80/2M/E7E7E7E7E7", toc_cache=cache)
+///     cf2 = Crazyflie.connect_from_uri(context, "radio://0/80/2M/E7E7E7E7E8", toc_cache=cache)
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
@@ -100,8 +101,9 @@ impl TocCache for InMemoryTocCache {
 /// The cache directory is created automatically if it doesn't exist.
 ///
 /// Example:
+///     context = LinkContext()
 ///     cache = FileTocCache("/tmp/cf_toc_cache")
-///     cf = Crazyflie.connect_from_uri("radio://0/80/2M/E7E7E7E7E7", toc_cache=cache)
+///     cf = Crazyflie.connect_from_uri(context, "radio://0/80/2M/E7E7E7E7E7", toc_cache=cache)
 #[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]

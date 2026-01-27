@@ -31,7 +31,7 @@ Example usage:
 
 import argparse
 
-from cflib import Crazyflie
+from cflib import Crazyflie, LinkContext
 
 
 def main() -> None:
@@ -45,7 +45,8 @@ def main() -> None:
     args: argparse.Namespace = parser.parse_args()
 
     print(f"Connecting to {args.uri}...")
-    cf = Crazyflie.connect_from_uri(args.uri)
+    context = LinkContext()
+    cf = Crazyflie.connect_from_uri(context, args.uri)
     print("Connected!")
 
     platform = cf.platform()

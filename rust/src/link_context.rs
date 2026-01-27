@@ -19,8 +19,8 @@ use tokio::runtime::Runtime;
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct LinkContext {
-    inner: crazyflie_link::LinkContext,
-    runtime: Arc<Runtime>,
+    pub(crate) inner: crazyflie_link::LinkContext,
+    pub(crate) runtime: Arc<Runtime>,
 }
 
 #[gen_stub_pymethods]

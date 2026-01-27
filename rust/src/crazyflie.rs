@@ -7,6 +7,7 @@ use std::sync::Arc;
 use tokio::runtime::Runtime;
 
 use crate::error::to_pyerr;
+use crate::link_context::LinkContext;
 use crate::subsystems::{Commander, Console, HighLevelCommander, Localization, Param, Platform, Log};
 use crate::toc_cache::{NoTocCache, InMemoryTocCache, FileTocCache};
 
@@ -53,6 +54,7 @@ impl Crazyflie {
     /// Connect to a Crazyflie from a URI string
     ///
     /// Args:
+    ///     link_context: LinkContext instance for connection management
     ///     uri: Connection URI (e.g., "radio://0/80/2M/E7E7E7E7E7")
     ///     toc_cache: Optional TOC cache instance (NoTocCache, InMemoryTocCache, or FileTocCache)
     ///                If not provided, defaults to NoTocCache (no caching)
@@ -60,11 +62,9 @@ impl Crazyflie {
     /// Returns:
     ///     Connected Crazyflie instance
     #[staticmethod]
-    #[pyo3(signature = (uri, toc_cache=None))]
-    fn connect_from_uri(uri: String,  #[gen_stub(override_type(type_repr = "typing.Optional[typing.Union[NoTocCache, InMemoryTocCache, FileTocCache]]"))] toc_cache: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
-        let runtime = Arc::new(Runtime::new().map_err(|e| {
-            PyRuntimeError::new_err(format!("Failed to create Tokio runtime: {}", e))
-        })?);
+    #[pyo3(signature = (link_context, uri, toc_cache=None))]
+    fn connect_from_uri(link_context: &LinkContext, uri: String, #[gen_stub(override_type(type_repr = "typing.Optional[typing.Union[NoTocCache, InMemoryTocCache, FileTocCache]]"))] toc_cache: Option<&Bound<'_, PyAny>>) -> PyResult<Self> {
+        let runtime = link_context.runtime.clone();
 
         // Extract cache from Python object
         let cache = if let Some(cache_obj) = toc_cache {
@@ -86,8 +86,7 @@ impl Crazyflie {
         };
 
         let inner = runtime.block_on(async {
-            let link_context = crazyflie_link::LinkContext::new();
-            crazyflie_lib::Crazyflie::connect_from_uri(&link_context, &uri, cache).await
+            crazyflie_lib::Crazyflie::connect_from_uri(&link_context.inner, &uri, cache).await
         }).map_err(to_pyerr)?;
 
         Ok(Crazyflie {

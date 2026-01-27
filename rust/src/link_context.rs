@@ -19,7 +19,7 @@ use tokio::runtime::Runtime;
 #[gen_stub_pyclass]
 #[pyclass]
 pub struct LinkContext {
-    pub(crate) inner: crazyflie_link::LinkContext,
+    pub(crate) inner: Arc<crazyflie_link::LinkContext>,
     pub(crate) runtime: Arc<Runtime>,
 }
 
@@ -33,7 +33,7 @@ impl LinkContext {
         })?);
 
         Ok(LinkContext {
-            inner: crazyflie_link::LinkContext::new(),
+            inner: Arc::new(crazyflie_link::LinkContext::new()),
             runtime,
         })
     }

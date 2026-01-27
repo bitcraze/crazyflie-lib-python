@@ -24,18 +24,22 @@ This example shows how to:
 - Share a single LinkContext between multiple Crazyflie connections
 - Connect to multiple drones through the same radio
 - Read parameters from each drone
+- Optionally use TOC file caching for faster reconnections
 
 The shared LinkContext enables efficient radio multiplexing for swarm operations.
 
 Example usage:
     python swarm.py radio://0/80/2M/E7E7E7E701 radio://0/80/2M/E7E7E7E702
+    python swarm.py --cache radio://0/80/2M/E7E7E7E701 radio://0/80/2M/E7E7E7E702
 """
 
 import argparse
 import asyncio
 import sys
+import tempfile
+from pathlib import Path
 
-from cflib import Crazyflie, LinkContext
+from cflib import Crazyflie, LinkContext, FileTocCache, NoTocCache
 
 
 def get_info(cf: Crazyflie) -> tuple[str, str]:
@@ -60,11 +64,24 @@ async def main() -> None:
         nargs="+",
         help="Crazyflie URIs (e.g., radio://0/80/2M/E7E7E7E701 radio://0/80/2M/E7E7E7E702)",
     )
+    parser.add_argument(
+        "--cache",
+        action="store_true",
+        help="Enable TOC file caching (uses OS temp directory)",
+    )
     args: argparse.Namespace = parser.parse_args()
 
     if len(args.uris) < 2:
         print("Please provide at least 2 URIs to demonstrate swarming")
         sys.exit(1)
+
+    # Set up TOC cache (file-based if --cache specified, otherwise no caching)
+    if args.cache:
+        cache_dir = str(Path(tempfile.gettempdir()) / "crazyflie_toc_cache")
+        cache = FileTocCache(cache_dir)
+        print(f"Using TOC cache: {cache.get_cache_dir()}")
+    else:
+        cache = NoTocCache()
 
     # Shared LinkContext for all connections
     context = LinkContext()
@@ -74,7 +91,7 @@ async def main() -> None:
     print(f"Connecting to {len(args.uris)} Crazyflies...")
     cfs = await asyncio.gather(
         *[
-            asyncio.to_thread(Crazyflie.connect_from_uri, context, uri)
+            asyncio.to_thread(Crazyflie.connect_from_uri, context, uri, cache)
             for uri in args.uris
         ]
     )

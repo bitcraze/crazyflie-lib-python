@@ -69,6 +69,8 @@ MISC_PERSISTENT_STORE = 3
 MISC_PERSISTENT_GET_STATE = 4
 MISC_PERSISTENT_CLEAR = 5
 MISC_GET_DEFAULT_VALUE = 6
+MISC_GET_EXTENDED_TYPE_V2 = 7
+MISC_GET_DEFAULT_VALUE_V2 = 8
 
 PersistentParamState = namedtuple('PersistentParamState', 'is_stored default_value stored_value')
 
@@ -395,15 +397,29 @@ class Param():
         @param callback The callback should take `complete_name` and default value as argument
         """
         element = self.toc.get_element_by_complete_name(complete_name)
+        # Protocol 11+ uses V2 command with unambiguous status byte
+        use_v2 = self.cf.platform.get_protocol_version() >= 11
+        cmd = MISC_GET_DEFAULT_VALUE_V2 if use_v2 else MISC_GET_DEFAULT_VALUE
 
         def new_packet_cb(pk):
-            if pk.channel == MISC_CHANNEL and pk.data[0] == MISC_GET_DEFAULT_VALUE:
-                if pk.data[3] == errno.ENOENT:
-                    callback(complete_name, None)
-                    self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
-                    return
+            if pk.channel == MISC_CHANNEL and pk.data[0] == cmd:
+                if use_v2:
+                    # V2: [CMD, ID_L, ID_H, STATUS, VALUE...] on success
+                    #     [CMD, ID_L, ID_H, ERROR_CODE] on error
+                    if pk.data[3] != 0:
+                        callback(complete_name, None)
+                        self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+                        return
+                    default_value, = struct.unpack(element.pytype, pk.data[4:])
+                else:
+                    # V1: [CMD, ID_L, ID_H, VALUE...]
+                    # Ambiguous: ENOENT (0x02) indistinguishable from u8 value 2
+                    if pk.data[3] == errno.ENOENT:
+                        callback(complete_name, None)
+                        self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
+                        return
+                    default_value, = struct.unpack(element.pytype, pk.data[3:])
 
-                default_value, = struct.unpack(element.pytype, pk.data[3:])
                 callback(complete_name, default_value)
                 self.cf.remove_port_callback(CRTPPort.PARAM, new_packet_cb)
 
@@ -411,7 +427,7 @@ class Param():
 
         pk = CRTPPacket()
         pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
-        pk.data = struct.pack('<BH', MISC_GET_DEFAULT_VALUE, element.ident)
+        pk.data = struct.pack('<BH', cmd, element.ident)
         self.param_updater.send_param_misc(pk)
 
     def persistent_clear(self, complete_name, callback=None):
@@ -537,14 +553,24 @@ class _ExtendedTypeFetcher(Thread):
         self._should_close = False
         self._req_param = -1
         self._count = -1
+        # Protocol 11+ uses V2 command with unambiguous status byte
+        self._use_v2 = self._cf.platform.get_protocol_version() >= 11
+        self._cmd = MISC_GET_EXTENDED_TYPE_V2 if self._use_v2 else MISC_GET_EXTENDED_TYPE
 
     def _new_packet_cb(self, pk):
         """Callback for newly arrived packets"""
-        if pk.channel == MISC_CHANNEL:
+        if pk.channel == MISC_CHANNEL and pk.data[0] == self._cmd:
             var_id = struct.unpack('<H', pk.data[1:3])[0]
 
             if self._req_param == var_id:
-                extended_type = pk.data[3]
+                if self._use_v2:
+                    # V2: [CMD, ID_L, ID_H, STATUS, VALUE...] on success
+                    #     [CMD, ID_L, ID_H, ERROR_CODE] on error
+                    extended_type = pk.data[4] if pk.data[3] == 0 else 0
+                else:
+                    # V1: [CMD, ID_L, ID_H, VALUE...]
+                    extended_type = pk.data[3]
+
                 if extended_type == ParamTocElement.EXTENDED_PERSISTENT:
                     self._toc.get_element_by_id(var_id).mark_persistent()
                 self._count -= 1
@@ -568,7 +594,7 @@ class _ExtendedTypeFetcher(Thread):
             pk = CRTPPacket()
             pk.set_header(CRTPPort.PARAM, MISC_CHANNEL)
 
-            pk.data = struct.pack('<BH', MISC_GET_EXTENDED_TYPE, element.ident)
+            pk.data = struct.pack('<BH', self._cmd, element.ident)
             self.request_queue.put(pk)
 
     def _close(self):

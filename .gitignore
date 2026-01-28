@@ -18,3 +18,6 @@ build/
 dist/
 *.egg-info/
 target/
+
+# uv lock file - not committed for libraries (only applications)
+uv.lock

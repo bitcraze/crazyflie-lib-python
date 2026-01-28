@@ -25,6 +25,7 @@ import math
 
 import numpy as np
 import numpy.typing as npt
+import yaml
 
 
 class LighthouseBsVector:
@@ -137,6 +138,32 @@ class LighthouseBsVector:
     def _q(self):
         return math.tan(self._lh_v1_vert_angle) / math.sqrt(1 + math.tan(self._lh_v1_horiz_angle) ** 2)
 
+    def __eq__(self, other):
+        if not isinstance(other, LighthouseBsVector):
+            return NotImplemented
+
+        return (self._lh_v1_horiz_angle == other._lh_v1_horiz_angle and
+                self._lh_v1_vert_angle == other._lh_v1_vert_angle)
+
+    @staticmethod
+    def yaml_representer(dumper, data: 'LighthouseBsVector'):
+        return dumper.represent_mapping('!LighthouseBsVector', {
+            'lh_v1_angles': [data.lh_v1_horiz_angle, data.lh_v1_vert_angle],
+        })
+
+    @staticmethod
+    def yaml_constructor(loader, node):
+        values = loader.construct_mapping(node, deep=True)
+        lh_v1_angles = values.get('lh_v1_angles', [0.0, 0.0])
+        if len(lh_v1_angles) != 2:
+            raise ValueError('lh_v1_angles must be a list of two angles')
+        lh_v1_horiz_angle, lh_v1_vert_angle = lh_v1_angles
+        return LighthouseBsVector(lh_v1_horiz_angle, lh_v1_vert_angle)
+
+
+yaml.add_representer(LighthouseBsVector, LighthouseBsVector.yaml_representer)
+yaml.add_constructor('!LighthouseBsVector', LighthouseBsVector.yaml_constructor)
+
 
 class LighthouseBsVectors(list):
     """A list of 4 LighthouseBsVector, one for each sensor.
@@ -144,7 +171,7 @@ class LighthouseBsVectors(list):
 
     def projection_pair_list(self) -> npt.NDArray:
         """
-        Genereate a list of projection pairs for all vectors
+        Generate a list of projection pairs for all vectors
         """
         result = np.empty((len(self), 2), dtype=float)
         for i, vector in enumerate(self):
@@ -154,7 +181,7 @@ class LighthouseBsVectors(list):
 
     def angle_list(self) -> npt.NDArray:
         """
-        Genereate a list of angles for all vectors, the order is horizontal, vertical, horizontal, vertical...
+        Generate a list of angles for all vectors, the order is horizontal, vertical, horizontal, vertical...
         """
         result = np.empty((len(self) * 2), dtype=float)
         for i, vector in enumerate(self):
@@ -162,3 +189,18 @@ class LighthouseBsVectors(list):
             result[i * 2 + 1] = vector.lh_v1_vert_angle
 
         return result
+
+    @staticmethod
+    def yaml_representer(dumper, data: 'LighthouseBsVectors'):
+        # Instead of using a sequence of LighthouseBsVector, we represent it as a sequence of lists to make it more
+        # compact
+        return dumper.represent_sequence('!LighthouseBsVectors', [list(vector.lh_v1_angle_pair) for vector in data])
+
+    @staticmethod
+    def yaml_constructor(loader, node):
+        values = loader.construct_sequence(node, deep=True)
+        return LighthouseBsVectors([LighthouseBsVector(pair[0], pair[1]) for pair in values])
+
+
+yaml.add_representer(LighthouseBsVectors, LighthouseBsVectors.yaml_representer)
+yaml.add_constructor('!LighthouseBsVectors', LighthouseBsVectors.yaml_constructor)

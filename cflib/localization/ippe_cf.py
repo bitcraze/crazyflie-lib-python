@@ -65,7 +65,7 @@ class IppeCf:
 
                      First param: Y (positive to the left)
                      Second param: Z (positive up)
-        :return: A list that contains 2 sets of pose solution from IPPE including rotation matrix
+        :return: A list that contains 2 sets of pose solutions from IPPE including rotation matrix
                  translation matrix, and reprojection error. The first solution in the list has
                  the smallest reprojection error.
         """

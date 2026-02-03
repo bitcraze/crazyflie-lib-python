@@ -167,6 +167,8 @@ class LhGeoEstimationManager():
                     result.append(sample)
                     solution.progress_is_ok = False
 
+        solution.contains_samples = len(result) > 1 or (len(result) == 1 and result[0].is_valid)
+
         return result
 
     @classmethod

@@ -86,3 +86,6 @@ class LighthouseGeometrySolution:
 
         # The threshold for the number of links between base stations that is considered ok.
         self.link_count_ok_threshold = 1
+
+        # Indicates if the data set that the solution is based on contains any samples at all
+        self.contains_samples = False

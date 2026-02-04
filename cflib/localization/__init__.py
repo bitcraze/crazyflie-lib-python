@@ -29,6 +29,8 @@ from .lighthouse_sweep_angle_reader import LighthouseMatchedSweepAngleReader
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
 from .lighthouse_utils import LighthouseCrossingBeam
+from .lighthouse_types import Pose
+from .lighthouse_types import LhDeck4SensorPositions
 from .param_io import ParamFileManager
 
 __all__ = [
@@ -42,4 +44,6 @@ __all__ = [
     'ParamFileManager',
     'LighthouseCrossingBeam',
     'LighthouseGeometrySolution',
-    'LhCfPoseSampleType']
+    'LhCfPoseSampleType',
+    'Pose',
+    'LhDeck4SensorPositions']

@@ -61,6 +61,41 @@ class Pose:
         """
         return Pose(Rotation.from_quat(R_quat).as_matrix(), t_vec)
 
+    @classmethod
+    def from_rpy(cls, roll: float = 0.0, pitch: float = 0.0, yaw: float = 0.0, t_vec: npt.ArrayLike = _ORIGIN,
+                 seq: str='xyz', degrees: bool=False,) -> 'Pose':
+        """Create a Pose from roll, pitch and yaw angles and translation vector
+
+        Args:
+            roll (float, optional): Roll angle. Defaults to 0.0.
+            pitch (float, optional): _Pitch angle. Defaults to 0.0.
+            yaw (float, optional): Yaw angle. Defaults to 0.0.
+            t_vec (npt.ArrayLike, optional): Position vector. Defaults to _ORIGIN.
+            seq (str, optional): The order of roll, pitch and yaw, see scipy documentation for Rotation.from_euler.
+            degrees (bool, optional): Whether the angles are in degrees. Defaults to False.
+
+        Returns:
+            Pose: The created Pose object
+        """
+
+        return Pose(Rotation.from_euler(seq, [roll, pitch, yaw], degrees=degrees).as_matrix(), t_vec)
+
+    @classmethod
+    def from_cf_rpy(cls, roll: float = 0.0, pitch: float = 0.0, yaw: float = 0.0, t_vec: npt.ArrayLike = _ORIGIN) -> 'Pose':
+        """Create a Pose from roll, pitch and yaw angles in the Crazyflie convention and translation vector
+
+        Args:
+            roll (float, optional): Roll angle as used in the CF (degrees). Defaults to 0.0.
+            pitch (float, optional): Pitch angle as used in the CF (degrees). Defaults to 0.0.
+            yaw (float, optional): Yaw angle as used in the CF (degrees). Defaults to 0.0.
+            t_vec (npt.ArrayLike, optional): Position vector. Defaults to _ORIGIN.
+
+        Returns:
+            Pose: The created Pose object
+        """
+
+        return Pose.from_rpy(roll, -pitch, yaw, t_vec, seq='xyz', degrees=True)
+
     def scale(self, scale) -> None:
         """
         quiet
@@ -87,6 +122,29 @@ class Pose:
         Get the quaternion of the pose
         """
         return Rotation.from_matrix(self._R_matrix).as_quat()
+
+    def rot_euler(self, seq: str='xyz', degrees: bool=False) -> npt.NDArray:
+        """ Get the euler angles of the pose
+
+        Args:
+            seq (str, optional): The order of roll, pitch and yaw, see scipy documentation for Rotation.as_euler.
+                                 use 'xyz' for the Crazyflie convention (default).
+            degrees (bool, optional): Whether to return the angles in degrees. Defaults to False.
+
+        Returns:
+            npt.NDArray: The euler angles of the pose
+        """
+        return Rotation.from_matrix(self._R_matrix).as_euler(seq, degrees=degrees)
+
+    @property
+    def rot_cf_rpy(self) -> tuple[float, float, float]:
+        """ Get roll, pitch and yaw of the pose in the Crazyflie convention (degrees)
+
+        Returns:
+            tuple[float, float, float]: roll, pitch, yaw in degrees as used in the CF
+        """
+        rpy = self.rot_euler(seq='xyz', degrees=True)
+        return (rpy[0], -rpy[1], rpy[2])
 
     @property
     def translation(self) -> npt.NDArray:

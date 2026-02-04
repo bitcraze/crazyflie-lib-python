@@ -120,3 +120,15 @@ class TestLighthouseTypes(LighthouseTestBase):
         # Assert
         self.assertTrue(yaml_str.startswith('!Pose'))
         self.assertEqual(expected, actual)
+
+    def test_cf_rpy_and_back(self):
+        # Fixture
+        expected = (37.0, -22.0, 100.0)
+
+        # Test
+        actual = Pose.from_cf_rpy(roll=37.0, pitch=-22.0, yaw=100.0).rot_cf_rpy
+
+        # Assert
+        self.assertAlmostEqual(expected[0], actual[0])
+        self.assertAlmostEqual(expected[1], actual[1])
+        self.assertAlmostEqual(expected[2], actual[2])

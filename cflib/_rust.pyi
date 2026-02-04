@@ -173,6 +173,91 @@ class Commander:
         """
 
 @typing.final
+class CompressedSegment:
+    r"""
+    A segment in a compressed trajectory.
+
+    Each axis can have 0, 1, 3, or 7 polynomial coefficients.
+    Spatial values are encoded as millimeters (±32.767m range).
+    Yaw values are encoded as 1/10th degrees.
+    """
+    @property
+    def duration(self) -> builtins.float:
+        r"""
+        Duration of this segment in seconds
+        """
+    @property
+    def x(self) -> builtins.list[builtins.float]:
+        r"""
+        X polynomial coefficients (0, 1, 3, or 7 elements)
+        """
+    @property
+    def y(self) -> builtins.list[builtins.float]:
+        r"""
+        Y polynomial coefficients (0, 1, 3, or 7 elements)
+        """
+    @property
+    def z(self) -> builtins.list[builtins.float]:
+        r"""
+        Z polynomial coefficients (0, 1, 3, or 7 elements)
+        """
+    @property
+    def yaw(self) -> builtins.list[builtins.float]:
+        r"""
+        Yaw polynomial coefficients (0, 1, 3, or 7 elements)
+        """
+    def __new__(
+        cls,
+        duration: builtins.float,
+        x: typing.Sequence[builtins.float],
+        y: typing.Sequence[builtins.float],
+        z: typing.Sequence[builtins.float],
+        yaw: typing.Sequence[builtins.float],
+    ) -> CompressedSegment:
+        r"""
+        Create a new compressed segment.
+
+        Each element list must have 0, 1, 3, or 7 values.
+        """
+
+@typing.final
+class CompressedStart:
+    r"""
+    Starting point for a compressed trajectory.
+
+    Defines the initial position (x, y, z in meters) and yaw (radians).
+    Spatial range: approximately ±32.767 meters.
+    Packs to 8 bytes.
+    """
+    @property
+    def x(self) -> builtins.float:
+        r"""
+        X coordinate in meters
+        """
+    @property
+    def y(self) -> builtins.float:
+        r"""
+        Y coordinate in meters
+        """
+    @property
+    def z(self) -> builtins.float:
+        r"""
+        Z coordinate in meters
+        """
+    @property
+    def yaw(self) -> builtins.float:
+        r"""
+        Yaw angle in radians
+        """
+    def __new__(
+        cls,
+        x: builtins.float,
+        y: builtins.float,
+        z: builtins.float,
+        yaw: builtins.float,
+    ) -> CompressedStart: ...
+
+@typing.final
 class Console:
     r"""
     Access to the console subsystem
@@ -243,6 +328,10 @@ class Crazyflie:
     def localization(self) -> Localization:
         r"""
         Get the localization subsystem
+        """
+    def memory(self) -> Memory:
+        r"""
+        Get the memory subsystem
         """
     def log(self) -> Log:
         r"""
@@ -861,6 +950,46 @@ class LogStream:
         """
 
 @typing.final
+class Memory:
+    r"""
+    Memory subsystem wrapper.
+
+    Provides methods to upload trajectory data to the Crazyflie.
+    Access via `cf.memory()`.
+    """
+    def write_trajectory(
+        self, trajectory: typing.Sequence[Poly4D], start_addr: builtins.int = 0
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, int]:
+        r"""
+        Write an uncompressed (Poly4D) trajectory to the Crazyflie.
+
+        Opens the trajectory memory, writes all segments, and closes
+        the memory. Returns the number of bytes written.
+
+        # Arguments
+        * `trajectory` - List of Poly4D segments to upload
+        * `start_addr` - Address in trajectory memory (default 0)
+        """
+    def write_compressed_trajectory(
+        self,
+        start: CompressedStart,
+        segments: typing.Sequence[CompressedSegment],
+        start_addr: builtins.int = 0,
+    ) -> collections.abc.Coroutine[typing.Any, typing.Any, int]:
+        r"""
+        Write a compressed trajectory to the Crazyflie.
+
+        Opens the trajectory memory, writes the start point followed
+        by all compressed segments, and closes the memory.
+        Returns the number of bytes written.
+
+        # Arguments
+        * `start` - CompressedStart defining the initial position
+        * `segments` - List of CompressedSegment instances
+        * `start_addr` - Address in trajectory memory (default 0)
+        """
+
+@typing.final
 class NoTocCache:
     r"""
     No-op TOC cache that doesn't store anything
@@ -1038,3 +1167,56 @@ class Platform:
         # Returns
         * Optional AppChannel object, or None if already acquired
         """
+
+@typing.final
+class Poly:
+    r"""
+    A polynomial with up to 8 coefficients.
+
+    Coefficients beyond the provided values are zero-filled.
+    If more than 8 values are provided, only the first 8 are used.
+    """
+    @property
+    def values(self) -> builtins.list[builtins.float]:
+        r"""
+        Get the coefficient values as a list
+        """
+    def __new__(cls, values: typing.Sequence[builtins.float]) -> Poly: ...
+
+@typing.final
+class Poly4D:
+    r"""
+    An uncompressed 4D polynomial trajectory segment.
+
+    Each segment defines motion along x, y, z, and yaw axes
+    using 8th-order polynomials over a given duration.
+    Packs to 132 bytes.
+    """
+    @property
+    def duration(self) -> builtins.float:
+        r"""
+        Duration of this segment in seconds
+        """
+    @property
+    def x(self) -> Poly:
+        r"""
+        X polynomial
+        """
+    @property
+    def y(self) -> Poly:
+        r"""
+        Y polynomial
+        """
+    @property
+    def z(self) -> Poly:
+        r"""
+        Z polynomial
+        """
+    @property
+    def yaw(self) -> Poly:
+        r"""
+        Yaw polynomial
+        """
+    def __new__(
+        cls, duration: builtins.float, x: Poly, y: Poly, z: Poly, yaw: Poly
+    ) -> Poly4D: ...

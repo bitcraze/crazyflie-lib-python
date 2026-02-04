@@ -16,6 +16,7 @@ use subsystems::{
     Commander, Console, Log, LogBlock, LogStream, Param, Platform, AppChannel,
     Localization, EmergencyControl, ExternalPose, Lighthouse, LocoPositioning,
     LighthouseAngleData, LighthouseAngles,
+    Memory, Poly, Poly4D, CompressedStart, CompressedSegment,
 };
 use toc_cache::{NoTocCache, InMemoryTocCache, FileTocCache};
 
@@ -39,6 +40,11 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<LocoPositioning>()?;
     m.add_class::<LighthouseAngleData>()?;
     m.add_class::<LighthouseAngles>()?;
+    m.add_class::<Memory>()?;
+    m.add_class::<Poly>()?;
+    m.add_class::<Poly4D>()?;
+    m.add_class::<CompressedStart>()?;
+    m.add_class::<CompressedSegment>()?;
     m.add_class::<NoTocCache>()?;
     m.add_class::<InMemoryTocCache>()?;
     m.add_class::<FileTocCache>()?;

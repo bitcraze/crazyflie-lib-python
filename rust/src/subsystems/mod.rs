@@ -5,6 +5,7 @@ mod console;
 pub mod high_level_commander;
 pub mod localization;
 mod log;
+pub mod memory;
 mod param;
 mod platform;
 
@@ -13,5 +14,6 @@ pub use console::Console;
 pub use high_level_commander::HighLevelCommander;
 pub use localization::{Localization, EmergencyControl, ExternalPose, Lighthouse, LocoPositioning, LighthouseAngleData, LighthouseAngles};
 pub use log::{Log, LogBlock, LogStream};
+pub use memory::{Memory, Poly, Poly4D, CompressedStart, CompressedSegment};
 pub use param::Param;
 pub use platform::{Platform, AppChannel};

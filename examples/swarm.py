@@ -37,9 +37,20 @@ import argparse
 import asyncio
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from cflib import Crazyflie, LinkContext, FileTocCache, NoTocCache
+
+
+async def timed_connect(
+    context: LinkContext, uri: str, cache: FileTocCache | NoTocCache
+) -> tuple[Crazyflie, float]:
+    """Connect to a Crazyflie and return the connection time."""
+    start = time.perf_counter()
+    cf = await Crazyflie.connect_from_uri(context, uri, cache)
+    elapsed = time.perf_counter() - start
+    return cf, elapsed
 
 
 async def get_info(cf: Crazyflie) -> tuple[str, str]:
@@ -69,13 +80,10 @@ async def main() -> None:
     )
     args: argparse.Namespace = parser.parse_args()
 
-    if len(args.uris) < 2:
-        print("Please provide at least 2 URIs to demonstrate swarming")
-        sys.exit(1)
-
     # Set up TOC cache (file-based if --cache specified, otherwise no caching)
     if args.cache:
-        cache_dir = str(Path(tempfile.gettempdir()) / "crazyflie_toc_cache")
+        # cache_dir = str(Path(tempfile.gettempdir()) / "crazyflie_toc_cache")
+        cache_dir = str(Path.cwd() / "cache")
         cache = FileTocCache(cache_dir)
         print(f"Using TOC cache: {cache.get_cache_dir()}")
     else:
@@ -86,10 +94,19 @@ async def main() -> None:
 
     # Connect to all concurrently
     print(f"Connecting to {len(args.uris)} Crazyflies...")
-    cfs = await asyncio.gather(
-        *[Crazyflie.connect_from_uri(context, uri, cache) for uri in args.uris]
+    start = time.perf_counter()
+    results = await asyncio.gather(
+        *[timed_connect(context, uri, cache) for uri in args.uris]
     )
+    total_time = time.perf_counter() - start
+    cfs = [cf for cf, _ in results]
+    connect_times = [t for _, t in results]
+
     print("All connected!\n")
+    print("Connection times:")
+    for uri, t in zip(args.uris, connect_times):
+        print(f"  {uri}: {t:.3f}s")
+    print(f"  Total (wall-clock): {total_time:.3f}s\n")
 
     try:
         # Run get_info() for each drone in parallel, wait for all to finish

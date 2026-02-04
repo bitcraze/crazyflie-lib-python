@@ -43,7 +43,7 @@
 
 3. **Build the project:**
    ```bash
-   cargo build --manifest-path rust/Cargo.toml && \
+   cargo build --lib --manifest-path rust/Cargo.toml && \
    uv run maturin develop && \
    uv sync && \
    uvx ruff check . && \
@@ -54,12 +54,21 @@
 
 After making changes to Rust code, rebuild with:
 ```bash
-cargo build --manifest-path rust/Cargo.toml && \
+cargo build --lib --manifest-path rust/Cargo.toml && \
 uv run maturin develop && \
 uv sync && \
 uvx ruff check . && \
 uvx ruff format .
 ```
+
+### Regenerating Python Stubs
+
+To regenerate `cflib/_rust.pyi` after changing the Rust API:
+```bash
+cargo run --bin stub_gen --manifest-path rust/Cargo.toml --no-default-features
+```
+
+The `--no-default-features` flag is required because the default `extension-module` feature tells PyO3 not to link against libpython (extension modules get those symbols from the Python interpreter). The stub generator is a standalone binary, so it needs libpython linked directly.
 
 Pre-commit hooks will automatically run linting and formatting on commit.
 

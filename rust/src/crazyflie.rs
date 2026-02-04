@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::error::to_pyerr;
 use crate::link_context::LinkContext;
-use crate::subsystems::{Commander, Console, HighLevelCommander, Localization, Param, Platform, Log};
+use crate::subsystems::{Commander, Console, HighLevelCommander, Localization, Memory, Param, Platform, Log};
 use crate::toc_cache::{NoTocCache, InMemoryTocCache, FileTocCache};
 
 
@@ -133,6 +133,13 @@ impl Crazyflie {
     /// Get the localization subsystem
     fn localization(&self) -> Localization {
         Localization {
+            cf: self.inner.clone(),
+        }
+    }
+
+    /// Get the memory subsystem
+    fn memory(&self) -> Memory {
+        Memory {
             cf: self.inner.clone(),
         }
     }

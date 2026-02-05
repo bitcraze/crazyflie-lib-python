@@ -61,6 +61,16 @@ uvx ruff check . && \
 uvx ruff format .
 ```
 
+This uses **debug mode** for faster compilation during development.
+
+### Release Builds
+
+For production or performance testing, build in release mode:
+```bash
+cargo build --release --lib --manifest-path rust/Cargo.toml && \
+uv run maturin develop --release
+```
+
 ### Regenerating Python Stubs
 
 To regenerate `cflib/_rust.pyi` after changing the Rust API:

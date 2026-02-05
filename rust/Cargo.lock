@@ -191,9 +191,9 @@ dependencies = [
 
 [[package]]
 name = "crazyradio"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8433d8c6d78e73b5bb934eac68f3762caf0b49895ef6639d896e342317b68f4"
+checksum = "eb78b08bd5b15e7926f23762c391246f85a423b7ecd6d6740b44cade91d1d443"
 dependencies = [
  "flume",
  "rusb",

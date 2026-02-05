@@ -23,6 +23,7 @@ from test.localization.lighthouse_test_base import LighthouseTestBase
 
 import numpy as np
 import yaml
+import math
 
 from cflib.localization.lighthouse_types import Pose
 
@@ -132,3 +133,37 @@ class TestLighthouseTypes(LighthouseTestBase):
         self.assertAlmostEqual(expected[0], actual[0])
         self.assertAlmostEqual(expected[1], actual[1])
         self.assertAlmostEqual(expected[2], actual[2])
+
+    def test_verify_rpy_conversion_behaves_like_the_old_implementation(self):
+        # Fixture
+        rpy = (math.radians(37.0), math.radians(-22.0), math.radians(100.0))
+
+        # Test
+        actual = Pose.from_cf_rpy(roll=math.degrees(rpy[0]), pitch=math.degrees(rpy[1]), yaw=math.degrees(rpy[2])).rot_matrix
+        expected = self._old_rpy_to_rotconversion(rpy)
+
+        # Assert
+        np.testing.assert_almost_equal(expected, actual)
+
+    # This is code from the client that has been used to convert from CF RPY to rotation matrix in the LH 3D view.
+    def _old_rpy_to_rotconversion(self, rpy):
+        # http://planning.cs.uiuc.edu/node102.html
+        # Pitch reversed compared to page above
+        roll = rpy[0]
+        pitch = rpy[1]
+        yaw = rpy[2]
+
+        cg = math.cos(roll)
+        cb = math.cos(-pitch)
+        ca = math.cos(yaw)
+        sg = math.sin(roll)
+        sb = math.sin(-pitch)
+        sa = math.sin(yaw)
+
+        r = [
+            [ca * cb, ca * sb * sg - sa * cg, ca * sb * cg + sa * sg],
+            [sa * cb, sa * sb * sg + ca * cg, sa * sb * cg - ca * sg],
+            [-sb, cb * sg, cb * cg],
+        ]
+
+        return np.array(r)

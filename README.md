@@ -63,13 +63,15 @@ uvx ruff format .
 
 This uses **debug mode** for faster compilation during development.
 
-### Release Builds
+### Performance Testing During Development
 
-For production or performance testing, build in release mode:
+To benchmark or test performance locally with optimizations enabled:
 ```bash
 cargo build --release --lib --manifest-path rust/Cargo.toml && \
 uv run maturin develop --release
 ```
+
+> **Note:** When users `pip install` your package (from git or PyPI), maturin automatically builds in release mode. This section is only for testing optimized performance during local development.
 
 ### Regenerating Python Stubs
 

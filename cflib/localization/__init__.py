@@ -28,9 +28,9 @@ from .lighthouse_geometry_solution import LighthouseGeometrySolution
 from .lighthouse_sweep_angle_reader import LighthouseMatchedSweepAngleReader
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleAverageReader
 from .lighthouse_sweep_angle_reader import LighthouseSweepAngleReader
-from .lighthouse_utils import LighthouseCrossingBeam
-from .lighthouse_types import Pose
 from .lighthouse_types import LhDeck4SensorPositions
+from .lighthouse_types import Pose
+from .lighthouse_utils import LighthouseCrossingBeam
 from .param_io import ParamFileManager
 
 __all__ = [

@@ -63,7 +63,7 @@ class Pose:
 
     @classmethod
     def from_rpy(cls, roll: float = 0.0, pitch: float = 0.0, yaw: float = 0.0, t_vec: npt.ArrayLike = _ORIGIN,
-                 seq: str='xyz', degrees: bool=False,) -> 'Pose':
+                 seq: str = 'xyz', degrees: bool = False,) -> 'Pose':
         """Create a Pose from roll, pitch and yaw angles and translation vector
 
         Args:
@@ -81,7 +81,11 @@ class Pose:
         return Pose(Rotation.from_euler(seq, [roll, pitch, yaw], degrees=degrees).as_matrix(), t_vec)
 
     @classmethod
-    def from_cf_rpy(cls, roll: float = 0.0, pitch: float = 0.0, yaw: float = 0.0, t_vec: npt.ArrayLike = _ORIGIN) -> 'Pose':
+    def from_cf_rpy(cls,
+                    roll: float = 0.0,
+                    pitch: float = 0.0,
+                    yaw: float = 0.0,
+                    t_vec: npt.ArrayLike = _ORIGIN) -> 'Pose':
         """Create a Pose from roll, pitch and yaw angles in the Crazyflie convention and translation vector
 
         Args:
@@ -123,7 +127,7 @@ class Pose:
         """
         return Rotation.from_matrix(self._R_matrix).as_quat()
 
-    def rot_euler(self, seq: str='xyz', degrees: bool=False) -> npt.NDArray:
+    def rot_euler(self, seq: str = 'xyz', degrees: bool = False) -> npt.NDArray:
         """ Get the euler angles of the pose
 
         Args:

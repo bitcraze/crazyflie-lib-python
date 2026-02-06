@@ -19,11 +19,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+import math
 from test.localization.lighthouse_test_base import LighthouseTestBase
 
 import numpy as np
 import yaml
-import math
 
 from cflib.localization.lighthouse_types import Pose
 
@@ -139,7 +139,9 @@ class TestLighthouseTypes(LighthouseTestBase):
         rpy = (math.radians(37.0), math.radians(-22.0), math.radians(100.0))
 
         # Test
-        actual = Pose.from_cf_rpy(roll=math.degrees(rpy[0]), pitch=math.degrees(rpy[1]), yaw=math.degrees(rpy[2])).rot_matrix
+        actual = Pose.from_cf_rpy(roll=math.degrees(rpy[0]),
+                                  pitch=math.degrees(rpy[1]),
+                                  yaw=math.degrees(rpy[2])).rot_matrix
         expected = self._old_rpy_to_rotconversion(rpy)
 
         # Assert

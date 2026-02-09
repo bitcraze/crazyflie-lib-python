@@ -22,11 +22,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Warning: you will have to write new data to the memory to make it
-usable again. Use with caution.
-
 Simple example that connects to the first Crazyflie found, looks for
-EEPROM memories and erases its contents.
+EEPROM memories and writes the default values in it.
 """
 import logging
 import sys
@@ -40,12 +37,13 @@ from cflib.utils import uri_helper
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 # Only output errors from the logging framework
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 
 
 class EEPROMExample:
     """
-    Simple example listing the EEPROMs found and erases its contents.
+    Simple example listing the EEPROMs found and writes the default values
+    in it.
     """
 
     def __init__(self, link_uri):
@@ -67,17 +65,28 @@ class EEPROMExample:
 
         # Variable used to keep main loop occupied until disconnect
         self.is_connected = True
+        self.should_disconnect = False
 
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
         has been connected and the TOCs have been downloaded."""
         print('Connected to %s' % link_uri)
 
-        mems = self._cf.mem.get_mems(MemoryElement.TYPE_1W)
-        print('Found {} 1-wire memories'.format(len(mems)))
+        mems = self._cf.mem.get_mems(MemoryElement.TYPE_I2C)
+        print('Found {} EEPOM(s)'.format(len(mems)))
         if len(mems) > 0:
-            print('Erasing memory {}'.format(mems[0].id))
-            mems[0].erase(self._data_written)
+            print('Writing default configuration to'
+                  ' memory {}'.format(mems[0].id))
+
+            elems = mems[0].elements
+            elems['version'] = 1
+            elems['pitch_trim'] = 0.0
+            elems['roll_trim'] = 0.0
+            elems['radio_channel'] = 80
+            elems['radio_speed'] = 2
+            elems['radio_address'] = 0xE7E7E7E7E7
+
+            mems[0].write_data(self._data_written)
 
     def _data_written(self, mem, addr):
         print('Data written, reading back...')
@@ -88,23 +97,18 @@ class EEPROMExample:
         print('\tType      : {}'.format(mem.type))
         print('\tSize      : {}'.format(mem.size))
         print('\tValid     : {}'.format(mem.valid))
-        print('\tName      : {}'.format(mem.name))
-        print('\tVID       : 0x{:02X}'.format(mem.vid))
-        print('\tPID       : 0x{:02X}'.format(mem.pid))
-        print('\tPins      : 0x{:02X}'.format(mem.pins))
         print('\tElements  : ')
-
         for key in mem.elements:
             print('\t\t{}={}'.format(key, mem.elements[key]))
 
-        self._cf.close_link()
+        self.should_disconnect = True
 
     def _stab_log_error(self, logconf, msg):
         """Callback from the log API when an error occurs"""
         print('Error when logging %s: %s' % (logconf.name, msg))
 
     def _stab_log_data(self, timestamp, data, logconf):
-        """Callback from a the log API when data arrives"""
+        """Callback from the log API when data arrives"""
         print('[%d][%s]: %s' % (timestamp, logconf.name, data))
 
     def _connection_failed(self, link_uri, msg):
@@ -125,8 +129,6 @@ class EEPROMExample:
 
 
 if __name__ == '__main__':
-    input('Warning, this will erase EEPROM memory, press enter to continue...')
-
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
@@ -137,6 +139,8 @@ if __name__ == '__main__':
     # are just waiting until we are disconnected.
     try:
         while le.is_connected:
+            if le.should_disconnect:
+                le._cf.close_link()
             time.sleep(1)
     except KeyboardInterrupt:
         sys.exit(1)

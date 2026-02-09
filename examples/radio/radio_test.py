@@ -86,8 +86,8 @@ for channel in range(0, 126, 1):
         rssi_avg = np.mean(temp)
         std = np.std(temp)
     else:
-        rssi_avg = np.NaN
-        std = np.NaN
+        rssi_avg = np.nan
+        std = np.nan
 
     rssi.append(rssi_avg)
     ack.append(ack_rate)

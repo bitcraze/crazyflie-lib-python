@@ -32,6 +32,7 @@ import struct
 from threading import Lock
 
 from .deck_memory import DeckMemoryManager
+from .deckctrl_element import DeckCtrlElement
 from .i2c_element import I2CElement
 from .led_driver_memory import LEDDriverMemory
 from .led_timings_driver_memory import LEDTimingsDriverMemory
@@ -77,7 +78,7 @@ class _ReadRequest:
     Class used to handle memory reads that will split up the read in multiple
     packets if necessary
     """
-    MAX_DATA_LENGTH = 20
+    MAX_DATA_LENGTH = 24
 
     def __init__(self, mem, addr, length, cf):
         """Initialize the object with good defaults"""
@@ -141,7 +142,7 @@ class _WriteRequest:
     Class used to handle memory reads that will split up the read in multiple
     packets in necessary
     """
-    MAX_DATA_LENGTH = 25
+    MAX_DATA_LENGTH = 24
 
     def __init__(self, mem, addr, data, cf, progress_cb=None):
         """Initialize the object with good defaults"""
@@ -533,6 +534,11 @@ class Memory():
                 logger.debug(mem)
                 self.mem_read_cb.add_callback(mem.new_data)
                 self.mem_read_failed_cb.add_callback(mem.read_failed)
+            elif mem_type == MemoryElement.TYPE_DECKCTRL:
+                mem = DeckCtrlElement(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
+                logger.debug(mem)
+                self.mem_read_cb.add_callback(mem.new_data)
+                self.mem_read_failed_cb.add_callback(mem.read_failed)
             else:
                 mem = MemoryElement(id=mem_id, type=mem_type, size=mem_size, mem_handler=self)
                 logger.debug(mem)
@@ -566,7 +572,7 @@ class Memory():
         # Find the write request
         if id in self._write_requests:
             self._write_requests_lock.acquire()
-            do_call_sucess_cb = False
+            do_call_success_cb = False
             do_call_fail_cb = False
             wreq = self._write_requests[id][0]
             if status == 0:
@@ -574,7 +580,7 @@ class Memory():
                     # self._write_requests.pop(id, None)
                     # Remove the first item
                     self._write_requests[id].pop(0)
-                    do_call_sucess_cb = True
+                    do_call_success_cb = True
 
                     # Get a new one to start (if there are any)
                     if len(self._write_requests[id]) > 0:
@@ -591,9 +597,9 @@ class Memory():
 
             self._write_requests_lock.release()
 
-            # Call callbacks after the lock has been released to alow for new writes
+            # Call callbacks after the lock has been released to allow for new writes
             # to be initiated from the callback.
-            if do_call_sucess_cb:
+            if do_call_success_cb:
                 self.mem_write_cb.call(wreq.mem, wreq.addr)
             if do_call_fail_cb:
                 self.mem_write_failed_cb.call(wreq.mem, wreq.addr)

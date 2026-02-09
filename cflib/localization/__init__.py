@@ -19,7 +19,6 @@
 #  GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
-from .lighthouse_bs_geo import LighthouseBsGeoEstimator
 from .lighthouse_bs_vector import LighthouseBsVector
 from .lighthouse_cf_pose_sample import LhCfPoseSampleType
 from .lighthouse_config_manager import LighthouseConfigFileManager
@@ -34,7 +33,6 @@ from .lighthouse_utils import LighthouseCrossingBeam
 from .param_io import ParamFileManager
 
 __all__ = [
-    'LighthouseBsGeoEstimator',
     'LighthouseBsVector',
     'LighthouseSweepAngleAverageReader',
     'LighthouseSweepAngleReader',

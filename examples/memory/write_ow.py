@@ -22,8 +22,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Simple example that connects to the first Crazyflie found, looks for
-EEPROM memories and writes the default values in it.
+This example connects to the first Crazyflie that it finds and writes to the
+one wire memory.
 """
 import logging
 import sys
@@ -32,6 +32,7 @@ import time
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.mem import MemoryElement
+from cflib.crazyflie.mem import OWElement
 from cflib.utils import uri_helper
 
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
@@ -40,12 +41,7 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 logging.basicConfig(level=logging.ERROR)
 
 
-class EEPROMExample:
-    """
-    Simple example listing the EEPROMs found and writes the default values
-    in it.
-    """
-
+class WriteOwExample:
     def __init__(self, link_uri):
         """ Initialize and run the example with the specified link_uri """
 
@@ -65,25 +61,28 @@ class EEPROMExample:
 
         # Variable used to keep main loop occupied until disconnect
         self.is_connected = True
+        self.should_disconnect = False
 
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
         has been connected and the TOCs have been downloaded."""
         print('Connected to %s' % link_uri)
 
-        mems = self._cf.mem.get_mems(MemoryElement.TYPE_I2C)
-        print('Found {} EEPOM(s)'.format(len(mems)))
+        mems = self._cf.mem.get_mems(MemoryElement.TYPE_1W)
+        print('Found {} 1-wire memories'.format(len(mems)))
         if len(mems) > 0:
-            print('Writing default configuration to'
+            print('Writing test configuration to'
                   ' memory {}'.format(mems[0].id))
 
-            elems = mems[0].elements
-            elems['version'] = 1
-            elems['pitch_trim'] = 0.0
-            elems['roll_trim'] = 0.0
-            elems['radio_channel'] = 80
-            elems['radio_speed'] = 2
-            elems['radio_address'] = 0xE7E7E7E7E7
+            # Setting VID:PID to 00:00 will make the Crazyflie match driver to the board name
+            mems[0].vid = 0x00
+            mems[0].pid = 0x00
+
+            board_name_id = OWElement.element_mapping[1]
+            board_rev_id = OWElement.element_mapping[2]
+
+            mems[0].elements[board_name_id] = 'Hello deck'
+            mems[0].elements[board_rev_id] = 'A'
 
             mems[0].write_data(self._data_written)
 
@@ -96,11 +95,16 @@ class EEPROMExample:
         print('\tType      : {}'.format(mem.type))
         print('\tSize      : {}'.format(mem.size))
         print('\tValid     : {}'.format(mem.valid))
+        print('\tName      : {}'.format(mem.name))
+        print('\tVID       : 0x{:02X}'.format(mem.vid))
+        print('\tPID       : 0x{:02X}'.format(mem.pid))
+        print('\tPins      : 0x{:02X}'.format(mem.pins))
         print('\tElements  : ')
+
         for key in mem.elements:
             print('\t\t{}={}'.format(key, mem.elements[key]))
 
-        self._cf.close_link()
+        self.should_disconnect = True
 
     def _stab_log_error(self, logconf, msg):
         """Callback from the log API when an error occurs"""
@@ -131,13 +135,15 @@ if __name__ == '__main__':
     # Initialize the low-level drivers
     cflib.crtp.init_drivers()
 
-    le = EEPROMExample(uri)
+    le = WriteOwExample(uri)
 
     # The Crazyflie lib doesn't contain anything to keep the application alive,
     # so this is where your application should do something. In our case we
     # are just waiting until we are disconnected.
     try:
         while le.is_connected:
+            if le.should_disconnect:
+                le._cf.close_link()
             time.sleep(1)
     except KeyboardInterrupt:
         sys.exit(1)

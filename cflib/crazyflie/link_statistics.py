@@ -146,7 +146,7 @@ class Latency:
         """
         if self._ping_thread_instance is None or not self._ping_thread_instance.is_alive():
             self._stop_event.clear()
-            self._ping_thread_instance = Thread(target=self._ping_thread)
+            self._ping_thread_instance = Thread(target=self._ping_thread, name='ping_thread')
             self._ping_thread_instance.start()
 
     def stop(self):

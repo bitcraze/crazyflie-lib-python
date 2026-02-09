@@ -25,3 +25,6 @@ docs/api/cflib
 
 #vscode config folder
 .vscode/
+
+# uv lock file - not committed for libraries
+uv.lock

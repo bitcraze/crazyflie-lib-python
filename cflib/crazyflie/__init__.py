@@ -32,10 +32,10 @@ firmware which makes the mapping 1:1 in most cases.
 """
 import datetime
 import logging
-import time
 import warnings
 from collections import namedtuple
 from threading import current_thread
+from threading import Event
 from threading import Lock
 from threading import Thread
 from threading import Timer
@@ -284,6 +284,14 @@ class Crazyflie():
         if (self.link is not None):
             self.link.close()
             self.link = None
+        if self.incoming:
+            callbacks = list(self.incoming.cb)
+            if self.incoming.is_alive():
+                self.incoming.stop()
+                self.incoming.join(timeout=1)
+            self.incoming = _IncomingPacketHandler(self)
+            self.incoming.cb = callbacks
+            self.incoming.daemon = True
         self._answer_patterns = {}
         self.disconnected.call(self.link_uri)
         self.state = State.DISCONNECTED
@@ -393,9 +401,11 @@ class _IncomingPacketHandler(Thread):
     """Handles incoming packets and sends the data to the correct receivers"""
 
     def __init__(self, cf):
-        Thread.__init__(self)
+        Thread.__init__(self, name='IncomingPacketHandlerThread')
+        self.daemon = True
         self.cf = cf
         self.cb = []
+        self._stop_event = Event()
 
     def add_port_callback(self, port, cb):
         """Add a callback for data that comes on a specific port"""
@@ -430,10 +440,14 @@ class _IncomingPacketHandler(Thread):
                     port_callback.callback == cb:
                 self.cb.remove(port_callback)
 
+    def stop(self):
+        """Signal the thread to stop."""
+        self._stop_event.set()
+
     def run(self):
-        while True:
+        while not self._stop_event.is_set():
             if self.cf.link is None:
-                time.sleep(1)
+                self._stop_event.wait(1)
                 continue
             pk = self.cf.link.receive_packet(1)
 

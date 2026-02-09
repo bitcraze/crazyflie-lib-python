@@ -326,7 +326,7 @@ class Bootloader:
                         self.progress_cb('Deck updated! Restarting...', int(100))
                     if current_index != -1:
                         PowerSwitch(self.clink).reboot_to_fw()
-                        time.sleep(2.0 + boot_delay)
+                        time.sleep(5.0 + boot_delay)
 
                 # Put the crazyflie back in Bootloader mode to exit the function in the same state we entered it
                 self.start_bootloader(warm_boot=True, cf=cf)
@@ -398,15 +398,27 @@ class Bootloader:
             # Handle version 1 of manifest where prerequisites for nRF soft-devices are not specified
             requires = [] if 'requires' not in metadata else metadata['requires']
             provides = [] if 'provides' not in metadata else metadata['provides']
-            if len(requires) == 0 and metadata['target'] == 'nrf51' and metadata['type'] == 'fw':
-                requires.append('sd-s110')
-                # If there is no requires for the nRF51 fw target then we also need the legacy s110
-                # so add this to the file list afterwards
-                add_legacy_nRF51_s110 = True
 
-            target = Target(metadata['platform'], metadata['target'], metadata['type'],
-                            provides, requires)
-            flash_artifacts.append(FlashArtifact(content, target, metadata['release']))
+            # Support both single target (string) and multiple targets (list)
+            target_value = metadata['target']
+            target_list = target_value if isinstance(target_value, list) else [target_value]
+
+            for target_name in target_list:
+                logger.debug('Processing target: {}'.format(target_name))
+                # Create copies for each target to avoid shared mutable state
+                target_requires = requires.copy()
+                target_provides = provides.copy()
+
+                # Check for legacy nRF51 requirement
+                if len(target_requires) == 0 and target_name == 'nrf51' and metadata['type'] == 'fw':
+                    target_requires.append('sd-s110')
+                    # If there is no requires for the nRF51 fw target then we also need the legacy s110
+                    # so add this to the file list afterwards
+                    add_legacy_nRF51_s110 = True
+
+                target = Target(metadata['platform'], target_name, metadata['type'],
+                                target_provides, target_requires)
+                flash_artifacts.append(FlashArtifact(content, target, metadata['release']))
 
         if add_legacy_nRF51_s110:
             print('Legacy format detected for manifest, adding s110+bl binary from distro')

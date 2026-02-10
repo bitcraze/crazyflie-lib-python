@@ -204,7 +204,7 @@ class Cloader:
                 if len(answer.data) > 23 and len(answer.data) > 26:
                     code_state = ''
                     if answer.data[24] & 0x80 != 0:
-                        code_state = '+dirty'
+                        code_state = '+dev'
                     answer.data[24] &= 0x7F
                     major = struct.unpack('H', answer.data[23:25])[0]
                     minor = answer.data[25]

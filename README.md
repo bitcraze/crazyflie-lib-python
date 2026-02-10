@@ -77,10 +77,13 @@ uv run maturin develop --release
 
 To regenerate `cflib/_rust.pyi` after changing the Rust API:
 ```bash
-cargo run --bin stub_gen --manifest-path rust/Cargo.toml --no-default-features
+cargo run --bin stub_gen --manifest-path rust/Cargo.toml --no-default-features && \
+uv run scripts/fix_stubs.py cflib/_rust.pyi
 ```
 
 The `--no-default-features` flag is required because the default `extension-module` feature tells PyO3 not to link against libpython (extension modules get those symbols from the Python interpreter). The stub generator is a standalone binary, so it needs libpython linked directly.
+
+The `fix_stubs.py` script converts `Coroutine[Any, Any, T]` return types to `async def ... -> T`, which is needed because our async methods use `pyo3-async-runtimes` (not native `async fn`) and `pyo3_stub_gen` can't detect them as async.
 
 Pre-commit hooks will automatically run linting and formatting on commit.
 

@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Blockly for the Web Codelab</title>
+
+    <link
+      rel="stylesheet"
+      href="https://code.getmdl.io/1.2.1/material.indigo-pink.min.css" />
+    <link rel="stylesheet" href="styles/index.css" />
+  </head>
+
+  <body mode="maker">
+    <header class="mdl-color--cyan-500">
+      <h1 class="mode-maker">CrazyBlocks</h1>
+      <h1 class="mode-edit mode-blockly">Crazyflie</h1>
+    </header>
+
+    <main>
+      <button class="mode-blockly mdl-button mdl-js-button" id="play">
+        Play
+      </button>
+
+      <div class="blockly-editor">
+        <div id="blocklyDiv" style="height: 480px; width: 400px"></div>
+      </div>
+    </main>
+
+    <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
+    <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
+    <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
+    <script src="https://unpkg.com/blockly/msg/en.js"></script>
+    <script src="scripts/sound_blocks.js"></script>
+    <script src="scripts/music_maker.js"></script>
+    <script src="scripts/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Blockly for the Crazyflie</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link
+      rel="stylesheet"
+      href="https://code.getmdl.io/1.2.1/material.indigo-pink.min.css" />
+    <link rel="stylesheet" href="styles/index.css" />
+  </head>
+
+  <body mode="blockly">
+    <header>
+      <h1 class="mode-edit mode-blockly">Blockly for Crazyflie</h1>
+    </header>
+
+    <main>
+      <div class="workspace-container">
+        <div class="editor-panel">
+          <div class="control-bar">
+            <div class="uri-input-container">
+              <label for="crazyflieUri">Crazyflie URI:</label>
+              <input
+                type="text"
+                id="crazyflieUri"
+                placeholder="radio://0/80/2M/E7E7E7E7E7"
+                value="radio://0/80/2M/E7E7E7E7E7"
+                title="Enter your Crazyflie radio address"
+              />
+            </div>
+            <button class="mode-blockly mdl-button mdl-js-button" id="play">▶
+FLY!</button>
+          </div>
+          <div class="blockly-editor">
+            <div id="blocklyDiv"></div>
+          </div>
+        </div>
+
+        <div class="right-panel">
+          <div class="simulator-panel">
+            <div class="simulator-header">
+              <span class="simulator-title">Flight Simulator</span>
+              <div class="simulator-controls">
+                <select id="gridSizeSelect" class="grid-size-select" title="Select flight area size">
+                  <option value="3">3x3m</option>
+                  <option value="5">5x5m</option>
+                  <option value="7">7x7m</option>
+                  <option value="10" selected>10x10m</option>
+                </select>
+                <button id="simulateBtn" class="simulate-btn" title="Run simulation">▶
+Simulate</button>
+              </div>
+            </div>
+            <canvas id="simulatorCanvas"></canvas>
+          </div>
+
+          <div class="code-preview">
+            <div class="code-preview-header">
+              <span class="preview-title">Python Code Preview</span>
+              <button id="copyCode" class="copy-btn" title="Copy code">
+                📋 Copy
+              </button>
+            </div>
+            <pre id="codeOutput"><code></code></pre>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
+    <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
+    <script src="https://unpkg.com/blockly/python_compressed.js"></script>
+    <script src="https://unpkg.com/blockly/msg/en.js"></script>
+    <script src="scripts/takeoff.js"></script>
+    <script src="scripts/land.js"></script>
+    <script src="scripts/move.js"></script>
+    <script src="scripts/rotate.js"></script>
+    <script src="scripts/spiral.js"></script>
+    <script src="scripts/altitude.js"></script>
+    <script src="scripts/repeat.js"></script>
+    <script src="scripts/led_color.js"></script>
+    <script src="scripts/simulator.js"></script>
+    <script src="scripts/main_cf.js"></script>
+  </body>
+</html>

@@ -54,9 +54,13 @@ class LighthouseFixtures:
     def __init__(self) -> None:
         self.angles_cf_origin_bs0 = self.synthesize_angles(self.CF_ORIGIN_POSE, self.BS0_POSE)
         self.angles_cf_origin_bs1 = self.synthesize_angles(self.CF_ORIGIN_POSE, self.BS1_POSE)
+        self.angles_cf_origin_bs2 = self.synthesize_angles(self.CF_ORIGIN_POSE, self.BS2_POSE)
+        self.angles_cf_origin_bs3 = self.synthesize_angles(self.CF_ORIGIN_POSE, self.BS3_POSE)
 
+        self.angles_cf1_bs0 = self.synthesize_angles(self.CF1_POSE, self.BS0_POSE)
         self.angles_cf1_bs1 = self.synthesize_angles(self.CF1_POSE, self.BS1_POSE)
         self.angles_cf1_bs2 = self.synthesize_angles(self.CF1_POSE, self.BS2_POSE)
+        self.angles_cf1_bs3 = self.synthesize_angles(self.CF1_POSE, self.BS3_POSE)
 
         self.angles_cf2_bs0 = self.synthesize_angles(self.CF2_POSE, self.BS0_POSE)
         self.angles_cf2_bs1 = self.synthesize_angles(self.CF2_POSE, self.BS1_POSE)

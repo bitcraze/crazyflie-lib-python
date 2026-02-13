@@ -109,21 +109,25 @@ class LighthouseSystemAligner:
     def _de_flip_transformation(cls, raw_transformation: Pose, x_axis: list[npt.ArrayLike],
                                 bs_poses: dict[int, Pose]) -> Pose:
         """
-        Investigats a transformation and flips it if needed. This method assumes that
-        1. all base stations are at Z>0
-        2. x_axis samples are taken at X>0
+        Examines a transformation and flips it if needed. This method assumes that
+        1. most base stations are at Z > 0
+        2. x_axis samples are taken at X > 0
         """
         transformation = raw_transformation
 
-        # X-axis poses should be on the positivie X-axis, check that the "mean" of the x-axis points ends up at X>0
+        # X-axis poses should be on the positive X-axis, check that the "mean" of the x-axis points ends up at X>0
         x_axis_mean = np.mean(x_axis, axis=0)
         if raw_transformation.rotate_translate(x_axis_mean)[0] < 0.0:
             flip_around_z_axis = Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi))
             transformation = flip_around_z_axis.rotate_translate_pose(transformation)
 
-        # Base station poses should be above the floor, check the first one
-        bs_pose = list(bs_poses.values())[0]
-        if raw_transformation.rotate_translate(bs_pose.translation)[2] < 0.0:
+        # Assume base station poses should be above the floor. It is possible that the estimate of one or a few of them
+        # is slightly negative if they are placed on the floor, use an average of the z of all base stations.
+        def rotate_translate_get_z(bs_pose: Pose) -> float:
+            return raw_transformation.rotate_translate(bs_pose.translation)[2]
+
+        bs_z_mean = np.mean(list(map(rotate_translate_get_z, bs_poses.values())))
+        if bs_z_mean < 0.0:
             flip_around_x_axis = Pose.from_rot_vec(R_vec=(np.pi, 0.0, 0.0))
             transformation = flip_around_x_axis.rotate_translate_pose(transformation)
 

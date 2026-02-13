@@ -26,9 +26,10 @@ from typing import NamedTuple
 import numpy as np
 import numpy.typing as npt
 
-from .ippe_cf import IppeCf
-from cflib.localization.lighthouse_types import LhBsCfPoses
-from cflib.localization.lighthouse_types import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import BsPairPoses
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleStatus
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleWrapper
+from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_types import LhException
 from cflib.localization.lighthouse_types import Pose
 
@@ -42,12 +43,6 @@ class BsPairIds(NamedTuple):
     bs2: int
 
 
-class BsPairPoses(NamedTuple):
-    """A type representing the poses of a pair of base stations"""
-    bs1: Pose
-    bs2: Pose
-
-
 class LighthouseInitialEstimator:
     """
     Make initial estimates of base station and CF poses using IPPE (analytical solution).
@@ -55,53 +50,88 @@ class LighthouseInitialEstimator:
     calculations.
     """
 
-    OUTLIER_DETECTION_ERROR = 0.5
+    AMBIGUOUS_DETECTION_ERROR = 0.5
 
     @classmethod
-    def estimate(cls, matched_samples: list[LhCfPoseSample], sensor_positions: ArrayFloat) -> tuple[
-            LhBsCfPoses, list[LhCfPoseSample]]:
+    def estimate(cls, matched_samples: list[LhCfPoseSampleWrapper],
+                 solution: LighthouseGeometrySolution) -> list[LhCfPoseSampleWrapper]:
         """
         Make a rough estimate of the poses of all base stations and CF poses found in the samples.
 
         The pose of the Crazyflie in the first sample is used as a reference and will define the
         global reference frame.
 
-        :param matched_samples: A list of samples with lighthouse angles.
-        :param sensor_positions: An array with the sensor positions on the lighthouse deck (3D, CF ref frame)
-        :return: an estimate of base station and Crazyflie poses, as well as a cleaned version of matched_samples where
-                 outliers are removed.
+        :param matched_samples: A list of samples with lighthouse angles. It is assumed that all samples have data for
+                                two or more base stations. Note: matched_samples is a subset of solution.samples.
+
+        :param solution: A LighthouseGeometrySolution object to store progress information and issues in
+        :return: a subset of the matched_samples where ambiguous samples are removed.
         """
 
-        bs_positions = cls._find_solutions(matched_samples, sensor_positions)
+        bs_positions = cls._find_bs_to_bs_poses(matched_samples)
         # bs_positions is a map from bs-id-pair to position, where the position is the position of the second
         # bs, as seen from the first bs (in the first bs ref frame).
 
-        bs_poses_ref_cfs, cleaned_matched_samples = cls._angles_to_poses(
-            matched_samples, sensor_positions, bs_positions)
+        bs_poses_ref_cfs, cleaned_matched_samples = cls._angles_to_poses(matched_samples, bs_positions, solution)
+        cls._build_link_stats(cleaned_matched_samples, solution)
+        if not solution.progress_is_ok:
+            return cleaned_matched_samples
 
-        # Use the first CF pose as the global reference frame. The pose of the first base station (as estimated by ippe)
-        # is used as the "true" position (reference)
-        reference_bs_pose = None
-        for bs_pose_ref_cfs in bs_poses_ref_cfs:
-            if len(bs_pose_ref_cfs) > 0:
-                bs_id, reference_bs_pose = list(bs_pose_ref_cfs.items())[0]
-                break
-
-        if reference_bs_pose is None:
-            raise LhException('Too little data, no reference')
-        bs_poses: dict[int, Pose] = {bs_id: reference_bs_pose}
-
-        # Calculate the pose of the remaining base stations, based on the pose of the first CF
-        cls._estimate_remaining_bs_poses(bs_poses_ref_cfs, bs_poses)
+        # Calculate the pose of all base stations, based on the pose of one base station
+        try:
+            bs_poses = cls._estimate_bs_poses(bs_poses_ref_cfs)
+        except LhException as e:
+            # At this point we might have too few base stations or we have islands of non-linked base stations.
+            solution.progress_is_ok = False
+            solution.general_failure_info = str(e)
+            return cleaned_matched_samples
 
         # Now that we have estimated the base station poses, estimate the poses of the CF in all the samples
         cf_poses = cls._estimate_cf_poses(bs_poses_ref_cfs, bs_poses)
 
-        return LhBsCfPoses(bs_poses, cf_poses), cleaned_matched_samples
+        # Store the results in the solution
+        for pose, sample in zip(cf_poses, cleaned_matched_samples):
+            sample.pose = pose
+        solution.bs_poses = bs_poses
+
+        return cleaned_matched_samples
 
     @classmethod
-    def _find_solutions(cls, matched_samples: list[LhCfPoseSample], sensor_positions: ArrayFloat
-                        ) -> dict[BsPairIds, ArrayFloat]:
+    def _build_link_stats(cls, matched_samples: list[LhCfPoseSampleWrapper], solution: LighthouseGeometrySolution):
+        """
+        Build statistics about the number of links between base stations, based on the matched samples.
+        :param matched_samples: List of matched samples
+        :param solution: A LighthouseGeometry Solution object to store issues in
+        """
+
+        def increase_link_count(bs1: int, bs2: int):
+            """Increase the link count between two base stations"""
+            if bs1 not in solution.link_count:
+                solution.link_count[bs1] = {}
+            if bs2 not in solution.link_count[bs1]:
+                solution.link_count[bs1][bs2] = 0
+            solution.link_count[bs1][bs2] += 1
+
+        def increase_sample_count(bs: int):
+            """Increase the sample count for a base station"""
+            if bs not in solution.bs_sample_count:
+                solution.bs_sample_count[bs] = 0
+            solution.bs_sample_count[bs] += 1
+
+        for sample in matched_samples:
+            bs_in_sample = sample.angles_calibrated.keys()
+            for bs1 in bs_in_sample:
+                increase_sample_count(bs1)
+                for bs2 in bs_in_sample:
+                    if bs1 != bs2:
+                        increase_link_count(bs1, bs2)
+
+        solution.link_count_ok_threshold = 1
+        if len(solution.link_count) > 2:
+            solution.link_count_ok_threshold = 2
+
+    @classmethod
+    def _find_bs_to_bs_poses(cls, matched_samples: list[LhCfPoseSampleWrapper]) -> dict[BsPairIds, ArrayFloat]:
         """
         Find the pose of all base stations, in the reference frame of other base stations.
 
@@ -113,7 +143,6 @@ class LighthouseInitialEstimator:
            out in space, while the correct one will end up more or less in the same spot for all samples.
 
         :param matched_samples: List of matched samples
-        :param sensor_positions: list of sensor positions on the lighthouse deck, CF reference frame
         :return: Base stations poses in the reference frame of the other base stations. The data is organized as a
                  dictionary of tuples with base station id pairs, mapped to positions. For instance the entry with key
                  (2, 1) contains the position of base station 1, in the base station 2 reference frame.
@@ -121,14 +150,7 @@ class LighthouseInitialEstimator:
 
         position_permutations: dict[BsPairIds, list[list[ArrayFloat]]] = {}
         for sample in matched_samples:
-            solutions: dict[int, BsPairPoses] = {}
-            for bs, angles in sample.angles_calibrated.items():
-                projections = angles.projection_pair_list()
-                estimates_ref_bs = IppeCf.solve(sensor_positions, projections)
-                estimates_ref_cf = cls._convert_estimates_to_cf_reference_frame(estimates_ref_bs)
-                solutions[bs] = estimates_ref_cf
-
-            cls._add_solution_permutations(solutions, position_permutations)
+            cls._add_solution_permutations(sample.ippe_solutions, position_permutations)
 
         return cls._find_most_likely_positions(position_permutations)
 
@@ -168,32 +190,28 @@ class LighthouseInitialEstimator:
                                                    pose3.translation, pose4.translation])
 
     @classmethod
-    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSample], sensor_positions: ArrayFloat,
-                         bs_positions: dict[BsPairIds, ArrayFloat]) -> tuple[list[dict[int, Pose]],
-                                                                             list[LhCfPoseSample]]:
+    def _angles_to_poses(cls, matched_samples: list[LhCfPoseSampleWrapper], bs_positions: dict[BsPairIds, ArrayFloat],
+                         solution: LighthouseGeometrySolution) -> tuple[list[dict[int, Pose]],
+                                                                        list[LhCfPoseSampleWrapper]]:
         """
         Estimate the base station poses in the Crazyflie reference frames, for each sample.
 
-        Use Ippe again to find the possible poses of the bases stations and pick the one that best matches the position
-        in bs_positions.
+        Again use the IPPE solutions to find the possible poses of the base stations and pick the one that best matches
+        the position in bs_positions.
 
         :param matched_samples: List of samples
-        :param sensor_positions: Positions of the sensors on the lighthouse deck (CF ref frame)
         :param bs_positions: Dictionary of base station positions (other base station ref frame)
+        :param solution: A LighthouseGeometrySolution object to store issues in
         :return: A list of dictionaries from base station to Pose of all base stations, for each sample, as well as
-                 a version of the matched_samples where outliers are removed
+                 a version of the matched_samples where ambiguous samples are removed.
         """
         result: list[dict[int, Pose]] = []
 
-        cleaned_matched_samples: list[LhCfPoseSample] = []
+        cleaned_matched_samples: list[LhCfPoseSampleWrapper] = []
+        ambiguous_count = 0
 
         for sample in matched_samples:
-            solutions: dict[int, BsPairPoses] = {}
-            for bs, angles in sample.angles_calibrated.items():
-                projections = angles.projection_pair_list()
-                estimates_ref_bs = IppeCf.solve(sensor_positions, projections)
-                estimates_ref_cf = cls._convert_estimates_to_cf_reference_frame(estimates_ref_bs)
-                solutions[bs] = estimates_ref_cf
+            solutions = sample.ippe_solutions
 
             poses: dict[int, Pose] = {}
             ids = sorted(solutions.keys())
@@ -210,9 +228,15 @@ class LighthouseInitialEstimator:
                     poses[pair_ids.bs2] = pair_poses.bs2
                 else:
                     is_sample_valid = False
+                    sample.status = LhCfPoseSampleStatus.AMBIGUOUS
+                    if sample.is_mandatory:
+                        solution.progress_is_ok = False
+                    else:
+                        ambiguous_count += 1
+                        solution.xyz_space_samples_info = f'{ambiguous_count} sample(s) with ambiguities skipped'
                     break
 
-            if is_sample_valid:
+            if is_sample_valid or sample.is_mandatory:
                 result.append(poses)
                 cleaned_matched_samples.append(sample)
 
@@ -235,7 +259,7 @@ class LighthouseInitialEstimator:
                     min_dist = dist
                     best = BsPairPoses(solution_1, solution_2)
 
-        if min_dist > cls.OUTLIER_DETECTION_ERROR:
+        if min_dist > cls.AMBIGUOUS_DETECTION_ERROR:
             success = False
 
         return success, best
@@ -297,20 +321,7 @@ class LighthouseInitialEstimator:
         return pos
 
     @classmethod
-    def _convert_estimates_to_cf_reference_frame(cls, estimates_ref_bs: list[IppeCf.Solution]) -> BsPairPoses:
-        """
-        Convert the two ippe solutions from the base station reference frame to the CF reference frame
-        """
-        rot_1 = estimates_ref_bs[0].R.transpose()
-        t_1 = np.dot(rot_1, -estimates_ref_bs[0].t)
-
-        rot_2 = estimates_ref_bs[1].R.transpose()
-        t_2 = np.dot(rot_2, -estimates_ref_bs[1].t)
-
-        return BsPairPoses(Pose(rot_1, t_1), Pose(rot_2, t_2))
-
-    @classmethod
-    def _estimate_remaining_bs_poses(cls, bs_poses_ref_cfs: list[dict[int, Pose]], bs_poses: dict[int, Pose]) -> None:
+    def _estimate_bs_poses(cls, bs_poses_ref_cfs: list[dict[int, Pose]]) -> dict[int, Pose]:
         """
         Based on one base station pose, estimate the other base station poses.
 
@@ -318,6 +329,18 @@ class LighthouseInitialEstimator:
         have information of base station pairs (0, 2) and (2, 3), from this we can first derive the pose of 2 and after
         that the pose of 3.
         """
+        # Use the first CF pose as the global reference frame. The pose of the first base station (as estimated by ippe)
+        # is used as the pose that all other base stations are mapped to.
+        reference_bs_pose = None
+        for bs_pose_ref_cfs in bs_poses_ref_cfs:
+            if len(bs_pose_ref_cfs) > 0:
+                bs_id, reference_bs_pose = list(bs_pose_ref_cfs.items())[0]
+                break
+
+        if reference_bs_pose is None:
+            raise LhException('Too little data, no reference')
+        bs_poses: dict[int, Pose] = {bs_id: reference_bs_pose}
+
         # Find all base stations in the list
         all_bs = set()
         for initial_est_bs_poses in bs_poses_ref_cfs:
@@ -327,9 +350,11 @@ class LighthouseInitialEstimator:
         to_find = all_bs - bs_poses.keys()
 
         # run through the list of samples until we manage to find them all
-        remaining = len(to_find)
-        while remaining > 0:
-            buckets: dict[int, list[Pose]] = {}
+        # The process is like peeling an onion, from the inside out. In each iteration we find the poses of
+        # the base stations that are closest to the ones we already have, until we have found all poses.
+        remaining_to_find = len(to_find)
+        while remaining_to_find > 0:
+            averaging_storage: dict[int, list[Pose]] = {}
             for bs_poses_in_sample in bs_poses_ref_cfs:
                 unknown = to_find.intersection(bs_poses_in_sample.keys())
                 known = set(bs_poses.keys()).intersection(bs_poses_in_sample.keys())
@@ -348,25 +373,30 @@ class LighthouseInitialEstimator:
                         unknown_cf = bs_poses_in_sample[bs_id]
                         # Finally we can calculate the BS pose in the global reference frame
                         bs_pose = cls._map_pose_to_ref_frame(known_global, known_cf, unknown_cf)
-                        if bs_id not in buckets:
-                            buckets[bs_id] = []
-                        buckets[bs_id].append(bs_pose)
+                        if bs_id not in averaging_storage:
+                            averaging_storage[bs_id] = []
+                        averaging_storage[bs_id].append(bs_pose)
 
             # Average over poses and add to bs_poses
-            for bs_id, poses in buckets.items():
-                bs_poses[bs_id] = cls._avarage_poses(poses)
+            for bs_id, poses in averaging_storage.items():
+                bs_poses[bs_id] = cls._average_poses(poses)
 
+            # Remove the newly found base stations from the set of base stations to find
             to_find = all_bs - bs_poses.keys()
             if len(to_find) == 0:
                 break
 
-            if len(to_find) == remaining:
+            if len(to_find) == remaining_to_find:
+                # We could not map any more poses, but some still remain to be found. This means that there are not
+                # links to all base stations.
                 raise LhException('Can not link positions between all base stations')
 
-            remaining = len(to_find)
+            remaining_to_find = len(to_find)
+
+        return bs_poses
 
     @classmethod
-    def _avarage_poses(cls, poses: list[Pose]) -> Pose:
+    def _average_poses(cls, poses: list[Pose]) -> Pose:
         """
         Averaging of quaternions to get the "average" orientation of multiple samples.
         From https://stackoverflow.com/a/61013769
@@ -400,7 +430,7 @@ class LighthouseInitialEstimator:
                 est_ref_global = cls._map_cf_pos_to_cf_pos(pose_global, pose_cf)
                 poses.append(est_ref_global)
 
-            cf_poses.append(cls._avarage_poses(poses))
+            cf_poses.append(cls._average_poses(poses))
 
         return cf_poses
 

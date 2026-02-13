@@ -22,9 +22,11 @@
 from test.localization.lighthouse_fixtures import LighthouseFixtures
 from test.localization.lighthouse_test_base import LighthouseTestBase
 
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleWrapper
+from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
-from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 
 
@@ -37,22 +39,22 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
         # CF_ORIGIN is used in the first sample and will define the global reference frame
         bs_id0 = 3
         bs_id1 = 1
-        matched_samples = [
-            LhCfPoseSample(angles_calibrated={
-                bs_id0: self.fixtures.angles_cf_origin_bs0,
-                bs_id1: self.fixtures.angles_cf_origin_bs1,
-            }),
-        ]
+        matched_samples = self.augment_and_wrap(
+            [
+                LhCfPoseSample(angles_calibrated={
+                    bs_id0: self.fixtures.angles_cf_origin_bs0,
+                    bs_id1: self.fixtures.angles_cf_origin_bs1,
+                }),
+            ])
+        solution = LighthouseGeometrySolution(matched_samples)
 
-        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples,
-                                                                                     LhDeck4SensorPositions.positions)
+        cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples, solution)
 
         # Test
-        actual = LighthouseGeometrySolver.solve(
-            initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions)
+        LighthouseGeometrySolver.solve(cleaned_matched_samples, LhDeck4SensorPositions.positions, solution)
 
         # Assert
-        bs_poses = actual.bs_poses
+        bs_poses = solution.bs_poses
         self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, bs_poses[bs_id0], places=3)
         self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, bs_poses[bs_id1], places=3)
 
@@ -63,31 +65,41 @@ class TestLighthouseGeometrySolver(LighthouseTestBase):
         bs_id1 = 2
         bs_id2 = 9
         bs_id3 = 3
-        matched_samples = [
-            LhCfPoseSample(angles_calibrated={
-                bs_id0: self.fixtures.angles_cf_origin_bs0,
-                bs_id1: self.fixtures.angles_cf_origin_bs1,
-            }),
-            LhCfPoseSample(angles_calibrated={
-                bs_id1: self.fixtures.angles_cf1_bs1,
-                bs_id2: self.fixtures.angles_cf1_bs2,
-            }),
-            LhCfPoseSample(angles_calibrated={
-                bs_id2: self.fixtures.angles_cf2_bs2,
-                bs_id3: self.fixtures.angles_cf2_bs3,
-            }),
-        ]
+        matched_samples = self.augment_and_wrap(
+            [
+                LhCfPoseSample(angles_calibrated={
+                    bs_id0: self.fixtures.angles_cf_origin_bs0,
+                    bs_id1: self.fixtures.angles_cf_origin_bs1,
+                }),
+                LhCfPoseSample(angles_calibrated={
+                    bs_id1: self.fixtures.angles_cf1_bs1,
+                    bs_id2: self.fixtures.angles_cf1_bs2,
+                }),
+                LhCfPoseSample(angles_calibrated={
+                    bs_id2: self.fixtures.angles_cf2_bs2,
+                    bs_id3: self.fixtures.angles_cf2_bs3,
+                }),
+            ]
+        )
+        solution = LighthouseGeometrySolution(matched_samples)
 
-        initial_guess, cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples,
-                                                                                     LhDeck4SensorPositions.positions)
+        cleaned_matched_samples = LighthouseInitialEstimator.estimate(matched_samples, solution)
 
         # Test
-        actual = LighthouseGeometrySolver.solve(
-            initial_guess, cleaned_matched_samples, LhDeck4SensorPositions.positions)
+        LighthouseGeometrySolver.solve(cleaned_matched_samples, LhDeck4SensorPositions.positions, solution)
 
         # Assert
-        bs_poses = actual.bs_poses
+        bs_poses = solution.bs_poses
         self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, bs_poses[bs_id0], places=3)
         self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, bs_poses[bs_id1], places=3)
         self.assertPosesAlmostEqual(self.fixtures.BS2_POSE, bs_poses[bs_id2], places=3)
         self.assertPosesAlmostEqual(self.fixtures.BS3_POSE, bs_poses[bs_id3], places=3)
+
+    # Helpers
+
+    def augment_and_wrap(self, samples: list[LhCfPoseSample]) -> list[LhCfPoseSampleWrapper]:
+        wrapped_samples = []
+        for sample in samples:
+            sample.augment_with_ippe(LhDeck4SensorPositions.positions)
+            wrapped_samples.append(LhCfPoseSampleWrapper(sample))
+        return wrapped_samples

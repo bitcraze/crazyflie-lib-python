@@ -50,6 +50,8 @@
    uvx ruff format .
    ```
 
+If you want to use the wireshark functionality then use ```maturin develop --features wireshark```.
+
 ### Development Workflow
 
 After making changes to Rust code, rebuild with:
@@ -60,6 +62,8 @@ uv sync && \
 uvx ruff check . && \
 uvx ruff format .
 ```
+
+If you want to use the wireshark functionality then use ```maturin develop --features wireshark```.
 
 ### Regenerating Python Stubs
 

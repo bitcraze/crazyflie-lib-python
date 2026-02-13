@@ -10,12 +10,13 @@ crate-type = ["cdylib", "rlib"]
 [features]
 default = ["extension-module"]
 extension-module = ["pyo3/extension-module"]
+wireshark = ["crazyflie-link/wireshark"]
 
 [dependencies]
 pyo3 = { version = "0.26" }
 pyo3-async-runtimes = { version = "0.26", features = ["tokio-runtime"] }
-crazyflie-lib = { git = "https://github.com/bitcraze/crazyflie-lib-rs" }
-crazyflie-link = "0.3.0"
+crazyflie-lib = { version = "0.5.1", features=["packet_capture"] }
+crazyflie-link = { version = "0.4.1", features=["packet_capture"]}
 tokio = { version = "1.48", features = ["full"] }
 futures = "0.3.31"
 pyo3-stub-gen-derive = "0.17.0"

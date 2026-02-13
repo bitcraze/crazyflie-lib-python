@@ -11,7 +11,7 @@ pub mod subsystems;
 mod toc_cache;
 
 use crazyflie::Crazyflie;
-use link_context::LinkContext;
+use link_context::{LinkContext, init_wireshark_capture, is_wireshark_capture_available, is_wireshark_feature_enabled};
 use subsystems::{
     Commander, Console, Log, LogBlock, LogStream, Param, Platform, AppChannel,
     Localization, EmergencyControl, ExternalPose, Lighthouse, LocoPositioning,
@@ -25,6 +25,9 @@ use toc_cache::{NoTocCache, InMemoryTocCache, FileTocCache};
 fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Crazyflie>()?;
     m.add_class::<LinkContext>()?;
+    m.add_function(wrap_pyfunction!(init_wireshark_capture, m)?)?;
+    m.add_function(wrap_pyfunction!(is_wireshark_capture_available, m)?)?;
+    m.add_function(wrap_pyfunction!(is_wireshark_feature_enabled, m)?)?;
     m.add_class::<Commander>()?;
     m.add_class::<Console>()?;
     m.add_class::<Log>()?;

@@ -5,6 +5,57 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3_stub_gen_derive::*;
 use std::sync::Arc;
 
+/// Check if the Wireshark capture feature was compiled in
+///
+/// Returns True if the library was built with the 'wireshark' feature enabled.
+/// This is a compile-time check, not a runtime check.
+#[pyfunction]
+pub fn is_wireshark_feature_enabled() -> bool {
+    #[cfg(feature = "wireshark")]
+    {
+        true
+    }
+    #[cfg(not(feature = "wireshark"))]
+    {
+        false
+    }
+}
+
+/// Initialize Wireshark packet capture
+///
+/// Attempts to connect to the Wireshark extcap Unix socket at /tmp/crazyflie-wireshark.sock.
+/// If the socket is not available (extcap not running), capture is silently disabled.
+///
+/// Call this before connecting to any Crazyflie to capture all packets.
+///
+/// Note: This function is only available when the 'wireshark' feature is enabled.
+/// When disabled, this function does nothing.
+///
+/// Example:
+///     from cflib._rust import init_wireshark_capture
+///     init_wireshark_capture()  # Call once at startup
+#[pyfunction]
+pub fn init_wireshark_capture() {
+    #[cfg(feature = "wireshark")]
+    crazyflie_link::capture::init();
+}
+
+/// Check if Wireshark capture is available
+///
+/// Returns True if the extcap socket is connected and capture is active.
+/// Always returns False if the 'wireshark' feature is not enabled.
+#[pyfunction]
+pub fn is_wireshark_capture_available() -> bool {
+    #[cfg(feature = "wireshark")]
+    {
+        crazyflie_link::capture::is_available()
+    }
+    #[cfg(not(feature = "wireshark"))]
+    {
+        false
+    }
+}
+
 /// Link context for scanning and discovering Crazyflies
 ///
 /// The LinkContext provides methods to scan for available Crazyflies on the network.

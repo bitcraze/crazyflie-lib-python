@@ -28,6 +28,14 @@ Crazyflie UDP driver.
 This driver is used to communicate with the Crazyflie using a UDP connection.
 Scanning feature assumes a crazyflie server is running on port 19850-19859
 that will respond to a null CRTP packet with a valid CRTP packet.
+
+v2.0 changelog:
+- Complete rewrite to align with other CRTP driver implementations
+- Added dedicated _UdpReceiveThread class for asynchronous packet reception
+- Implemented functional scan_interface() that probes UDP ports 19850-19859
+- Fixed send_packet() with null checks, proper error callbacks, and removed checksum.
+- Added proper socket cleanup in close() method
+- Changed variable naming to align with other CRTP drivers and added docstrings
 """
 import logging
 import queue
@@ -68,7 +76,7 @@ class UdpDriver(CRTPDriver):
     def connect(self, uri, radio_link_statistics_callback, link_error_callback):
         """
         Connect the link driver to a specified URI of the format:
-        udp://<host>/<port>
+        udp://<host>:<port>
 
         The callback for radio link statistics is not used by the UDP driver.
         The callback from link_error_callback will be called when an error
@@ -148,7 +156,8 @@ class UdpDriver(CRTPDriver):
     def close(self):
         """ Close the link. """
         # Stop the comm thread
-        self._thread.stop()
+        if self._thread:
+            self._thread.stop()
 
         # Close the UDP socket
         try:

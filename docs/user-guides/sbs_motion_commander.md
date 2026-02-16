@@ -15,7 +15,7 @@ We will assume that you already know this before you start with the tutorial:
 
 ## Get the script started
 
-Since you should have installed cflib in the previous step by step tutorial, you are all ready to got now. Open up an new python script called `motion_flying.py`. First you will start by adding the following import to the script:
+Since you should have installed cflib in the previous step by step tutorial, you are all ready to go now. Open up an new python script called `motion_flying.py`. First you will start by adding the following import to the script:
 
 ```python
 import logging
@@ -30,11 +30,9 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.utils import uri_helper
 
-
 URI = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
-DEFAULT_HEIGHT = 0.5
-BOX_LIMIT = 0.5
+logging.basicConfig(level=logging.ERROR)
 
 if __name__ == '__main__':
 
@@ -46,7 +44,7 @@ This probably all looks pretty familiar, except for one thing line, namely:
 
 `from cflib.positioning.motion_commander import MotionCommander`
 
-This imports the motion commander, which is pretty much a wrapper around the position setpoint frame work of the crazyflie. You probably have unknowingly experienced this a when trying out the assist modes in this [tutorial with the flow deck in the cfclient](https://www.bitcraze.io/documentation/tutorials/getting-started-with-flow-deck/)
+This imports the motion commander, which is pretty much a wrapper around the position setpoint frame work of the crazyflie. You probably have unknowingly experienced this when trying out the assist modes in this [tutorial with the flow deck in the cfclient](https://www.bitcraze.io/documentation/tutorials/getting-started-with-flow-deck/)
 
 ## Step 1: Security before flying
 
@@ -150,9 +148,8 @@ Now make the function `take_off_simple(..)` above `__main__`, which will contain
 
 ```python
 def take_off_simple(scf):
-    with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
+    with MotionCommander(scf) as mc:
         time.sleep(3)
-        mc.stop()
 ```
 
 If you run the python script, you will see the crazyflie connect and immediately take off. After flying for 3 seconds it will land again.
@@ -161,14 +158,14 @@ The reason for the crazyflie to immediately take off, is that the motion command
 
 ### Changing the height
 
-Currently the motion commander had 0.3 meters height as default but this can of course be changed.
+Currently the motion commander has 0.3 meters height as default but this can of course be changed.
 
-Change the  following line in `take_off_simple(...)`:
+Change the  following lines in `take_off_simple(...)`:
 ```python
     with MotionCommander(scf) as mc:
+        time.sleep(3)
         mc.up(0.3)
         time.sleep(3)
-        mc.stop()
 ```
 
 Run the script again. The crazyflie will first take off to 0.3 meters and then goes up for another 0.3 meters.
@@ -210,7 +207,6 @@ logging.basicConfig(level=logging.ERROR)
 def take_off_simple(scf):
     with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
         time.sleep(3)
-        mc.stop()
 
 
 def param_deck_flow(name, value_str):

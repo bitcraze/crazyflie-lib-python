@@ -205,7 +205,7 @@ Notice that now you will need to include the SyncCrazyflie instance (`scf`) and 
 
 Now the logging instances will be inserted by adding the following after you configured the lg_stab:
  ```python
-    with SyncLogger(scf, lg_stab) as logger:
+    with SyncLogger(scf, logconf) as logger:
 
         for log_entry in logger:
 
@@ -221,7 +221,7 @@ Now the logging instances will be inserted by adding the following after you con
 
 ### Test the script:
 
-First change the `simple_connect()` in _main_ in `simple_log(scf, lg_stab)`. Now run the script (`python3 connect_log_param.py`) like before.
+First change the `simple_connect()` in _main_ to `simple_log(scf, lg_stab)`. Now run the script (`python3 connect_log_param.py`) like before.
 
 If everything is fine it should continuously print the logging variables, like this:
 
@@ -296,7 +296,7 @@ def simple_log_async(scf, logconf):
     cf.log.add_config(logconf)
 ```
 
-Here you add the logging configuration to to the logging framework of the Crazyflie. It will check if the log configuration is part of the TOC, which is a list of all the logging variables defined in the Crazyflie. You can test this out by changing one of the `lg_stab` variables to a completely bogus name like `'not.real'`. In this case you would receive the following message:
+Here you add the logging configuration to the logging framework of the Crazyflie. It will check if the log configuration is part of the TOC, which is a list of all the logging variables defined in the Crazyflie. You can test this out by changing one of the `lg_stab` variables to a completely bogus name like `'not.real'`. In this case you would receive the following message:
 
 `KeyError: 'Variable not.real not in TOC'`
 
@@ -308,7 +308,7 @@ def log_stab_callback(timestamp, data, logconf):
     print('[%d][%s]: %s' % (timestamp, logconf.name, data))
 ```
 
-This callback will be called once the log variables have received it and prints the contents. The callback function added to the logging framework by adding it to the log config in `simple_log_async(..)`:
+This callback will be called once the log variables have received it and prints the contents. The callback function is added to the logging framework by adding it to the log config in `simple_log_async(..)`:
 
 ```python
     logconf.data_received_cb.add_callback(log_stab_callback)
@@ -317,10 +317,12 @@ This callback will be called once the log variables have received it and prints 
 Then the log configuration would need to be started manually, and then stopped after a few seconds:
 
 ```python
-    logconf.start()
+    lg_stab.start()
     time.sleep(5)
-    logconf.stop()
+    lg_stab.stop()
 ```
+
+Instead of ```time.sleep(5)```, you have the possibility to interact with the Crazyflie in other ways, meaning you now have an asynchronous logging setup.
 
 ## Run the script
 
@@ -354,9 +356,6 @@ def simple_log_async(scf, logconf):
     cf = scf.cf
     cf.log.add_config(logconf)
     logconf.data_received_cb.add_callback(log_stab_callback)
-    logconf.start()
-    time.sleep(5)
-    logconf.stop()
 
 (...)
 
@@ -372,6 +371,10 @@ if __name__ == '__main__':
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
 
         simple_log_async(scf, lg_stab)
+
+        lg_stab.start()
+        time.sleep(5) # Your possibility to interact with the Crazyflie
+        lg_stab.stop()
 ```
 
 ## Step 3. Parameters

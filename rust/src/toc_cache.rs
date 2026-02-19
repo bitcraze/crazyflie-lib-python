@@ -29,11 +29,11 @@ impl NoTocCache {
 }
 
 impl TocCache for NoTocCache {
-    fn get_toc(&self, _crc32: u32) -> Option<String> {
+    fn get_toc(&self, _key: &[u8]) -> Option<String> {
         None
     }
 
-    fn store_toc(&self, _crc32: u32, _toc: &str) {
+    fn store_toc(&self, _key: &[u8], _toc: &str) {
         // No-op: doesn't store anything
     }
 }
@@ -53,7 +53,7 @@ impl TocCache for NoTocCache {
 #[pyclass]
 #[derive(Clone)]
 pub struct InMemoryTocCache {
-    cache: Arc<RwLock<HashMap<u32, String>>>,
+    cache: Arc<RwLock<HashMap<Vec<u8>, String>>>,
 }
 
 #[gen_stub_pymethods]
@@ -81,13 +81,13 @@ impl InMemoryTocCache {
 }
 
 impl TocCache for InMemoryTocCache {
-    fn get_toc(&self, crc32: u32) -> Option<String> {
-        self.cache.read().ok()?.get(&crc32).cloned()
+    fn get_toc(&self, key: &[u8]) -> Option<String> {
+        self.cache.read().ok()?.get(key).cloned()
     }
 
-    fn store_toc(&self, crc32: u32, toc: &str) {
+    fn store_toc(&self, key: &[u8], toc: &str) {
         if let Ok(mut cache) = self.cache.write() {
-            cache.insert(crc32, toc.to_string());
+            cache.insert(key.to_vec(), toc.to_string());
         }
     }
 }
@@ -95,7 +95,7 @@ impl TocCache for InMemoryTocCache {
 /// File-based TOC cache that persists to disk
 ///
 /// This cache stores TOCs as individual JSON files in a specified directory.
-/// Each TOC is stored as {crc32}.json. The cache persists across Python process
+/// Each TOC is stored as {key-hex}.json. The cache persists across Python process
 /// restarts, making it ideal for production use.
 ///
 /// The cache directory is created automatically if it doesn't exist.
@@ -110,7 +110,7 @@ impl TocCache for InMemoryTocCache {
 pub struct FileTocCache {
     cache_dir: Arc<PathBuf>,
     // In-memory cache for faster access
-    memory_cache: Arc<RwLock<HashMap<u32, String>>>,
+    memory_cache: Arc<RwLock<HashMap<Vec<u8>, String>>>,
 }
 
 #[gen_stub_pymethods]
@@ -170,20 +170,21 @@ impl FileTocCache {
 }
 
 impl TocCache for FileTocCache {
-    fn get_toc(&self, crc32: u32) -> Option<String> {
+    fn get_toc(&self, key: &[u8]) -> Option<String> {
         // First check memory cache
         if let Ok(cache) = self.memory_cache.read() {
-            if let Some(toc) = cache.get(&crc32) {
+            if let Some(toc) = cache.get(key) {
                 return Some(toc.clone());
             }
         }
 
         // If not in memory, try to load from file
-        let file_path = self.cache_dir.join(format!("{}.json", crc32));
+        let filename = format!("{}.json", key.iter().map(|b| format!("{:02x}", b)).collect::<String>());
+        let file_path = self.cache_dir.join(filename);
         if let Ok(contents) = fs::read_to_string(&file_path) {
             // Cache in memory for next time
             if let Ok(mut cache) = self.memory_cache.write() {
-                cache.insert(crc32, contents.clone());
+                cache.insert(key.to_vec(), contents.clone());
             }
             Some(contents)
         } else {
@@ -191,14 +192,15 @@ impl TocCache for FileTocCache {
         }
     }
 
-    fn store_toc(&self, crc32: u32, toc: &str) {
+    fn store_toc(&self, key: &[u8], toc: &str) {
         // Store in memory cache
         if let Ok(mut cache) = self.memory_cache.write() {
-            cache.insert(crc32, toc.to_string());
+            cache.insert(key.to_vec(), toc.to_string());
         }
 
         // Write to file (ignore errors - cache is best-effort)
-        let file_path = self.cache_dir.join(format!("{}.json", crc32));
+        let filename = format!("{}.json", key.iter().map(|b| format!("{:02x}", b)).collect::<String>());
+        let file_path = self.cache_dir.join(filename);
         let _ = fs::write(file_path, toc);
     }
 }

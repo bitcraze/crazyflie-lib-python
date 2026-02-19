@@ -14,7 +14,7 @@ extension-module = ["pyo3/extension-module"]
 [dependencies]
 pyo3 = { version = "0.26" }
 pyo3-async-runtimes = { version = "0.26", features = ["tokio-runtime"] }
-crazyflie-lib = "0.5.2"
+crazyflie-lib = { git = "https://github.com/bitcraze/crazyflie-lib-rs", rev = "7d1d6ce540548b1841e2abf416008a1b8459a8cc" }
 crazyflie-link = "0.4.0"
 tokio = { version = "1.48", features = ["full"] }
 futures = "0.3.31"

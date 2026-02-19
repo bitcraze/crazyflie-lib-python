@@ -404,7 +404,7 @@ class FileTocCache:
     File-based TOC cache that persists to disk
 
     This cache stores TOCs as individual JSON files in a specified directory.
-    Each TOC is stored as {crc32}.json. The cache persists across Python process
+    Each TOC is stored as {key-hex}.json. The cache persists across Python process
     restarts, making it ideal for production use.
 
     The cache directory is created automatically if it doesn't exist.

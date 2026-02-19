@@ -32,11 +32,12 @@ and measuring the performance improvement:
 3. FileTocCache - Cache to disk (fast and persistent across script runs)
 
 Example usage:
-    python toc_cache.py radio://0/80/2M/E7E7E7E7E7              # No cache
-    python toc_cache.py radio://0/80/2M/E7E7E7E7E7 --cache none # No cache
-    python toc_cache.py radio://0/80/2M/E7E7E7E7E7 --cache memory # In-memory cache
-    python toc_cache.py radio://0/80/2M/E7E7E7E7E7 --cache file  # File cache
-    python toc_cache.py radio://0/80/2M/E7E7E7E7E7 --connections 5 # Connect 5 times
+    python toc_cache.py                              # No cache (default URI)
+    python toc_cache.py --cache none                 # No cache
+    python toc_cache.py --cache memory               # In-memory cache
+    python toc_cache.py --cache file                 # File cache
+    python toc_cache.py --connections 5              # Connect 5 times
+    python toc_cache.py radio://0/80/2M/E7E7E7E7E7  # Custom URI
 """
 
 import argparse
@@ -55,7 +56,9 @@ async def main() -> int:
     )
     parser.add_argument(
         "uri",
-        help='Connection URI (e.g., "radio://0/80/2M/E7E7E7E7E7")',
+        nargs="?",
+        default="radio://0/80/2M/E7E7E7E7E7",
+        help="Crazyflie URI (default: radio://0/80/2M/E7E7E7E7E7)",
     )
     parser.add_argument(
         "--cache",

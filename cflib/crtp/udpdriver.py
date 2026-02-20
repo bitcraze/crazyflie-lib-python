@@ -185,12 +185,12 @@ class UdpDriver(CRTPDriver):
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s.settimeout(_SCAN_TIMEOUT)
-                s.connect(('0.0.0.0', port))
+                s.connect(('127.0.0.1', port))
                 s.send(b'\xFF')  # Null CRTP packet as probe
                 s.recv(1024)
                 # Got a response, Crazyflie is available
                 s.close()
-                found.append(['udp://0.0.0.0:{}'.format(port), ''])
+                found.append(['udp://127.0.0.1:{}'.format(port), ''])
             except socket.timeout:
                 s.close()
             except Exception:

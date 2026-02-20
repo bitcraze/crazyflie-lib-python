@@ -36,6 +36,8 @@ v2.0 changelog:
 - Fixed send_packet() with null checks, proper error callbacks, and removed checksum.
 - Added proper socket cleanup in close() method
 - Changed variable naming to align with other CRTP drivers and added docstrings
+- Added environment variable SCAN_ADDRESS for scan_interface() to specify target IP address.
+  This is useful for server and clients running on different hosts.
 """
 import logging
 import os

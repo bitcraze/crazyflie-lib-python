@@ -38,6 +38,7 @@ v2.0 changelog:
 - Changed variable naming to align with other CRTP drivers and added docstrings
 """
 import logging
+import os
 import queue
 import re
 import socket
@@ -179,18 +180,19 @@ class UdpDriver(CRTPDriver):
     def scan_interface(self, address=None):
         """ Scan interface for Crazyflies """
         found = []
+        scan_address = os.getenv('SCAN_ADDRESS', '127.0.0.1')
 
         for i in range(_NR_OF_PORTS_TO_SCAN):
             port = _BASE_PORT + i
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s.settimeout(_SCAN_TIMEOUT)
-                s.connect(('127.0.0.1', port))
+                s.connect((scan_address, port))
                 s.send(b'\xFF')  # Null CRTP packet as probe
                 s.recv(1024)
                 # Got a response, Crazyflie is available
                 s.close()
-                found.append(['udp://127.0.0.1:{}'.format(port), ''])
+                found.append(['udp://{}:{}'.format(scan_address, port), ''])
             except socket.timeout:
                 s.close()
             except Exception:

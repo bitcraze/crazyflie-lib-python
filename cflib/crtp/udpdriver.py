@@ -25,20 +25,70 @@
 """
 Crazyflie UDP driver.
 
-This driver is used to communicate with the Crazyflie using a UDP connection.
+This driver communicates with a Crazyflie (or simulator) over UDP using the CRTP
+protocol. It enables connecting to software-in-the-loop (SITL) simulations. 
 Scanning feature assumes a crazyflie server is running on port 19850-19859
 that will respond to a null CRTP packet with a valid CRTP packet.
 
-v2.0 changelog:
-- Complete rewrite to align with other CRTP driver implementations
-- Added dedicated _UdpReceiveThread class for asynchronous packet reception
-- Implemented functional scan_interface() that probes UDP ports 19850-19859
-- Fixed send_packet() with null checks, proper error callbacks, and removed checksum.
-- Added proper socket cleanup in close() method
-- Changed variable naming to align with other CRTP drivers and added docstrings
-- Added environment variable SCAN_ADDRESS for scan_interface() to specify target IP address.
-  This is useful for server and clients running on different hosts.
+Wire Protocol
+-------------
+The UDP driver uses a simple wire protocol where each UDP datagram contains exactly
+one CRTP packet. The packet format is:
+
+    Byte 0:    CRTP header (port, channel, and reserved bits)
+    Bytes 1-N: CRTP payload data (0 to 30 bytes) set by CRTP_MAX_DATA_SIZE in firmware
+
+Total packet size: 1 to 31 bytes per UDP datagram
+
+The payload follows standard CRTP format as defined in the Crazyflie protocol
+specification. No additional framing, checksums, or encapsulation is added by
+the UDP driver.
+
+Scan Behavior
+-------------
+The scan_interface() method discovers available Crazyflie devices by probing
+UDP ports in sequence:
+
+Port Range: 19850 to 19859 (10 ports total, BASE_PORT + 0 through 9)
+Scan Address: Configurable via SCAN_ADDRESS environment variable (default: 127.0.0.1)
+Probe Packet: Single 0xFF byte (null CRTP packet)
+Timeout: 0.1 seconds per port
+
+Scan Procedure:
+    1. For each port in range:
+       - Send 0xFF probe packet to SCAN_ADDRESS:port
+       - Wait up to 0.1 seconds for response
+       - If any response received, device is present
+       - Add URI "udp://SCAN_ADDRESS:port" to results
+
+Environment Variables
+---------------------
+SCAN_ADDRESS: IP address to scan for Crazyflie devices
+              Default: 127.0.0.1
+              Example: export SCAN_ADDRESS=192.168.1.100
+
+              This is useful when the Crazyflie server and client run on different
+              hosts. The client will scan the specified address instead of localhost.
+
+Connection URI Format
+--------------------
+udp://<host>:<port>
+
+Examples:
+    udp://127.0.0.1:19850  - Local simulator on port 19850
+    udp://192.168.1.5:19850 - Remote device at 192.168.1.5
 """
+
+# changelog:
+# - Complete rewrite to align with other CRTP driver implementations
+# - Added dedicated _UdpReceiveThread class for asynchronous packet reception
+# - Implemented functional scan_interface() that probes UDP ports 19850-19859
+# - Fixed send_packet() with null checks, proper error callbacks, and removed checksum
+# - Added proper socket cleanup in close() method
+# - Changed variable naming to align with other CRTP drivers and added docstrings
+# - Added environment variable SCAN_ADDRESS for scan_interface() to specify target IP address
+#   This is useful for server and clients running on different hosts
+
 import logging
 import os
 import queue

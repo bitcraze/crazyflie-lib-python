@@ -330,4 +330,104 @@ impl Memory {
             Ok(bytes_written)
         })
     }
+
+    /// List all memories available on the Crazyflie.
+    ///
+    /// Returns a list of dicts, each with keys:
+    /// - `id` (int): Memory ID used for read_raw/write_raw
+    /// - `type` (int): Memory type (e.g. 0x12 for trajectory)
+    /// - `size` (int): Memory size in bytes
+    ///
+    /// Optionally filter by memory type.
+    #[pyo3(signature = (memory_type=None))]
+    fn get_memories(&self, memory_type: Option<u8>) -> PyResult<Vec<(u8, u8, u32)>> {
+        let filter = match memory_type {
+            Some(t) => Some(MemoryType::try_from(t).map_err(to_pyerr)?),
+            None => None,
+        };
+        let memories = self.cf.memory.get_memories(filter);
+        Ok(memories.iter().map(|m| (m.memory_id, m.memory_type as u8, m.size)).collect())
+    }
+
+    /// Write raw bytes to a memory on the Crazyflie.
+    ///
+    /// Use `get_memories()` to discover available memory IDs.
+    ///
+    /// # Arguments
+    /// * `memory_id` - ID of the memory to write to (from `get_memories()`)
+    /// * `data` - Raw bytes to write
+    /// * `start_addr` - Address in memory to write to (default 0)
+    #[pyo3(signature = (memory_id, data, start_addr=0))]
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, int]"))]
+    fn write_raw<'py>(
+        &self,
+        py: Python<'py>,
+        memory_id: u8,
+        data: Vec<u8>,
+        start_addr: usize,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let mem_device = cf.memory.get_memories(None).into_iter()
+                .find(|m| m.memory_id == memory_id)
+                .ok_or_else(|| to_pyerr(crazyflie_lib::Error::MemoryError(
+                    format!("No memory with ID {} found", memory_id)
+                )))?
+                .clone();
+
+            let raw_mem: crazyflie_lib::subsystems::memory::RawMemory =
+                cf.memory.open_memory(mem_device).await
+                    .ok_or_else(|| to_pyerr(crazyflie_lib::Error::MemoryError(
+                        format!("Failed to open memory ID {}", memory_id)
+                    )))?
+                    .map_err(to_pyerr)?;
+
+            let bytes_written = data.len();
+            raw_mem.write(start_addr, &data).await.map_err(to_pyerr)?;
+
+            cf.memory.close_memory(raw_mem).await.map_err(to_pyerr)?;
+
+            Ok(bytes_written)
+        })
+    }
+
+    /// Read raw bytes from a memory on the Crazyflie.
+    ///
+    /// Use `get_memories()` to discover available memory IDs.
+    ///
+    /// # Arguments
+    /// * `memory_id` - ID of the memory to read from (from `get_memories()`)
+    /// * `address` - Address in memory to read from
+    /// * `length` - Number of bytes to read
+    #[gen_stub(override_return_type(type_repr = "collections.abc.Coroutine[typing.Any, typing.Any, bytes]"))]
+    fn read_raw<'py>(
+        &self,
+        py: Python<'py>,
+        memory_id: u8,
+        address: usize,
+        length: usize,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let cf = self.cf.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            let mem_device = cf.memory.get_memories(None).into_iter()
+                .find(|m| m.memory_id == memory_id)
+                .ok_or_else(|| to_pyerr(crazyflie_lib::Error::MemoryError(
+                    format!("No memory with ID {} found", memory_id)
+                )))?
+                .clone();
+
+            let raw_mem: crazyflie_lib::subsystems::memory::RawMemory =
+                cf.memory.open_memory(mem_device).await
+                    .ok_or_else(|| to_pyerr(crazyflie_lib::Error::MemoryError(
+                        format!("Failed to open memory ID {}", memory_id)
+                    )))?
+                    .map_err(to_pyerr)?;
+
+            let data = raw_mem.read(address, length).await.map_err(to_pyerr)?;
+
+            cf.memory.close_memory(raw_mem).await.map_err(to_pyerr)?;
+
+            Ok(data)
+        })
+    }
 }

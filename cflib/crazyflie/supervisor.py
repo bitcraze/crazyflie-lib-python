@@ -53,6 +53,8 @@ CMD_GET_STATE_BITFIELD = 0x0C
 
 CMD_ARM_SYSTEM = 0x01
 CMD_RECOVER_SYSTEM = 0x02
+CMD_EMERGENCY_STOP = 0x03
+CMD_EMERGENCY_STOP_WATCHDOG = 0x04
 
 
 class Supervisor:
@@ -255,3 +257,24 @@ class Supervisor:
         pk.data = (CMD_RECOVER_SYSTEM,)
         self._cf.send_packet(pk)
         logger.debug('Sent crash recovery request')
+
+    def send_emergency_stop(self):
+        """
+        Send emergency stop. The Crazyflie will immediately stop all motors.
+        """
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
+        pk.data = (CMD_EMERGENCY_STOP,)
+        self._cf.send_packet(pk)
+        logger.debug('Sent emergency stop')
+
+    def send_emergency_stop_watchdog(self):
+        """
+        Send emergency stop watchdog. The Crazyflie will stop all motors
+        unless this command is repeated at regular intervals.
+        """
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
+        pk.data = (CMD_EMERGENCY_STOP_WATCHDOG,)
+        self._cf.send_packet(pk)
+        logger.debug('Sent emergency stop watchdog')

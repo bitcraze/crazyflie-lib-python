@@ -24,6 +24,7 @@ Provides access to the supervisor module of the Crazyflie platform.
 """
 import logging
 import time
+import warnings
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
@@ -91,6 +92,19 @@ class Supervisor:
         self._cf.add_port_callback(CRTPPort.SUPERVISOR, self._supervisor_callback)
         self._bitfield_response_received = False
 
+    def _check_protocol_version(self):
+        """Returns True if the protocol version is supported, False otherwise."""
+        version = self._cf.platform.get_protocol_version()
+        if version < 12:
+            warnings.warn(
+                'The supervisor subsystem requires CRTP protocol version 12 or later. '
+                f'Connected Crazyflie reports version {version}. '
+                'Update your Crazyflie firmware.',
+                stacklevel=3,
+            )
+            return False
+        return True
+
     def _supervisor_callback(self, pk: CRTPPacket):
         """
         Called when a packet is received.
@@ -121,6 +135,8 @@ class Supervisor:
         Request the bitfield and wait for response (blocking).
         Uses time-based cache to avoid sending packages too frequently.
         """
+        if not self._check_protocol_version():
+            return 0
         now = time.time()
 
         # Return cached value if it's recent enough
@@ -242,6 +258,8 @@ class Supervisor:
         Args:
             do_arm (bool): True = arm the system, False = disarm the system
         """
+        if not self._check_protocol_version():
+            return
         pk = CRTPPacket()
         pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
         pk.data = (CMD_ARM_SYSTEM, do_arm)
@@ -252,6 +270,8 @@ class Supervisor:
         """
         Send crash recovery request.
         """
+        if not self._check_protocol_version():
+            return
         pk = CRTPPacket()
         pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
         pk.data = (CMD_RECOVER_SYSTEM,)
@@ -262,6 +282,8 @@ class Supervisor:
         """
         Send emergency stop. The Crazyflie will immediately stop all motors.
         """
+        if not self._check_protocol_version():
+            return
         pk = CRTPPacket()
         pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
         pk.data = (CMD_EMERGENCY_STOP,)
@@ -273,6 +295,8 @@ class Supervisor:
         Send emergency stop watchdog. The Crazyflie will stop all motors
         unless this command is repeated at regular intervals.
         """
+        if not self._check_protocol_version():
+            return
         pk = CRTPPacket()
         pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
         pk.data = (CMD_EMERGENCY_STOP_WATCHDOG,)

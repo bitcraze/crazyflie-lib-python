@@ -26,7 +26,7 @@
 Crazyflie UDP driver.
 
 This driver communicates with a Crazyflie (or simulator) over UDP using the CRTP
-protocol. It enables connecting to software-in-the-loop (SITL) simulations. 
+protocol. It enables connecting to software-in-the-loop (SITL) simulations.
 Scanning feature assumes a crazyflie server is running on port 19850-19859
 that will respond to a null CRTP packet with a valid CRTP packet.
 
@@ -78,7 +78,6 @@ Examples:
     udp://127.0.0.1:19850  - Local simulator on port 19850
     udp://192.168.1.5:19850 - Remote device at 192.168.1.5
 """
-
 # changelog:
 # - Complete rewrite to align with other CRTP driver implementations
 # - Added dedicated _UdpReceiveThread class for asynchronous packet reception
@@ -88,7 +87,6 @@ Examples:
 # - Changed variable naming to align with other CRTP drivers and added docstrings
 # - Added environment variable SCAN_ADDRESS for scan_interface() to specify target IP address
 #   This is useful for server and clients running on different hosts
-
 import logging
 import os
 import queue

@@ -330,7 +330,7 @@ Make sure to replace the `simple_log(...)` to `simple_log_async(...)` in the `__
 
 `[18101][Stabilizer]: {'stabilizer.roll': -174.58396911621094, 'stabilizer.pitch': 42.82120132446289, 'stabilizer.yaw': 166.29837036132812}`
 
-If something went wrong, check if your script corresponds to the this:
+If something went wrong, check if your script corresponds to this:
 
 ```python
 import logging

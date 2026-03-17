@@ -44,7 +44,7 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 def slightly_more_complex_usage():
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         # Arm the Crazyflie
-        scf.cf.platform.send_arming_request(True)
+        scf.cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         with PositionHlCommander(
@@ -74,7 +74,7 @@ def slightly_more_complex_usage():
 def land_on_elevated_surface():
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         # Arm the Crazyflie
-        scf.cf.platform.send_arming_request(True)
+        scf.cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         with PositionHlCommander(scf,
@@ -91,7 +91,7 @@ def land_on_elevated_surface():
 def simple_sequence():
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         # Arm the Crazyflie
-        scf.cf.platform.send_arming_request(True)
+        scf.cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         with PositionHlCommander(scf, controller=PositionHlCommander.CONTROLLER_PID) as pc:

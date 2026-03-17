@@ -96,7 +96,7 @@ def activate_kalman_estimator(scf: SyncCrazyflie):
 
 def run_sequence(scf: SyncCrazyflie):
     print('This is: ', scf._link_uri)
-    scf.cf.platform.send_arming_request(True)
+    scf.cf.supervisor.send_arming_request(True)
     time.sleep(1.0)
 
     # .takeoff() is automatic when entering the "with PositionHlCommander" context

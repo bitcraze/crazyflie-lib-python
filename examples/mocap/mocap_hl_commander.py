@@ -184,7 +184,7 @@ if __name__ == '__main__':
         reset_estimator(cf)
 
         # Arm the Crazyflie
-        cf.platform.send_arming_request(True)
+        cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         run_sequence(cf, trajectory_id, duration)

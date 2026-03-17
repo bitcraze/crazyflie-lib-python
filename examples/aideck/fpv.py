@@ -185,7 +185,7 @@ class MainWindow(QtWidgets.QWidget):
             self._imgDownload.start()
 
             # Arm the Crazyflie
-            self.cf.platform.send_arming_request(True)
+            self.cf.supervisor.send_arming_request(True)
             time.sleep(1.0)
 
             self.hover = {'x': 0.0, 'y': 0.0, 'z': 0.0, 'yaw': 0.0, 'height': 0.3}

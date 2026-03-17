@@ -84,7 +84,7 @@ def run_sequence(scf):
     # cf.param.set_value('stabilizer.controller', '2')
 
     # Arm the Crazyflie
-    cf.platform.send_arming_request(True)
+    cf.supervisor.send_arming_request(True)
     time.sleep(1.0)
 
     print('takeoff')

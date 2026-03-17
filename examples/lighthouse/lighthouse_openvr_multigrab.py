@@ -151,8 +151,8 @@ if __name__ == '__main__':
             reset_estimator(scf1)
 
             # Arm the Crazyflies
-            scf0.cf.platform.send_arming_request(True)
-            scf1.cf.platform.send_arming_request(True)
+            scf0.cf.supervisor.send_arming_request(True)
+            scf1.cf.supervisor.send_arming_request(True)
             time.sleep(1.0)
 
             run_sequence(scf0, scf1)

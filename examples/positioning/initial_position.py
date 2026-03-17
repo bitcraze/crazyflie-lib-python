@@ -68,7 +68,7 @@ def run_sequence(scf, sequence, base_x, base_y, base_z, yaw):
     cf = scf.cf
 
     # Arm the Crazyflie
-    cf.platform.send_arming_request(True)
+    cf.supervisor.send_arming_request(True)
     time.sleep(1.0)
 
     for position in sequence:

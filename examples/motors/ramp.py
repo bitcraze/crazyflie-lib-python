@@ -60,7 +60,7 @@ class MotorRampExample:
         has been connected and the TOCs have been downloaded."""
 
         # Arm the Crazyflie
-        self._cf.platform.send_arming_request(True)
+        self._cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
     def _connection_failed(self, link_uri, msg):

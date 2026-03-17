@@ -94,7 +94,7 @@ def activate_kalman_estimator(scf: SyncCrazyflie):
 
 
 def arm(scf: SyncCrazyflie):
-    scf.cf.platform.send_arming_request(True)
+    scf.cf.supervisor.send_arming_request(True)
     time.sleep(1.0)
 
 

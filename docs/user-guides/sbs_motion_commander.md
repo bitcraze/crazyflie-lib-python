@@ -155,7 +155,7 @@ def take_off_simple(scf):
 
 If you run the python script, you will see the Crazyflie connect and immediately take off. After flying for 3 seconds it will land again.
 
-The reason for the Crazyflie immediately taking off is that the motion commander is initialized with a take off function. This take off function that will start sending position setpoints to the Crazyflie. Once the script goes out of the instance, the motion commander instance will close with a land function.
+The reason for the Crazyflie immediately taking off is that the Motion commander is initialized with a takeoff that starts sending position setpoints to the Crazyflie. Once the script goes out of the instance, the motion commander instance will close with a land function.
 
 ### Changing the height
 

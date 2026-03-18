@@ -11,7 +11,7 @@ On this step by step guide we will show you how to connect to your Crazyflie thr
 We will assume that you already know this before you start with the tutorial:
 
 * Some basic experience with python
-* Followed the [crazyflie getting started guide](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/).
+* Followed the [Crazyflie getting started guide](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/).
 * Able to connect the crazyflie to the CFClient and look at the log tabs and parameters (here is a [userguide](https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/)).
 
 
@@ -23,7 +23,7 @@ Make sure that you have [python3](https://www.python.org), which should contain 
 
 This should have been installed if you installed the cfclient already (on a linux system), but it is always good to double check this :)
 
-## Step 1. Connecting with the crazyflie
+## Step 1. Connecting with the Crazyflie
 
 ### Begin the python script
 
@@ -32,7 +32,7 @@ Open up a python script anywhere that is convenient for you. We use Visual Studi
 * For python editor: select file->new
 * For VS code: select file-> new file
 
-You can call it `connect_log_param.py` (that is what we are using in this tutorial)
+You can call it `connect_log_param.py` (that is what we are using in this tutorial).
 
 Then you would need to start with the following standard python libraries.
 
@@ -66,7 +66,7 @@ After these imports, start the script with:
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 ```
 
-This is the radio uri of the crazyflie, it can be set by setting the environment variable `CFLIB_URI`, if not set it uses the default. It should be probably fine but if you do not know what the uri of your Crazyfie is you can check that with an usb cable and looking at the config ([here](https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-configuration) are the instructions)
+This is the radio uri of the Crazyflie, it can be set by setting the environment variable `CFLIB_URI`, if not set it uses the default. It should be probably fine but if you do not know what the uri of your Crazyfie is you can check that with an usb cable and looking at the config ([here](https://www.bitcraze.io/documentation/repository/crazyflie-clients-python/master/userguides/userguide_client/#firmware-configuration) are the instructions).
 
 ### Main
 
@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
 The `syncCrazyflie` will create a synchronous Crazyflie instance with the specified link_uri. As you can see we are currently calling an non-existing function, so you will need to make that function first before you run the script.
 
-### Function for connecting with the crazyflie
+### Function for connecting with the Crazyflie
 
 Start a function above the main function (but below the URI) which you call simple connect:
 
@@ -99,6 +99,7 @@ def simple_connect():
 
 ### Run the script
 
+Make sure your Crazyflie is on and your Crazyradio is connected to your computer, and that the Crazyflie is not connected to anything else (like the cfclient).
 Now run the script in your terminal:
 
 
@@ -111,12 +112,12 @@ Now I will disconnect :'(
 ```
 
 
-The script connected with your Crazyflie, synced and disconnected after a few seconds. You can see that the M4 LED is flashing yellow, which means that the Crazyflie is connected to the script, but as soon as it leaves the `simple_connect()` function, the LED turns of. The Crazyflie is no longer connected
+The script connected with your Crazyflie, synced and disconnected after a few seconds. You can see that the M4 LED is flashing yellow, which means that the Crazyflie is connected to the script, but as soon as it leaves the `simple_connect()` function, the LED turns of. The Crazyflie is no longer connected.
 
 Not super exciting stuff yet but it is a great start! It is also a good test if everything is correctly configured on your system.
 
 
-If you are getting an error, retrace your steps or check if your code matches the entire code underneath here. Also make sure your Crazyflie is on and your crazyradio PA connected to you computer, and that the Crazyflie is not connected to anything else (like the cfclient). If everything is peachy, please continue to the next part!
+If you are getting an error, retrace your steps or check if your code matches the entire code underneath here. If everything is peachy, please continue to the next part!
 
 ```python
 import logging
@@ -125,9 +126,10 @@ import time
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.utils import uri_helper
 
 # URI to the Crazyflie to connect to
-uri = 'radio://0/80/2M/E7E7E7E7E7'
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 def simple_connect():
 
@@ -148,13 +150,13 @@ if __name__ == '__main__':
 
 
 
-Alright, now taking a step up. We will now add to the script means to read out logging variables!
+Alright, now taking a step up. We will now add means to read out logging variables to the script!
 
 
 
 ### More imports
 
-Now we need to add several imports on the top of the script connect_log_param.py
+Now we need to add imports to the top of the script connect_log_param.py:
 
  ```python
  ...
@@ -167,7 +169,7 @@ from cflib.crazyflie.syncLogger import SyncLogger
     from the Crazyflie
  * The SyncLogger class provides synchronous access to log data from the Crazyflie.
 
-Also add the following underneath URI
+Also add the following underneath URI:
 
 ```python
 # Only output errors from the logging framework
@@ -228,7 +230,7 @@ If everything is fine it should continuously print the logging variables, like t
 `[1486704][<cflib.crazyflie.log.LogConfig object at 0x7ffb3384a1d0>]: {'stabilizer.roll': -0.054723262786865234, 'stabilizer.pitch': 0.006269464734941721, 'stabilizer.yaw': -0.008503230288624763}`
 
 
-If you want to continuously receive the messages in the for loop, remove the `break`. You can stop the script with _ctrl+c_
+If you want to continuously receive the messages in the for loop, remove the `break`. You can stop the script with _ctrl+c_.
 
 If you are getting errors, check if your script corresponds with the full code:
  ```python
@@ -238,12 +240,13 @@ import time
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.utils import uri_helper
 
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncLogger import SyncLogger
 
 # URI to the Crazyflie to connect to
-uri = 'radio://0/80/2M/E7E7E7E7E7'
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -337,12 +340,13 @@ import time
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
+from cflib.utils import uri_helper
 
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncLogger import SyncLogger
 
 # URI to the Crazyflie to connect to
-uri = 'radio://0/80/2M/E7E7E7E7E7'
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -430,7 +434,7 @@ If you would run the script now you will also get this message:
 
 This means that the Crazyflie has changed the parameter value to 2, which is another methods it uses for state estimation. This can also be done to change the color on the ledring, or to initiate the highlevel commander.
 
-What it can't do is to set a Read Only (RO) parameter, only Read Write (RW) parameters, which can be checked by the parameter TOC in the CFclient. You can check this by changing the parameter name to group `'CPU' ` and name `flash'`. Then you will get the following error:
+What it can't do is to set a Read Only (RO) parameter, only Read Write (RW) parameters, which can be checked by the parameter TOC in the CFclient. You can check this by changing the parameter name to group `'cpu' ` and name `flash'`. Then you will get the following error:
 
 `AttributeError: cpu.flash is read-only!`
 
@@ -454,9 +458,10 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.crazyflie.syncLogger import SyncLogger
+from cflib.utils import uri_helper
 
 # URI to the Crazyflie to connect to
-uri = 'radio://0/80/2M/E7E7E7E7E7'
+uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)

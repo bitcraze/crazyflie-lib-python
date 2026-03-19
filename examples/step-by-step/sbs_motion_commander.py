@@ -84,9 +84,8 @@ def move_linear_simple(scf):
 
 
 def take_off_simple(scf):
-    with MotionCommander(scf, default_height=DEFAULT_HEIGHT) as mc:
+    with MotionCommander(scf, default_height=DEFAULT_HEIGHT):
         time.sleep(3)
-        mc.stop()
 
 
 def log_pos_callback(timestamp, data, logconf):

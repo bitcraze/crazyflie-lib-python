@@ -24,48 +24,52 @@ from test.localization.lighthouse_test_base import LighthouseTestBase
 
 import numpy as np
 
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSample
+from cflib.localization.lighthouse_cf_pose_sample import LhCfPoseSampleWrapper
+from cflib.localization.lighthouse_cf_pose_sample import Pose
+from cflib.localization.lighthouse_geometry_solution import LighthouseGeometrySolution
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
-from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
-from cflib.localization.lighthouse_types import LhException
-from cflib.localization.lighthouse_types import Pose
 
 
 class TestLighthouseInitialEstimator(LighthouseTestBase):
     def setUp(self):
         self.fixtures = LighthouseFixtures()
 
-    def test_that_one_bs_pose_raises_exception(self):
+    def test_that_one_bs_pose_failes_solution(self):
         # Fixture
         # CF_ORIGIN is used in the first sample and will define the global reference frame
         bs_id = 3
-        samples = [
+        samples = self.augment_and_wrap([
             LhCfPoseSample(angles_calibrated={bs_id: self.fixtures.angles_cf_origin_bs0}),
-        ]
+        ])
+        solution = LighthouseGeometrySolution(samples)
 
         # Test
+        LighthouseInitialEstimator.estimate(samples, solution)
+
         # Assert
-        with self.assertRaises(LhException):
-            LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        assert solution.progress_is_ok is False
 
     def test_that_two_bs_poses_in_same_sample_are_found(self):
         # Fixture
         # CF_ORIGIN is used in the first sample and will define the global reference frame
         bs_id0 = 3
         bs_id1 = 1
-        samples = [
+        samples = self.augment_and_wrap([
             LhCfPoseSample(angles_calibrated={
                 bs_id0: self.fixtures.angles_cf_origin_bs0,
                 bs_id1: self.fixtures.angles_cf_origin_bs1,
             }),
-        ]
+        ])
+        solution = LighthouseGeometrySolution(samples)
 
         # Test
-        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        LighthouseInitialEstimator.estimate(samples, solution)
 
         # Assert
-        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual.bs_poses[bs_id0], places=3)
-        self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, actual.bs_poses[bs_id1], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, solution.bs_poses[bs_id0], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, solution.bs_poses[bs_id1], places=3)
 
     def test_that_linked_bs_poses_in_multiple_samples_are_found(self):
         # Fixture
@@ -74,7 +78,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         bs_id1 = 1
         bs_id2 = 5
         bs_id3 = 0
-        samples = [
+        samples = self.augment_and_wrap([
             LhCfPoseSample(angles_calibrated={
                 bs_id0: self.fixtures.angles_cf_origin_bs0,
                 bs_id1: self.fixtures.angles_cf_origin_bs1,
@@ -87,16 +91,17 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
                 bs_id2: self.fixtures.angles_cf2_bs2,
                 bs_id3: self.fixtures.angles_cf2_bs3,
             }),
-        ]
+        ])
+        solution = LighthouseGeometrySolution(samples)
 
         # Test
-        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        LighthouseInitialEstimator.estimate(samples, solution)
 
         # Assert
-        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, actual.bs_poses[bs_id0], places=3)
-        self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, actual.bs_poses[bs_id1], places=3)
-        self.assertPosesAlmostEqual(self.fixtures.BS2_POSE, actual.bs_poses[bs_id2], places=3)
-        self.assertPosesAlmostEqual(self.fixtures.BS3_POSE, actual.bs_poses[bs_id3], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS0_POSE, solution.bs_poses[bs_id0], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS1_POSE, solution.bs_poses[bs_id1], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS2_POSE, solution.bs_poses[bs_id2], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.BS3_POSE, solution.bs_poses[bs_id3], places=3)
 
     def test_that_cf_poses_are_estimated(self):
         # Fixture
@@ -105,7 +110,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         bs_id1 = 1
         bs_id2 = 5
         bs_id3 = 0
-        samples = [
+        samples = self.augment_and_wrap([
             LhCfPoseSample(angles_calibrated={
                 bs_id0: self.fixtures.angles_cf_origin_bs0,
                 bs_id1: self.fixtures.angles_cf_origin_bs1,
@@ -118,15 +123,16 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
                 bs_id2: self.fixtures.angles_cf2_bs2,
                 bs_id3: self.fixtures.angles_cf2_bs3,
             }),
-        ]
+        ])
+        solution = LighthouseGeometrySolution(samples)
 
         # Test
-        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        LighthouseInitialEstimator.estimate(samples, solution)
 
         # Assert
-        self.assertPosesAlmostEqual(self.fixtures.CF_ORIGIN_POSE, actual.cf_poses[0], places=3)
-        self.assertPosesAlmostEqual(self.fixtures.CF1_POSE, actual.cf_poses[1], places=3)
-        self.assertPosesAlmostEqual(self.fixtures.CF2_POSE, actual.cf_poses[2], places=3)
+        self.assertPosesAlmostEqual(self.fixtures.CF_ORIGIN_POSE, samples[0].pose, places=3)
+        self.assertPosesAlmostEqual(self.fixtures.CF1_POSE, samples[1].pose, places=3)
+        self.assertPosesAlmostEqual(self.fixtures.CF2_POSE, samples[2].pose, places=3)
 
     def test_that_the_global_ref_frame_is_used(self):
         # Fixture
@@ -134,7 +140,7 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
         bs_id0 = 3
         bs_id1 = 1
         bs_id2 = 2
-        samples = [
+        samples = self.augment_and_wrap([
             LhCfPoseSample(angles_calibrated={
                 bs_id0: self.fixtures.angles_cf2_bs0,
                 bs_id1: self.fixtures.angles_cf2_bs1,
@@ -143,26 +149,27 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
                 bs_id1: self.fixtures.angles_cf1_bs1,
                 bs_id2: self.fixtures.angles_cf1_bs2,
             }),
-        ]
+        ])
+        solution = LighthouseGeometrySolution(samples)
 
         # Test
-        actual, cleaned_samples = LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        LighthouseInitialEstimator.estimate(samples, solution)
 
         # Assert
         self.assertPosesAlmostEqual(
-            Pose.from_rot_vec(R_vec=(0.0, 0.0, -np.pi / 2), t_vec=(1.0, 3.0, 3.0)), actual.bs_poses[bs_id0], places=3)
+            Pose.from_rot_vec(R_vec=(0.0, 0.0, -np.pi / 2), t_vec=(1.0, 3.0, 3.0)), solution.bs_poses[bs_id0], places=3)
         self.assertPosesAlmostEqual(
-            Pose.from_rot_vec(R_vec=(0.0, 0.0, 0.0), t_vec=(-2.0, 1.0, 3.0)), actual.bs_poses[bs_id1], places=3)
+            Pose.from_rot_vec(R_vec=(0.0, 0.0, 0.0), t_vec=(-2.0, 1.0, 3.0)), solution.bs_poses[bs_id1], places=3)
         self.assertPosesAlmostEqual(
-            Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi), t_vec=(2.0, 1.0, 3.0)), actual.bs_poses[bs_id2], places=3)
+            Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi), t_vec=(2.0, 1.0, 3.0)), solution.bs_poses[bs_id2], places=3)
 
-    def test_that_raises_for_isolated_bs(self):
+    def test_that_solution_failes_for_isolated_bs(self):
         # Fixture
         bs_id0 = 3
         bs_id1 = 1
         bs_id2 = 2
         bs_id3 = 4
-        samples = [
+        samples = self.augment_and_wrap([
             LhCfPoseSample(angles_calibrated={
                 bs_id0: self.fixtures.angles_cf_origin_bs0,
                 bs_id1: self.fixtures.angles_cf_origin_bs1,
@@ -171,9 +178,91 @@ class TestLighthouseInitialEstimator(LighthouseTestBase):
                 bs_id2: self.fixtures.angles_cf1_bs2,
                 bs_id3: self.fixtures.angles_cf2_bs2,
             }),
-        ]
+        ])
+        solution = LighthouseGeometrySolution(samples)
 
         # Test
+        LighthouseInitialEstimator.estimate(samples, solution)
+
         # Assert
-        with self.assertRaises(LhException):
-            LighthouseInitialEstimator.estimate(samples, LhDeck4SensorPositions.positions)
+        assert solution.progress_is_ok is False
+
+    def test_that_link_count_is_right(self):
+        # Fixture
+        bs_id0 = 3
+        bs_id1 = 1
+        bs_id2 = 2
+        bs_id3 = 4
+        samples = self.augment_and_wrap([
+            LhCfPoseSample(angles_calibrated={
+                bs_id0: self.fixtures.angles_cf_origin_bs0,
+                bs_id1: self.fixtures.angles_cf_origin_bs1,
+            }),
+            LhCfPoseSample(angles_calibrated={
+                bs_id1: self.fixtures.angles_cf1_bs1,
+                bs_id2: self.fixtures.angles_cf1_bs2,
+            }),
+            LhCfPoseSample(angles_calibrated={
+                bs_id0: self.fixtures.angles_cf2_bs0,
+                bs_id1: self.fixtures.angles_cf2_bs1,
+                bs_id2: self.fixtures.angles_cf2_bs2,
+                bs_id3: self.fixtures.angles_cf2_bs3,
+            }),
+        ])
+        solution = LighthouseGeometrySolution(samples)
+
+        # Test
+        LighthouseInitialEstimator.estimate(samples, solution)
+
+        # Assert
+        assert solution.link_count == {
+            bs_id0: {bs_id1: 2, bs_id2: 1, bs_id3: 1},
+            bs_id1: {bs_id0: 2, bs_id2: 2, bs_id3: 1},
+            bs_id2: {bs_id0: 1, bs_id1: 2, bs_id3: 1},
+            bs_id3: {bs_id0: 1, bs_id1: 1, bs_id2: 1},
+        }
+
+    def test_that_bs_sample_count_is_right(self):
+        # Fixture
+        bs_id0 = 3
+        bs_id1 = 1
+        bs_id2 = 2
+        bs_id3 = 4
+        samples = self.augment_and_wrap([
+            LhCfPoseSample(angles_calibrated={
+                bs_id0: self.fixtures.angles_cf_origin_bs0,
+                bs_id1: self.fixtures.angles_cf_origin_bs1,
+            }),
+            LhCfPoseSample(angles_calibrated={
+                bs_id1: self.fixtures.angles_cf1_bs1,
+                bs_id2: self.fixtures.angles_cf1_bs2,
+                bs_id3: self.fixtures.angles_cf1_bs3,
+            }),
+            LhCfPoseSample(angles_calibrated={
+                bs_id0: self.fixtures.angles_cf2_bs0,
+                bs_id1: self.fixtures.angles_cf2_bs1,
+                bs_id2: self.fixtures.angles_cf2_bs2,
+                bs_id3: self.fixtures.angles_cf2_bs3,
+            }),
+        ])
+        solution = LighthouseGeometrySolution(samples)
+
+        # Test
+        LighthouseInitialEstimator.estimate(samples, solution)
+
+        # Assert
+        assert solution.bs_sample_count == {
+            bs_id0: 2,
+            bs_id1: 3,
+            bs_id2: 2,
+            bs_id3: 2,
+        }
+
+# helpers
+
+    def augment_and_wrap(self, samples: list[LhCfPoseSample]) -> list[LhCfPoseSampleWrapper]:
+        wrapped_samples = []
+        for sample in samples:
+            sample.augment_with_ippe(LhDeck4SensorPositions.positions)
+            wrapped_samples.append(LhCfPoseSampleWrapper(sample))
+        return wrapped_samples

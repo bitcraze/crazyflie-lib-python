@@ -177,8 +177,8 @@ class Supervisor:
         Reads the bitfield and returns the list of all active states.
         """
         bitfield = self.read_bitfield()
-        list = self.decode_bitfield(bitfield)
-        return list
+        state_list = self.decode_bitfield(bitfield)
+        return state_list
 
     def decode_bitfield(self, value):
         """

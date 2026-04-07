@@ -23,6 +23,7 @@
 Provides access to the supervisor module of the Crazyflie platform.
 """
 import logging
+import threading
 import time
 import warnings
 
@@ -90,7 +91,7 @@ class Supervisor:
         self._last_fetch_time = 0
         self._bitfield = None
         self._cf.add_port_callback(CRTPPort.SUPERVISOR, self._supervisor_callback)
-        self._bitfield_response_received = False
+        self._bitfield_received = threading.Event()
 
     def _check_protocol_version(self):
         """Returns True if the protocol version is supported, False otherwise."""
@@ -117,7 +118,7 @@ class Supervisor:
             orig_cmd = cmd & 0x7F
             if orig_cmd == CMD_GET_STATE_BITFIELD:
                 self._bitfield = int.from_bytes(pk.data[1:], byteorder='little')
-                self._bitfield_response_received = True
+                self._bitfield_received.set()
                 logger.info(f'Supervisor bitfield received: 0x{self._bitfield:04X}')
 
             elif orig_cmd == CMD_ARM_SYSTEM:
@@ -144,19 +145,16 @@ class Supervisor:
             return self._bitfield
 
         # Send a new request
-        self._bitfield_response_received = False
+        self._bitfield_received.clear()
         pk = CRTPPacket()
         pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_INFO)
         pk.data = [CMD_GET_STATE_BITFIELD]
         self._cf.send_packet(pk)
 
         # Wait for response
-        start_time = now
-        while not self._bitfield_response_received:
-            if time.time() - start_time > timeout:
-                logger.warning('Timeout waiting for supervisor bitfield response')
-                return self._bitfield or 0  # still return last known value
-            time.sleep(0.01)
+        if not self._bitfield_received.wait(timeout):
+            logger.warning('Timeout waiting for supervisor bitfield response')
+            return self._bitfield or 0  # still return last known value
 
         # Update timestamp
         self._last_fetch_time = time.time()

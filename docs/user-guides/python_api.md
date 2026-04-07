@@ -14,7 +14,7 @@ If you are interested in more details look in the PyDoc in the code or:
     [logging](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/crtp_log/) or
     [parameters](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/functional-areas/crtp/crtp_parameters/)
 - [Automated documentation for Python API](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/api/cflib/)
-- Examples: See the [example folder of the repository](https://github.com/bitcraze/crazyflie-lib-python/tree/master/examples).
+- Examples: See the [example folder of the repository](https://github.com/bitcraze/crazyflie-lib-python/tree/master/examples) for basic examples, or [crazyflie-demos](https://github.com/bitcraze/crazyflie-demos) for more advanced demos.
 
 
 ## Structure of the library

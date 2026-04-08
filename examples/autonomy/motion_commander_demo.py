@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
     with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
         # Arm the Crazyflie
-        scf.cf.platform.send_arming_request(True)
+        scf.cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         # We take off when the commander is created

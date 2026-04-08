@@ -138,7 +138,7 @@ So now we are going to start up the SyncCrazyflie and start a function in the `_
             sys.exit(1)
 
         # Arm the Crazyflie
-        scf.cf.platform.send_arming_request(True)
+        scf.cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         take_off_simple(scf)
@@ -227,7 +227,7 @@ if __name__ == '__main__':
             sys.exit(1)
 
         # Arm the Crazyflie
-        scf.cf.platform.send_arming_request(True)
+        scf.cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         take_off_simple(scf)
@@ -320,7 +320,7 @@ if __name__ == '__main__':
             sys.exit(1)
 
         # Arm the Crazyflie
-        scf.cf.platform.send_arming_request(True)
+        scf.cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         move_linear_simple(scf)
@@ -433,7 +433,7 @@ if __name__ == '__main__':
             sys.exit(1)
 
         # Arm the Crazyflie
-        scf.cf.platform.send_arming_request(True)
+        scf.cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         logconf.start()
@@ -550,7 +550,7 @@ if __name__ == '__main__':
             sys.exit(1)
 
         # Arm the Crazyflie
-        scf.cf.platform.send_arming_request(True)
+        scf.cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         logconf.start()
@@ -681,7 +681,7 @@ if __name__ == '__main__':
             sys.exit(1)
 
         # Arm the Crazyflie
-        scf.cf.platform.send_arming_request(True)
+        scf.cf.supervisor.send_arming_request(True)
         time.sleep(1.0)
 
         logconf.start()

@@ -28,6 +28,7 @@ Subsytem handling localization-related data communication
 import collections
 import logging
 import struct
+import warnings
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
@@ -58,8 +59,8 @@ class Localization():
     RANGE_STREAM_REPORT = 0
     RANGE_STREAM_REPORT_FP16 = 1
     LPS_SHORT_LPP_PACKET = 2
-    EMERGENCY_STOP = 3
-    EMERGENCY_STOP_WATCHDOG = 4
+    EMERGENCY_STOP = 3          # Deprecated: use supervisor.send_emergency_stop()
+    EMERGENCY_STOP_WATCHDOG = 4  # Deprecated: use supervisor.send_emergency_stop_watchdog()
     COMM_GNSS_NMEA = 6
     COMM_GNSS_PROPRIETARY = 7
     EXT_POSE = 8
@@ -169,25 +170,53 @@ class Localization():
 
     def send_emergency_stop(self):
         """
-        Send emergency stop
-        """
+        Send emergency stop (deprecated).
 
-        pk = CRTPPacket()
-        pk.port = CRTPPort.LOCALIZATION
-        pk.channel = self.GENERIC_CH
-        pk.data = struct.pack('<B', self.EMERGENCY_STOP)
-        self._cf.send_packet(pk)
+        Deprecated:
+            Use ``cf.supervisor.send_emergency_stop()`` instead.
+            If the connected Crazyflie does not support CRTP protocol version 12
+            or later, the legacy localization channel is used as a fallback.
+        """
+        warnings.warn(
+            'localization.send_emergency_stop() is deprecated. '
+            'Use cf.supervisor.send_emergency_stop() instead. '
+            'Update your Crazyflie firmware to use CRTP protocol version 12 or later.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if self._cf.platform.get_protocol_version() >= 12:
+            self._cf.supervisor.send_emergency_stop()
+        else:
+            pk = CRTPPacket()
+            pk.port = CRTPPort.LOCALIZATION
+            pk.channel = self.GENERIC_CH
+            pk.data = struct.pack('<B', self.EMERGENCY_STOP)
+            self._cf.send_packet(pk)
 
     def send_emergency_stop_watchdog(self):
         """
-        Send emergency stop watchdog
-        """
+        Send emergency stop watchdog (deprecated).
 
-        pk = CRTPPacket()
-        pk.port = CRTPPort.LOCALIZATION
-        pk.channel = self.GENERIC_CH
-        pk.data = struct.pack('<B', self.EMERGENCY_STOP_WATCHDOG)
-        self._cf.send_packet(pk)
+        Deprecated:
+            Use ``cf.supervisor.send_emergency_stop_watchdog()`` instead.
+            If the connected Crazyflie does not support CRTP protocol version 12
+            or later, the legacy localization channel is used as a fallback.
+        """
+        warnings.warn(
+            'localization.send_emergency_stop_watchdog() is deprecated. '
+            'Use cf.supervisor.send_emergency_stop_watchdog() instead. '
+            'Update your Crazyflie firmware to use CRTP protocol version 12 or later.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if self._cf.platform.get_protocol_version() >= 12:
+            self._cf.supervisor.send_emergency_stop_watchdog()
+        else:
+            pk = CRTPPacket()
+            pk.port = CRTPPort.LOCALIZATION
+            pk.channel = self.GENERIC_CH
+            pk.data = struct.pack('<B', self.EMERGENCY_STOP_WATCHDOG)
+            self._cf.send_packet(pk)
 
     def send_lh_persist_data_packet(self, geo_list, calib_list):
         """

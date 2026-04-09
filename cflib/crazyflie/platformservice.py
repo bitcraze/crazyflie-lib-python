@@ -96,6 +96,8 @@ class PlatformService():
 
         Deprecated:
             Use `supervisor.send_arming_request(do_arm)` instead.
+            If the connected Crazyflie does not support CRTP protocol version 12
+            or later, the legacy platform channel is used as a fallback.
         """
         warnings.warn(
             'platform.send_arming_request is deprecated. '
@@ -104,7 +106,13 @@ class PlatformService():
             stacklevel=2
         )
 
-        self._cf.supervisor.send_arming_request(do_arm)
+        if self._cf.platform.get_protocol_version() >= 12:
+            self._cf.supervisor.send_arming_request(do_arm)
+        else:
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
+            pk.data = (0x01, do_arm)
+            self._cf.send_packet(pk)
 
     def send_crash_recovery_request(self):
         """
@@ -112,6 +120,8 @@ class PlatformService():
 
         Deprecated:
             Use `supervisor.send_crash_recovery_request()` instead.
+            If the connected Crazyflie does not support CRTP protocol version 12
+            or later, the legacy platform channel is used as a fallback.
         """
         warnings.warn(
             'platform.send_crash_recovery_request is deprecated. '
@@ -120,7 +130,13 @@ class PlatformService():
             stacklevel=2
         )
 
-        self._cf.supervisor.send_crash_recovery_request()
+        if self._cf.platform.get_protocol_version() >= 12:
+            self._cf.supervisor.send_crash_recovery_request()
+        else:
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
+            pk.data = (0x02,)
+            self._cf.send_packet(pk)
 
     def get_protocol_version(self):
         """

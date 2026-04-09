@@ -28,6 +28,10 @@ import threading
 import time
 import warnings
 
+from cflib.crazyflie.localization import Localization
+from cflib.crazyflie.platformservice import PLATFORM_COMMAND
+from cflib.crazyflie.platformservice import PLATFORM_REQUEST_ARMING
+from cflib.crazyflie.platformservice import PLATFORM_REQUEST_CRASH_RECOVERY
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 
@@ -265,8 +269,8 @@ class Supervisor:
         if self._is_legacy_firmware():
             self._warn_legacy_firmware()
             pk = CRTPPacket()
-            pk.set_header(CRTPPort.PLATFORM, 0)
-            pk.data = (0x01, do_arm)
+            pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
+            pk.data = (PLATFORM_REQUEST_ARMING, do_arm)
             self._cf.send_packet(pk)
         else:
             pk = CRTPPacket()
@@ -285,8 +289,8 @@ class Supervisor:
         if self._is_legacy_firmware():
             self._warn_legacy_firmware()
             pk = CRTPPacket()
-            pk.set_header(CRTPPort.PLATFORM, 0)
-            pk.data = (0x02,)
+            pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
+            pk.data = (PLATFORM_REQUEST_CRASH_RECOVERY,)
             self._cf.send_packet(pk)
         else:
             pk = CRTPPacket()
@@ -305,9 +309,8 @@ class Supervisor:
         if self._is_legacy_firmware():
             self._warn_legacy_firmware()
             pk = CRTPPacket()
-            pk.port = CRTPPort.LOCALIZATION
-            pk.channel = 1
-            pk.data = struct.pack('<B', 3)
+            pk.set_header(CRTPPort.LOCALIZATION, Localization.GENERIC_CH)
+            pk.data = struct.pack('<B', Localization.EMERGENCY_STOP)
             self._cf.send_packet(pk)
         else:
             pk = CRTPPacket()
@@ -327,9 +330,8 @@ class Supervisor:
         if self._is_legacy_firmware():
             self._warn_legacy_firmware()
             pk = CRTPPacket()
-            pk.port = CRTPPort.LOCALIZATION
-            pk.channel = 1
-            pk.data = struct.pack('<B', 4)
+            pk.set_header(CRTPPort.LOCALIZATION, Localization.GENERIC_CH)
+            pk.data = struct.pack('<B', Localization.EMERGENCY_STOP_WATCHDOG)
             self._cf.send_packet(pk)
         else:
             pk = CRTPPacket()

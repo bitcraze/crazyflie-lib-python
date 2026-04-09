@@ -23,6 +23,7 @@
 Provides access to the supervisor module of the Crazyflie platform.
 """
 import logging
+import struct
 import threading
 import time
 import warnings
@@ -93,18 +94,19 @@ class Supervisor:
         self._cf.add_port_callback(CRTPPort.SUPERVISOR, self._supervisor_callback)
         self._bitfield_received = threading.Event()
 
-    def _check_protocol_version(self):
-        """Returns True if the protocol version is supported, False otherwise."""
+    def _is_legacy_firmware(self):
+        """Returns True if the firmware does not support the supervisor port."""
+        return self._cf.platform.get_protocol_version() < 12
+
+    def _warn_legacy_firmware(self):
+        """Warn that the firmware is too old for the supervisor port."""
         version = self._cf.platform.get_protocol_version()
-        if version < 12:
-            warnings.warn(
-                'The supervisor subsystem requires CRTP protocol version 12 or later. '
-                f'Connected Crazyflie reports version {version}. '
-                'Update your Crazyflie firmware.',
-                stacklevel=3,
-            )
-            return False
-        return True
+        warnings.warn(
+            'The supervisor subsystem requires CRTP protocol version 12 or later. '
+            f'Connected Crazyflie reports version {version}. '
+            'Update your Crazyflie firmware. Using legacy fallback.',
+            stacklevel=3,
+        )
 
     def _supervisor_callback(self, pk: CRTPPacket):
         """
@@ -136,7 +138,8 @@ class Supervisor:
         Request the bitfield and wait for response (blocking).
         Uses time-based cache to avoid sending packages too frequently.
         """
-        if not self._check_protocol_version():
+        if self._is_legacy_firmware():
+            self._warn_legacy_firmware()
             return 0
         now = time.time()
 
@@ -253,50 +256,84 @@ class Supervisor:
         """
         Send system arm/disarm request.
 
+        If the connected Crazyflie does not support CRTP protocol version 12
+        or later, the legacy platform channel is used as a fallback.
+
         Args:
             do_arm (bool): True = arm the system, False = disarm the system
         """
-        if not self._check_protocol_version():
-            return
-        pk = CRTPPacket()
-        pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
-        pk.data = (CMD_ARM_SYSTEM, do_arm)
-        self._cf.send_packet(pk)
+        if self._is_legacy_firmware():
+            self._warn_legacy_firmware()
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.PLATFORM, 0)
+            pk.data = (0x01, do_arm)
+            self._cf.send_packet(pk)
+        else:
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
+            pk.data = (CMD_ARM_SYSTEM, do_arm)
+            self._cf.send_packet(pk)
         logger.debug(f'Sent arming request: do_arm={do_arm}')
 
     def send_crash_recovery_request(self):
         """
         Send crash recovery request.
+
+        If the connected Crazyflie does not support CRTP protocol version 12
+        or later, the legacy platform channel is used as a fallback.
         """
-        if not self._check_protocol_version():
-            return
-        pk = CRTPPacket()
-        pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
-        pk.data = (CMD_RECOVER_SYSTEM,)
-        self._cf.send_packet(pk)
+        if self._is_legacy_firmware():
+            self._warn_legacy_firmware()
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.PLATFORM, 0)
+            pk.data = (0x02,)
+            self._cf.send_packet(pk)
+        else:
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
+            pk.data = (CMD_RECOVER_SYSTEM,)
+            self._cf.send_packet(pk)
         logger.debug('Sent crash recovery request')
 
     def send_emergency_stop(self):
         """
         Send emergency stop. The Crazyflie will immediately stop all motors.
+
+        If the connected Crazyflie does not support CRTP protocol version 12
+        or later, the legacy localization channel is used as a fallback.
         """
-        if not self._check_protocol_version():
-            return
-        pk = CRTPPacket()
-        pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
-        pk.data = (CMD_EMERGENCY_STOP,)
-        self._cf.send_packet(pk)
+        if self._is_legacy_firmware():
+            self._warn_legacy_firmware()
+            pk = CRTPPacket()
+            pk.port = CRTPPort.LOCALIZATION
+            pk.channel = 1
+            pk.data = struct.pack('<B', 3)
+            self._cf.send_packet(pk)
+        else:
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
+            pk.data = (CMD_EMERGENCY_STOP,)
+            self._cf.send_packet(pk)
         logger.debug('Sent emergency stop')
 
     def send_emergency_stop_watchdog(self):
         """
         Send emergency stop watchdog. The Crazyflie will stop all motors
         unless this command is repeated at regular intervals.
+
+        If the connected Crazyflie does not support CRTP protocol version 12
+        or later, the legacy localization channel is used as a fallback.
         """
-        if not self._check_protocol_version():
-            return
-        pk = CRTPPacket()
-        pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
-        pk.data = (CMD_EMERGENCY_STOP_WATCHDOG,)
-        self._cf.send_packet(pk)
+        if self._is_legacy_firmware():
+            self._warn_legacy_firmware()
+            pk = CRTPPacket()
+            pk.port = CRTPPort.LOCALIZATION
+            pk.channel = 1
+            pk.data = struct.pack('<B', 4)
+            self._cf.send_packet(pk)
+        else:
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.SUPERVISOR, SUPERVISOR_CH_COMMAND)
+            pk.data = (CMD_EMERGENCY_STOP_WATCHDOG,)
+            self._cf.send_packet(pk)
         logger.debug('Sent emergency stop watchdog')

@@ -41,6 +41,8 @@ VERSION_COMMAND = 1
 APP_CHANNEL = 2
 
 PLATFORM_SET_CONT_WAVE = 0
+PLATFORM_REQUEST_ARMING = 1              # Deprecated: use supervisor.send_arming_request()
+PLATFORM_REQUEST_CRASH_RECOVERY = 2      # Deprecated: use supervisor.send_crash_recovery_request()
 
 VERSION_GET_PROTOCOL = 0
 VERSION_GET_FIRMWARE = 1

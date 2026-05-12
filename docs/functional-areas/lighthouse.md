@@ -5,7 +5,80 @@ page_id: lh_geo_estimation
 
 This page describes how the geometry estimation for the lighthouse positioning system works in cflib. Geometry estimation is the process of computing the 6-DoF poses (position and orientation) of all base stations in a common coordinate system, from sweep angle measurements taken by a Crazyflie held at a series of known physical positions.
 
-The implementation lives in `cflib/localization/` and is used by the cfclient lighthouse tab.
+The implementation lives in `cflib/localization/`.
+
+## Estimation process
+
+The intended call sequence to produce a geometry estimation:
+
+**1. Set up the container and solver**
+
+Create the container and start the solver thread. Every time a sample is added to the container, the container increments an internal version number and notifies the solver thread via a `threading.Condition`. The thread wakes up, deep-copies the container data, and runs `estimate_geometry()`. The deep copy means samples can safely be added while a solve is in progress. When the solve completes, `is_done_cb` is called with the result.
+
+```python
+container = LhGeoInputContainer(LhDeck4SensorPositions.positions)
+container.enable_auto_save()  # optional — serializes samples to a timestamped YAML after each change
+
+solver_thread = LhGeoEstimationManager.SolverThread(
+    container,
+    is_done_cb=my_solution_callback)
+solver_thread.start()
+```
+
+**2. Collect the mandatory reference samples**
+
+Use `LighthouseSweepAngleAverageReader` to stream angle packets from the CF and average them. The reader calls back once enough packets have been collected (50 per base station). Construct a `LhCfPoseSample` from the result and store it in the container. At least two base stations must be visible in each sample.
+
+```python
+def ready_cb(recorded_angles: dict[int, tuple[int, LighthouseBsVectors]]):
+    angles_calibrated = {bs_id: vectors for bs_id, (_, vectors) in recorded_angles.items()}
+    sample = LhCfPoseSample(angles_calibrated)
+    container.set_origin_sample(sample)  # or whichever setter applies
+
+reader = LighthouseSweepAngleAverageReader(cf, ready_cb)
+reader.start_angle_collection()
+```
+
+Repeat for each mandatory position, using the appropriate container setter:
+
+```python
+container.set_origin_sample(sample)    # defines the world origin
+container.set_x_axis_sample(sample)    # must be exactly 1.0 m from origin on positive X-axis
+container.append_xy_plane_sample(sample)  # anywhere in Z = 0, away from X-axis
+```
+
+Each call wakes the solver thread. The estimation will not succeed until all three are present.
+
+**3. Collect XYZ-space samples**
+
+Use `LighthouseMatchedSweepAngleReader` to capture angles from all visible base stations at a single instant. This is required to correctly constrain base stations that are not both visible from the mandatory positions. Samples can be triggered programmatically at any time, or by using `UserActionDetector` to detect a shake gesture (a quick left–right rotation about the Z-axis followed by holding still) as a hands-free trigger.
+
+```python
+container.append_xyz_space_samples([sample])
+```
+
+The solver re-runs after each addition. Once the mandatory samples are present and the base station graph is connected, the solver produces a valid `LighthouseGeometrySolution`.
+
+**4. Optionally collect verification samples**
+
+Verification samples are taken the same way as XYZ-space samples but are excluded from the estimation — used only for independent error checking afterwards.
+
+```python
+container.append_verification_samples([sample])
+```
+
+**5. Use the solution**
+
+The solver thread calls `is_done_cb` with a `LighthouseGeometrySolution` after every solve. When `solution.progress_is_ok` is `True`, the BS poses in `solution.bs_poses` are ready to use. Write them to the Crazyflie or save to file:
+
+```python
+# Upload to the Crazyflie
+config_writer = LighthouseConfigWriter(cf)
+config_writer.write_and_store_config(done_cb, geos=geo_dict)
+
+# Or save to file
+LighthouseConfigFileManager.write(file_name, geos=geos, calibs=calibs)
+```
 
 ## Classes
 
@@ -116,29 +189,10 @@ The worst-case error across all BS pairs is recorded for each sample. Summary st
 
 The same calculation is run independently for `VERIFICATION` samples and stored as `solution.verification_stats`. Verification samples are also given estimated positions (the midpoint between the closest ray-pair points), so their estimated locations can be shown in a UI.
 
-## Dynamic behavior
+## Where geometry is stored
 
-The system supports live, continuous re-estimation as the user records new samples.
+`LhGeoInputContainer` holds the raw measurement samples (sweep angles per base station, per position). When auto-save is enabled, the container is serialized to a timestamped YAML session file after every modification. Session files store only samples, not computed BS poses — the BS poses are the output of `estimate_geometry()` and exist only in the returned `LighthouseGeometrySolution`. To persist a configuration, the caller is responsible for writing the resulting poses to the Crazyflie (`LighthouseConfigWriter`) or saving them to file (`LighthouseConfigFileManager`).
 
-```
-LhGeoInputContainer               LhGeoEstimationManager.SolverThread
-        |                                        |
-        |  (user records sample)                 |
-        |-- _handle_data_modification() -------> |  (wakes up via Condition.notify())
-        |   increments version                   |
-        |                                        |  checks version > last_solved_version?
-        |                                        |     yes: get_data_copy() (deep copy)
-        |                                        |          estimate_geometry(copy)
-        |                                        |          is_done_cb(solution)
-        |                                        |     no: wait (timeout 0.1 s)
-```
-
-Key design choices:
-
-- **Version-based change detection**: `LhGeoInputContainer` increments an integer version each time data is mutated. The solver thread compares its last-solved version against the current version; if they differ, a new solve is started.
-- **Deep copy before solve**: the container data is deep-copied before passing it to the estimator. This lets the user continue adding samples while a (potentially slow) solve is in progress without causing races.
-- **Daemon thread**: `SolverThread` is a daemon thread and will not prevent the process from exiting.
-- **Auto-save**: if enabled, the container serializes itself to a timestamped YAML file (e.g. `lh_geo_2025-05-12T10:30:00.yaml`) after every modification, allowing sessions to be resumed.
 
 ## What makes a good geometry estimation
 

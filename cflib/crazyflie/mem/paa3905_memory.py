@@ -60,7 +60,7 @@ class PAA3905Memory(MemoryElement):
         else:
             return None
 
-    def read_failed(self, mem, addr):
+    def read_failed(self, mem, addr, data):
         if mem.id == self.id:
             logger.debug('Read failed')
 

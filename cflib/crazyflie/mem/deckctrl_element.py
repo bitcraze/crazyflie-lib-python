@@ -76,7 +76,7 @@ class DeckCtrlElement(MemoryElement):
                     self._update_finished_cb(self)
                     self._update_finished_cb = None
 
-    def read_failed(self, mem, addr):
+    def read_failed(self, mem, addr, data):
         """Callback for when a memory read fails"""
         if mem.id == self.id:
             logger.warning('DeckCtrl memory read failed for id {}'.format(self.id))

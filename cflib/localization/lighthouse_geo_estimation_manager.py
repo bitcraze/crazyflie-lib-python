@@ -710,7 +710,7 @@ class LhGeoInputContainer():
         """
         file_yaml = yaml.load(text_io, Loader=yaml.FullLoader)
         if file_yaml['file_type_version'] != self.FILE_TYPE_VERSION:
-            raise ValueError(f'Unsupported file type version: {file_yaml['file_type_version']}')
+            raise ValueError(f"Unsupported file type version: {file_yaml['file_type_version']}")
         self._set_new_data_container(file_yaml['data'])
 
     def enable_auto_save(self, session_path: str = os.getcwd()) -> None:

@@ -581,6 +581,44 @@ class LhGeoInputContainer():
             if sample is not None:
                 self._handle_data_modification()
 
+    def remove_base_station(self, bs_id: int) -> None:
+        """Remove a base station from the container, as if it had never been part of the system.
+
+        The base station is stripped from the angles of every sample. Samples that only had two base
+        stations, one of them being the removed one, no longer carry enough information and are removed
+        entirely.
+
+        Args:
+            bs_id (int): The id of the base station to remove
+        """
+        with self.is_modified_condition:
+            if self._strip_base_station_from_sample(self._data.origin, bs_id):
+                self._data.origin = LhGeoInputContainerData.EMPTY_POSE_SAMPLE
+            self._data.x_axis = self._strip_base_station_from_samples(self._data.x_axis, bs_id)
+            self._data.xy_plane = self._strip_base_station_from_samples(self._data.xy_plane, bs_id)
+            self._data.xyz_space = self._strip_base_station_from_samples(self._data.xyz_space, bs_id)
+            self._data.verification = self._strip_base_station_from_samples(self._data.verification, bs_id)
+            self._handle_data_modification()
+
+    @staticmethod
+    def _strip_base_station_from_sample(sample: LhCfPoseSample, bs_id: int) -> bool:
+        """Remove bs_id from a sample's angles, if present.
+
+        Returns:
+            bool: True if bs_id was removed and the sample no longer has enough base stations left.
+        """
+        if bs_id not in sample.angles_calibrated:
+            return False
+
+        del sample.angles_calibrated[bs_id]
+        sample.ippe_solutions.pop(bs_id, None)
+        return len(sample.angles_calibrated) < 2
+
+    @classmethod
+    def _strip_base_station_from_samples(cls, samples: list[LhCfPoseSample], bs_id: int) -> list[LhCfPoseSample]:
+        """Remove bs_id from a list of samples, dropping samples that no longer have enough base stations left."""
+        return [sample for sample in samples if not cls._strip_base_station_from_sample(sample, bs_id)]
+
     def convert_to_verification_sample(self, uid: int) -> None:
         """Convert a sample to a verification sample by UID.
         The sample will be moved to the verification list and removed from the other lists.
@@ -672,7 +710,7 @@ class LhGeoInputContainer():
         """
         file_yaml = yaml.load(text_io, Loader=yaml.FullLoader)
         if file_yaml['file_type_version'] != self.FILE_TYPE_VERSION:
-            raise ValueError(f'Unsupported file type version: {file_yaml["file_type_version"]}')
+            raise ValueError(f'Unsupported file type version: {file_yaml['file_type_version']}')
         self._set_new_data_container(file_yaml['data'])
 
     def enable_auto_save(self, session_path: str = os.getcwd()) -> None:

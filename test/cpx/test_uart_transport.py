@@ -112,6 +112,52 @@ class UARTTransportTest(unittest.TestCase):
         self.assertEqual(expected.wireData, actual.wireData)
         self.assertEqual([b'\xff\x00', b'\xff\x00', b'\xff\x00'], self.fake_serial.writes)
 
+    def test_write_packet_waits_for_cts_before_writing_next_frame(self):
+        transport = self._transport()
+        first_outbound = CPXPacket(
+            destination=CPXTarget.STM32,
+            function=CPXFunction.SYSTEM,
+            data=bytearray([0x21, 0x01]),
+        )
+        blocked_outbound = CPXPacket(
+            destination=CPXTarget.STM32,
+            function=CPXFunction.SYSTEM,
+            data=bytearray([0x20, 0x01]),
+        )
+        inbound = self._inbound_packet(b'unblock')
+
+        transport.writePacket(first_outbound)
+        first_data_write_count = len(self.fake_serial.writes)
+
+        writer_error = []
+        writer_done = threading.Event()
+
+        def writer():
+            try:
+                transport.writePacket(blocked_outbound)
+            except Exception as exc:
+                writer_error.append(exc)
+            finally:
+                writer_done.set()
+
+        thread = threading.Thread(target=writer)
+        thread.start()
+
+        self.assertFalse(writer_done.wait(0.05))
+        self.assertEqual(first_data_write_count, len(self.fake_serial.writes))
+
+        self.fake_serial.append_read_data(b'\xff\x00')
+        self.fake_serial.append_read_data(uart_frame(inbound))
+        actual = transport.readPacket()
+
+        self.assertEqual(inbound.wireData, actual.wireData)
+        self.assertTrue(writer_done.wait(1.0))
+        thread.join(1.0)
+        self.assertEqual([], writer_error)
+
+        expected_blocked_frame = uart_frame(blocked_outbound)
+        self.assertIn(expected_blocked_frame, self.fake_serial.writes)
+
 
 if __name__ == '__main__':
     unittest.main()

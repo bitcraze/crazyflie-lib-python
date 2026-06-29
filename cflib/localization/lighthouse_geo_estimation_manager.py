@@ -621,30 +621,33 @@ class LhGeoInputContainer():
 
     def convert_to_verification_sample(self, uid: int) -> None:
         """Convert a sample to a verification sample by UID.
-        The sample will be moved to the verification list and removed from the other lists.
+        Only xyz-space samples can be converted. The mandatory samples used for the origin, x-axis and
+        xy-plane can not be converted, since they are required for the geometry estimation.
+        The sample will be moved to the verification list and removed from the xyz-space list.
 
         Args:
             uid (int): The UID of the sample to convert
         """
-        print(f'Converting sample with UID {uid} to verification sample')
         with self.is_modified_condition:
-            sample = self._remove_sample_by_uid(uid)
-            if sample is not None:
-                self._data.verification.append(sample)
-                self._handle_data_modification()
+            for index, sample in enumerate(self._data.xyz_space):
+                if sample.uid == uid:
+                    self._data.verification.append(self._data.xyz_space.pop(index))
+                    self._handle_data_modification()
+                    break
 
     def convert_to_xyz_space_sample(self, uid: int) -> None:
         """Convert a sample to a xyz-space sample by UID.
-        The sample will be moved to the xyz-space list and removed from the other lists.
+        The sample will be moved to the xyz-space list and removed from the verification list.
 
         Args:
             uid (int): The UID of the sample to convert
         """
         with self.is_modified_condition:
-            sample = self._remove_sample_by_uid(uid)
-            if sample is not None:
-                self._data.xyz_space.append(sample)
-                self._handle_data_modification()
+            for index, sample in enumerate(self._data.verification):
+                if sample.uid == uid:
+                    self._data.xyz_space.append(self._data.verification.pop(index))
+                    self._handle_data_modification()
+                    break
 
     def clear_all_samples(self) -> None:
         """Clear all samples in the container"""

@@ -19,13 +19,14 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+from test.localization.lighthouse_fixtures import LighthouseFixtures
+from test.localization.lighthouse_test_base import LighthouseTestBase
+
 import numpy as np
 
 from cflib.localization.ippe_cf import IppeCf
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
 from cflib.localization.lighthouse_types import Pose
-from test.localization.lighthouse_fixtures import LighthouseFixtures
-from test.localization.lighthouse_test_base import LighthouseTestBase
 
 
 class TestIppeCf(LighthouseTestBase):

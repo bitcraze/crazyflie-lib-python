@@ -19,12 +19,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+from test.localization.lighthouse_fixtures import LighthouseFixtures
+from test.localization.lighthouse_test_base import LighthouseTestBase
+
 from cflib.localization.lighthouse_geometry_solver import LighthouseGeometrySolver
 from cflib.localization.lighthouse_initial_estimator import LighthouseInitialEstimator
 from cflib.localization.lighthouse_types import LhCfPoseSample
 from cflib.localization.lighthouse_types import LhDeck4SensorPositions
-from test.localization.lighthouse_fixtures import LighthouseFixtures
-from test.localization.lighthouse_test_base import LighthouseTestBase
 
 
 class TestLighthouseGeometrySolver(LighthouseTestBase):

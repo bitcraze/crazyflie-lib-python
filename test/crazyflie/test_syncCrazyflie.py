@@ -22,13 +22,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import unittest
+from test.support.asyncCallbackCaller import AsyncCallbackCaller
 from unittest.mock import MagicMock
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 from cflib.utils.callbacks import Caller
-from test.support.asyncCallbackCaller import AsyncCallbackCaller
 
 
 class SyncCrazyflieTest(unittest.TestCase):

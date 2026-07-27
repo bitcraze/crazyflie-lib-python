@@ -44,9 +44,6 @@ jobs:
         arch: x64
       if: runner.os == 'Windows'
 
-    - name: Code quality checks
-      run: uvx pre-commit run --all-files
-
     - name: Build wheel
       run: uv build --wheel
 

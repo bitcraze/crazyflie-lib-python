@@ -73,7 +73,8 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv --clear
-          uv pip install pdoc3 pyyaml libusb-package pyusb
+          uv pip install -e . pdoc3
           echo "$PWD/.venv/bin" >> $GITHUB_PATH
+          echo "VIRTUAL_ENV=$PWD/.venv" >> $GITHUB_ENV
       - name: Build docs
         run: ./tools/build-docs/build-docs

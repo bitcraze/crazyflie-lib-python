@@ -19,12 +19,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-from test.localization.lighthouse_test_base import LighthouseTestBase
-
 import numpy as np
 
 from cflib.localization.lighthouse_system_aligner import LighthouseSystemAligner
 from cflib.localization.lighthouse_types import Pose
+from test.localization.lighthouse_test_base import LighthouseTestBase
 
 
 class TestLighthouseSystemAligner(LighthouseTestBase):

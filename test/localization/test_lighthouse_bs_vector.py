@@ -22,6 +22,7 @@
 from test.localization.lighthouse_test_base import LighthouseTestBase
 
 import numpy as np
+import yaml
 
 from cflib.localization import LighthouseBsVector
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
@@ -162,3 +163,71 @@ class TestLighthouseBsVector(LighthouseTestBase):
 
         # Assert
         self.assertVectorsAlmostEqual((0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7), actual)
+
+    def test_LighthouseBsVector_equality(self):
+        # Fixture
+        vec1 = LighthouseBsVector(0.0, 1.0)
+        vec2 = LighthouseBsVector(0.1, 1.1)
+        vec3 = LighthouseBsVector(0.1, 1.1)
+
+        # Test
+        # Assert
+        self.assertNotEqual(vec1, vec2)
+        self.assertEqual(vec2, vec3)
+
+    def test_LighthouseBsVectors_equality(self):
+        # Fixture
+        vectors1 = LighthouseBsVectors((
+            LighthouseBsVector(0.1, 0.1),
+            LighthouseBsVector(0.2, 0.2),
+            LighthouseBsVector(0.3, 0.3),
+            LighthouseBsVector(0.4, 0.4),
+        ))
+
+        vectors2 = LighthouseBsVectors((
+            LighthouseBsVector(0.0, 0.1),
+            LighthouseBsVector(0.2, 0.3),
+            LighthouseBsVector(0.4, 0.5),
+            LighthouseBsVector(0.6, 0.7),
+        ))
+
+        vectors3 = LighthouseBsVectors((
+            LighthouseBsVector(0.0, 0.1),
+            LighthouseBsVector(0.2, 0.3),
+            LighthouseBsVector(0.4, 0.5),
+            LighthouseBsVector(0.6, 0.7),
+        ))
+
+        # Test
+        # Assert
+        self.assertNotEqual(vectors1, vectors2)
+        self.assertEqual(vectors2, vectors3)
+
+    def test_LighthouseBsVector_yaml(self):
+        # Fixture
+        expected = LighthouseBsVector(0.1, 1.1)
+
+        # Test
+        yaml_str = yaml.dump(expected)
+        actual = yaml.load(yaml_str, Loader=yaml.FullLoader)
+
+        # Assert
+        self.assertTrue(yaml_str.startswith('!LighthouseBsVector'))
+        self.assertEqual(expected, actual)
+
+    def test_LighthouseBsVectors_yaml(self):
+        # Fixture
+        expected = LighthouseBsVectors((
+            LighthouseBsVector(0.1, 0.1),
+            LighthouseBsVector(0.2, 0.2),
+            LighthouseBsVector(0.3, 0.3),
+            LighthouseBsVector(0.4, 0.4),
+        ))
+
+        # Test
+        yaml_str = yaml.dump(expected)
+        actual = yaml.load(yaml_str, Loader=yaml.FullLoader)
+
+        # Assert
+        self.assertTrue(yaml_str.startswith('!LighthouseBsVectors'))
+        self.assertEqual(expected, actual)

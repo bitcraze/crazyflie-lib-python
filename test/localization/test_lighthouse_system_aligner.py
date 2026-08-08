@@ -95,6 +95,29 @@ class TestLighthouseSystemAligner(LighthouseTestBase):
         # Assert
         self.assertPosesAlmostEqual(expected, actual[bs_id])
 
+    def test_that_solution_is_de_flipped_with_first_bs_under_the_foor(self):
+        # Fixture
+        origin = (0.0, 0.0, 0.0)
+        x_axis = [(-1.0, 0.0, 0.0)]
+        xy_plane = [(2.0, 1.0, 0.0)]
+
+        bs_poses = {}
+
+        bs_id_1 = 7
+        bs_poses[bs_id_1] = Pose.from_rot_vec(t_vec=(0.0, 0.0, -0.1))
+        expected_1 = Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi), t_vec=(0.0, 0.0, -0.1))
+
+        bs_id_2 = 8
+        bs_poses[bs_id_2] = Pose.from_rot_vec(t_vec=(0.0, 0.0, 1.0))
+        expected_2 = Pose.from_rot_vec(R_vec=(0.0, 0.0, np.pi), t_vec=(0.0, 0.0, 1.0))
+
+        # Test
+        actual, transform = LighthouseSystemAligner.align(origin, x_axis, xy_plane, bs_poses)
+
+        # Assert
+        self.assertPosesAlmostEqual(expected_1, actual[bs_id_1])
+        self.assertPosesAlmostEqual(expected_2, actual[bs_id_2])
+
     def test_that_is_aligned_for_multiple_points_where_system_is_rotated_and_poins_are_fuzzy(self):
         # Fixture
         origin = (0.0, 0.0, 0.0)

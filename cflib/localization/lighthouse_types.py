@@ -25,6 +25,7 @@ from typing import NamedTuple
 
 import numpy as np
 import numpy.typing as npt
+import yaml
 from scipy.spatial.transform import Rotation
 
 from cflib.localization.lighthouse_bs_vector import LighthouseBsVectors
@@ -60,6 +61,45 @@ class Pose:
         """
         return Pose(Rotation.from_quat(R_quat).as_matrix(), t_vec)
 
+    @classmethod
+    def from_rpy(cls, roll: float = 0.0, pitch: float = 0.0, yaw: float = 0.0, t_vec: npt.ArrayLike = _ORIGIN,
+                 seq: str = 'xyz', degrees: bool = False,) -> 'Pose':
+        """Create a Pose from roll, pitch and yaw angles and translation vector
+
+        Args:
+            roll (float, optional): Roll angle. Defaults to 0.0.
+            pitch (float, optional): _Pitch angle. Defaults to 0.0.
+            yaw (float, optional): Yaw angle. Defaults to 0.0.
+            t_vec (npt.ArrayLike, optional): Position vector. Defaults to _ORIGIN.
+            seq (str, optional): The order of roll, pitch and yaw, see scipy documentation for Rotation.from_euler.
+            degrees (bool, optional): Whether the angles are in degrees. Defaults to False.
+
+        Returns:
+            Pose: The created Pose object
+        """
+
+        return Pose(Rotation.from_euler(seq, [roll, pitch, yaw], degrees=degrees).as_matrix(), t_vec)
+
+    @classmethod
+    def from_cf_rpy(cls,
+                    roll: float = 0.0,
+                    pitch: float = 0.0,
+                    yaw: float = 0.0,
+                    t_vec: npt.ArrayLike = _ORIGIN) -> 'Pose':
+        """Create a Pose from roll, pitch and yaw angles in the Crazyflie convention and translation vector
+
+        Args:
+            roll (float, optional): Roll angle as used in the CF (degrees). Defaults to 0.0.
+            pitch (float, optional): Pitch angle as used in the CF (degrees). Defaults to 0.0.
+            yaw (float, optional): Yaw angle as used in the CF (degrees). Defaults to 0.0.
+            t_vec (npt.ArrayLike, optional): Position vector. Defaults to _ORIGIN.
+
+        Returns:
+            Pose: The created Pose object
+        """
+
+        return Pose.from_rpy(roll, -pitch, yaw, t_vec, seq='xyz', degrees=True)
+
     def scale(self, scale) -> None:
         """
         quiet
@@ -86,6 +126,29 @@ class Pose:
         Get the quaternion of the pose
         """
         return Rotation.from_matrix(self._R_matrix).as_quat()
+
+    def rot_euler(self, seq: str = 'xyz', degrees: bool = False) -> npt.NDArray:
+        """ Get the euler angles of the pose
+
+        Args:
+            seq (str, optional): The order of roll, pitch and yaw, see scipy documentation for Rotation.as_euler.
+                                 use 'xyz' for the Crazyflie convention (default).
+            degrees (bool, optional): Whether to return the angles in degrees. Defaults to False.
+
+        Returns:
+            npt.NDArray: The euler angles of the pose
+        """
+        return Rotation.from_matrix(self._R_matrix).as_euler(seq, degrees=degrees)
+
+    @property
+    def rot_cf_rpy(self) -> tuple[float, float, float]:
+        """ Get roll, pitch and yaw of the pose in the Crazyflie convention (degrees)
+
+        Returns:
+            tuple[float, float, float]: roll, pitch, yaw in degrees as used in the CF
+        """
+        rpy = self.rot_euler(seq='xyz', degrees=True)
+        return (rpy[0], -rpy[1], rpy[2])
 
     @property
     def translation(self) -> npt.NDArray:
@@ -135,37 +198,38 @@ class Pose:
 
         return Pose(R_matrix=R, t_vec=t)
 
+    def __eq__(self, other):
+        if not isinstance(other, Pose):
+            return NotImplemented
+
+        return np.array_equal(self._R_matrix, other._R_matrix) and np.array_equal(self._t_vec, other._t_vec)
+
+    @staticmethod
+    def yaml_representer(dumper, data: Pose):
+        """Represent a Pose object in YAML"""
+        return dumper.represent_mapping('!Pose', {
+            'R_matrix': data.rot_matrix.tolist(),
+            't_vec': data.translation.tolist()
+        })
+
+    @staticmethod
+    def yaml_constructor(loader, node):
+        """Construct a Pose object from YAML"""
+        values = loader.construct_mapping(node, deep=True)
+        R_matrix = np.array(values['R_matrix'])
+        t_vec = np.array(values['t_vec'])
+        return Pose(R_matrix=R_matrix, t_vec=t_vec)
+
+
+yaml.add_representer(Pose, Pose.yaml_representer)
+yaml.add_constructor('!Pose', Pose.yaml_constructor)
+
 
 class LhMeasurement(NamedTuple):
     """Represents a measurement from one base station."""
     timestamp: float
     base_station_id: int
     angles: LighthouseBsVectors
-
-
-class LhBsCfPoses(NamedTuple):
-    """Represents all poses of base stations and CF samples"""
-    bs_poses: dict[int, Pose]
-    cf_poses: list[Pose]
-
-
-class LhCfPoseSample:
-    """ Represents a sample of a Crazyflie pose in space, it contains
-    various data related to the pose such as:
-    - lighthouse angles from one or more base stations
-    - initial estimate of the pose
-    - refined estimate of the pose
-    - estimated errors
-    """
-
-    def __init__(self, timestamp: float = 0.0, angles_calibrated: dict[int, LighthouseBsVectors] = None) -> None:
-        self.timestamp: float = timestamp
-
-        # Angles measured by the Crazyflie and compensated using calibration data
-        # Stored in a dictionary using base station id as the key
-        self.angles_calibrated: dict[int, LighthouseBsVectors] = angles_calibrated
-        if self.angles_calibrated is None:
-            self.angles_calibrated = {}
 
 
 class LhDeck4SensorPositions:

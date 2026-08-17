@@ -43,6 +43,7 @@ APP_CHANNEL = 2
 PLATFORM_SET_CONT_WAVE = 0
 PLATFORM_REQUEST_ARMING = 1              # Deprecated: use supervisor.send_arming_request()
 PLATFORM_REQUEST_CRASH_RECOVERY = 2      # Deprecated: use supervisor.send_crash_recovery_request()
+PLATFORM_REQUEST_USER_NOTIFICATION = 3
 
 VERSION_GET_PROTOCOL = 0
 VERSION_GET_FIRMWARE = 1
@@ -123,6 +124,17 @@ class PlatformService():
         )
 
         self._cf.supervisor.send_crash_recovery_request()
+
+    def send_user_notification(self, success: bool = True):
+        """
+        Send a user notification to the Crazyflie. This is used to notify a user of some sort of event by using the
+        means available on the Crazyflie.
+        """
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.PLATFORM, PLATFORM_COMMAND)
+        notification_type = 1 if success else 0
+        pk.data = (PLATFORM_REQUEST_USER_NOTIFICATION, notification_type)
+        self._cf.send_packet(pk)
 
     def get_protocol_version(self):
         """

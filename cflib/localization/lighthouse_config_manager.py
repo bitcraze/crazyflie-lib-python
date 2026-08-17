@@ -167,6 +167,10 @@ class LighthouseConfigWriter:
         geos, calibs, system_type = LighthouseConfigFileManager.read(file_name)
         self.write_and_store_config(data_stored_cb, geos=geos, calibs=calibs, system_type=system_type)
 
+    @property
+    def is_write_ongoing(self) -> bool:
+        return self._data_stored_cb is not None
+
     def _next(self):
         if self._geos_to_write is not None:
             self._helper.write_geos(self._geos_to_write, self._upload_done)

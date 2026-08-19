@@ -109,7 +109,7 @@ Each `LhCfPoseSample` is tagged with a `LhCfPoseSampleType` that determines how 
 | `XYZ_SPACE` | Additional positions anywhere in 3D space, used only to improve the solver's accuracy. Optional; more is better. | No |
 | `VERIFICATION` | Positions not used during estimation, only used to independently verify the result afterwards. | No |
 
-`ORIGIN`, `X_AXIS`, and `XY_PLANE` samples are mandatory: if any of these are missing or invalid, estimation cannot proceed. `XYZ_SPACE` samples improve accuracy but are not required. Ambiguous samples (see [Initial estimation](#initial-estimation)) that are mandatory are kept in the pipeline but cause `progress_is_ok` to be set to `False`; non-mandatory ambiguous samples are silently dropped.
+`ORIGIN`, `X_AXIS`, and `XY_PLANE` samples are mandatory: if any of these are missing or invalid, estimation cannot proceed. `XYZ_SPACE` samples improve accuracy but are not required. Ambiguous samples (see [Initial estimation](#2-initial-estimation-ippe)) that are mandatory are kept in the pipeline but cause `progress_is_ok` to be set to `False`; non-mandatory ambiguous samples are silently dropped.
 
 ## Estimation pipeline
 

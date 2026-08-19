@@ -6,7 +6,7 @@
 # | / ,--'  |    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #    +------`   /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-# Copyright (C) 2025 Bitcraze AB
+# Copyright (C) 2025-2026 Bitcraze AB
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

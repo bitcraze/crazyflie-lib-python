@@ -7,7 +7,7 @@
 #  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
 #   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
 #
-#  Copyright (C) 2011-2023 Bitcraze AB
+#  Copyright (C) 2011-2026 Bitcraze AB
 #
 #  Crazyflie Nano Quadcopter Client
 #

@@ -33,6 +33,7 @@ version: '1'
 """
 import argparse
 import logging
+import os
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
@@ -45,9 +46,11 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
+default_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'persistent_params_from_file.yaml')
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--file', type=str, default='persistent_params_from_file.yaml',
+    parser.add_argument('-f', '--file', type=str, default=default_file,
                         help='The yaml file containing the arguments. (default: params.yaml)')
     args = parser.parse_args()
 

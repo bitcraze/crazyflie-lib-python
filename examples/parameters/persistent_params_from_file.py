@@ -40,16 +40,15 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 from cflib.utils.param_file_helper import ParamFileHelper
 
-
 uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--file', type=str, help='The yaml file containing the arguments. ')
+    parser.add_argument('-f', '--file', type=str, default='params.yaml',
+                        help='The yaml file containing the arguments. (default: params.yaml)')
     args = parser.parse_args()
 
     cflib.crtp.init_drivers()

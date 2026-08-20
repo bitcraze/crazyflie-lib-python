@@ -47,7 +47,7 @@ logging.basicConfig(level=logging.ERROR)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--file', type=str, default='params.yaml',
+    parser.add_argument('-f', '--file', type=str, default='persistent_params_from_file.yaml',
                         help='The yaml file containing the arguments. (default: params.yaml)')
     args = parser.parse_args()
 

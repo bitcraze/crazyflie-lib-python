@@ -1,0 +1,8 @@
+# Example file for writing persistent parameters using a file
+params:
+  activeMarker.back:
+    default_value: 3
+    is_stored: true
+    stored_value: 30
+type: persistent_param_state
+version: '1'

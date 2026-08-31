@@ -1,5 +1,6 @@
 import socket
 import struct
+from threading import Event
 from threading import Lock
 
 from . import CPXPacket
@@ -80,8 +81,9 @@ class UARTTransport(CPXTransport):
         self._device = device
         self._baudrate = baudrate
         self._serial = None
-        self._cts = False
-        self._lock = Lock()
+        self._tx_ready = Event()
+        self._tx_lock = Lock()
+        self._serial_write_lock = Lock()
 
         self.connect()
 
@@ -100,10 +102,10 @@ class UARTTransport(CPXTransport):
                 print(size)
                 if size == 0x00:
                     isInSync = True
-                    self.cts = True
 
-        # Send back sync
-        self._serial.write([0xFF, 0x00])
+        # Send back sync / clear-to-receive
+        self._write_raw([0xFF, 0x00])
+        self._tx_ready.set()
 
         print('Connected')
 
@@ -113,44 +115,55 @@ class UARTTransport(CPXTransport):
             checksum ^= i
         return checksum
 
+    def _write_raw(self, data):
+        with self._serial_write_lock:
+            self._serial.write(data)
+
     def disconnect(self):
         print('Closing transport')
         self._serial.close()
         self._serial = None
 
     def writePacket(self, packet):
-        self._lock.acquire()
         data = packet.wireData
         if len(data) > 100:
-            raise 'Packet too large!'
+            raise Exception('Packet too large!')
 
         buff = bytearray([0xFF, len(data)])
         buff.extend(data)
         buff.extend([self._calcXORchecksum(buff)])
-        self._serial.write(buff)
+
+        with self._tx_lock:
+            self._tx_ready.wait()
+            self._tx_ready.clear()
+            self._write_raw(buff)
 
     def readPacket(self):
-        size = 0
-        while size == 0:
+        while True:
             start = self._serial.read(1)[0]
-            if start == 0xFF:
-                size = self._serial.read(1)[0]
-                if size == 0:
-                    self._lock.release()
-                else:
-                    data = self._serial.read(size)  # Size is excluding start (0xFF) and checksum at end
-                    crc = self._serial.read(1)
-                    # CRC includes start and size
-                    calculated_crc = self._calcXORchecksum(bytes([start, size]) + data)
-                    if calculated_crc != ord(crc):
-                        print('CRC error!')
-                    # Send CTS
-                    self._serial.write([0xFF, 0x00])
+            if start != 0xFF:
+                continue
 
-                    packet = CPXPacket()
-                    packet.wireData = data
+            size = self._serial.read(1)[0]
+            if size == 0:
+                self._tx_ready.set()
+                continue
 
-        return packet
+            data = self._serial.read(size)  # Size is excluding start (0xFF) and checksum at end
+            crc = self._serial.read(1)[0]
+            # CRC includes start and size
+            calculated_crc = self._calcXORchecksum(bytes([start, size]) + data)
+            if calculated_crc != crc:
+                print('CRC error!')
+                self._write_raw([0xFF, 0x00])
+                continue
+
+            # Send CTS
+            self._write_raw([0xFF, 0x00])
+
+            packet = CPXPacket()
+            packet.wireData = data
+            return packet
 
 
 class CRTPTransport(CPXTransport):

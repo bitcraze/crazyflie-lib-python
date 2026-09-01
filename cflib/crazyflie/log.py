@@ -55,6 +55,7 @@ import struct
 from collections import deque
 from contextlib import contextmanager
 from threading import Lock
+from threading import RLock
 
 from .toc import Toc
 from .toc import TocFetcher
@@ -289,13 +290,15 @@ class LogConfig(object):
             self._create()
 
     def _create(self):
+        cf = self.cf
+        block_id = self.id
         command = self._cmd_create_block()
         next_to_add = 0
         is_done = False
 
         num_variables = 0
         pending = 0
-        for block in self.cf.log.log_blocks:
+        for block in cf.log.log_blocks:
             if block.pending or block.added or block.started:
                 pending += 1
                 num_variables += len(block._get_effective_variables())
@@ -319,11 +322,14 @@ class LogConfig(object):
         while not is_done:
             pk = CRTPPacket()
             pk.set_header(5, CHAN_SETTINGS)
-            pk.data = (command, self.id)
+            pk.data = (command, block_id)
             is_done, next_to_add = self._setup_log_elements(pk, next_to_add)
 
-            logger.debug('Adding/appending log block id {}'.format(self.id))
-            self.cf.send_packet(pk, expected_reply=(command, self.id))
+            logger.debug('Adding/appending log block id {}'.format(block_id))
+            cf.send_packet(pk, expected_reply=(command, block_id))
+            if self.cf is not cf or self.id != block_id:
+                raise LogConfigError(
+                    'Log configuration was detached while being created')
 
             # Use append if we have to add more variables
             command = self._cmd_append_block()
@@ -488,7 +494,7 @@ class Log():
         self._toc_cache = None
 
         self._registration_lock = Lock()
-        self._command_lock = Lock()
+        self._command_lock = RLock()
         self._available_config_ids = deque()
         self._ids_ready = False
         self._reset_pending = False

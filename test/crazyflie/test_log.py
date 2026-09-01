@@ -381,6 +381,35 @@ class LogTest(unittest.TestCase):
         self.assertFalse(disconnect_thread.is_alive())
         self.assertIsNone(config.id)
 
+    def test_synchronous_disconnect_during_start_does_not_deadlock(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        self.log.toc = MagicMock()
+        self.log.toc.get_element_by_complete_name.return_value = MagicMock()
+        self.log.toc.get_element_id.return_value = 1
+        config = LogConfig('config', 100)
+        config.add_variable('group.value', 'uint8_t')
+        self.log.add_config(config)
+        errors = []
+
+        def send_packet(packet, expected_reply):
+            self.cf.disconnected.call('radio://test')
+
+        def start():
+            try:
+                config.start()
+            except LogConfigError as error:
+                errors.append(error)
+
+        self.cf.send_packet.side_effect = send_packet
+        start_thread = threading.Thread(target=start, daemon=True)
+        start_thread.start()
+        start_thread.join(1.0)
+
+        self.assertFalse(start_thread.is_alive())
+        self.assertEqual(1, len(errors))
+        self.assertIsNone(config.id)
+
 
 if __name__ == '__main__':
     unittest.main()

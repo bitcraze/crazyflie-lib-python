@@ -21,6 +21,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import errno
 import struct
+import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import MagicMock
@@ -245,6 +246,50 @@ class LogTest(unittest.TestCase):
 
         self.assertEqual(list(range(256)), sorted(
             config.id for config in configs))
+
+    def test_reset_waits_for_in_flight_delete_command(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_config('config')
+        self.log.add_config(config)
+        delete_send_started = threading.Event()
+        allow_delete_send = threading.Event()
+        reset_finished = threading.Event()
+
+        def send_packet(packet, expected_reply):
+            if packet.data[0] == CMD_DELETE_BLOCK:
+                delete_send_started.set()
+                allow_delete_send.wait()
+
+        self.cf.send_packet.side_effect = send_packet
+        delete_thread = threading.Thread(target=config.delete)
+        delete_thread.start()
+        self.assertTrue(delete_send_started.wait(1.0))
+
+        def reset():
+            self.log.reset()
+            reset_finished.set()
+
+        reset_thread = threading.Thread(target=reset)
+        reset_thread.start()
+
+        try:
+            self.assertFalse(reset_finished.wait(0.1))
+        finally:
+            allow_delete_send.set()
+            delete_thread.join(1.0)
+            reset_thread.join(1.0)
+        self.assertFalse(delete_thread.is_alive())
+        self.assertFalse(reset_thread.is_alive())
+
+    def test_reset_can_be_retried_when_sending_fails(self):
+        self.cf.send_packet.side_effect = [RuntimeError('send failed'), None]
+
+        with self.assertRaises(RuntimeError):
+            self.log.reset()
+        self.log.reset()
+
+        self.assertEqual(2, self.cf.send_packet.call_count)
 
 
 if __name__ == '__main__':

@@ -474,6 +474,7 @@ class Log():
         self._toc_cache = None
 
         self._registration_lock = Lock()
+        self._command_lock = Lock()
         self._available_config_ids = deque()
         self._ids_ready = False
         self._reset_pending = False
@@ -576,17 +577,24 @@ class Log():
         self._send_reset_packet()
 
     def _send_reset_packet(self):
-        with self._registration_lock:
-            if self._reset_pending:
-                return
-            self._reset_pending = True
-            self._ids_ready = False
-            self._available_config_ids.clear()
+        with self._command_lock:
+            with self._registration_lock:
+                if self._reset_pending:
+                    return
+                self._reset_pending = True
+                self._ids_ready = False
+                self._available_config_ids.clear()
 
-        pk = CRTPPacket()
-        pk.set_header(CRTPPort.LOGGING, CHAN_SETTINGS)
-        pk.data = (CMD_RESET_LOGGING,)
-        self.cf.send_packet(pk, expected_reply=(CMD_RESET_LOGGING,))
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.LOGGING, CHAN_SETTINGS)
+            pk.data = (CMD_RESET_LOGGING,)
+            try:
+                self.cf.send_packet(
+                    pk, expected_reply=(CMD_RESET_LOGGING,))
+            except Exception:
+                with self._registration_lock:
+                    self._reset_pending = False
+                raise
 
     def _detach_all_configs(self, restore_ids, require_reset_pending=False):
         with self._registration_lock:
@@ -636,28 +644,31 @@ class Log():
         return True
 
     def _delete_config(self, logconf):
-        with self._registration_lock:
-            if logconf not in self.log_blocks or logconf.id is None:
-                return
-            if logconf._delete_pending:
-                return
-            logconf._delete_pending = True
-            block_id = logconf.id
-
-        logger.debug('LogEntry: Sending delete logging for block id=%d',
-                     block_id)
-        pk = CRTPPacket()
-        pk.set_header(CRTPPort.LOGGING, CHAN_SETTINGS)
-        pk.data = (CMD_DELETE_BLOCK, block_id)
-        try:
-            self.cf.send_packet(
-                pk, expected_reply=(CMD_DELETE_BLOCK, block_id))
-        except Exception:
+        with self._command_lock:
             with self._registration_lock:
-                if (logconf.id == block_id and
-                        logconf._delete_pending):
-                    logconf._delete_pending = False
-            raise
+                if (not self._ids_ready or
+                        logconf not in self.log_blocks or
+                        logconf.id is None):
+                    return
+                if logconf._delete_pending:
+                    return
+                logconf._delete_pending = True
+                block_id = logconf.id
+
+            logger.debug('LogEntry: Sending delete logging for block id=%d',
+                         block_id)
+            pk = CRTPPacket()
+            pk.set_header(CRTPPort.LOGGING, CHAN_SETTINGS)
+            pk.data = (CMD_DELETE_BLOCK, block_id)
+            try:
+                self.cf.send_packet(
+                    pk, expected_reply=(CMD_DELETE_BLOCK, block_id))
+            except Exception:
+                with self._registration_lock:
+                    if (logconf.id == block_id and
+                            logconf._delete_pending):
+                        logconf._delete_pending = False
+                raise
 
     def _new_packet_cb(self, packet):
         """Callback for newly arrived packets with TOC information"""

@@ -169,6 +169,23 @@ class LogConfig(object):
     def _get_effective_variables(self):
         return self.variables + self._resolved_default_variables
 
+    def _detach(self):
+        previous_state = (self.started, self.added)
+        self._started = False
+        self._added = False
+        self._delete_pending = False
+        self.pending = False
+        self.id = None
+        self.cf = None
+        self._resolved_default_variables = []
+        return previous_state
+
+    def _call_detached_callbacks(self, was_started, was_added):
+        if was_started:
+            self.started_cb.call(self, False)
+        if was_added:
+            self.added_cb.call(self, False)
+
     def add_variable(self, name, fetch_as=None):
         """Add a new variable to the configuration.
 
@@ -587,20 +604,10 @@ class Log():
 
             callbacks = []
             for block in blocks:
-                callbacks.append((block, block.started, block.added))
-                block._started = False
-                block._added = False
-                block._delete_pending = False
-                block.pending = False
-                block.id = None
-                block.cf = None
-                block._resolved_default_variables = []
+                callbacks.append((block, block._detach()))
 
-        for block, was_started, was_added in callbacks:
-            if was_started:
-                block.started_cb.call(block, False)
-            if was_added:
-                block.added_cb.call(block, False)
+        for block, previous_state in callbacks:
+            block._call_detached_callbacks(*previous_state)
         return True
 
     def _disconnected(self, uri):
@@ -620,22 +627,12 @@ class Log():
                     not logconf._delete_pending):
                 return False
 
-            was_started = logconf.started
-            was_added = logconf.added
             self.log_blocks.remove(logconf)
-            self._available_config_ids.append(block_id)
-            logconf._started = False
-            logconf._added = False
-            logconf._delete_pending = False
-            logconf.pending = False
-            logconf.id = None
-            logconf.cf = None
-            logconf._resolved_default_variables = []
+            if self._ids_ready:
+                self._available_config_ids.append(block_id)
+            previous_state = logconf._detach()
 
-        if was_started:
-            logconf.started_cb.call(logconf, False)
-        if was_added:
-            logconf.added_cb.call(logconf, False)
+        logconf._call_detached_callbacks(*previous_state)
         return True
 
     def _delete_config(self, logconf):
@@ -652,7 +649,15 @@ class Log():
         pk = CRTPPacket()
         pk.set_header(CRTPPort.LOGGING, CHAN_SETTINGS)
         pk.data = (CMD_DELETE_BLOCK, block_id)
-        self.cf.send_packet(pk, expected_reply=(CMD_DELETE_BLOCK, block_id))
+        try:
+            self.cf.send_packet(
+                pk, expected_reply=(CMD_DELETE_BLOCK, block_id))
+        except Exception:
+            with self._registration_lock:
+                if (logconf.id == block_id and
+                        logconf._delete_pending):
+                    logconf._delete_pending = False
+            raise
 
     def _new_packet_cb(self, packet):
         """Callback for newly arrived packets with TOC information"""
@@ -732,6 +737,9 @@ class Log():
 
             if (cmd == CMD_RESET_LOGGING):
                 if error_status != 0x00:
+                    with self._registration_lock:
+                        if self._reset_pending:
+                            self._reset_pending = False
                     return
 
                 reset_completed = self._detach_all_configs(

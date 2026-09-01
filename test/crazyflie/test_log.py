@@ -22,6 +22,7 @@
 import errno
 import struct
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import MagicMock
 
 from cflib.crazyflie import Crazyflie
@@ -209,6 +210,41 @@ class LogTest(unittest.TestCase):
 
         self.assertEqual(0, config.id)
         self.assertIn(config, self.log.log_blocks)
+
+    def test_delete_can_be_retried_when_sending_fails(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_config('config')
+        self.log.add_config(config)
+        self.cf.send_packet.reset_mock()
+        self.cf.send_packet.side_effect = [RuntimeError('send failed'), None]
+
+        with self.assertRaises(RuntimeError):
+            config.delete()
+        config.delete()
+
+        self.assertEqual(2, self.cf.send_packet.call_count)
+
+    def test_reset_can_be_retried_after_failed_acknowledgement(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING, error_status=errno.ENOEXEC)
+        self.cf.send_packet.reset_mock()
+
+        self.log.reset()
+
+        self.assertEqual(1, self.cf.send_packet.call_count)
+
+    def test_ids_are_unique_when_configs_are_registered_concurrently(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        configs = [self._make_config('config-{}'.format(i))
+                   for i in range(256)]
+
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            list(executor.map(self.log.add_config, configs))
+
+        self.assertEqual(list(range(256)), sorted(
+            config.id for config in configs))
 
 
 if __name__ == '__main__':

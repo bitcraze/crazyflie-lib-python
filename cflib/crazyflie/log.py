@@ -53,6 +53,7 @@ import errno
 import logging
 import struct
 from collections import deque
+from contextlib import contextmanager
 from threading import Lock
 
 from .toc import Toc
@@ -284,8 +285,7 @@ class LogConfig(object):
         if cf is None or self.id is None:
             raise LogConfigError(
                 'Log configuration must be added before it can be created')
-        with cf.log._command_lock:
-            cf.log._require_registered(self)
+        with cf.log._config_command(self):
             self._create()
 
     def _create(self):
@@ -334,8 +334,7 @@ class LogConfig(object):
         if cf is None or self.id is None:
             raise LogConfigError(
                 'Log configuration must be added before it can be started')
-        with cf.log._command_lock:
-            cf.log._require_registered(self)
+        with cf.log._config_command(self):
             if (cf.link is not None):
                 if (self._added is False):
                     self._create()
@@ -355,8 +354,8 @@ class LogConfig(object):
         cf = self.cf
         if cf is None or self.id is None:
             return
-        with cf.log._command_lock:
-            if not cf.log._is_registered(self):
+        with cf.log._config_command(self, required=False) as registered:
+            if not registered:
                 return
             block_id = self.id
             if (cf.link is not None):
@@ -634,7 +633,8 @@ class Log():
         return True
 
     def _disconnected(self, uri):
-        self._detach_all_configs(restore_ids=False)
+        with self._command_lock:
+            self._detach_all_configs(restore_ids=False)
 
     def _find_block(self, id):
         with self._registration_lock:
@@ -643,16 +643,18 @@ class Log():
                     return block
         return None
 
-    def _is_registered(self, logconf):
-        with self._registration_lock:
-            return (self._ids_ready and
-                    logconf in self.log_blocks and
-                    logconf.cf is self.cf and
-                    logconf.id is not None)
-
-    def _require_registered(self, logconf):
-        if not self._is_registered(logconf):
-            raise LogConfigError('Log configuration is not registered')
+    @contextmanager
+    def _config_command(self, logconf, required=True):
+        with self._command_lock:
+            with self._registration_lock:
+                registered = (self._ids_ready and
+                              logconf in self.log_blocks and
+                              logconf.cf is self.cf and
+                              logconf.id is not None and
+                              not logconf._delete_pending)
+            if required and not registered:
+                raise LogConfigError('Log configuration is not registered')
+            yield registered
 
     def _retire_config(self, logconf, block_id):
         with self._registration_lock:

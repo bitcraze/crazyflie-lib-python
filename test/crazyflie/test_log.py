@@ -330,6 +330,57 @@ class LogTest(unittest.TestCase):
         self.assertFalse(start_thread.is_alive())
         self.assertFalse(reset_thread.is_alive())
 
+    def test_start_is_rejected_while_delete_is_pending(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_config('config')
+        self.log.add_config(config)
+        config.delete()
+
+        with self.assertRaises(LogConfigError):
+            config.start()
+
+        self.assertEqual(2, self.cf.send_packet.call_count)
+
+    def test_disconnect_waits_for_in_flight_start_command(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        self.log.toc = MagicMock()
+        self.log.toc.get_element_by_complete_name.return_value = MagicMock()
+        self.log.toc.get_element_id.return_value = 1
+        config = LogConfig('config', 100)
+        config.add_variable('group.value', 'uint8_t')
+        self.log.add_config(config)
+        create_send_started = threading.Event()
+        allow_create_send = threading.Event()
+        disconnect_finished = threading.Event()
+
+        def send_packet(packet, expected_reply):
+            if packet.data[0] == CMD_CREATE_BLOCK:
+                create_send_started.set()
+                allow_create_send.wait()
+
+        def disconnect():
+            self.cf.disconnected.call('radio://test')
+            disconnect_finished.set()
+
+        self.cf.send_packet.side_effect = send_packet
+        start_thread = threading.Thread(target=config.start)
+        start_thread.start()
+        self.assertTrue(create_send_started.wait(1.0))
+        disconnect_thread = threading.Thread(target=disconnect)
+        disconnect_thread.start()
+
+        try:
+            self.assertFalse(disconnect_finished.wait(0.1))
+        finally:
+            allow_create_send.set()
+            start_thread.join(1.0)
+            disconnect_thread.join(1.0)
+        self.assertFalse(start_thread.is_alive())
+        self.assertFalse(disconnect_thread.is_alive())
+        self.assertIsNone(config.id)
+
 
 if __name__ == '__main__':
     unittest.main()

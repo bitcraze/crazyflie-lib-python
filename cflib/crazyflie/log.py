@@ -327,9 +327,9 @@ class LogConfig(object):
 
             logger.debug('Adding/appending log block id {}'.format(block_id))
             cf.send_packet(pk, expected_reply=(command, block_id))
-            if self.cf is not cf or self.id != block_id:
+            if not cf.log._is_current_registration(self, cf, block_id):
                 raise LogConfigError(
-                    'Log configuration was detached while being created')
+                    'Log configuration changed while being created')
 
             # Use append if we have to add more variables
             command = self._cmd_append_block()
@@ -652,15 +652,20 @@ class Log():
     @contextmanager
     def _config_command(self, logconf, required=True):
         with self._command_lock:
-            with self._registration_lock:
-                registered = (self._ids_ready and
-                              logconf in self.log_blocks and
-                              logconf.cf is self.cf and
-                              logconf.id is not None and
-                              not logconf._delete_pending)
+            registered = self._is_current_registration(
+                logconf, self.cf, logconf.id)
             if required and not registered:
                 raise LogConfigError('Log configuration is not registered')
             yield registered
+
+    def _is_current_registration(self, logconf, cf, block_id):
+        with self._registration_lock:
+            return (self._ids_ready and
+                    logconf in self.log_blocks and
+                    logconf.cf is cf and
+                    logconf.id == block_id and
+                    block_id is not None and
+                    not logconf._delete_pending)
 
     def _retire_config(self, logconf, block_id):
         with self._registration_lock:

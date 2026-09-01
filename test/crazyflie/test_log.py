@@ -29,6 +29,7 @@ from unittest.mock import MagicMock
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import CHAN_SETTINGS
 from cflib.crazyflie.log import CMD_CREATE_BLOCK
+from cflib.crazyflie.log import CMD_CREATE_BLOCK_V2
 from cflib.crazyflie.log import CMD_DELETE_BLOCK
 from cflib.crazyflie.log import CMD_RESET_LOGGING
 from cflib.crazyflie.log import Log
@@ -59,6 +60,17 @@ class LogTest(unittest.TestCase):
     def _make_config(self, name):
         config = LogConfig(name, 100)
         config.add_memory('value', 'uint8_t', 'uint8_t', 0x1000)
+        return config
+
+    def _make_multi_packet_config(self):
+        self.log._useV2 = True
+        self.log.toc = MagicMock()
+        self.log.toc.get_element_by_complete_name.return_value = MagicMock()
+        self.log.toc.get_element_id.return_value = 1
+        config = LogConfig('multi-packet', 100)
+        for i in range(20):
+            config.add_variable('group.value{}'.format(i), 'uint8_t')
+        self.log.add_config(config)
         return config
 
     def test_all_byte_values_are_available_as_log_config_ids(self):
@@ -409,6 +421,44 @@ class LogTest(unittest.TestCase):
         self.assertFalse(start_thread.is_alive())
         self.assertEqual(1, len(errors))
         self.assertIsNone(config.id)
+
+    def test_synchronous_reset_during_create_prevents_append(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_multi_packet_config()
+        sent_commands = []
+
+        def send_packet(packet, expected_reply):
+            sent_commands.append(packet.data[0])
+            if packet.data[0] == CMD_CREATE_BLOCK_V2:
+                self.log.reset()
+
+        self.cf.send_packet.side_effect = send_packet
+
+        with self.assertRaises(LogConfigError):
+            config.start()
+
+        self.assertEqual(
+            [CMD_CREATE_BLOCK_V2, CMD_RESET_LOGGING], sent_commands)
+
+    def test_synchronous_delete_during_create_prevents_append(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_multi_packet_config()
+        sent_commands = []
+
+        def send_packet(packet, expected_reply):
+            sent_commands.append(packet.data[0])
+            if packet.data[0] == CMD_CREATE_BLOCK_V2:
+                config.delete()
+
+        self.cf.send_packet.side_effect = send_packet
+
+        with self.assertRaises(LogConfigError):
+            config.start()
+
+        self.assertEqual(
+            [CMD_CREATE_BLOCK_V2, CMD_DELETE_BLOCK], sent_commands)
 
 
 if __name__ == '__main__':

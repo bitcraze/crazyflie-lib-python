@@ -52,6 +52,8 @@ specified period.
 import errno
 import logging
 import struct
+from collections import deque
+from threading import Lock
 
 from .toc import Toc
 from .toc import TocFetcher
@@ -60,7 +62,7 @@ from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
-__all__ = ['Log', 'LogTocElement']
+__all__ = ['Log', 'LogConfigError', 'LogTocElement']
 
 # Channels used for the logging port
 CHAN_TOC = 0
@@ -90,6 +92,10 @@ GET_TOC_ELEMENT = 'GET_TOC_ELEMENT'
 
 
 logger = logging.getLogger(__name__)
+
+
+class LogConfigError(Exception):
+    """Raised when a log configuration cannot change lifecycle state."""
 
 
 class LogVariable():
@@ -143,8 +149,8 @@ class LogConfig(object):
         self.added_cb = Caller()
         self.err_no = 0
 
-        # These 3 variables are set by the log subsystem when the bock is added
-        self.id = 0
+        # These 3 variables are set by the log subsystem when the block is added
+        self.id = None
         self.cf = None
         self.useV2 = False
 
@@ -152,11 +158,16 @@ class LogConfig(object):
         self.period_in_ms = period_in_ms
         self._added = False
         self._started = False
+        self._delete_pending = False
         self.pending = False
         self.valid = False
         self.variables = []
         self.default_fetch_as = []
+        self._resolved_default_variables = []
         self.name = name
+
+    def _get_effective_variables(self):
+        return self.variables + self._resolved_default_variables
 
     def add_variable(self, name, fetch_as=None):
         """Add a new variable to the configuration.
@@ -220,9 +231,10 @@ class LogConfig(object):
             return CMD_APPEND_BLOCK
 
     def _setup_log_elements(self, pk, next_to_add):
+        variables = self._get_effective_variables()
         i = next_to_add
-        for i in range(next_to_add, len(self.variables)):
-            var = self.variables[i]
+        for i in range(next_to_add, len(variables)):
+            var = variables[i]
             if (var.is_toc_variable() is False):  # Memory location
                 logger.debug('Logging to raw memory %d, 0x%04X',
                              var.get_storage_and_fetch_byte(), var.address)
@@ -260,14 +272,15 @@ class LogConfig(object):
         for block in self.cf.log.log_blocks:
             if block.pending or block.added or block.started:
                 pending += 1
-                num_variables += len(block.variables)
+                num_variables += len(block._get_effective_variables())
 
         if pending < Log.MAX_BLOCKS:
             #
             # The Crazyflie firmware can only handle 128 variables before
             # erroring out with ENOMEM.
             #
-            if num_variables + len(self.variables) > Log.MAX_VARIABLES:
+            if (num_variables + len(self._get_effective_variables()) >
+                    Log.MAX_VARIABLES):
                 raise AttributeError(
                     ('Adding this configuration would exceed max number '
                      'of variables (%d)' % Log.MAX_VARIABLES)
@@ -291,7 +304,11 @@ class LogConfig(object):
 
     def start(self):
         """Start the logging for this entry"""
-        if (self.cf.link is not None):
+        cf = self.cf
+        if cf is None or self.id is None:
+            raise LogConfigError(
+                'Log configuration must be added before it can be started')
+        if (cf.link is not None):
             if (self._added is False):
                 self.create()
                 logger.debug('First time block is started, add block')
@@ -306,37 +323,30 @@ class LogConfig(object):
 
     def stop(self):
         """Stop the logging for this entry"""
-        if (self.cf.link is not None):
-            if (self.id is None):
-                logger.warning('Stopping block, but no block registered')
-            else:
-                logger.debug('Sending stop logging for block id=%d', self.id)
-                pk = CRTPPacket()
-                pk.set_header(5, CHAN_SETTINGS)
-                pk.data = (CMD_STOP_LOGGING, self.id)
-                self.cf.send_packet(
-                    pk, expected_reply=(CMD_STOP_LOGGING, self.id))
+        cf = self.cf
+        block_id = self.id
+        if cf is None or block_id is None:
+            return
+        if (cf.link is not None):
+            logger.debug('Sending stop logging for block id=%d', block_id)
+            pk = CRTPPacket()
+            pk.set_header(5, CHAN_SETTINGS)
+            pk.data = (CMD_STOP_LOGGING, block_id)
+            cf.send_packet(
+                pk, expected_reply=(CMD_STOP_LOGGING, block_id))
 
     def delete(self):
         """Delete this entry in the Crazyflie"""
-        if (self.cf.link is not None):
-            if (self.id is None):
-                logger.warning('Delete block, but no block registered')
-            else:
-                logger.debug('LogEntry: Sending delete logging for block id=%d'
-                             % self.id)
-                pk = CRTPPacket()
-                pk.set_header(5, CHAN_SETTINGS)
-                pk.data = (CMD_DELETE_BLOCK, self.id)
-                self.cf.send_packet(
-                    pk, expected_reply=(CMD_DELETE_BLOCK, self.id))
+        cf = self.cf
+        if cf is not None and self.id is not None:
+            cf.log._delete_config(self)
 
     def unpack_log_data(self, log_data, timestamp):
         """Unpack received logging data so it represent real values according
         to the configuration in the entry"""
         ret_data = {}
         data_index = 0
-        for var in self.variables:
+        for var in self._get_effective_variables():
             size = LogTocElement.get_size_from_id(var.fetch_as)
             name = var.name
             unpackstring = LogTocElement.get_unpack_string_from_id(
@@ -415,6 +425,7 @@ class Log():
     """Create log configuration"""
 
     MAX_BLOCKS = 16
+    MAX_CONFIG_IDS = 256
     MAX_VARIABLES = 128
 
     # These codes can be decoded using os.stderror, but
@@ -436,6 +447,7 @@ class Log():
         self.cf = crazyflie
         self.toc = None
         self.cf.add_port_callback(CRTPPort.LOGGING, self._new_packet_cb)
+        self.cf.disconnected.add_callback(self._disconnected)
 
         self.toc_updated = Caller()
         self.state = IDLE
@@ -444,7 +456,10 @@ class Log():
         self._refresh_callback = None
         self._toc_cache = None
 
-        self._config_id_counter = 1
+        self._registration_lock = Lock()
+        self._available_config_ids = deque()
+        self._ids_ready = False
+        self._reset_pending = False
 
         self._useV2 = False
 
@@ -459,13 +474,21 @@ class Log():
         connected when calling this method, otherwise it will fail."""
 
         if not self.cf.link:
-            logger.error('Cannot add configs without being connected to a '
-                         'Crazyflie!')
-            return
+            raise LogConfigError(
+                'Cannot add log configurations without a connection')
+
+        with self._registration_lock:
+            if logconf.id is not None or logconf.cf is not None:
+                raise LogConfigError(
+                    'Log configuration is already registered')
+            if not self._ids_ready:
+                raise LogConfigError(
+                    'Log configuration IDs are not ready')
 
         # If the log configuration contains variables that we added without
         # type (i.e we want the stored as type for fetching as well) then
         # resolve this now and add them to the block again.
+        resolved_default_variables = []
         for name in logconf.default_fetch_as:
             var = self.toc.get_element_by_complete_name(name)
             if not var:
@@ -473,15 +496,14 @@ class Log():
                     '%s not in TOC, this block cannot be used!', name)
                 logconf.valid = False
                 raise KeyError('Variable {} not in TOC'.format(name))
-            # Now that we know what type this variable has, add it to the log
-            # config again with the correct type
-            logconf.add_variable(name, var.ctype)
+            resolved_default_variables.append(LogVariable(name, var.ctype))
 
         # Now check that all the added variables are in the TOC and that
         # the total size constraint of a data packet with logging data is
         # not
         size = 0
-        for var in logconf.variables:
+        effective_variables = logconf.variables + resolved_default_variables
+        for var in effective_variables:
             size += LogTocElement.get_size_from_id(var.fetch_as)
             # Check that we are able to find the variable in the TOC so
             # we can return error already now and not when the config is sent
@@ -495,12 +517,23 @@ class Log():
 
         if (size <= LogConfig.MAX_LEN and
                 (logconf.period > 0 and logconf.period < 0xFF)):
-            logconf.valid = True
-            logconf.cf = self.cf
-            logconf.id = self._config_id_counter
-            logconf.useV2 = self._useV2
-            self._config_id_counter = (self._config_id_counter + 1) % 255
-            self.log_blocks.append(logconf)
+            with self._registration_lock:
+                if logconf.id is not None or logconf.cf is not None:
+                    raise LogConfigError(
+                        'Log configuration is already registered')
+                if not self._ids_ready:
+                    raise LogConfigError(
+                        'Log configuration IDs are not ready')
+                if not self._available_config_ids:
+                    raise LogConfigError('No log configuration IDs available')
+                logconf.valid = True
+                logconf.cf = self.cf
+                logconf.id = self._available_config_ids.popleft()
+                logconf._delete_pending = False
+                logconf._resolved_default_variables = (
+                    resolved_default_variables)
+                logconf.useV2 = self._useV2
+                self.log_blocks.append(logconf)
             self.block_added_cb.call(logconf)
         else:
             logconf.valid = False
@@ -512,7 +545,6 @@ class Log():
         """
         Reset the log system and remove all log blocks
         """
-        self.log_blocks = []
         self._send_reset_packet()
 
     def refresh_toc(self, refresh_done_callback, toc_cache):
@@ -527,16 +559,100 @@ class Log():
         self._send_reset_packet()
 
     def _send_reset_packet(self):
+        with self._registration_lock:
+            if self._reset_pending:
+                return
+            self._reset_pending = True
+            self._ids_ready = False
+            self._available_config_ids.clear()
+
         pk = CRTPPacket()
         pk.set_header(CRTPPort.LOGGING, CHAN_SETTINGS)
         pk.data = (CMD_RESET_LOGGING,)
         self.cf.send_packet(pk, expected_reply=(CMD_RESET_LOGGING,))
 
+    def _detach_all_configs(self, restore_ids, require_reset_pending=False):
+        with self._registration_lock:
+            if require_reset_pending and not self._reset_pending:
+                return False
+            blocks = self.log_blocks
+            self.log_blocks = []
+            if restore_ids:
+                self._available_config_ids = deque(
+                    range(self.MAX_CONFIG_IDS))
+            else:
+                self._available_config_ids.clear()
+            self._ids_ready = restore_ids
+            self._reset_pending = False
+
+            callbacks = []
+            for block in blocks:
+                callbacks.append((block, block.started, block.added))
+                block._started = False
+                block._added = False
+                block._delete_pending = False
+                block.pending = False
+                block.id = None
+                block.cf = None
+                block._resolved_default_variables = []
+
+        for block, was_started, was_added in callbacks:
+            if was_started:
+                block.started_cb.call(block, False)
+            if was_added:
+                block.added_cb.call(block, False)
+        return True
+
+    def _disconnected(self, uri):
+        self._detach_all_configs(restore_ids=False)
+
     def _find_block(self, id):
-        for block in self.log_blocks:
-            if block.id == id:
-                return block
+        with self._registration_lock:
+            for block in self.log_blocks:
+                if block.id == id:
+                    return block
         return None
+
+    def _retire_config(self, logconf, block_id):
+        with self._registration_lock:
+            if (logconf not in self.log_blocks or
+                    logconf.id != block_id or
+                    not logconf._delete_pending):
+                return False
+
+            was_started = logconf.started
+            was_added = logconf.added
+            self.log_blocks.remove(logconf)
+            self._available_config_ids.append(block_id)
+            logconf._started = False
+            logconf._added = False
+            logconf._delete_pending = False
+            logconf.pending = False
+            logconf.id = None
+            logconf.cf = None
+            logconf._resolved_default_variables = []
+
+        if was_started:
+            logconf.started_cb.call(logconf, False)
+        if was_added:
+            logconf.added_cb.call(logconf, False)
+        return True
+
+    def _delete_config(self, logconf):
+        with self._registration_lock:
+            if logconf not in self.log_blocks or logconf.id is None:
+                return
+            if logconf._delete_pending:
+                return
+            logconf._delete_pending = True
+            block_id = logconf.id
+
+        logger.debug('LogEntry: Sending delete logging for block id=%d',
+                     block_id)
+        pk = CRTPPacket()
+        pk.set_header(CRTPPort.LOGGING, CHAN_SETTINGS)
+        pk.data = (CMD_DELETE_BLOCK, block_id)
+        self.cf.send_packet(pk, expected_reply=(CMD_DELETE_BLOCK, block_id))
 
     def _new_packet_cb(self, packet):
         """Callback for newly arrived packets with TOC information"""
@@ -604,15 +720,27 @@ class Log():
                 if error_status == 0x00 or error_status == errno.ENOENT:
                     logger.info('Have successfully deleted id=%d', id)
                     if block:
-                        block.started = False
-                        block.added = False
+                        self._retire_config(block, id)
+                elif block:
+                    with self._registration_lock:
+                        if block.id != id or not block._delete_pending:
+                            return
+                        block._delete_pending = False
+                        block.err_no = error_status
+                    msg = self._err_codes[error_status]
+                    block.error_cb.call(block, msg)
 
             if (cmd == CMD_RESET_LOGGING):
+                if error_status != 0x00:
+                    return
+
+                reset_completed = self._detach_all_configs(
+                    restore_ids=True, require_reset_pending=True)
+                if not reset_completed:
+                    return
                 # Guard against multiple responses due to re-sending
                 if not self.toc:
                     logger.debug('Logging reset, continue with TOC download')
-                    self.log_blocks = []
-
                     self.toc = Toc()
                     toc_fetcher = TocFetcher(self.cf, LogTocElement,
                                              CRTPPort.LOGGING,

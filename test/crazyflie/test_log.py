@@ -28,6 +28,7 @@ from unittest.mock import MagicMock
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import CHAN_SETTINGS
+from cflib.crazyflie.log import CMD_CREATE_BLOCK
 from cflib.crazyflie.log import CMD_DELETE_BLOCK
 from cflib.crazyflie.log import CMD_RESET_LOGGING
 from cflib.crazyflie.log import Log
@@ -290,6 +291,44 @@ class LogTest(unittest.TestCase):
         self.log.reset()
 
         self.assertEqual(2, self.cf.send_packet.call_count)
+
+    def test_reset_waits_for_in_flight_start_command(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        self.log.toc = MagicMock()
+        self.log.toc.get_element_by_complete_name.return_value = MagicMock()
+        self.log.toc.get_element_id.return_value = 1
+        config = LogConfig('config', 100)
+        config.add_variable('group.value', 'uint8_t')
+        self.log.add_config(config)
+        create_send_started = threading.Event()
+        allow_create_send = threading.Event()
+        reset_finished = threading.Event()
+
+        def send_packet(packet, expected_reply):
+            if packet.data[0] == CMD_CREATE_BLOCK:
+                create_send_started.set()
+                allow_create_send.wait()
+
+        def reset():
+            self.log.reset()
+            reset_finished.set()
+
+        self.cf.send_packet.side_effect = send_packet
+        start_thread = threading.Thread(target=config.start)
+        start_thread.start()
+        self.assertTrue(create_send_started.wait(1.0))
+        reset_thread = threading.Thread(target=reset)
+        reset_thread.start()
+
+        try:
+            self.assertFalse(reset_finished.wait(0.1))
+        finally:
+            allow_create_send.set()
+            start_thread.join(1.0)
+            reset_thread.join(1.0)
+        self.assertFalse(start_thread.is_alive())
+        self.assertFalse(reset_thread.is_alive())
 
 
 if __name__ == '__main__':

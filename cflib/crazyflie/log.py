@@ -280,6 +280,15 @@ class LogConfig(object):
 
     def create(self):
         """Save the log configuration in the Crazyflie"""
+        cf = self.cf
+        if cf is None or self.id is None:
+            raise LogConfigError(
+                'Log configuration must be added before it can be created')
+        with cf.log._command_lock:
+            cf.log._require_registered(self)
+            self._create()
+
+    def _create(self):
         command = self._cmd_create_block()
         next_to_add = 0
         is_done = False
@@ -325,32 +334,38 @@ class LogConfig(object):
         if cf is None or self.id is None:
             raise LogConfigError(
                 'Log configuration must be added before it can be started')
-        if (cf.link is not None):
-            if (self._added is False):
-                self.create()
-                logger.debug('First time block is started, add block')
-            else:
-                logger.debug('Block already registered, starting logging'
-                             ' for id=%d', self.id)
-                pk = CRTPPacket()
-                pk.set_header(5, CHAN_SETTINGS)
-                pk.data = (CMD_START_LOGGING, self.id, self.period)
-                self.cf.send_packet(pk, expected_reply=(
-                    CMD_START_LOGGING, self.id))
+        with cf.log._command_lock:
+            cf.log._require_registered(self)
+            if (cf.link is not None):
+                if (self._added is False):
+                    self._create()
+                    logger.debug('First time block is started, add block')
+                else:
+                    logger.debug(
+                        'Block already registered, starting logging for id=%d',
+                        self.id)
+                    pk = CRTPPacket()
+                    pk.set_header(5, CHAN_SETTINGS)
+                    pk.data = (CMD_START_LOGGING, self.id, self.period)
+                    cf.send_packet(pk, expected_reply=(
+                        CMD_START_LOGGING, self.id))
 
     def stop(self):
         """Stop the logging for this entry"""
         cf = self.cf
-        block_id = self.id
-        if cf is None or block_id is None:
+        if cf is None or self.id is None:
             return
-        if (cf.link is not None):
-            logger.debug('Sending stop logging for block id=%d', block_id)
-            pk = CRTPPacket()
-            pk.set_header(5, CHAN_SETTINGS)
-            pk.data = (CMD_STOP_LOGGING, block_id)
-            cf.send_packet(
-                pk, expected_reply=(CMD_STOP_LOGGING, block_id))
+        with cf.log._command_lock:
+            if not cf.log._is_registered(self):
+                return
+            block_id = self.id
+            if (cf.link is not None):
+                logger.debug('Sending stop logging for block id=%d', block_id)
+                pk = CRTPPacket()
+                pk.set_header(5, CHAN_SETTINGS)
+                pk.data = (CMD_STOP_LOGGING, block_id)
+                cf.send_packet(
+                    pk, expected_reply=(CMD_STOP_LOGGING, block_id))
 
     def delete(self):
         """Delete this entry in the Crazyflie"""
@@ -627,6 +642,17 @@ class Log():
                 if block.id == id:
                     return block
         return None
+
+    def _is_registered(self, logconf):
+        with self._registration_lock:
+            return (self._ids_ready and
+                    logconf in self.log_blocks and
+                    logconf.cf is self.cf and
+                    logconf.id is not None)
+
+    def _require_registered(self, logconf):
+        if not self._is_registered(logconf):
+            raise LogConfigError('Log configuration is not registered')
 
     def _retire_config(self, logconf, block_id):
         with self._registration_lock:

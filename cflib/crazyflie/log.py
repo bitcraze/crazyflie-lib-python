@@ -601,6 +601,8 @@ class Log():
             with self._registration_lock:
                 if self._reset_pending:
                     return
+                ids_were_ready = self._ids_ready
+                available_config_ids = self._available_config_ids.copy()
                 self._reset_pending = True
                 self._ids_ready = False
                 self._available_config_ids.clear()
@@ -613,7 +615,10 @@ class Log():
                     pk, expected_reply=(CMD_RESET_LOGGING,))
             except Exception:
                 with self._registration_lock:
-                    self._reset_pending = False
+                    if self._reset_pending:
+                        self._reset_pending = False
+                        self._ids_ready = ids_were_ready
+                        self._available_config_ids = available_config_ids
                 raise
 
     def _detach_all_configs(self, restore_ids, require_reset_pending=False):

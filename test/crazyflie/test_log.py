@@ -304,6 +304,22 @@ class LogTest(unittest.TestCase):
 
         self.assertEqual(2, self.cf.send_packet.call_count)
 
+    def test_failed_reset_send_restores_config_id_state(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_config('config')
+        self.log.add_config(config)
+        self.cf.send_packet.side_effect = RuntimeError('send failed')
+
+        with self.assertRaises(RuntimeError):
+            self.log.reset()
+
+        self.assertTrue(self.log._is_current_registration(
+            config, self.cf, config.id))
+        other_config = self._make_config('other-config')
+        self.log.add_config(other_config)
+        self.assertEqual(1, other_config.id)
+
     def test_reset_waits_for_in_flight_start_command(self):
         self.log.reset()
         self._acknowledge(CMD_RESET_LOGGING)

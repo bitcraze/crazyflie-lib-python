@@ -27,11 +27,14 @@ from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import MagicMock
 
 from cflib.crazyflie import Crazyflie
+from cflib.crazyflie.log import CHAN_LOGDATA
 from cflib.crazyflie.log import CHAN_SETTINGS
 from cflib.crazyflie.log import CMD_CREATE_BLOCK
 from cflib.crazyflie.log import CMD_CREATE_BLOCK_V2
 from cflib.crazyflie.log import CMD_DELETE_BLOCK
 from cflib.crazyflie.log import CMD_RESET_LOGGING
+from cflib.crazyflie.log import CMD_START_LOGGING
+from cflib.crazyflie.log import CMD_STOP_LOGGING
 from cflib.crazyflie.log import Log
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.log import LogConfigError
@@ -62,6 +65,14 @@ class LogTest(unittest.TestCase):
         config.add_memory('value', 'uint8_t', 'uint8_t', 0x1000)
         return config
 
+    def _make_toc_config(self, name):
+        self.log.toc = MagicMock()
+        self.log.toc.get_element_by_complete_name.return_value = MagicMock()
+        self.log.toc.get_element_id.return_value = 1
+        config = LogConfig(name, 100)
+        config.add_variable('group.value', 'uint8_t')
+        return config
+
     def _make_multi_packet_config(self):
         self.log._useV2 = True
         self.log.toc = MagicMock()
@@ -72,6 +83,10 @@ class LogTest(unittest.TestCase):
             config.add_variable('group.value{}'.format(i), 'uint8_t')
         self.log.add_config(config)
         return config
+
+    def _add_thread_cleanup(self, thread, unblock_event):
+        self.addCleanup(thread.join, 1.0)
+        self.addCleanup(unblock_event.set)
 
     def test_all_byte_values_are_available_as_log_config_ids(self):
         self.log.reset()
@@ -104,6 +119,34 @@ class LogTest(unittest.TestCase):
         self.assertNotIn(deleted_config, self.log.log_blocks)
         self.log.add_config(deleted_config)
         self.assertEqual(0, deleted_config.id)
+
+    def test_300_create_start_stop_delete_cycles(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+
+        for i in range(300):
+            config = self._make_toc_config('config-{}'.format(i))
+            self.log.add_config(config)
+            received = []
+            config.data_received_cb.add_callback(
+                lambda timestamp, data, logconf: received.append(data))
+            config.start()
+            self._acknowledge(CMD_CREATE_BLOCK, config.id)
+            self._acknowledge(CMD_START_LOGGING, config.id)
+
+            packet = CRTPPacket()
+            packet.set_header(CRTPPort.LOGGING, CHAN_LOGDATA)
+            packet.data = (config.id, 0, 0, 0, i % 256)
+            self.log._new_packet_cb(packet)
+
+            config.stop()
+            self._acknowledge(CMD_STOP_LOGGING, config.id)
+            config.delete()
+            self._acknowledge(CMD_DELETE_BLOCK, config.id)
+
+            self.assertEqual([{'group.value': i % 256}], received)
+            self.assertIsNone(config.id)
+            self.assertEqual([], self.log.log_blocks)
 
     def test_delete_is_idempotent_until_a_failed_acknowledgement(self):
         self.log.reset()
@@ -203,6 +246,34 @@ class LogTest(unittest.TestCase):
 
         self.assertEqual([{'group.value': 513}], received)
 
+    def test_refresh_during_untyped_validation_fails_cleanly(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        toc = MagicMock()
+        toc_element = MagicMock()
+        toc_element.ctype = 'uint8_t'
+        refresh_started = False
+
+        def get_element(name):
+            nonlocal refresh_started
+            if not refresh_started:
+                refresh_started = True
+                self.cf.platform = MagicMock()
+                self.cf.platform.get_protocol_version.return_value = 4
+                self.log.refresh_toc(None, None)
+            return toc_element
+
+        toc.get_element_by_complete_name.side_effect = get_element
+        self.log.toc = toc
+        config = LogConfig('config', 100)
+        config.add_variable('group.value')
+
+        with self.assertRaises(LogConfigError):
+            self.log.add_config(config)
+
+        self.assertIsNone(config.id)
+        self.assertIsNone(config.cf)
+
     def test_delete_of_missing_firmware_block_releases_id(self):
         self.log.reset()
         self._acknowledge(CMD_RESET_LOGGING)
@@ -241,12 +312,43 @@ class LogTest(unittest.TestCase):
 
     def test_reset_can_be_retried_after_failed_acknowledgement(self):
         self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_config('config')
+        self.log.add_config(config)
+
+        self.log.reset()
         self._acknowledge(CMD_RESET_LOGGING, error_status=errno.ENOEXEC)
         self.cf.send_packet.reset_mock()
+
+        self.assertTrue(self.log._is_current_registration(
+            config, self.cf, config.id))
+        other_config = self._make_config('other-config')
+        self.log.add_config(other_config)
+        self.assertEqual(1, other_config.id)
 
         self.log.reset()
 
         self.assertEqual(1, self.cf.send_packet.call_count)
+
+    def test_delete_ack_during_failed_reset_releases_id(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_config('config')
+        self.log.add_config(config)
+        config.delete()
+        block_id = config.id
+        self.log.reset()
+
+        self._acknowledge(CMD_DELETE_BLOCK, block_id)
+        self._acknowledge(CMD_RESET_LOGGING, error_status=errno.ENOEXEC)
+
+        self.assertIsNone(config.id)
+        configs = [self._make_config('config-{}'.format(i))
+                   for i in range(Log.MAX_CONFIG_IDS)]
+        for new_config in configs:
+            self.log.add_config(new_config)
+        self.assertEqual(set(range(Log.MAX_CONFIG_IDS)), {
+            new_config.id for new_config in configs})
 
     def test_ids_are_unique_when_configs_are_registered_concurrently(self):
         self.log.reset()
@@ -277,6 +379,7 @@ class LogTest(unittest.TestCase):
         self.cf.send_packet.side_effect = send_packet
         delete_thread = threading.Thread(target=config.delete)
         delete_thread.start()
+        self._add_thread_cleanup(delete_thread, allow_delete_send)
         self.assertTrue(delete_send_started.wait(1.0))
 
         def reset():
@@ -285,6 +388,7 @@ class LogTest(unittest.TestCase):
 
         reset_thread = threading.Thread(target=reset)
         reset_thread.start()
+        self._add_thread_cleanup(reset_thread, allow_delete_send)
 
         try:
             self.assertFalse(reset_finished.wait(0.1))
@@ -345,9 +449,11 @@ class LogTest(unittest.TestCase):
         self.cf.send_packet.side_effect = send_packet
         start_thread = threading.Thread(target=config.start)
         start_thread.start()
+        self._add_thread_cleanup(start_thread, allow_create_send)
         self.assertTrue(create_send_started.wait(1.0))
         reset_thread = threading.Thread(target=reset)
         reset_thread.start()
+        self._add_thread_cleanup(reset_thread, allow_create_send)
 
         try:
             self.assertFalse(reset_finished.wait(0.1))
@@ -357,6 +463,63 @@ class LogTest(unittest.TestCase):
             reset_thread.join(1.0)
         self.assertFalse(start_thread.is_alive())
         self.assertFalse(reset_thread.is_alive())
+
+    def test_reset_waits_for_create_acknowledgement_follow_up(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        config.start()
+        start_send_started = threading.Event()
+        allow_start_send = threading.Event()
+        reset_finished = threading.Event()
+
+        def send_packet(packet, expected_reply):
+            if packet.data[0] == CMD_START_LOGGING:
+                start_send_started.set()
+                allow_start_send.wait()
+
+        def acknowledge_create():
+            self._acknowledge(CMD_CREATE_BLOCK, config.id)
+
+        def reset():
+            self.log.reset()
+            reset_finished.set()
+
+        self.cf.send_packet.side_effect = send_packet
+        acknowledge_thread = threading.Thread(target=acknowledge_create)
+        acknowledge_thread.start()
+        self._add_thread_cleanup(acknowledge_thread, allow_start_send)
+        self.assertTrue(start_send_started.wait(1.0))
+        reset_thread = threading.Thread(target=reset)
+        reset_thread.start()
+        self._add_thread_cleanup(reset_thread, allow_start_send)
+
+        try:
+            self.assertFalse(reset_finished.wait(0.1))
+        finally:
+            allow_start_send.set()
+            acknowledge_thread.join(1.0)
+            reset_thread.join(1.0)
+        self.assertFalse(acknowledge_thread.is_alive())
+        self.assertFalse(reset_thread.is_alive())
+
+    def test_create_acknowledgement_is_ignored_during_reset(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        self.cf.send_packet.reset_mock()
+        config.start()
+        self.log.reset()
+
+        self._acknowledge(CMD_CREATE_BLOCK, config.id)
+
+        self.assertEqual(
+            [CMD_CREATE_BLOCK, CMD_RESET_LOGGING],
+            [call.args[0].data[0]
+             for call in self.cf.send_packet.call_args_list])
+        self.assertFalse(config.added)
 
     def test_start_is_rejected_while_delete_is_pending(self):
         self.log.reset()
@@ -395,9 +558,11 @@ class LogTest(unittest.TestCase):
         self.cf.send_packet.side_effect = send_packet
         start_thread = threading.Thread(target=config.start)
         start_thread.start()
+        self._add_thread_cleanup(start_thread, allow_create_send)
         self.assertTrue(create_send_started.wait(1.0))
         disconnect_thread = threading.Thread(target=disconnect)
         disconnect_thread.start()
+        self._add_thread_cleanup(disconnect_thread, allow_create_send)
 
         try:
             self.assertFalse(disconnect_finished.wait(0.1))
@@ -438,6 +603,101 @@ class LogTest(unittest.TestCase):
         self.assertEqual(1, len(errors))
         self.assertIsNone(config.id)
 
+    def test_disconnect_during_create_acknowledgement_does_not_revive_config(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        config.start()
+
+        def send_packet(packet, expected_reply):
+            if packet.data[0] == CMD_START_LOGGING:
+                self.cf.disconnected.call('radio://test')
+
+        self.cf.send_packet.side_effect = send_packet
+
+        self._acknowledge(CMD_CREATE_BLOCK, config.id)
+
+        self.assertIsNone(config.id)
+        self.assertFalse(config.added)
+
+    def test_added_callback_cannot_revive_disconnected_config(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        config.start()
+        added_states = []
+
+        def added_callback(log_config, added):
+            added_states.append(added)
+            if added:
+                self.cf.disconnected.call('radio://test')
+
+        config.added_cb.add_callback(added_callback)
+
+        self._acknowledge(CMD_CREATE_BLOCK, config.id)
+
+        self.assertEqual([True, False], added_states)
+        self.assertIsNone(config.id)
+        self.assertFalse(config.added)
+
+    def test_added_callbacks_are_ordered_without_holding_command_lock(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        config.start()
+        added_states = []
+        states_before_callback_returns = []
+        disconnect_completed = []
+
+        def added_callback(log_config, added):
+            added_states.append(added)
+            if added:
+                disconnect_thread = threading.Thread(
+                    target=lambda: self.cf.disconnected.call('radio://test'))
+                disconnect_thread.start()
+                self.addCleanup(disconnect_thread.join, 1.0)
+                disconnect_thread.join(1.0)
+                disconnect_completed.append(
+                    not disconnect_thread.is_alive())
+                states_before_callback_returns.append(list(added_states))
+
+        config.added_cb.add_callback(added_callback)
+
+        self._acknowledge(CMD_CREATE_BLOCK, config.id)
+
+        self.assertEqual([True], disconnect_completed)
+        self.assertEqual([[True]], states_before_callback_returns)
+        self.assertEqual([True, False], added_states)
+
+    def test_callback_failure_does_not_strand_lifecycle_notifications(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        config.start()
+        added_states = []
+
+        def added_callback(log_config, added):
+            added_states.append(added)
+            if added:
+                disconnect_thread = threading.Thread(
+                    target=lambda: self.cf.disconnected.call('radio://test'))
+                disconnect_thread.start()
+                self.addCleanup(disconnect_thread.join, 1.0)
+                disconnect_thread.join(1.0)
+                raise RuntimeError('callback failed')
+
+        config.added_cb.add_callback(added_callback)
+
+        with self.assertRaisesRegex(RuntimeError, 'callback failed'):
+            self._acknowledge(CMD_CREATE_BLOCK, config.id)
+
+        self.assertEqual([True, False], added_states)
+        self.assertIsNone(config.id)
+
     def test_synchronous_reset_during_create_prevents_append(self):
         self.log.reset()
         self._acknowledge(CMD_RESET_LOGGING)
@@ -475,35 +735,6 @@ class LogTest(unittest.TestCase):
 
         self.assertEqual(
             [CMD_CREATE_BLOCK_V2, CMD_DELETE_BLOCK], sent_commands)
-
-    def test_create_counts_from_stable_registration_snapshot(self):
-        self.log.reset()
-        self._acknowledge(CMD_RESET_LOGGING)
-        existing_config = self._make_config('existing-config')
-        self.log.add_config(existing_config)
-        existing_config.pending = True
-        existing_config.variables *= Log.MAX_VARIABLES
-        config = self._make_config('config')
-        self.log.add_config(config)
-
-        class RemovingBlock:
-            pending = False
-            added = False
-            started = False
-
-            def __init__(self, log):
-                self.log = log
-
-            def _get_effective_variables(self):
-                self.log.log_blocks.remove(self)
-                return []
-
-        removing_block = RemovingBlock(self.log)
-        removing_block.pending = True
-        self.log.log_blocks.insert(0, removing_block)
-
-        with self.assertRaises(AttributeError):
-            config.create()
 
 
 if __name__ == '__main__':

@@ -219,17 +219,25 @@ class LogConfig(object):
                                           stored_as, address))
 
     def _set_added(self, added):
-        if added != self._added:
+        if self._set_added_state(added):
             self.added_cb.call(self, added)
+
+    def _set_added_state(self, added):
+        changed = added != self._added
         self._added = added
+        return changed
 
     def _get_added(self):
         return self._added
 
     def _set_started(self, started):
-        if started != self._started:
+        if self._set_started_state(started):
             self.started_cb.call(self, started)
+
+    def _set_started_state(self, started):
+        changed = started != self._started
         self._started = started
+        return changed
 
     def _get_started(self):
         return self._started
@@ -296,14 +304,7 @@ class LogConfig(object):
         next_to_add = 0
         is_done = False
 
-        num_variables = 0
-        pending = 0
-        with cf.log._registration_lock:
-            log_blocks = list(cf.log.log_blocks)
-        for block in log_blocks:
-            if block.pending or block.added or block.started:
-                pending += 1
-                num_variables += len(block._get_effective_variables())
+        pending, num_variables = cf.log._get_active_config_usage()
 
         if pending < Log.MAX_BLOCKS:
             #
@@ -497,9 +498,13 @@ class Log():
 
         self._registration_lock = Lock()
         self._command_lock = RLock()
+        self._command_depth = 0
+        self._deferred_calls = deque()
+        self._dispatching_deferred_calls = False
         self._available_config_ids = deque()
         self._ids_ready = False
         self._reset_pending = False
+        self._ids_before_reset = None
 
         self._useV2 = False
 
@@ -513,6 +518,11 @@ class Log():
         cannot be used. Since a valid TOC is required, a Crazyflie has to be
         connected when calling this method, otherwise it will fail."""
 
+        with self._command_scope():
+            self._add_config(logconf)
+            self._defer_call(self.block_added_cb.call, logconf)
+
+    def _add_config(self, logconf):
         if not self.cf.link:
             raise LogConfigError(
                 'Cannot add log configurations without a connection')
@@ -524,13 +534,17 @@ class Log():
             if not self._ids_ready:
                 raise LogConfigError(
                     'Log configuration IDs are not ready')
+            toc = self.toc
+
+        if toc is None:
+            raise LogConfigError('Log TOC is not available')
 
         # If the log configuration contains variables that we added without
         # type (i.e we want the stored as type for fetching as well) then
         # resolve this now and add them to the block again.
         resolved_default_variables = []
         for name in logconf.default_fetch_as:
-            var = self.toc.get_element_by_complete_name(name)
+            var = toc.get_element_by_complete_name(name)
             if not var:
                 logger.warning(
                     '%s not in TOC, this block cannot be used!', name)
@@ -548,7 +562,7 @@ class Log():
             # Check that we are able to find the variable in the TOC so
             # we can return error already now and not when the config is sent
             if var.is_toc_variable():
-                if (self.toc.get_element_by_complete_name(var.name) is None):
+                if (toc.get_element_by_complete_name(var.name) is None):
                     logger.warning(
                         'Log: %s not in TOC, this block cannot be used!',
                         var.name)
@@ -574,7 +588,6 @@ class Log():
                     resolved_default_variables)
                 logconf.useV2 = self._useV2
                 self.log_blocks.append(logconf)
-            self.block_added_cb.call(logconf)
         else:
             logconf.valid = False
             raise AttributeError(
@@ -590,21 +603,22 @@ class Log():
     def refresh_toc(self, refresh_done_callback, toc_cache):
         """Start refreshing the table of loggale variables"""
 
-        self._useV2 = self.cf.platform.get_protocol_version() >= 4
+        with self._command_scope():
+            self._useV2 = self.cf.platform.get_protocol_version() >= 4
 
-        self._toc_cache = toc_cache
-        self._refresh_callback = refresh_done_callback
-        self.toc = None
+            self._toc_cache = toc_cache
+            self._refresh_callback = refresh_done_callback
+            self.toc = None
 
-        self._send_reset_packet()
+            self._send_reset_packet()
 
     def _send_reset_packet(self):
-        with self._command_lock:
+        with self._command_scope():
             with self._registration_lock:
                 if self._reset_pending:
                     return
-                ids_were_ready = self._ids_ready
-                available_config_ids = self._available_config_ids.copy()
+                self._ids_before_reset = (
+                    self._ids_ready, self._available_config_ids.copy())
                 self._reset_pending = True
                 self._ids_ready = False
                 self._available_config_ids.clear()
@@ -616,17 +630,24 @@ class Log():
                 self.cf.send_packet(
                     pk, expected_reply=(CMD_RESET_LOGGING,))
             except Exception:
-                with self._registration_lock:
-                    if self._reset_pending:
-                        self._reset_pending = False
-                        self._ids_ready = ids_were_ready
-                        self._available_config_ids = available_config_ids
+                self._restore_ids_after_failed_reset()
                 raise
+
+    def _restore_ids_after_failed_reset(self):
+        with self._registration_lock:
+            if not self._reset_pending:
+                return False
+            self._reset_pending = False
+            if self._ids_before_reset is not None:
+                self._ids_ready, self._available_config_ids = (
+                    self._ids_before_reset)
+            self._ids_before_reset = None
+        return True
 
     def _detach_all_configs(self, restore_ids, require_reset_pending=False):
         with self._registration_lock:
             if require_reset_pending and not self._reset_pending:
-                return False
+                return None
             blocks = self.log_blocks
             self.log_blocks = []
             if restore_ids:
@@ -636,18 +657,72 @@ class Log():
                 self._available_config_ids.clear()
             self._ids_ready = restore_ids
             self._reset_pending = False
+            self._ids_before_reset = None
 
             callbacks = []
             for block in blocks:
                 callbacks.append((block, block._detach()))
 
-        for block, previous_state in callbacks:
-            block._call_detached_callbacks(*previous_state)
-        return True
+        return callbacks
 
     def _disconnected(self, uri):
+        with self._command_scope():
+            callbacks = self._detach_all_configs(restore_ids=False)
+            self._defer_detached_callbacks(callbacks)
+
+    def _defer_detached_callbacks(self, callbacks):
+        for block, previous_state in callbacks:
+            self._defer_call(
+                block._call_detached_callbacks, *previous_state)
+
+    @contextmanager
+    def _command_scope(self):
+        should_dispatch = False
         with self._command_lock:
-            self._detach_all_configs(restore_ids=False)
+            self._command_depth += 1
+            try:
+                yield
+            finally:
+                self._command_depth -= 1
+                if (self._command_depth == 0 and
+                        self._deferred_calls and
+                        not self._dispatching_deferred_calls):
+                    self._dispatching_deferred_calls = True
+                    should_dispatch = True
+
+        if should_dispatch:
+            self._dispatch_deferred_calls()
+
+    def _defer_call(self, callback, *args):
+        self._deferred_calls.append((callback, args))
+
+    def _dispatch_deferred_calls(self):
+        first_error = None
+        while True:
+            with self._command_lock:
+                if not self._deferred_calls:
+                    self._dispatching_deferred_calls = False
+                    break
+                callback, args = self._deferred_calls.popleft()
+            try:
+                callback(*args)
+            except Exception as error:
+                if first_error is None:
+                    first_error = error
+
+        if first_error is not None:
+            raise first_error
+
+    def _get_active_config_usage(self):
+        with self._registration_lock:
+            log_blocks = list(self.log_blocks)
+
+        active_blocks = [
+            block for block in log_blocks
+            if block.pending or block.added or block.started]
+        variable_count = sum(
+            len(block._get_effective_variables()) for block in active_blocks)
+        return len(active_blocks), variable_count
 
     def _find_block(self, id):
         with self._registration_lock:
@@ -658,7 +733,7 @@ class Log():
 
     @contextmanager
     def _config_command(self, logconf, required=True):
-        with self._command_lock:
+        with self._command_scope():
             registered = self._is_current_registration(
                 logconf, self.cf, logconf.id)
             if required and not registered:
@@ -684,13 +759,16 @@ class Log():
             self.log_blocks.remove(logconf)
             if self._ids_ready:
                 self._available_config_ids.append(block_id)
+            elif self._reset_pending and self._ids_before_reset is not None:
+                ids_were_ready, available_config_ids = self._ids_before_reset
+                if ids_were_ready:
+                    available_config_ids.append(block_id)
             previous_state = logconf._detach()
 
-        logconf._call_detached_callbacks(*previous_state)
-        return True
+        return logconf, previous_state
 
     def _delete_config(self, logconf):
-        with self._command_lock:
+        with self._command_scope():
             with self._registration_lock:
                 if (not self._ids_ready or
                         logconf not in self.log_blocks or
@@ -723,95 +801,7 @@ class Log():
         payload = packet.data[1:]
 
         if (chan == CHAN_SETTINGS):
-            id = payload[0]
-            error_status = payload[1]
-            block = self._find_block(id)
-            if cmd == CMD_CREATE_BLOCK or cmd == CMD_CREATE_BLOCK_V2:
-                if (block is not None):
-                    if error_status == 0 or error_status == errno.EEXIST:
-                        if not block.added:
-                            logger.debug('Have successfully added id=%d', id)
-
-                            pk = CRTPPacket()
-                            pk.set_header(5, CHAN_SETTINGS)
-                            pk.data = (CMD_START_LOGGING, id, block.period)
-                            self.cf.send_packet(pk, expected_reply=(
-                                CMD_START_LOGGING, id))
-                            block.added = True
-                            block.pending = False
-                    else:
-                        msg = self._err_codes[error_status]
-                        logger.warning('Error %d when adding id=%d (%s)',
-                                       error_status, id, msg)
-                        block.err_no = error_status
-                        block.added_cb.call(False)
-                        block.error_cb.call(block, msg)
-
-                else:
-                    logger.warning('No LogEntry to assign block to !!!')
-            if (cmd == CMD_START_LOGGING):
-                if (error_status == 0x00):
-                    logger.info('Have successfully started logging for id=%d',
-                                id)
-                    if block:
-                        block.started = True
-
-                else:
-                    msg = self._err_codes[error_status]
-                    logger.warning('Error %d when starting id=%d (%s)',
-                                   error_status, id, msg)
-                    if block:
-                        block.err_no = error_status
-                        block.started_cb.call(self, False)
-                        # This is a temporary fix, we are adding a new issue
-                        # for this. For some reason we get an error back after
-                        # the block has been started and added. This will show
-                        # an error in the UI, but everything is still working.
-                        # block.error_cb.call(block, msg)
-
-            if (cmd == CMD_STOP_LOGGING):
-                if (error_status == 0x00):
-                    logger.info('Have successfully stopped logging for id=%d',
-                                id)
-                    if block:
-                        block.started = False
-
-            if (cmd == CMD_DELETE_BLOCK):
-                # Accept deletion of a block that isn't added. This could
-                # happen due to timing (i.e add/start/delete in fast sequence)
-                if error_status == 0x00 or error_status == errno.ENOENT:
-                    logger.info('Have successfully deleted id=%d', id)
-                    if block:
-                        self._retire_config(block, id)
-                elif block:
-                    with self._registration_lock:
-                        if block.id != id or not block._delete_pending:
-                            return
-                        block._delete_pending = False
-                        block.err_no = error_status
-                    msg = self._err_codes[error_status]
-                    block.error_cb.call(block, msg)
-
-            if (cmd == CMD_RESET_LOGGING):
-                if error_status != 0x00:
-                    with self._registration_lock:
-                        if self._reset_pending:
-                            self._reset_pending = False
-                    return
-
-                reset_completed = self._detach_all_configs(
-                    restore_ids=True, require_reset_pending=True)
-                if not reset_completed:
-                    return
-                # Guard against multiple responses due to re-sending
-                if not self.toc:
-                    logger.debug('Logging reset, continue with TOC download')
-                    self.toc = Toc()
-                    toc_fetcher = TocFetcher(self.cf, LogTocElement,
-                                             CRTPPort.LOGGING,
-                                             self.toc, self._refresh_callback,
-                                             self._toc_cache)
-                    toc_fetcher.start()
+            self._handle_settings_packet(cmd, payload)
 
         if (chan == CHAN_LOGDATA):
             chan = packet.channel
@@ -825,3 +815,120 @@ class Log():
                 block.unpack_log_data(logdata, timestamp)
             else:
                 logger.warning('Error no LogEntry to handle id=%d', id)
+
+    def _handle_settings_packet(self, cmd, payload):
+        callbacks = []
+        detached_callbacks = []
+        toc_fetcher = None
+
+        with self._command_scope():
+            id = payload[0]
+            error_status = payload[1]
+            block = self._find_block(id)
+
+            if cmd == CMD_CREATE_BLOCK or cmd == CMD_CREATE_BLOCK_V2:
+                if (block is not None and
+                        self._is_current_registration(block, self.cf, id)):
+                    if error_status == 0 or error_status == errno.EEXIST:
+                        if not block.added:
+                            logger.debug('Have successfully added id=%d', id)
+
+                            pk = CRTPPacket()
+                            pk.set_header(5, CHAN_SETTINGS)
+                            pk.data = (CMD_START_LOGGING, id, block.period)
+                            self.cf.send_packet(pk, expected_reply=(
+                                CMD_START_LOGGING, id))
+                            if not self._is_current_registration(
+                                    block, self.cf, id):
+                                return
+                            block.pending = False
+                            if block._set_added_state(True):
+                                callbacks.append(
+                                    (block.added_cb, (block, True)))
+                    else:
+                        msg = self._err_codes[error_status]
+                        logger.warning('Error %d when adding id=%d (%s)',
+                                       error_status, id, msg)
+                        block.err_no = error_status
+                        callbacks.append((block.added_cb, (False,)))
+                        callbacks.append((block.error_cb, (block, msg)))
+
+                else:
+                    logger.warning('No LogEntry to assign block to !!!')
+
+            if cmd == CMD_START_LOGGING:
+                if error_status == 0x00:
+                    logger.info(
+                        'Have successfully started logging for id=%d', id)
+                    if (block is not None and self._is_current_registration(
+                            block, self.cf, id)):
+                        if block._set_started_state(True):
+                            callbacks.append(
+                                (block.started_cb, (block, True)))
+
+                else:
+                    msg = self._err_codes[error_status]
+                    logger.warning('Error %d when starting id=%d (%s)',
+                                   error_status, id, msg)
+                    if (block is not None and self._is_current_registration(
+                            block, self.cf, id)):
+                        block.err_no = error_status
+                        callbacks.append((block.started_cb, (self, False)))
+                        # This is a temporary fix, we are adding a new issue
+                        # for this. For some reason we get an error back after
+                        # the block has been started and added. This will show
+                        # an error in the UI, but everything is still working.
+                        # block.error_cb.call(block, msg)
+
+            if cmd == CMD_STOP_LOGGING:
+                if error_status == 0x00:
+                    logger.info(
+                        'Have successfully stopped logging for id=%d', id)
+                    if (block is not None and self._is_current_registration(
+                            block, self.cf, id)):
+                        if block._set_started_state(False):
+                            callbacks.append(
+                                (block.started_cb, (block, False)))
+
+            if cmd == CMD_DELETE_BLOCK:
+                # Accept deletion of a block that isn't added. This could happen
+                # due to timing (i.e add/start/delete in fast sequence).
+                if error_status == 0x00 or error_status == errno.ENOENT:
+                    logger.info('Have successfully deleted id=%d', id)
+                    if block:
+                        retired_config = self._retire_config(block, id)
+                        if retired_config is not False:
+                            detached_callbacks.append(retired_config)
+                elif block:
+                    with self._registration_lock:
+                        if block.id != id or not block._delete_pending:
+                            return
+                        block._delete_pending = False
+                        block.err_no = error_status
+                    msg = self._err_codes[error_status]
+                    callbacks.append((block.error_cb, (block, msg)))
+
+            if cmd == CMD_RESET_LOGGING:
+                if error_status != 0x00:
+                    self._restore_ids_after_failed_reset()
+                    return
+
+                reset_callbacks = self._detach_all_configs(
+                    restore_ids=True, require_reset_pending=True)
+                if reset_callbacks is None:
+                    return
+                detached_callbacks.extend(reset_callbacks)
+                # Guard against multiple responses due to re-sending
+                if not self.toc:
+                    logger.debug(
+                        'Logging reset, continue with TOC download')
+                    self.toc = Toc()
+                    toc_fetcher = TocFetcher(
+                        self.cf, LogTocElement, CRTPPort.LOGGING,
+                        self.toc, self._refresh_callback, self._toc_cache)
+
+            for callback, args in callbacks:
+                self._defer_call(callback.call, *args)
+            self._defer_detached_callbacks(detached_callbacks)
+            if toc_fetcher is not None:
+                toc_fetcher.start()

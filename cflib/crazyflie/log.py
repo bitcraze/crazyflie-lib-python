@@ -321,21 +321,30 @@ class LogConfig(object):
             raise AttributeError(
                 'Configuration has max number of blocks (%d)' % Log.MAX_BLOCKS
             )
-        self.pending += 1
-        while not is_done:
-            pk = CRTPPacket()
-            pk.set_header(5, CHAN_SETTINGS)
-            pk.data = (command, block_id)
-            is_done, next_to_add = self._setup_log_elements(pk, next_to_add)
+        self.pending = True
+        create_was_sent = False
+        try:
+            while not is_done:
+                pk = CRTPPacket()
+                pk.set_header(5, CHAN_SETTINGS)
+                pk.data = (command, block_id)
+                is_done, next_to_add = self._setup_log_elements(
+                    pk, next_to_add)
 
-            logger.debug('Adding/appending log block id {}'.format(block_id))
-            cf.send_packet(pk, expected_reply=(command, block_id))
-            if not cf.log._is_current_registration(self, cf, block_id):
-                raise LogConfigError(
-                    'Log configuration changed while being created')
+                logger.debug(
+                    'Adding/appending log block id {}'.format(block_id))
+                cf.send_packet(pk, expected_reply=(command, block_id))
+                create_was_sent = True
+                if not cf.log._is_current_registration(self, cf, block_id):
+                    raise LogConfigError(
+                        'Log configuration changed while being created')
 
-            # Use append if we have to add more variables
-            command = self._cmd_append_block()
+                # Use append if we have to add more variables
+                command = self._cmd_append_block()
+        except Exception:
+            if not create_was_sent:
+                self.pending = False
+            raise
 
     def start(self):
         """Start the logging for this entry"""
@@ -850,7 +859,8 @@ class Log():
                         logger.warning('Error %d when adding id=%d (%s)',
                                        error_status, id, msg)
                         block.err_no = error_status
-                        callbacks.append((block.added_cb, (False,)))
+                        block.pending = False
+                        callbacks.append((block.added_cb, (block, False)))
                         callbacks.append((block.error_cb, (block, msg)))
 
                 else:
@@ -873,7 +883,7 @@ class Log():
                     if (block is not None and self._is_current_registration(
                             block, self.cf, id)):
                         block.err_no = error_status
-                        callbacks.append((block.started_cb, (self, False)))
+                        callbacks.append((block.started_cb, (block, False)))
                         # This is a temporary fix, we are adding a new issue
                         # for this. For some reason we get an error back after
                         # the block has been started and added. This will show

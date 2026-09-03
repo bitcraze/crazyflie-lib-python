@@ -310,6 +310,57 @@ class LogTest(unittest.TestCase):
 
         self.assertEqual(2, self.cf.send_packet.call_count)
 
+    def test_create_send_failure_clears_pending_state(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        self.cf.send_packet.side_effect = RuntimeError('send failed')
+
+        with self.assertRaisesRegex(RuntimeError, 'send failed'):
+            config.create()
+
+        self.assertFalse(config.pending)
+        self.assertEqual((0, 0), self.log._get_active_config_usage())
+
+    def test_create_error_clears_pending_and_reports_config(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        added_events = []
+        error_events = []
+        config.added_cb.add_callback(
+            lambda logconf, added: added_events.append((logconf, added)))
+        config.error_cb.add_callback(
+            lambda logconf, message: error_events.append((logconf, message)))
+
+        config.create()
+        self.assertIs(config.pending, True)
+        self._acknowledge(CMD_CREATE_BLOCK, config.id, errno.ENOMEM)
+
+        self.assertFalse(config.pending)
+        self.assertEqual([(config, False)], added_events)
+        self.assertEqual(
+            [(config, 'No more memory available')], error_events)
+        self.assertEqual((0, 0), self.log._get_active_config_usage())
+
+    def test_start_error_reports_config(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        started_events = []
+        config.started_cb.add_callback(
+            lambda logconf, started:
+            started_events.append((logconf, started)))
+
+        config.create()
+        self._acknowledge(CMD_CREATE_BLOCK, config.id)
+        self._acknowledge(CMD_START_LOGGING, config.id, errno.ENOEXEC)
+
+        self.assertEqual([(config, False)], started_events)
+
     def test_reset_can_be_retried_after_failed_acknowledgement(self):
         self.log.reset()
         self._acknowledge(CMD_RESET_LOGGING)

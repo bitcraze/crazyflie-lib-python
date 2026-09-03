@@ -298,7 +298,9 @@ class LogConfig(object):
 
         num_variables = 0
         pending = 0
-        for block in cf.log.log_blocks:
+        with cf.log._registration_lock:
+            log_blocks = list(cf.log.log_blocks)
+        for block in log_blocks:
             if block.pending or block.added or block.started:
                 pending += 1
                 num_variables += len(block._get_effective_variables())

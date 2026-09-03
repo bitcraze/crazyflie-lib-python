@@ -476,6 +476,35 @@ class LogTest(unittest.TestCase):
         self.assertEqual(
             [CMD_CREATE_BLOCK_V2, CMD_DELETE_BLOCK], sent_commands)
 
+    def test_create_counts_from_stable_registration_snapshot(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        existing_config = self._make_config('existing-config')
+        self.log.add_config(existing_config)
+        existing_config.pending = True
+        existing_config.variables *= Log.MAX_VARIABLES
+        config = self._make_config('config')
+        self.log.add_config(config)
+
+        class RemovingBlock:
+            pending = False
+            added = False
+            started = False
+
+            def __init__(self, log):
+                self.log = log
+
+            def _get_effective_variables(self):
+                self.log.log_blocks.remove(self)
+                return []
+
+        removing_block = RemovingBlock(self.log)
+        removing_block.pending = True
+        self.log.log_blocks.insert(0, removing_block)
+
+        with self.assertRaises(AttributeError):
+            config.create()
+
 
 if __name__ == '__main__':
     unittest.main()

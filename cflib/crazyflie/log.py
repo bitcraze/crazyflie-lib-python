@@ -393,6 +393,10 @@ class LogConfig(object):
     def unpack_log_data(self, log_data, timestamp):
         """Unpack received logging data so it represent real values according
         to the configuration in the entry"""
+        ret_data = self._unpack_log_data(log_data)
+        self.data_received_cb.call(timestamp, ret_data, self)
+
+    def _unpack_log_data(self, log_data):
         ret_data = {}
         data_index = 0
         for var in self._get_effective_variables():
@@ -404,7 +408,7 @@ class LogConfig(object):
                 unpackstring, log_data[data_index:data_index + size])[0]
             data_index += size
             ret_data[name] = value
-        self.data_received_cb.call(timestamp, ret_data, self)
+        return ret_data
 
 
 class LogTocElement:
@@ -816,17 +820,22 @@ class Log():
             self._handle_settings_packet(cmd, payload)
 
         if (chan == CHAN_LOGDATA):
-            chan = packet.channel
-            id = packet.data[0]
-            block = self._find_block(id)
-            timestamps = struct.unpack('<BBB', packet.data[1:4])
-            timestamp = (
-                timestamps[0] | timestamps[1] << 8 | timestamps[2] << 16)
-            logdata = packet.data[4:]
-            if (block is not None):
-                block.unpack_log_data(logdata, timestamp)
-            else:
-                logger.warning('Error no LogEntry to handle id=%d', id)
+            with self._command_scope():
+                id = packet.data[0]
+                block = self._find_block(id)
+                timestamps = struct.unpack('<BBB', packet.data[1:4])
+                timestamp = (
+                    timestamps[0] |
+                    timestamps[1] << 8 |
+                    timestamps[2] << 16)
+                logdata = packet.data[4:]
+                if (block is not None):
+                    log_values = block._unpack_log_data(logdata)
+                    self._defer_call(
+                        block.data_received_cb.call,
+                        timestamp, log_values, block)
+                else:
+                    logger.warning('Error no LogEntry to handle id=%d', id)
 
     def _handle_settings_packet(self, cmd, payload):
         callbacks = []
@@ -845,6 +854,11 @@ class Log():
                         if not block.added:
                             logger.debug('Have successfully added id=%d', id)
 
+                            block.pending = False
+                            if block._set_added_state(True):
+                                self._defer_call(
+                                    block.added_cb.call, block, True)
+
                             pk = CRTPPacket()
                             pk.set_header(5, CHAN_SETTINGS)
                             pk.data = (CMD_START_LOGGING, id, block.period)
@@ -853,10 +867,6 @@ class Log():
                             if not self._is_current_registration(
                                     block, self.cf, id):
                                 return
-                            block.pending = False
-                            if block._set_added_state(True):
-                                callbacks.append(
-                                    (block.added_cb, (block, True)))
                     else:
                         msg = self._err_codes[error_status]
                         logger.warning('Error %d when adding id=%d (%s)',

@@ -586,6 +586,30 @@ class LogTest(unittest.TestCase):
              for call in self.cf.send_packet.call_args_list])
         self.assertFalse(config.added)
 
+    def test_synchronous_start_ack_notifies_added_before_started(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        states = []
+        config.added_cb.add_callback(
+            lambda log_config, added: states.append(('added', added)))
+        config.started_cb.add_callback(
+            lambda log_config, started: states.append(('started', started)))
+
+        def send_packet(packet, expected_reply):
+            if packet.data[0] == CMD_CREATE_BLOCK:
+                self._acknowledge(CMD_CREATE_BLOCK, config.id)
+            elif packet.data[0] == CMD_START_LOGGING:
+                self._acknowledge(CMD_START_LOGGING, config.id)
+
+        self.cf.send_packet.side_effect = send_packet
+
+        config.start()
+
+        self.assertEqual(
+            [('added', True), ('started', True)], states)
+
     def test_start_is_rejected_while_delete_is_pending(self):
         self.log.reset()
         self._acknowledge(CMD_RESET_LOGGING)
@@ -638,6 +662,48 @@ class LogTest(unittest.TestCase):
         self.assertFalse(start_thread.is_alive())
         self.assertFalse(disconnect_thread.is_alive())
         self.assertIsNone(config.id)
+
+    def test_disconnect_waits_for_in_flight_log_data(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_config('config')
+        self.log.add_config(config)
+        decode_started = threading.Event()
+        allow_decode = threading.Event()
+        disconnect_finished = threading.Event()
+        original_get_variables = config._get_effective_variables
+
+        def get_variables():
+            decode_started.set()
+            allow_decode.wait()
+            return original_get_variables()
+
+        config._get_effective_variables = get_variables
+        packet = CRTPPacket()
+        packet.set_header(CRTPPort.LOGGING, CHAN_LOGDATA)
+        packet.data = (config.id, 0, 0, 0, 7)
+        data_thread = threading.Thread(
+            target=self.log._new_packet_cb, args=(packet,))
+        data_thread.start()
+        self._add_thread_cleanup(data_thread, allow_decode)
+        self.assertTrue(decode_started.wait(1.0))
+
+        def disconnect():
+            self.cf.disconnected.call('radio://test')
+            disconnect_finished.set()
+
+        disconnect_thread = threading.Thread(target=disconnect)
+        disconnect_thread.start()
+        self._add_thread_cleanup(disconnect_thread, allow_decode)
+
+        try:
+            self.assertFalse(disconnect_finished.wait(0.1))
+        finally:
+            allow_decode.set()
+            data_thread.join(1.0)
+            disconnect_thread.join(1.0)
+        self.assertFalse(data_thread.is_alive())
+        self.assertFalse(disconnect_thread.is_alive())
 
     def test_synchronous_disconnect_during_start_does_not_deadlock(self):
         self.log.reset()

@@ -623,6 +623,9 @@ class Log():
 
     def _send_reset_packet(self):
         with self._command_scope():
+            if self.cf.link is None:
+                return
+
             with self._registration_lock:
                 if self._reset_pending:
                     return

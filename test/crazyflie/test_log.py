@@ -459,6 +459,20 @@ class LogTest(unittest.TestCase):
 
         self.assertEqual(2, self.cf.send_packet.call_count)
 
+    def test_reset_while_disconnected_does_not_block_later_reset(self):
+        self.cf.link = None
+
+        self.log.reset()
+
+        self.assertFalse(self.log._reset_pending)
+        self.cf.send_packet.assert_not_called()
+
+        self.cf.link = object()
+        self.log.reset()
+
+        self.assertTrue(self.log._reset_pending)
+        self.cf.send_packet.assert_called_once()
+
     def test_failed_reset_send_restores_config_id_state(self):
         self.log.reset()
         self._acknowledge(CMD_RESET_LOGGING)

@@ -312,6 +312,45 @@ class LogTest(unittest.TestCase):
 
         self.assertEqual(2, self.cf.send_packet.call_count)
 
+    def test_delete_unknown_error_is_reported_and_retryable(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_config('config')
+        self.log.add_config(config)
+        errors = []
+        config.error_cb.add_callback(
+            lambda log_config, message: errors.append(
+                (log_config, message)))
+
+        config.delete()
+        self._acknowledge(CMD_DELETE_BLOCK, config.id, 0xFF)
+
+        self.assertEqual(0xFF, config.err_no)
+        self.assertEqual([(config, 'Unknown error')], errors)
+        self.assertFalse(config._delete_pending)
+        self.assertIn(config, self.log.log_blocks)
+
+        config.delete()
+
+        self.assertTrue(config._delete_pending)
+
+    def test_delete_base_exception_restores_retryable_state(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_config('config')
+        self.log.add_config(config)
+
+        class SendAbort(BaseException):
+            pass
+
+        self.cf.send_packet.side_effect = SendAbort('send aborted')
+
+        with self.assertRaisesRegex(SendAbort, 'send aborted'):
+            config.delete()
+
+        self.assertFalse(config._delete_pending)
+        self.assertIn(config, self.log.log_blocks)
+
     def test_create_send_failure_schedules_cleanup(self):
         self.log.reset()
         self._acknowledge(CMD_RESET_LOGGING)
@@ -351,6 +390,30 @@ class LogTest(unittest.TestCase):
 
         self.assertEqual(
             [CMD_CREATE_BLOCK, CMD_START_LOGGING, CMD_DELETE_BLOCK], commands)
+        self.assertTrue(config._delete_pending)
+
+    def test_create_base_exception_still_schedules_cleanup(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        commands = []
+
+        class SendAbort(BaseException):
+            pass
+
+        def send_packet(packet, expected_reply):
+            command = packet.data[0]
+            commands.append(command)
+            if command == CMD_CREATE_BLOCK:
+                raise SendAbort('send aborted')
+
+        self.cf.send_packet.side_effect = send_packet
+
+        with self.assertRaisesRegex(SendAbort, 'send aborted'):
+            config.create()
+
+        self.assertEqual([CMD_CREATE_BLOCK, CMD_DELETE_BLOCK], commands)
         self.assertTrue(config._delete_pending)
 
     def test_append_send_failure_deletes_partial_firmware_block(self):
@@ -439,7 +502,7 @@ class LogTest(unittest.TestCase):
         self.assertEqual(0, len(self.log._deferred_calls))
         self.assertFalse(self.log._dispatching_deferred_calls)
 
-    def test_create_error_clears_pending_and_reports_config(self):
+    def test_create_error_schedules_cleanup_and_reports_config(self):
         self.log.reset()
         self._acknowledge(CMD_RESET_LOGGING)
         config = self._make_toc_config('config')
@@ -455,11 +518,56 @@ class LogTest(unittest.TestCase):
         self.assertIs(config.pending, True)
         self._acknowledge(CMD_CREATE_BLOCK, config.id, errno.ENOMEM)
 
-        self.assertFalse(config.pending)
+        self.assertTrue(config.pending)
         self.assertEqual([(config, False)], added_events)
         self.assertEqual(
             [(config, 'No more memory available')], error_events)
+        self.assertEqual(0, config.id)
+        self.assertIs(self.cf, config.cf)
+        self.assertIn(config, self.log.log_blocks)
+        self.assertTrue(config._delete_pending)
+        self.assertEqual((1, 1), self.log._get_active_config_usage())
+        self.assertEqual(CMD_DELETE_BLOCK,
+                         self.cf.send_packet.call_args[0][0].data[0])
+        with self.assertRaises(LogConfigError):
+            self.log.add_config(config)
+
+        self._acknowledge(CMD_DELETE_BLOCK, config.id)
+
+        self.assertIsNone(config.id)
+        self.assertIsNone(config.cf)
+        self.assertNotIn(config, self.log.log_blocks)
         self.assertEqual((0, 0), self.log._get_active_config_usage())
+
+        self.log.add_config(config)
+
+        self.assertEqual(1, config.id)
+
+    def test_create_error_callbacks_survive_cleanup_base_exception(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        config.create()
+        added_events = []
+        error_events = []
+        config.added_cb.add_callback(
+            lambda log_config, added: added_events.append(added))
+        config.error_cb.add_callback(
+            lambda log_config, message: error_events.append(message))
+
+        class SendAbort(BaseException):
+            pass
+
+        self.cf.send_packet.side_effect = SendAbort('send aborted')
+
+        with self.assertRaisesRegex(SendAbort, 'send aborted'):
+            self._acknowledge(CMD_CREATE_BLOCK, config.id, errno.ENOMEM)
+
+        self.assertEqual([False], added_events)
+        self.assertEqual(['No more memory available'], error_events)
+        self.assertFalse(config._delete_pending)
+        self.assertIn(config, self.log.log_blocks)
 
     def test_start_error_reports_config(self):
         self.log.reset()
@@ -475,6 +583,23 @@ class LogTest(unittest.TestCase):
         self._acknowledge(CMD_CREATE_BLOCK, config.id)
         self._acknowledge(CMD_START_LOGGING, config.id, errno.ENOEXEC)
 
+        self.assertEqual([(config, False)], started_events)
+
+    def test_unknown_start_error_reports_config(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        started_events = []
+        config.started_cb.add_callback(
+            lambda logconf, started: started_events.append(
+                (logconf, started)))
+
+        config.start()
+        self._acknowledge(CMD_CREATE_BLOCK, config.id)
+        self._acknowledge(CMD_START_LOGGING, config.id, 0xFF)
+
+        self.assertEqual(0xFF, config.err_no)
         self.assertEqual([(config, False)], started_events)
 
     def test_reset_can_be_retried_after_failed_acknowledgement(self):
@@ -574,6 +699,22 @@ class LogTest(unittest.TestCase):
         self.log.reset()
 
         self.assertEqual(2, self.cf.send_packet.call_count)
+
+    def test_reset_base_exception_restores_retryable_state(self):
+        class SendAbort(BaseException):
+            pass
+
+        self.cf.send_packet.side_effect = SendAbort('send aborted')
+
+        with self.assertRaisesRegex(SendAbort, 'send aborted'):
+            self.log.reset()
+
+        self.assertFalse(self.log._reset_pending)
+
+        self.cf.send_packet.side_effect = None
+        self.log.reset()
+
+        self.assertTrue(self.log._reset_pending)
 
     def test_reset_while_disconnected_does_not_block_later_reset(self):
         self.cf.link = None

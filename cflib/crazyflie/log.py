@@ -341,13 +341,13 @@ class LogConfig(object):
 
                 # Use append if we have to add more variables
                 command = self._cmd_append_block()
-        except Exception:
+        except BaseException:
             if not create_send_attempted:
                 self.pending = False
             else:
                 try:
                     cf.log._delete_config(self)
-                except Exception:
+                except BaseException:
                     logger.warning(
                         'Failed to delete partial log block id=%d',
                         block_id, exc_info=True)
@@ -652,7 +652,7 @@ class Log():
             try:
                 self.cf.send_packet(
                     pk, expected_reply=(CMD_RESET_LOGGING,))
-            except Exception:
+            except BaseException:
                 self._restore_ids_after_failed_reset()
                 raise
 
@@ -820,7 +820,7 @@ class Log():
             try:
                 self.cf.send_packet(
                     pk, expected_reply=(CMD_DELETE_BLOCK, block_id))
-            except Exception:
+            except BaseException:
                 with self._registration_lock:
                     if (logconf.id == block_id and
                             logconf._delete_pending):
@@ -885,13 +885,21 @@ class Log():
                                     block, self.cf, id):
                                 return
                     else:
-                        msg = self._err_codes[error_status]
+                        msg = self._err_codes.get(
+                            error_status, 'Unknown error')
                         logger.warning('Error %d when adding id=%d (%s)',
                                        error_status, id, msg)
                         block.err_no = error_status
-                        block.pending = False
-                        callbacks.append((block.added_cb, (block, False)))
-                        callbacks.append((block.error_cb, (block, msg)))
+                        self._defer_call(
+                            block.added_cb.call, block, False)
+                        self._defer_call(
+                            block.error_cb.call, block, msg)
+                        try:
+                            self._delete_config(block)
+                        except Exception:
+                            logger.warning(
+                                'Failed to delete rejected log block id=%d',
+                                id, exc_info=True)
 
                 else:
                     logger.warning('No LogEntry to assign block to !!!')
@@ -907,7 +915,8 @@ class Log():
                                 (block.started_cb, (block, True)))
 
                 else:
-                    msg = self._err_codes[error_status]
+                    msg = self._err_codes.get(
+                        error_status, 'Unknown error')
                     logger.warning('Error %d when starting id=%d (%s)',
                                    error_status, id, msg)
                     if (block is not None and self._is_current_registration(
@@ -945,7 +954,8 @@ class Log():
                             return
                         block._delete_pending = False
                         block.err_no = error_status
-                    msg = self._err_codes[error_status]
+                    msg = self._err_codes.get(
+                        error_status, 'Unknown error')
                     callbacks.append((block.error_cb, (block, msg)))
 
             if cmd == CMD_RESET_LOGGING:

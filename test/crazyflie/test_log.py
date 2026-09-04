@@ -25,10 +25,12 @@ import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import CHAN_LOGDATA
 from cflib.crazyflie.log import CHAN_SETTINGS
+from cflib.crazyflie.log import CMD_APPEND_BLOCK_V2
 from cflib.crazyflie.log import CMD_CREATE_BLOCK
 from cflib.crazyflie.log import CMD_CREATE_BLOCK_V2
 from cflib.crazyflie.log import CMD_DELETE_BLOCK
@@ -310,18 +312,132 @@ class LogTest(unittest.TestCase):
 
         self.assertEqual(2, self.cf.send_packet.call_count)
 
-    def test_create_send_failure_clears_pending_state(self):
+    def test_create_send_failure_schedules_cleanup(self):
         self.log.reset()
         self._acknowledge(CMD_RESET_LOGGING)
         config = self._make_toc_config('config')
         self.log.add_config(config)
-        self.cf.send_packet.side_effect = RuntimeError('send failed')
+        self.cf.send_packet.side_effect = [RuntimeError('send failed'), None]
 
         with self.assertRaisesRegex(RuntimeError, 'send failed'):
             config.create()
 
-        self.assertFalse(config.pending)
+        self.assertTrue(config.pending)
+        self.assertTrue(config._delete_pending)
+        self.assertEqual((1, 1), self.log._get_active_config_usage())
+
+        self._acknowledge(CMD_DELETE_BLOCK, config.id)
+
         self.assertEqual((0, 0), self.log._get_active_config_usage())
+
+    def test_create_send_exception_after_ack_deletes_firmware_block(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_toc_config('config')
+        self.log.add_config(config)
+        commands = []
+
+        def send_packet(packet, expected_reply):
+            command = packet.data[0]
+            commands.append(command)
+            if command == CMD_CREATE_BLOCK:
+                self._acknowledge(CMD_CREATE_BLOCK, config.id)
+                raise RuntimeError('post-send callback failed')
+
+        self.cf.send_packet.side_effect = send_packet
+
+        with self.assertRaisesRegex(RuntimeError, 'post-send callback failed'):
+            config.create()
+
+        self.assertEqual(
+            [CMD_CREATE_BLOCK, CMD_START_LOGGING, CMD_DELETE_BLOCK], commands)
+        self.assertTrue(config._delete_pending)
+
+    def test_append_send_failure_deletes_partial_firmware_block(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_multi_packet_config()
+        commands = []
+
+        def send_packet(packet, expected_reply):
+            command = packet.data[0]
+            commands.append(command)
+            if command == CMD_APPEND_BLOCK_V2:
+                raise RuntimeError('append send failed')
+
+        self.cf.send_packet.side_effect = send_packet
+
+        with self.assertRaisesRegex(RuntimeError, 'append send failed'):
+            config.create()
+
+        self.assertEqual(
+            [CMD_CREATE_BLOCK_V2, CMD_APPEND_BLOCK_V2, CMD_DELETE_BLOCK],
+            commands)
+        self.assertTrue(config._delete_pending)
+        block_id = config.id
+
+        self._acknowledge(CMD_DELETE_BLOCK, block_id)
+
+        self.assertIsNone(config.id)
+        self.assertNotIn(config, self.log.log_blocks)
+
+    def test_append_failure_preserves_error_while_draining_callbacks(self):
+        self.log.reset()
+        self._acknowledge(CMD_RESET_LOGGING)
+        config = self._make_multi_packet_config()
+        added_states = []
+
+        class CallbackAbort(BaseException):
+            pass
+
+        def added_callback(log_config, added):
+            added_states.append(added)
+            if added:
+                raise CallbackAbort('callback failed')
+
+        config.added_cb.add_callback(added_callback)
+
+        def send_packet(packet, expected_reply):
+            command = packet.data[0]
+            if command == CMD_CREATE_BLOCK_V2:
+                self._acknowledge(CMD_CREATE_BLOCK_V2, config.id)
+            elif command == CMD_APPEND_BLOCK_V2:
+                raise ValueError('append send failed')
+            elif command == CMD_DELETE_BLOCK:
+                self._acknowledge(CMD_DELETE_BLOCK, config.id)
+
+        self.cf.send_packet.side_effect = send_packet
+
+        with patch('cflib.crazyflie.log.logger') as log:
+            with self.assertRaisesRegex(ValueError, 'append send failed'):
+                config.create()
+
+        log.warning.assert_called_once()
+        self.assertEqual([True, False], added_states)
+        self.assertEqual(0, len(self.log._deferred_calls))
+        self.assertFalse(self.log._dispatching_deferred_calls)
+
+    def test_deferred_base_exception_propagates_after_draining_callbacks(self):
+        calls = []
+
+        class CallbackAbort(BaseException):
+            pass
+
+        def failing_callback():
+            calls.append('failing')
+            raise CallbackAbort('callback failed')
+
+        def later_callback():
+            calls.append('later')
+
+        with self.assertRaisesRegex(CallbackAbort, 'callback failed'):
+            with self.log._command_scope():
+                self.log._defer_call(failing_callback)
+                self.log._defer_call(later_callback)
+
+        self.assertEqual(['failing', 'later'], calls)
+        self.assertEqual(0, len(self.log._deferred_calls))
+        self.assertFalse(self.log._dispatching_deferred_calls)
 
     def test_create_error_clears_pending_and_reports_config(self):
         self.log.reset()

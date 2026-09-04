@@ -322,7 +322,7 @@ class LogConfig(object):
                 'Configuration has max number of blocks (%d)' % Log.MAX_BLOCKS
             )
         self.pending = True
-        create_was_sent = False
+        create_send_attempted = False
         try:
             while not is_done:
                 pk = CRTPPacket()
@@ -333,8 +333,8 @@ class LogConfig(object):
 
                 logger.debug(
                     'Adding/appending log block id {}'.format(block_id))
+                create_send_attempted = True
                 cf.send_packet(pk, expected_reply=(command, block_id))
-                create_was_sent = True
                 if not cf.log._is_current_registration(self, cf, block_id):
                     raise LogConfigError(
                         'Log configuration changed while being created')
@@ -342,8 +342,15 @@ class LogConfig(object):
                 # Use append if we have to add more variables
                 command = self._cmd_append_block()
         except Exception:
-            if not create_was_sent:
+            if not create_send_attempted:
                 self.pending = False
+            else:
+                try:
+                    cf.log._delete_config(self)
+                except Exception:
+                    logger.warning(
+                        'Failed to delete partial log block id=%d',
+                        block_id, exc_info=True)
             raise
 
     def start(self):
@@ -694,20 +701,30 @@ class Log():
     @contextmanager
     def _command_scope(self):
         should_dispatch = False
-        with self._command_lock:
-            self._command_depth += 1
-            try:
-                yield
-            finally:
-                self._command_depth -= 1
-                if (self._command_depth == 0 and
-                        self._deferred_calls and
-                        not self._dispatching_deferred_calls):
-                    self._dispatching_deferred_calls = True
-                    should_dispatch = True
-
-        if should_dispatch:
-            self._dispatch_deferred_calls()
+        try:
+            with self._command_lock:
+                self._command_depth += 1
+                try:
+                    yield
+                finally:
+                    self._command_depth -= 1
+                    if (self._command_depth == 0 and
+                            self._deferred_calls and
+                            not self._dispatching_deferred_calls):
+                        self._dispatching_deferred_calls = True
+                        should_dispatch = True
+        except BaseException:
+            if should_dispatch:
+                try:
+                    self._dispatch_deferred_calls()
+                except BaseException:
+                    logger.warning(
+                        'Deferred callback failed while handling command error',
+                        exc_info=True)
+            raise
+        else:
+            if should_dispatch:
+                self._dispatch_deferred_calls()
 
     def _defer_call(self, callback, *args):
         self._deferred_calls.append((callback, args))
@@ -722,7 +739,7 @@ class Log():
                 callback, args = self._deferred_calls.popleft()
             try:
                 callback(*args)
-            except Exception as error:
+            except BaseException as error:
                 if first_error is None:
                     first_error = error
 

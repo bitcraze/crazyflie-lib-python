@@ -789,7 +789,7 @@ class LhGeoInputContainer():
     def _save_session(self) -> None:
         if self._auto_save and not self.is_empty():
             if self._session_name is None:
-                self._session_name = datetime.datetime.now().isoformat(timespec='seconds')
+                self._session_name = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
 
             file_name = os.path.join(self._session_path, f'lh_geo_{self._session_name}.yaml')
             pathlib.Path(self._session_path).mkdir(parents=True, exist_ok=True)

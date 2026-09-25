@@ -27,7 +27,7 @@ Crazyflie UDP driver.
 
 This driver communicates with a Crazyflie (or simulator) over UDP using the CRTP
 protocol. It enables connecting to software-in-the-loop (SITL) simulations.
-Scanning feature assumes a crazyflie server is running on port 19850-19859
+Scanning feature assumes a crazyflie server is running on port 50000-50500
 that will respond to a null CRTP packet with a valid CRTP packet.
 
 Wire Protocol
@@ -49,7 +49,7 @@ Scan Behavior
 The scan_interface() method discovers available Crazyflie devices by probing
 UDP ports in sequence:
 
-Port Range: 19850 to 19859 (10 ports total, BASE_PORT + 0 through 9)
+Port Range: 50000 to 50500 (501 ports total, BASE_PORT + 0 through 500)
 Scan Address: Configurable via SCAN_ADDRESS environment variable (default: 127.0.0.1)
 Probe Packet: Single 0xFF byte (null CRTP packet)
 Timeout: 0.1 seconds per port
@@ -75,8 +75,8 @@ Connection URI Format
 udp://<host>:<port>
 
 Examples:
-    udp://127.0.0.1:19850  - Local simulator on port 19850
-    udp://192.168.1.5:19850 - Remote device at 192.168.1.5
+    udp://127.0.0.1:50000  - Local simulator on port 50000
+    udp://192.168.1.5:50000 - Remote device at 192.168.1.5
 """
 # changelog:
 # - Complete rewrite to align with other CRTP driver implementations
@@ -87,6 +87,8 @@ Examples:
 # - Changed variable naming to align with other CRTP drivers and added docstrings
 # - Added environment variable SCAN_ADDRESS for scan_interface() to specify target IP address
 #   This is useful for server and clients running on different hosts
+# - Changed scan_interface() port range to 50000-50500 to match Simmyflie's default/
+#   multi-instance port range (was 19850-19859)
 import logging
 import os
 import queue
@@ -105,8 +107,8 @@ __all__ = ['UdpDriver']
 
 logger = logging.getLogger(__name__)
 
-_BASE_PORT = 19850
-_NR_OF_PORTS_TO_SCAN = 10
+_BASE_PORT = 50000
+_NR_OF_PORTS_TO_SCAN = 501
 _SCAN_TIMEOUT = 0.1
 
 
@@ -234,19 +236,19 @@ class UdpDriver(CRTPDriver):
 
         for i in range(_NR_OF_PORTS_TO_SCAN):
             port = _BASE_PORT + i
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 s.settimeout(_SCAN_TIMEOUT)
                 s.connect((scan_address, port))
                 s.send(b'\xFF')  # Null CRTP packet as probe
                 s.recv(1024)
                 # Got a response, Crazyflie is available
-                s.close()
                 found.append(['udp://{}:{}'.format(scan_address, port), ''])
-            except socket.timeout:
-                s.close()
             except Exception:
+                # Timeout, or connection refused (nothing listening)
                 pass
+            finally:
+                s.close()
 
         return found
 

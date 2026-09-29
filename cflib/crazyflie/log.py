@@ -354,7 +354,10 @@ class LogConfig(object):
             raise
 
     def start(self):
-        """Start the logging for this entry"""
+        """Start the logging for this entry
+
+        The configuration must first be added with Log.add_config(),
+        otherwise LogConfigError is raised."""
         cf = self.cf
         if cf is None or self.id is None:
             raise LogConfigError(
@@ -392,7 +395,11 @@ class LogConfig(object):
                     pk, expected_reply=(CMD_STOP_LOGGING, block_id))
 
     def delete(self):
-        """Delete this entry in the Crazyflie"""
+        """Delete this entry in the Crazyflie
+
+        The delete is asynchronous. The configuration stays registered until
+        the Crazyflie acknowledges the delete, after which its ID is released
+        and the configuration can be added again."""
         cf = self.cf
         if cf is not None and self.id is not None:
             cf.log._delete_config(self)
@@ -536,7 +543,12 @@ class Log():
         validating the configuration the variables are checked against the TOC
         to see that they actually exist. If they don't then the configuration
         cannot be used. Since a valid TOC is required, a Crazyflie has to be
-        connected when calling this method, otherwise it will fail."""
+        connected when calling this method.
+
+        Raises KeyError if a variable is not in the TOC, AttributeError if the
+        configuration is too large or has an invalid period, and
+        LogConfigError if not connected, if the configuration is already
+        registered or if no log configuration IDs are available."""
 
         with self._command_scope():
             self._add_config(logconf)

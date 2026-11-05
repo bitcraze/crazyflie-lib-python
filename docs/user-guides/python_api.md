@@ -352,9 +352,9 @@ The API to create and get information from LogConfig:
     data_received_cb = Caller()
     # Called when there's an error
     error_cb = Caller()
-    # Called when the log configuration is confirmed to be started
+    # Called when the log configuration is started or stopped
     started_cb = Caller()
-    # Called when the log configuration is confirmed to be added
+    # Called when the log configuration is added or removed
     added_cb = Caller()
 
     add_variable(name, fetch_as=None)
@@ -369,13 +369,20 @@ The API to create and get information from LogConfig:
         Crazyflie)."""
 
     start()
-        """Start the logging for this entry"""
+        """Start the logging for this entry
+
+        The configuration must first be added with Log.add_config(),
+        otherwise LogConfigError is raised."""
 
     stop()
         """Stop the logging for this entry"""
 
     delete()
-        """Delete this entry in the Crazyflie"""
+        """Delete this entry in the Crazyflie
+
+        The delete is asynchronous. The configuration stays registered until
+        the Crazyflie acknowledges the delete, after which its ID is released
+        and the configuration can be added again."""
 ```
 
 The API for the log in the Crazyflie:
@@ -389,7 +396,12 @@ The API for the log in the Crazyflie:
         validating the configuration the variables are checked against the TOC
         to see that they actually exist. If they don't then the configuration
         cannot be used. Since a valid TOC is required, a Crazyflie has to be
-        connected when calling this method, otherwise it will fail."""
+        connected when calling this method.
+
+        Raises KeyError if a variable is not in the TOC, AttributeError if the
+        configuration is too large or has an invalid period, and
+        LogConfigError if not connected, if the configuration is already
+        registered or if no log configuration IDs are available."""
 ```
 
 To create a logging configuration the following can be used:
@@ -416,20 +428,24 @@ The logging cannot be started until your are connected to a Crazyflie:
 ``` python
     # Callback called when the connection is established to the Crazyflie
     def connected(link_uri):
-        crazyflie.log.add_config(logconf)
+        try:
+            crazyflie.log.add_config(logconf)
+        except KeyError as e:
+            print('Variable not found in log TOC, no logging will be possible: %s' % e)
+            return
+        except (AttributeError, LogConfigError) as e:
+            print('Could not add log configuration: %s' % e)
+            return
 
-        if logconf.valid:
-            logconf.data_received_cb.add_callback(data_received_callback)
-            logconf.error_cb.add_callback(logging_error)
-            logconf.start()
-        else:
-            print "One or more of the variables in the configuration was not found in log TOC. No logging will be possible."
+        logconf.data_received_cb.add_callback(data_received_callback)
+        logconf.error_cb.add_callback(logging_error)
+        logconf.start()
 
     def data_received_callback(timestamp, data, logconf):
-        print "[%d][%s]: %s" % (timestamp, logconf.name, data)
+        print('[%d][%s]: %s' % (timestamp, logconf.name, data))
 
     def logging_error(logconf, msg):
-        print "Error when logging %s" % logconf.name
+        print('Error when logging %s: %s' % (logconf.name, msg))
 ```
 
 The values of log variables are transferred from the Crazyflie using CRTP
@@ -441,7 +457,8 @@ do not fit in one logging configuration, a second configuration may
 be added.
 
 ``` python
-    crazyflie.log.add_config([logconf1, logconfig2])
+    crazyflie.log.add_config(logconf1)
+    crazyflie.log.add_config(logconf2)
 ```
 
 ## Synchronous API

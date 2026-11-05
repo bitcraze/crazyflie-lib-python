@@ -360,9 +360,10 @@ class Crazyflie():
             raise Exception('Data part of packet is too large')
 
         self._send_lock.acquire()
-        if self.link is not None:
+        link = self.link
+        if link is not None:
             if len(expected_reply) > 0 and not resend and \
-                    self.link.needs_resending:
+                    link.needs_resending:
                 pattern = (pk.header,) + expected_reply
                 logger.debug(
                     'Sending packet and expecting the %s pattern back',
@@ -387,7 +388,7 @@ class Crazyflie():
                 else:
                     logger.debug('Resend requested, but no pattern found: %s',
                                  self._answer_patterns)
-            self.link.send_packet(pk)
+            link.send_packet(pk)
             self.packet_sent.call(pk)
         self._send_lock.release()
 

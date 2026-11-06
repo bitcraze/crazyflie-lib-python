@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 CLASSES = []
 
 
-def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
+def init_drivers(enable_debug_driver=False, enable_serial_driver=False, enable_ble_driver=False):
     """Initialize all the drivers."""
 
     env = os.getenv('USE_CFLINK')
@@ -60,6 +60,10 @@ def init_drivers(enable_debug_driver=False, enable_serial_driver=False):
         CLASSES.append(SerialDriver)
 
     CLASSES.extend([UdpDriver, PrrtDriver, TcpDriver])
+    if enable_ble_driver:
+        from .bledriver import BleDriver
+        if BleDriver not in CLASSES:
+            CLASSES.append(BleDriver)
 
 
 def scan_interfaces(address=None):

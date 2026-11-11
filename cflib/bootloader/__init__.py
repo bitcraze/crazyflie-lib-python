@@ -37,8 +37,6 @@ from typing import NoReturn
 from typing import Optional
 from typing import Tuple
 
-from packaging.version import Version
-
 from .boottypes import BootVersion
 from .boottypes import TargetTypes
 from .cloader import Cloader
@@ -55,6 +53,28 @@ __all__ = ['Bootloader']
 
 Target = namedtuple('Target', ['platform', 'target', 'type', 'provides', 'requires'])
 FlashArtifact = namedtuple('FlashArtifact', ['content', 'target', 'release'])
+
+
+def _version_key(version: str):
+    """
+    The Crazyflie reports e.g. '2024.10.0' while the release zip says '2024.10',
+    so compare as numbers and ignore trailing zeros. A '+dev' build never matches.
+    """
+    version = str(version).strip()
+    base, _, local = version.partition('+')
+    try:
+        parts = [int(p) for p in base.split('.')]
+    except ValueError:
+        return version
+    while len(parts) > 1 and parts[-1] == 0:
+        parts.pop()
+    return tuple(parts), local
+
+
+def _same_version(a: Optional[str], b: Optional[str]) -> bool:
+    if a is None or b is None:
+        return a is b
+    return _version_key(a) == _version_key(b)
 
 
 class Bootloader:
@@ -240,10 +260,8 @@ class Bootloader:
         update_contains_nrf_sd = any(x.target.type == 'bootloader+softdevice' for x in flash_artifacts)
         current_nrf_bl_version = None
         if self._cload.targets[TargetTypes.NRF51].version is not None:
-            current_nrf_bl_version = Version(str(self._cload.targets[TargetTypes.NRF51].version))
-        provided_nrf_bl_version = None
-        if self._get_provided_nrf51_bl_version(flash_artifacts) is not None:
-            provided_nrf_bl_version = Version(self._get_provided_nrf51_bl_version(flash_artifacts))
+            current_nrf_bl_version = str(self._cload.targets[TargetTypes.NRF51].version)
+        provided_nrf_bl_version = self._get_provided_nrf51_bl_version(flash_artifacts)
 
         print('nRF51 has: {} and requires {} and upgrade provides {}. Current bootloader version is [{}] and upgrade '
               'provides [{}]'.format(
@@ -260,7 +278,8 @@ class Bootloader:
         # To avoid always flashing the bootloader and soft device (these might never change again) first check
         # if we really need to. The original version of the bootloader is reported as None.
         should_flash_nrf_sd = True
-        if current_nrf_sd_version == required_nrf_sd_version and current_nrf_bl_version == provided_nrf_bl_version:
+        if current_nrf_sd_version == required_nrf_sd_version and \
+                _same_version(current_nrf_bl_version, provided_nrf_bl_version):
             should_flash_nrf_sd = False
         elif provided_nrf_sd_version is None and not update_contains_nrf_sd:
             should_flash_nrf_sd = False

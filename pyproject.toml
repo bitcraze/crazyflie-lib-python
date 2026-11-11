@@ -39,7 +39,6 @@ dependencies = [
     "libusb-package~=1.0",
     "scipy~=1.14",
     "numpy~=2.2",
-    "packaging~=25.0",
     "pyyaml>=6.0.3",
 ]
 

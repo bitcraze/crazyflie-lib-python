@@ -28,7 +28,7 @@ Crazyflie UDP driver.
 This driver communicates with a Crazyflie (or simulator) over UDP using the CRTP
 protocol. It enables connecting to software-in-the-loop (SITL) simulations.
 Scanning feature assumes a crazyflie server is running on port 19850-19859
-(CrazySim) or 50000-50500 (Simmyflie) that will respond to a null CRTP packet
+(CrazySim) or 26501-26999 (Simmyflie) that will respond to a null CRTP packet
 with a valid CRTP packet.
 
 Wire Protocol
@@ -51,7 +51,7 @@ The scan_interface() method discovers available Crazyflie devices by probing
 UDP ports in sequence:
 
 Port Ranges: 19850 to 19859 (10 ports, CrazySim default range)
-             50000 to 50500 (501 ports, Simmyflie default/multi-instance range)
+             26501 to 26999 (499 ports, Simmyflie default port and recommended range)
 Scan Address: Configurable via SCAN_ADDRESS environment variable (default: 127.0.0.1)
 Probe Packet: Single 0xFF byte (null CRTP packet)
 Timeout: 0.1 seconds per port
@@ -77,8 +77,8 @@ Connection URI Format
 udp://<host>:<port>
 
 Examples:
-    udp://127.0.0.1:50000  - Local simulator on port 50000
-    udp://192.168.1.5:50000 - Remote device at 192.168.1.5
+    udp://127.0.0.1:19850  - Local CrazySim simulator on port 19850
+    udp://192.168.1.5:19850 - Remote CrazySim simulator at 192.168.1.5
 """
 # changelog:
 # - Complete rewrite to align with other CRTP driver implementations
@@ -89,8 +89,8 @@ Examples:
 # - Changed variable naming to align with other CRTP drivers and added docstrings
 # - Added environment variable SCAN_ADDRESS for scan_interface() to specify target IP address
 #   This is useful for server and clients running on different hosts
-# - Added port range 50000-50500 to scan_interface() to match Simmyflie's default/
-#   multi-instance port range. The range 19850-19859 is still scanned for CrazySim.
+# - Added port range 26501-26999 to scan_interface() to match Simmyflie's default
+#   port (26501) and further instances. The range 19850-19859 is still scanned for CrazySim.
 import logging
 import os
 import queue
@@ -112,7 +112,7 @@ logger = logging.getLogger(__name__)
 # (base port, number of ports) to probe in scan_interface()
 _SCAN_PORT_RANGES = (
     (19850, 10),   # CrazySim
-    (50000, 501),  # Simmyflie
+    (26501, 499),  # Simmyflie
 )
 _SCAN_TIMEOUT = 0.1
 

@@ -94,7 +94,7 @@ class ParamTocElement:
              0x01: ('int16_t', '<h'),
              0x02: ('int32_t', '<i'),
              0x03: ('int64_t', '<q'),
-             0x05: ('FP16', ''),
+             0x05: ('FP16', '<e'),
              0x06: ('float', '<f'),
              0x07: ('double', '<d')}
 
@@ -365,7 +365,7 @@ class Param():
             else:
                 pk.data = struct.pack('<B', varid)
 
-            if element.pytype == '<f' or element.pytype == '<d':
+            if element.pytype in ('<f', '<d', '<e'):
                 value_nr = float(value)
             else:
                 value_nr = int(value)

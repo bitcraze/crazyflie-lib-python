@@ -27,8 +27,9 @@ Crazyflie UDP driver.
 
 This driver communicates with a Crazyflie (or simulator) over UDP using the CRTP
 protocol. It enables connecting to software-in-the-loop (SITL) simulations.
-Scanning feature assumes a crazyflie server is running on port 50000-50500
-that will respond to a null CRTP packet with a valid CRTP packet.
+Scanning feature assumes a crazyflie server is running on port 19850-19859
+(CrazySim) or 50000-50500 (Simmyflie) that will respond to a null CRTP packet
+with a valid CRTP packet.
 
 Wire Protocol
 -------------
@@ -49,13 +50,14 @@ Scan Behavior
 The scan_interface() method discovers available Crazyflie devices by probing
 UDP ports in sequence:
 
-Port Range: 50000 to 50500 (501 ports total, BASE_PORT + 0 through 500)
+Port Ranges: 19850 to 19859 (10 ports, CrazySim default range)
+             50000 to 50500 (501 ports, Simmyflie default/multi-instance range)
 Scan Address: Configurable via SCAN_ADDRESS environment variable (default: 127.0.0.1)
 Probe Packet: Single 0xFF byte (null CRTP packet)
 Timeout: 0.1 seconds per port
 
 Scan Procedure:
-    1. For each port in range:
+    1. For each port in the ranges:
        - Send 0xFF probe packet to SCAN_ADDRESS:port
        - Wait up to 0.1 seconds for response
        - If any response received, device is present
@@ -87,8 +89,8 @@ Examples:
 # - Changed variable naming to align with other CRTP drivers and added docstrings
 # - Added environment variable SCAN_ADDRESS for scan_interface() to specify target IP address
 #   This is useful for server and clients running on different hosts
-# - Changed scan_interface() port range to 50000-50500 to match Simmyflie's default/
-#   multi-instance port range (was 19850-19859)
+# - Added port range 50000-50500 to scan_interface() to match Simmyflie's default/
+#   multi-instance port range. The range 19850-19859 is still scanned for CrazySim.
 import logging
 import os
 import queue
@@ -107,8 +109,11 @@ __all__ = ['UdpDriver']
 
 logger = logging.getLogger(__name__)
 
-_BASE_PORT = 50000
-_NR_OF_PORTS_TO_SCAN = 501
+# (base port, number of ports) to probe in scan_interface()
+_SCAN_PORT_RANGES = (
+    (19850, 10),   # CrazySim
+    (50000, 501),  # Simmyflie
+)
 _SCAN_TIMEOUT = 0.1
 
 
@@ -234,8 +239,7 @@ class UdpDriver(CRTPDriver):
         found = []
         scan_address = os.getenv('SCAN_ADDRESS', '127.0.0.1')
 
-        for i in range(_NR_OF_PORTS_TO_SCAN):
-            port = _BASE_PORT + i
+        for port in _scan_ports():
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             try:
                 s.settimeout(_SCAN_TIMEOUT)
@@ -251,6 +255,11 @@ class UdpDriver(CRTPDriver):
                 s.close()
 
         return found
+
+
+def _scan_ports():
+    for base_port, nr_of_ports in _SCAN_PORT_RANGES:
+        yield from range(base_port, base_port + nr_of_ports)
 
 
 # Receive thread

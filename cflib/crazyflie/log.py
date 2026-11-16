@@ -524,7 +524,14 @@ class Log():
         self._refresh_callback = refresh_done_callback
         self.toc = None
 
-        self._send_reset_packet()
+        if self.cf.link and self.cf.link.get_name() == 'ble':
+            # Bench BLE never deletes another client's log blocks globally.
+            self.toc = Toc()
+            toc_fetcher = TocFetcher(self.cf, LogTocElement, CRTPPort.LOGGING,
+                                     self.toc, self._refresh_callback, self._toc_cache)
+            toc_fetcher.start()
+        else:
+            self._send_reset_packet()
 
     def _send_reset_packet(self):
         pk = CRTPPacket()

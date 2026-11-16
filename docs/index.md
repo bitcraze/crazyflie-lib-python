@@ -10,3 +10,7 @@ communicate with and control a Crazyflie quadcopter. For instance the [Crazyflie
 ## Contribute
 
 Everyone is encouraged to contribute to the CrazyFlie library by forking the Github repository and making a pull request or opening an issue.
+
+## Experimental transports
+
+- [Bluetooth Low Energy bench transport](functional-areas/ble.md)

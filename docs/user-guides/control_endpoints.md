@@ -13,6 +13,8 @@ CRTP protocol version 14 or later. With an older firmware the list of endpoints 
 
 An example is in [examples/control/control_endpoints.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/control/control_endpoints.py).
 It prints the endpoints and reads or writes a path on one of them.
+[examples/control/control_notify.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/control/control_notify.py)
+prints the changes an endpoint reports, see [Change notifications](#change-notifications).
 
 ## Usage
 
@@ -65,6 +67,9 @@ does not use Control endpoints pays nothing. It is kept until the connection end
 | `cmd(path, arg=NO_ARG, arg_type=None, timeout=None)` | Run a command, with an optional argument. Returns its value, or `None`. |
 | `request_raw(message, timeout=None)` | Send any Control request as bytes. The library sets byte 1, the request ID. Returns the whole response. |
 | `submit(message, callback)` | Non-blocking version of `request_raw()`, see below. |
+| `notified` | `Caller` of the change notifications, see [Change notifications](#change-notifications). |
+| `notify_lost` | `Caller` of the lost notification reports. |
+| `set_notify(enabled, timeout=None)` | Turn the forwarding of this endpoint's notifications on or off. |
 
 `timeout=None` means `cf.control.default_timeout`. A request answers in tens of milliseconds, so a timeout almost
 always means that the link was lost. A timeout cancels nothing on the Crazyflie.
@@ -93,6 +98,34 @@ cam.submit(build_get(0, 'stream.mjpeg_quality'), on_response)
 The callback runs once, on the incoming-packet thread, with either an error or the whole response. `submit()` has
 no timeout and does not retry: if the Crazyflie is busy, the callback gets `ControlBusyError` at once. Errors found
 before anything is sent, such as a message too large, are raised by `submit()` itself.
+
+## Change notifications
+
+An endpoint can report when one of its values changes, for example when setting one Camera Deck setting changes
+another one. The Crazyflie forwards these notifications once the client asks for them:
+
+```python
+cam = scf.cf.control.endpoint('deck:bcCam')
+cam.notified.add_callback(lambda path, value: print(path, value))
+cam.notify_lost.add_callback(lambda dropped: refresh_needed.set())   # read again on another thread
+cam.set_notify(True)
+```
+
+* `notified` and `notify_lost` are `Caller` objects (`add_callback()`, `remove_callback()`). `notified` callbacks
+  get `(path, value)`, with the plain Python value as `get()` returns it. `notify_lost` callbacks get `dropped`, the
+  number of notifications that were lost (at least that many, 255 at most).
+* Adding a callback does not turn forwarding on: `set_notify(True)` does, and `set_notify(False)` turns it off.
+  With a firmware that cannot forward notifications, `set_notify()` raises `CrazyflieControlError` with errno
+  `FirmwareErrno.ENOSYS`.
+* The callbacks are kept by endpoint path in `cf.control`, so they survive a reconnect: an endpoint object read
+  on the new connection has the same `notified` and `notify_lost`. Forwarding does not survive: call
+  `set_notify(True)` again after each connect.
+* Notifications are best effort. When some are lost, for example because the radio link was busy, `notify_lost`
+  is called. A client that mirrors values should then read again the paths it mirrors.
+* The callbacks run on cflib's incoming-packet thread. They must return quickly and cannot call the blocking
+  `cf.control` methods (those raise `RuntimeError` there): hand the work to another thread instead, as with the
+  event above. An exception in a callback is logged and does not stop the other callbacks.
+* A notification that breaks the encoding rules is logged as a warning and skipped.
 
 ## Values
 

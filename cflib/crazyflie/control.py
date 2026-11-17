@@ -35,6 +35,10 @@ in a catalog and tunnels Control requests to them.
 
 The calls block and raise, with a timeout on each of them. submit() is a
 non-blocking primitive for code that runs in callbacks.
+
+An endpoint can also report changes of its values. Callbacks are registered on
+ControlEndpoint.notified and ControlEndpoint.notify_lost, and the Crazyflie
+forwards the changes once set_notify(True) is called on the connection.
 """
 import logging
 import struct
@@ -53,6 +57,7 @@ from .control_codec import build_get
 from .control_codec import build_set
 from .control_codec import ControlError
 from .control_codec import ControlErrorCode
+from .control_codec import decode_notify
 from .control_codec import fragment
 from .control_codec import MalformedValueError
 from .control_codec import MessageKind
@@ -64,6 +69,7 @@ from .control_codec import UnknownValue
 from .control_codec import ValueType
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
+from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Control', 'ControlEndpoint', 'EndpointStatus', 'BridgeInfo', 'FirmwareErrno',
@@ -88,11 +94,15 @@ MIN_PROTOCOL_VERSION = 14
 CHANNEL_CATALOG = 0
 CHANNEL_ENDPOINT = 1
 CHANNEL_TUNNEL = 2
+CHANNEL_EVENT = 3
 
 CMD_GET_ITEM = 0x00
 CMD_GET_INFO = 0x01
 CMD_GET_STATUS = 0x00
+CMD_SET_NOTIFY = 0x01
 CMD_RESET = 0x02
+
+EVENT_NOTIFY_LOST = 0x01
 
 _ENDPOINT_READY = 1
 
@@ -266,6 +276,38 @@ class ControlEndpoint:
     def __repr__(self):
         return 'ControlEndpoint(id={}, path={!r})'.format(self.id, self.path)
 
+    @property
+    def notified(self):
+        """Caller of the change notifications of this endpoint.
+
+        callback(path, value) runs on the incoming-packet thread, with value
+        the plain Python value as get() returns it. The Caller is shared by
+        every ControlEndpoint with this path, so its callbacks survive a
+        reconnect. Adding a callback does not enable forwarding: see
+        set_notify().
+        """
+        return self._control._notified_caller(self.path)
+
+    @property
+    def notify_lost(self):
+        """Caller of the lost notification reports of this endpoint.
+
+        callback(dropped) runs on the incoming-packet thread: at least dropped
+        notifications were lost since the last report, so the values mirrored
+        from notifications should be read again (from another thread).
+        Shared like notified.
+        """
+        return self._control._notify_lost_caller(self.path)
+
+    def set_notify(self, enabled, timeout=None):
+        """Enable or disable the forwarding of this endpoint's notifications.
+
+        Forwarding is off on every new connection: call this again after a
+        reconnect. Raises CrazyflieControlError with errno ENOSYS when the
+        Crazyflie has no notification support.
+        """
+        self._control._set_notify(self, enabled, timeout)
+
     def is_ready(self, timeout=None):
         """True when the endpoint can take requests (GET_STATUS)"""
         return self.status(timeout).ready
@@ -342,6 +384,9 @@ class Control:
         # Keeps the fragments of one tunnel message together
         self._tunnel_lock = Lock()
         self._session = None
+        # Notification callers by endpoint path, kept across connections
+        self._notified = {}
+        self._notify_lost = {}
 
         self._cf.add_port_callback(CRTPPort.CONTROL, self._incoming)
         self._cf.disconnected.add_callback(self._disconnected)
@@ -507,6 +552,28 @@ class Control:
             session.limits[endpoint.id] = status
         return status
 
+    def _set_notify(self, endpoint, enabled, timeout):
+        self._check_thread()
+        deadline = self._deadline(timeout)
+        session = endpoint._session
+        self._check_open(session)
+        flag = 1 if enabled else 0
+
+        def match(data):
+            # An error answer has no ID. A success answer echoes ID and flag.
+            return len(data) < 3 or (data[2] == endpoint.id and (len(data) < 4 or data[3] == flag))
+
+        try:
+            data = self._command(session, CHANNEL_ENDPOINT, bytes((CMD_SET_NOTIFY, endpoint.id, flag)),
+                                 match, deadline)
+        except CrazyflieControlError as e:
+            if e.errno == FirmwareErrno.ENOSYS:
+                raise CrazyflieControlError(e.errno, True, 'The Crazyflie has no Control notification '
+                                            'support (ENOSYS)') from None
+            raise
+        if len(data) < 4:
+            raise UnexpectedResponseError('SET_NOTIFY answer is {} bytes, expected 4'.format(len(data)))
+
     def _check_request(self, session, endpoint, message):
         if len(message) < 2:
             raise ValueError('A Control request holds at least a kind and a request ID')
@@ -633,6 +700,73 @@ class Control:
         except Exception:
             logger.exception('Exception in a cf.control submit() callback')
 
+    # Notifications
+
+    def _notified_caller(self, path):
+        with self._lock:
+            return self._notified.setdefault(path, Caller())
+
+    def _notify_lost_caller(self, path):
+        with self._lock:
+            return self._notify_lost.setdefault(path, Caller())
+
+    @staticmethod
+    def _endpoint_path(session, endpoint_id):
+        catalog = session.catalog
+        if catalog is None or endpoint_id >= len(catalog):
+            return None
+        return catalog[endpoint_id].path
+
+    @staticmethod
+    def _call_each(caller, *args):
+        # One failing callback must not stop the others, nor the dispatcher
+        for callback in list(caller.callbacks):
+            try:
+                callback(*args)
+            except Exception:
+                logger.exception('Exception in a cf.control notification callback')
+
+    def _notification(self, session, endpoint_id, body):
+        endpoint_path = self._endpoint_path(session, endpoint_id)
+        if endpoint_path is None:
+            logger.debug('Control: notification for unknown endpoint %d dropped', endpoint_id)
+            return
+        if body[0] != MessageKind.NOTIFY:
+            logger.debug('Control: notification kind 0x%02x from %s ignored', body[0], endpoint_path)
+            return
+        try:
+            path, typed = decode_notify(body)
+        except MalformedValueError as e:
+            logger.warning('Control: malformed NOTIFY from %s skipped: %s (%s)', endpoint_path, e, body.hex())
+            return
+        with self._lock:
+            caller = self._notified.get(endpoint_path)
+        if caller is not None:
+            self._call_each(caller, path, typed.value)
+
+    def _event(self, session, data):
+        if not session.reset_done:
+            logger.debug('Control: event before RESET dropped')
+            return
+        if not data:
+            return
+        if data[0] != EVENT_NOTIFY_LOST:
+            logger.debug('Control: unknown event 0x%02x ignored', data[0])
+            return
+        # Trailing bytes are for later versions
+        if len(data) < 3:
+            logger.debug('Control: short NOTIFY_LOST dropped: %s', data.hex())
+            return
+        endpoint_id, dropped = data[1], data[2]
+        endpoint_path = self._endpoint_path(session, endpoint_id)
+        if endpoint_path is None:
+            logger.debug('Control: NOTIFY_LOST for unknown endpoint %d dropped', endpoint_id)
+            return
+        with self._lock:
+            caller = self._notify_lost.get(endpoint_path)
+        if caller is not None:
+            self._call_each(caller, dropped)
+
     # Incoming packets and connection events
 
     def _incoming(self, pk):
@@ -650,6 +784,8 @@ class Control:
             message = session.reassembler.feed(data)
             if message is not None:
                 self._dispatch(session, message)
+        elif pk.channel == CHANNEL_EVENT:
+            self._event(session, data)
 
     def _command_answer(self, session, channel, data):
         if len(data) < 2:
@@ -676,6 +812,7 @@ class Control:
             return
         endpoint_id, status, body = message[0], message[1], message[2:]
         if status == 0 and body[0] >= MessageKind.NOTIFY:
+            self._notification(session, endpoint_id, body)
             return
         if len(body) < 2:
             logger.debug('Control: short tunnel message dropped: %s', message.hex())

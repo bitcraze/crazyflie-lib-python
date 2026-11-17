@@ -29,6 +29,7 @@ It contains:
 
 * the Control value encoding (type, len, data TLV) and its checks,
 * builders for GET, SET and CMD requests and a parser for responses,
+* a decoder for NOTIFY messages,
 * the fragmenter and reassembler used on the tunnel channel (channel 2).
 """
 import ipaddress
@@ -43,7 +44,7 @@ __all__ = ['ValueType', 'TypedValue', 'UnknownValue', 'MessageKind',
            'ControlErrorCode', 'ControlResponse', 'ControlError',
            'MalformedValueError', 'NO_ARG', 'encode_value', 'decode_value',
            'encode_path', 'build_get', 'build_set', 'build_cmd',
-           'parse_response', 'fragment', 'Reassembler',
+           'parse_response', 'decode_notify', 'fragment', 'Reassembler',
            'FRAGMENT_PAYLOAD_SIZE', 'MAX_FRAGMENTS', 'MAX_TUNNEL_MESSAGE']
 
 # Bytes of message carried by one channel 2 packet, after the header byte
@@ -325,6 +326,27 @@ def encode_path(path):
     return bytes((len(data),)) + data
 
 
+def _decode_path(buf, offset):
+    """Decode the path_len and path at offset. Return (path, offset after it)."""
+    if offset >= len(buf):
+        raise MalformedValueError('Message ends before the path length')
+    length = buf[offset]
+    start = offset + 1
+    end = start + length
+    if end > len(buf):
+        raise MalformedValueError('Path len {} extends past the message'.format(length))
+    data = bytes(buf[start:end])
+    if not data:
+        raise MalformedValueError('Path is empty')
+    if b'\x00' in data:
+        raise MalformedValueError('Path contains NUL')
+    try:
+        path = data.decode('ascii')
+    except UnicodeDecodeError:
+        raise MalformedValueError('Path is not ASCII: {!r}'.format(data)) from None
+    return path, end
+
+
 def _request(kind, request_id, path):
     if not 0 <= request_id <= 0xff:
         raise ValueError('Request ID must be 0..255')
@@ -387,6 +409,23 @@ def parse_response(message):
         return ControlResponse(kind, request_id, error_code=code, detail=detail)
 
     return ControlResponse(kind, request_id)
+
+
+def decode_notify(message):
+    """Decode a NOTIFY message: kind 0xc0, path_len, path, then one value.
+
+    A NOTIFY has no request ID. Returns (path, TypedValue). Raises
+    MalformedValueError when the bytes break the Control rules, trailing bytes
+    included.
+    """
+    message = bytes(message)
+    if not message or message[0] != MessageKind.NOTIFY:
+        raise MalformedValueError('Not a NOTIFY message')
+    path, offset = _decode_path(message, 1)
+    typed, end = _decode_tlv(message, offset)
+    if end != len(message):
+        raise MalformedValueError('{} bytes after the NOTIFY value'.format(len(message) - end))
+    return path, typed
 
 
 def fragment(message):

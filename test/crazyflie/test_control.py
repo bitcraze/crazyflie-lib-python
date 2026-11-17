@@ -50,6 +50,7 @@ from cflib.crazyflie.control import UnexpectedResponseError
 from cflib.crazyflie.control import UnknownEndpointError
 from cflib.crazyflie.control import ValueType
 from cflib.crazyflie.control_codec import decode_value
+from cflib.crazyflie.control_codec import encode_path
 from cflib.crazyflie.control_codec import encode_value
 from cflib.crazyflie.control_codec import fragment
 from cflib.crazyflie.control_codec import Reassembler
@@ -91,6 +92,11 @@ class FakeFirmware(threading.Thread):
         self.before_reset_answer = None
         self.values = {}
         self.handler = None
+        # Endpoint IDs with notification forwarding on, and SET_NOTIFY behaviour
+        self.notify_enabled = set()
+        self.notify_supported = True
+        self.set_notify_errors = []
+        self.handler = None
         self.requests = []
         self.held = []
         self.uplink = []
@@ -116,6 +122,19 @@ class FakeFirmware(threading.Thread):
     def run_on_thread(self, fn):
         self._queue.put(('call', fn))
 
+    def flush(self):
+        """Wait until the firmware thread has handled everything queued before"""
+        done = threading.Event()
+        self.run_on_thread(done.set)
+        assert done.wait(1)
+
+    def notify(self, endpoint_id, body):
+        """An endpoint emits a notification: forwarded only when enabled"""
+        self._queue.put(('notify', endpoint_id, bytes(body)))
+
+    def notify_lost(self, endpoint_id, dropped, trailer=b''):
+        self.send_raw(3, bytes((0x01, endpoint_id, dropped)) + trailer)
+
     def stop(self):
         self._queue.put(None)
         self.join(1)
@@ -138,6 +157,9 @@ class FakeFirmware(threading.Thread):
                 self._deliver(item[1], item[2])
             elif item[0] == 'call':
                 item[1]()
+            elif item[0] == 'notify':
+                if item[1] in self.notify_enabled:
+                    self._send_message(item[1], 0, item[2])
 
     def _deliver(self, channel, data):
         pk = CRTPPacket()
@@ -181,6 +203,7 @@ class FakeFirmware(threading.Thread):
     def _endpoint_command(self, data):
         if data[0] == 0x02:
             self._reassembler.reset()
+            self.notify_enabled.clear()
             if self.before_reset_answer is not None:
                 self._deliver(2, self.before_reset_answer)
             self._deliver(1, bytes((0x02, 0)))
@@ -192,8 +215,32 @@ class FakeFirmware(threading.Thread):
             max_request, max_response = self.limits[endpoint_id]
             self._deliver(1, struct.pack('<BBBBHH', 0x00, 0, endpoint_id, int(self.ready[endpoint_id]),
                                          max_request, max_response) + b'\xbb\xcc')
+        elif data[0] == 0x01:
+            self._set_notify(data)
         else:
             self._deliver(1, bytes((data[0], FirmwareErrno.ENOSYS)))
+
+    def _set_notify(self, data):
+        if not self.notify_supported:
+            status = FirmwareErrno.ENOSYS
+        elif self.set_notify_errors:
+            status = self.set_notify_errors.pop(0)
+        elif len(data) < 3 or data[2] > 1:
+            status = FirmwareErrno.EINVAL
+        elif data[1] != 0xff and data[1] >= len(self.paths):
+            status = FirmwareErrno.ENOENT
+        else:
+            status = 0
+        if status != 0:
+            self._deliver(1, bytes((0x01, status)))
+            return
+        ids = range(len(self.paths)) if data[1] == 0xff else [data[1]]
+        for endpoint_id in ids:
+            if data[2]:
+                self.notify_enabled.add(endpoint_id)
+            else:
+                self.notify_enabled.discard(endpoint_id)
+        self._deliver(1, bytes((0x01, 0, data[1], data[2])))
 
     def _tunnel_request(self, endpoint_id, request):
         self.requests.append((endpoint_id, request))
@@ -815,6 +862,339 @@ class DisconnectTest(ControlTestBase):
 
         # Assert
         self.assertIsInstance(errors[0], ControlDisconnectedError)
+
+
+def notify_body(path, value_, value_type=None):
+    return b'\xc0' + encode_path(path) + encode_value(value_, value_type)
+
+
+class SetNotifyTest(ControlTestBase):
+
+    def test_enable_and_disable(self):
+        # Fixture
+        cam = self.cam()
+
+        # Test
+        cam.set_notify(True)
+
+        # Assert
+        self.assertEqual((CRTPPort.CONTROL, 1, b'\x01\x01\x01', (0x01,)), self.fw.uplink[-1])
+        self.assertEqual({1}, self.fw.notify_enabled)
+
+        # Test
+        cam.set_notify(False)
+
+        # Assert
+        self.assertEqual((CRTPPort.CONTROL, 1, b'\x01\x01\x00', (0x01,)), self.fw.uplink[-1])
+        self.assertEqual(set(), self.fw.notify_enabled)
+
+    def test_adding_a_callback_does_not_enable_forwarding(self):
+        # Fixture
+        cam = self.cam()
+        sent = len(self.fw.uplink)
+
+        # Test
+        cam.notified.add_callback(lambda path, value: None)
+        cam.notify_lost.add_callback(lambda dropped: None)
+
+        # Assert
+        self.assertEqual(sent, len(self.fw.uplink))
+        self.assertEqual(set(), self.fw.notify_enabled)
+
+    def test_enosys(self):
+        # Fixture
+        self.fw.notify_supported = False
+        cam = self.cam()
+
+        # Test
+        with self.assertRaises(CrazyflieControlError) as cm:
+            cam.set_notify(True)
+
+        # Assert
+        self.assertEqual(FirmwareErrno.ENOSYS, cm.exception.errno)
+        self.assertTrue(cm.exception.outcome_known)
+
+    def test_einval(self):
+        self.fw.set_notify_errors = [FirmwareErrno.EINVAL]
+        with self.assertRaises(CrazyflieControlError) as cm:
+            self.cam().set_notify(True)
+        self.assertEqual(FirmwareErrno.EINVAL, cm.exception.errno)
+
+    def test_eagain_is_retried(self):
+        # Fixture
+        self.fw.set_notify_errors = [FirmwareErrno.EAGAIN, FirmwareErrno.EAGAIN]
+        cam = self.cam()
+
+        # Test
+        cam.set_notify(True)
+
+        # Assert
+        self.assertEqual(3, sum(1 for _, ch, data, _ in self.fw.uplink if ch == 1 and data[0] == 0x01))
+        self.assertEqual({1}, self.fw.notify_enabled)
+
+    def test_unknown_endpoint_id(self):
+        # Fixture
+        cam = self.cam()
+        self.fw.paths = self.fw.paths[:1]
+
+        # Test
+        # Assert
+        with self.assertRaises(UnknownEndpointError):
+            cam.set_notify(True)
+
+    def test_from_incoming_thread_raises(self):
+        # Fixture
+        cam = self.cam()
+        result = {}
+
+        def on_incoming_thread():
+            try:
+                cam.set_notify(True)
+            except Exception as e:
+                result['error'] = e
+
+        # Test
+        self.fw.run_on_thread(on_incoming_thread)
+        self.fw.flush()
+
+        # Assert
+        self.assertIsInstance(result['error'], RuntimeError)
+
+    def test_after_disconnect_raises(self):
+        cam = self.cam()
+        self.cf.disconnected.call('radio://0/80/2M')
+        with self.assertRaises(ControlDisconnectedError):
+            cam.set_notify(True)
+
+
+class NotifyTest(ControlTestBase):
+
+    def _collect(self, caller):
+        received = []
+        caller.add_callback(lambda *args: received.append((args, threading.current_thread())))
+        return received
+
+    def _subscribed_cam(self):
+        cam = self.cam()
+        received = self._collect(cam.notified)
+        cam.set_notify(True)
+        return cam, received
+
+    def test_notify_reaches_the_callback(self):
+        # Fixture
+        cam, received = self._subscribed_cam()
+
+        # Test: the worked example packet, endpoint 1, stream.fps_max u8 15
+        self.fw.send_raw(2, b'\x80\x01\x00\xc0\x0estream.fps_max\x10\x01\x0f')
+        self.fw.flush()
+
+        # Assert
+        self.assertEqual([(('stream.fps_max', 15), self.fw)], received)
+        self.assertIs(int, type(received[0][0][1]))
+
+    def test_notify_in_several_fragments(self):
+        # Fixture
+        cam, received = self._subscribed_cam()
+        path = 'wifi.' + 'a' * 40
+        body = notify_body(path, 'b' * 50)
+        self.assertGreater(len(fragment(b'\x01\x00' + body)), 2)
+
+        # Test
+        self.fw.notify(1, body)
+        self.fw.flush()
+
+        # Assert
+        self.assertEqual([((path, 'b' * 50), self.fw)], received)
+
+    def test_not_forwarded_until_enabled(self):
+        # Fixture
+        received = self._collect(self.cam().notified)
+
+        # Test
+        self.fw.notify(1, notify_body('a', True))
+        self.fw.flush()
+
+        # Assert
+        self.assertEqual([], received)
+
+    def test_malformed_notify_is_skipped(self):
+        # Fixture
+        cam, received = self._subscribed_cam()
+        malformed = [
+            b'\xc0',                                  # no path
+            b'\xc0\x00\x10\x01\x01',                  # empty path
+            b'\xc0\x02a\xff\x10\x01\x01',             # path not ASCII
+            b'\xc0\x05a.b',                           # path past the end
+            b'\xc0\x03a.b',                           # no value
+            b'\xc0\x03a.b\x10\x02\x01',               # value past the end
+            b'\xc0\x03a.b\x10\x02\x01\x00',           # u8 with len 2
+            b'\xc0\x03a.b\x10\x01\x01\x00',           # trailing byte
+        ]
+
+        # Test
+        with self.assertLogs('cflib.crazyflie.control', level='WARNING') as logs:
+            for body in malformed:
+                self.fw.notify(1, body)
+            self.fw.notify(1, notify_body('a.b', 7, ValueType.U8))
+            self.fw.flush()
+
+        # Assert
+        self.assertEqual([(('a.b', 7), self.fw)], received)
+        self.assertEqual(len(malformed), len(logs.output))
+        self.assertTrue(all('malformed NOTIFY' in line for line in logs.output))
+
+    def test_unknown_kind_is_ignored(self):
+        # Fixture
+        cam, received = self._subscribed_cam()
+
+        # Test
+        with self.assertLogs('cflib.crazyflie.control', level='DEBUG') as logs:
+            self.fw.notify(1, b'\xc1\x03a.b\x10\x01\x01')
+            self.fw.notify(1, b'\xff')
+            self.fw.notify(1, notify_body('a.b', None))
+            self.fw.flush()
+
+        # Assert
+        self.assertEqual([(('a.b', None), self.fw)], received)
+        self.assertEqual(2, sum('kind 0x' in line for line in logs.output))
+
+    def test_notify_for_unknown_endpoint_is_dropped(self):
+        # Fixture
+        cam, received = self._subscribed_cam()
+
+        # Test
+        with self.assertLogs('cflib.crazyflie.control', level='DEBUG') as logs:
+            self.fw.answer(5, 0, notify_body('a.b', True))
+            self.fw.flush()
+
+        # Assert
+        self.assertEqual([], received)
+        self.assertTrue(any('unknown endpoint 5' in line for line in logs.output))
+
+    def test_notify_goes_to_its_endpoint_only(self):
+        # Fixture
+        cam, received = self._subscribed_cam()
+        stm32 = self.sut.endpoint('cf:stm32')
+        stm32_received = self._collect(stm32.notified)
+        stm32.set_notify(True)
+
+        # Test
+        self.fw.notify(0, notify_body('x', 1, ValueType.U16))
+        self.fw.flush()
+
+        # Assert
+        self.assertEqual([], received)
+        self.assertEqual([(('x', 1), self.fw)], stm32_received)
+
+    def test_failing_callback_does_not_stop_dispatch(self):
+        # Fixture
+        cam = self.cam()
+
+        def fail(path, value_):
+            raise ValueError('callback bug')
+        cam.notified.add_callback(fail)
+        received = self._collect(cam.notified)
+        cam.set_notify(True)
+
+        # Test
+        with self.assertLogs('cflib.crazyflie.control', level='ERROR') as logs:
+            self.fw.notify(1, notify_body('a', 1, ValueType.U8))
+            self.fw.notify(1, notify_body('a', 2, ValueType.U8))
+            self.fw.flush()
+
+        # Assert
+        self.assertEqual([('a', 1), ('a', 2)], [args for args, _ in received])
+        self.assertEqual(2, len(logs.output))
+        self.assertTrue(self.fw.is_alive())
+        self.assertEqual(80, cam.get('stream.mjpeg_quality'))
+
+    def test_notify_lost(self):
+        # Fixture
+        cam = self.cam()
+        lost = self._collect(cam.notify_lost)
+
+        # Test
+        self.fw.notify_lost(1, 7)
+        self.fw.notify_lost(1, 255, trailer=b'\x00\x00')  # trailing bytes from a later version
+        self.fw.flush()
+
+        # Assert
+        self.assertEqual([((7,), self.fw), ((255,), self.fw)], lost)
+
+    def test_unknown_or_bad_events_are_ignored(self):
+        # Fixture
+        cam = self.cam()
+        lost = self._collect(cam.notify_lost)
+
+        # Test
+        with self.assertLogs('cflib.crazyflie.control', level='DEBUG'):
+            self.fw.send_raw(3, b'\x00\x01\x02')    # reserved STATE event
+            self.fw.send_raw(3, b'\x7f\x01\x02')    # unknown event
+            self.fw.send_raw(3, b'\x01\x01')        # short NOTIFY_LOST
+            self.fw.send_raw(3, b'')
+            self.fw.notify_lost(9, 1)              # unknown endpoint
+            self.fw.notify_lost(1, 3)
+            self.fw.flush()
+
+        # Assert
+        self.assertEqual([((3,), self.fw)], lost)
+
+    def test_callers_are_shared_by_path(self):
+        # Fixture
+        cam = self.cam()
+        stm32 = self.sut.endpoint('cf:stm32')
+
+        # Test
+        again = self.sut.endpoints()[1]
+
+        # Assert
+        self.assertIs(cam.notified, again.notified)
+        self.assertIs(cam.notify_lost, again.notify_lost)
+        self.assertIsNot(cam.notified, stm32.notified)
+        self.assertIsNot(cam.notified, cam.notify_lost)
+
+    def test_callbacks_survive_a_reconnect_but_forwarding_does_not(self):
+        # Fixture
+        cam, received = self._subscribed_cam()
+        lost = self._collect(cam.notify_lost)
+        self.fw.notify(1, notify_body('a', 1, ValueType.U8))
+        self.fw.flush()
+
+        # Test
+        self.cf.connection_lost.call('radio://0/80/2M', 'lost')
+        rebuilt = self.cam()
+        self.fw.notify(1, notify_body('a', 2, ValueType.U8))
+        self.fw.flush()
+
+        # Assert: a new endpoint object, the same callers, forwarding off
+        self.assertIsNot(cam, rebuilt)
+        self.assertIs(cam.notified, rebuilt.notified)
+        self.assertIs(cam.notify_lost, rebuilt.notify_lost)
+        self.assertEqual([('a', 1)], [args for args, _ in received])
+
+        # Test
+        rebuilt.set_notify(True)
+        self.fw.notify(1, notify_body('a', 3, ValueType.U8))
+        self.fw.notify_lost(1, 2)
+        self.fw.flush()
+
+        # Assert
+        self.assertEqual([('a', 1), ('a', 3)], [args for args, _ in received])
+        self.assertEqual([(2,)], [args for args, _ in lost])
+
+    def test_protocol_13_ignores_notifications(self):
+        # Fixture
+        self.cf.protocol_version = 13
+        self.assertEqual([], self.sut.endpoints())
+
+        # Test
+        self.fw.send_raw(2, b'\x80\x01\x00\xc0\x01a\x10\x01\x01')
+        self.fw.notify_lost(1, 1)
+        self.fw.flush()
+
+        # Assert
+        self.assertTrue(self.fw.is_alive())
+        self.assertEqual([], self.fw.uplink)
 
 
 if __name__ == '__main__':

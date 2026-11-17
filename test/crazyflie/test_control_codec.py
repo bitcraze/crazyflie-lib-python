@@ -29,6 +29,7 @@ from cflib.crazyflie.control_codec import build_get
 from cflib.crazyflie.control_codec import build_set
 from cflib.crazyflie.control_codec import ControlError
 from cflib.crazyflie.control_codec import ControlErrorCode
+from cflib.crazyflie.control_codec import decode_notify
 from cflib.crazyflie.control_codec import decode_value
 from cflib.crazyflie.control_codec import encode_path
 from cflib.crazyflie.control_codec import encode_value
@@ -259,6 +260,50 @@ class ResponseTest(unittest.TestCase):
             with self.subTest(data=data):
                 with self.assertRaises(MalformedValueError):
                     parse_response(data)
+
+
+class NotifyTest(unittest.TestCase):
+
+    def test_worked_example(self):
+        # NOTIFY stream.fps_max u8 15
+        actual = decode_notify(b'\xc0\x0estream.fps_max\x10\x01\x0f')
+        self.assertEqual(('stream.fps_max', TypedValue(ValueType.U8, 15)), actual)
+        self.assertIsInstance(actual[0], str)
+
+    def test_every_value_type(self):
+        for value_type, value, wire in ValueRoundTripTest.CASES:
+            with self.subTest(type=value_type, value=value):
+                self.assertEqual(('a.b', TypedValue(value_type, value)), decode_notify(b'\xc0\x03a.b' + wire))
+
+    def test_unknown_value_type(self):
+        self.assertEqual(('a', TypedValue(0x30, UnknownValue(0x30, b'xy'))), decode_notify(b'\xc0\x01a\x30\x02xy'))
+
+    def test_accepts_bytearray(self):
+        self.assertEqual(('a', TypedValue(ValueType.NULL, None)), decode_notify(bytearray(b'\xc0\x01a\x00\x00')))
+
+    MALFORMED = [
+        ('empty', b''),
+        ('not a NOTIFY', b'\x81\x01a\x00\x00'),
+        ('unknown notification kind', b'\xc1\x01a\x00\x00'),
+        ('no path length', b'\xc0'),
+        ('empty path', b'\xc0\x00\x00\x00'),
+        ('path past the end', b'\xc0\x05a.b'),
+        ('path not ASCII', b'\xc0\x02a\xe9\x00\x00'),
+        ('path with NUL', b'\xc0\x03a\x00b\x00\x00'),
+        ('no value', b'\xc0\x03a.b'),
+        ('value without len', b'\xc0\x03a.b\x10'),
+        ('value truncated', b'\xc0\x03a.b\x12\x02\x01'),
+        ('value with bad length', b'\xc0\x03a.b\x10\x02\x01\x00'),
+        ('bool not 0 or 1', b'\xc0\x03a.b\x01\x01\x02'),
+        ('trailing bytes', b'\xc0\x03a.b\x10\x01\x01\x00'),
+        ('two values', b'\xc0\x03a.b\x00\x00\x00\x00'),
+    ]
+
+    def test_malformed_notify_is_rejected(self):
+        for name, data in self.MALFORMED:
+            with self.subTest(name):
+                with self.assertRaises(MalformedValueError):
+                    decode_notify(data)
 
 
 class FragmentTest(unittest.TestCase):

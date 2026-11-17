@@ -48,6 +48,7 @@ class CRTPPort:
     COMMANDER_GENERIC = 0x07
     SETPOINT_HL = 0x08
     SUPERVISOR = 0x09
+    CONTROL = 0x0A
     PLATFORM = 0x0D
     LINKCTRL = 0x0F
     ALL = 0xFF

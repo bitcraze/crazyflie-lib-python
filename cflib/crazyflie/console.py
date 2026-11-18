@@ -26,11 +26,24 @@
 Crazyflie console is used to receive characters printed using printf
 from the firmware.
 """
+import codecs
+
 from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
 __all__ = ['Console']
+
+LOCAL_CHANNEL = 0
+
+
+def _new_decoder():
+    """
+    Return an incremental UTF-8 decoder. It keeps a character split across
+    packets until its last byte arrives, and replaces invalid bytes instead of
+    raising.
+    """
+    return codecs.getincrementaldecoder('utf-8')(errors='replace')
 
 
 class Console:
@@ -47,7 +60,11 @@ class Console:
         self.receivedChar = Caller()
         """
         This member variable is used to setup a callback that will be called
-        when text is received from the CONSOLE port of CRTP (0).
+        when text is received from the Crazyflie's own console (CRTP port 0,
+        channel 0). This works with every firmware version.
+
+        The text arrives in chunks of up to 30 bytes. A chunk can end in the
+        middle of a line, so do not add a newline after each one.
 
         Example:
         ```python
@@ -63,13 +80,18 @@ class Console:
         """
 
         self.cf = crazyflie
-        self.cf.add_port_callback(CRTPPort.CONSOLE, self._incoming)
+        self._local_decoder = _new_decoder()
+        self.cf.add_header_callback(self._incoming, CRTPPort.CONSOLE, LOCAL_CHANNEL)
+        self.cf.disconnected.add_callback(self._disconnected)
+
+    def _disconnected(self, link_uri):
+        # Do not complete a character with bytes from another connection
+        self._local_decoder = _new_decoder()
 
     def _incoming(self, packet):
         """
         Callback for data received from the copter.
         """
-        # This might be done prettier ;-)
-        console_text = packet.data.decode('UTF-8')
-
-        self.receivedChar.call(console_text)
+        console_text = self._local_decoder.decode(packet.data)
+        if console_text:
+            self.receivedChar.call(console_text)

@@ -187,6 +187,7 @@ class Crazyflie():
         self.platform.fetch_platform_informations(self._platform_info_fetched)
 
     def _platform_info_fetched(self):
+        self.console._connected(self.platform.get_protocol_version())
         self.log.refresh_toc(self._log_toc_updated_cb, self._toc_cache)
 
     def _param_toc_updated_cb(self):

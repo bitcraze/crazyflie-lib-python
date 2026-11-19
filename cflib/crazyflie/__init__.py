@@ -41,10 +41,10 @@ from threading import Thread
 from threading import Timer
 
 import cflib.crtp
+from .apiservice import Apiservice
 from .appchannel import Appchannel
 from .commander import Commander
 from .console import Console
-from .control import Control
 from .extpos import Extpos
 from .link_statistics import LinkStatistics
 from .localization import Localization
@@ -127,7 +127,7 @@ class Crazyflie():
         self.appchannel = Appchannel(self)
         self.link_statistics = LinkStatistics(self)
         self.supervisor = Supervisor(self)
-        self.control = Control(self)
+        self.apiservice = Apiservice(self)
 
         self.link_uri = ''
 

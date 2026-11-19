@@ -22,10 +22,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Tests of cf.control against a fake Crazyflie firmware.
+Tests of cf.apiservice against a fake Crazyflie firmware.
 
 The fake firmware runs on its own thread, which also plays the part of cflib's
-incoming-packet thread: it runs the Control port callback.
+incoming-packet thread: it runs the API Service port callback.
 """
 import queue
 import struct
@@ -34,26 +34,26 @@ import time
 import unittest
 import zlib
 
-from cflib.crazyflie.control import Control
-from cflib.crazyflie.control import ControlBusyError
-from cflib.crazyflie.control import ControlDisconnectedError
-from cflib.crazyflie.control import ControlErrorCode
-from cflib.crazyflie.control import ControlTimeoutError
-from cflib.crazyflie.control import CrazyflieControlError
-from cflib.crazyflie.control import EndpointError
-from cflib.crazyflie.control import EndpointNotReadyError
-from cflib.crazyflie.control import EndpointStatus
-from cflib.crazyflie.control import FirmwareErrno
-from cflib.crazyflie.control import MessageTooLargeError
-from cflib.crazyflie.control import TypedValue
-from cflib.crazyflie.control import UnexpectedResponseError
-from cflib.crazyflie.control import UnknownEndpointError
-from cflib.crazyflie.control import ValueType
-from cflib.crazyflie.control_codec import decode_value
-from cflib.crazyflie.control_codec import encode_path
-from cflib.crazyflie.control_codec import encode_value
-from cflib.crazyflie.control_codec import fragment
-from cflib.crazyflie.control_codec import Reassembler
+from cflib.crazyflie.apiservice import Apiservice
+from cflib.crazyflie.apiservice import ApiserviceBusyError
+from cflib.crazyflie.apiservice import ApiserviceDisconnectedError
+from cflib.crazyflie.apiservice import ApiserviceErrorCode
+from cflib.crazyflie.apiservice import ApiserviceTimeoutError
+from cflib.crazyflie.apiservice import CrazyflieApiserviceError
+from cflib.crazyflie.apiservice import EndpointError
+from cflib.crazyflie.apiservice import EndpointNotReadyError
+from cflib.crazyflie.apiservice import EndpointStatus
+from cflib.crazyflie.apiservice import FirmwareErrno
+from cflib.crazyflie.apiservice import MessageTooLargeError
+from cflib.crazyflie.apiservice import TypedValue
+from cflib.crazyflie.apiservice import UnexpectedResponseError
+from cflib.crazyflie.apiservice import UnknownEndpointError
+from cflib.crazyflie.apiservice import ValueType
+from cflib.crazyflie.apiservice_codec import decode_value
+from cflib.crazyflie.apiservice_codec import encode_path
+from cflib.crazyflie.apiservice_codec import encode_value
+from cflib.crazyflie.apiservice_codec import fragment
+from cflib.crazyflie.apiservice_codec import Reassembler
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
@@ -163,7 +163,7 @@ class FakeFirmware(threading.Thread):
 
     def _deliver(self, channel, data):
         pk = CRTPPacket()
-        pk.set_header(CRTPPort.CONTROL, channel)
+        pk.set_header(CRTPPort.APISERVICE, channel)
         pk.data = data
         self.port_callback(pk)
 
@@ -262,7 +262,7 @@ class FakeFirmware(threading.Thread):
         key = (endpoint_id, path)
         if request[0] == 0x01:
             if key not in self.values:
-                return [(0, error(request, ControlErrorCode.UNKNOWN_PATH, b'no such path'))]
+                return [(0, error(request, ApiserviceErrorCode.UNKNOWN_PATH, b'no such path'))]
             return [(0, value(request, self.values[key]))]
         if request[0] == 0x02:
             self.values[key] = request[3 + path_len:]
@@ -271,7 +271,7 @@ class FakeFirmware(threading.Thread):
 
 
 class StubCrazyflie:
-    """The parts of Crazyflie that cf.control uses"""
+    """The parts of Crazyflie that cf.apiservice uses"""
 
     def __init__(self, firmware, protocol_version=14):
         self.firmware = firmware
@@ -280,13 +280,13 @@ class StubCrazyflie:
         self.connection_lost = Caller()
         self.protocol_version = protocol_version
         self.platform = self
-        self.control = Control(self)
+        self.apiservice = Apiservice(self)
 
     def get_protocol_version(self):
         return self.protocol_version
 
     def add_port_callback(self, port, cb):
-        assert port == CRTPPort.CONTROL
+        assert port == CRTPPort.APISERVICE
         self.firmware.port_callback = cb
 
     def send_packet(self, pk, expected_reply=(), resend=False, timeout=0.2):
@@ -306,14 +306,14 @@ def wait_until(predicate, timeout=1.0):
     return predicate()
 
 
-class ControlTestBase(unittest.TestCase):
+class ApiserviceTestBase(unittest.TestCase):
 
     PATHS = ['cf:stm32', 'deck:bcCam']
 
     def setUp(self):
         self.fw = FakeFirmware(self.PATHS)
         self.cf = StubCrazyflie(self.fw)
-        self.sut = self.cf.control
+        self.sut = self.cf.apiservice
         self.fw.start()
         self.fw.values[(1, 'stream.mjpeg_quality')] = encode_value(80, ValueType.U8)
 
@@ -324,7 +324,7 @@ class ControlTestBase(unittest.TestCase):
         return self.sut.endpoint('deck:bcCam')
 
 
-class InitTest(ControlTestBase):
+class InitTest(ApiserviceTestBase):
 
     def test_init_sequence(self):
         # Test
@@ -333,10 +333,10 @@ class InitTest(ControlTestBase):
         # Assert
         self.assertEqual([(0, 'cf:stm32'), (1, 'deck:bcCam')], [(e.id, e.path) for e in endpoints])
         self.assertEqual([
-            (CRTPPort.CONTROL, 1, b'\x02', (0x02,)),
-            (CRTPPort.CONTROL, 0, b'\x01', (0x01,)),
-            (CRTPPort.CONTROL, 0, b'\x00\x00', (0x00,)),
-            (CRTPPort.CONTROL, 0, b'\x00\x01', (0x00,)),
+            (CRTPPort.APISERVICE, 1, b'\x02', (0x02,)),
+            (CRTPPort.APISERVICE, 0, b'\x01', (0x01,)),
+            (CRTPPort.APISERVICE, 0, b'\x00\x00', (0x00,)),
+            (CRTPPort.APISERVICE, 0, b'\x00\x01', (0x00,)),
         ], self.fw.uplink)
 
     def test_catalog_is_read_once_per_connection(self):
@@ -368,7 +368,7 @@ class InitTest(ControlTestBase):
 
     def test_eagain_until_timeout(self):
         self.fw.eagain_count = 1000
-        with self.assertRaises(CrazyflieControlError) as cm:
+        with self.assertRaises(CrazyflieApiserviceError) as cm:
             self.sut.endpoints(timeout=0.1)
         self.assertEqual(FirmwareErrno.EAGAIN, cm.exception.errno)
 
@@ -404,7 +404,7 @@ class InitTest(ControlTestBase):
 
     def test_not_connected(self):
         self.cf.link = None
-        with self.assertRaises(ControlDisconnectedError):
+        with self.assertRaises(ApiserviceDisconnectedError):
             self.sut.endpoints()
         self.assertEqual([], self.fw.uplink)
 
@@ -413,7 +413,7 @@ class InitTest(ControlTestBase):
         self.fw.before_reset_answer = b'\x80\x01\x00\x81\x00\x10\x01\x05'
 
         # Test
-        with self.assertLogs('cflib.crazyflie.control', level='DEBUG') as logs:
+        with self.assertLogs('cflib.crazyflie.apiservice', level='DEBUG') as logs:
             self.assertEqual(80, self.cam().get('stream.mjpeg_quality'))
 
         # Assert
@@ -421,11 +421,11 @@ class InitTest(ControlTestBase):
 
     def test_no_answer_times_out(self):
         self.fw.port_callback = lambda pk: None
-        with self.assertRaises(ControlTimeoutError):
+        with self.assertRaises(ApiserviceTimeoutError):
             self.sut.endpoints(timeout=0.1)
 
 
-class EndpointStatusTest(ControlTestBase):
+class EndpointStatusTest(ApiserviceTestBase):
 
     def test_status(self):
         # Fixture
@@ -436,7 +436,7 @@ class EndpointStatusTest(ControlTestBase):
 
         # Assert
         self.assertEqual(EndpointStatus(True, 64, 128), status)
-        self.assertEqual((CRTPPort.CONTROL, 1, b'\x00\x01', (0x00,)), self.fw.uplink[-1])
+        self.assertEqual((CRTPPort.APISERVICE, 1, b'\x00\x01', (0x00,)), self.fw.uplink[-1])
 
     def test_is_ready(self):
         cam = self.cam()
@@ -445,7 +445,7 @@ class EndpointStatusTest(ControlTestBase):
         self.assertFalse(cam.is_ready())
 
 
-class RequestTest(ControlTestBase):
+class RequestTest(ApiserviceTestBase):
 
     def test_get(self):
         # Fixture
@@ -564,12 +564,12 @@ class RequestTest(ControlTestBase):
         self.fw.handler = lambda endpoint_id, request: HOLD
         self.sut.default_timeout = 0.05
         start = time.monotonic()
-        with self.assertRaises(ControlTimeoutError):
+        with self.assertRaises(ApiserviceTimeoutError):
             cam.get('a')
         self.assertLess(time.monotonic() - start, 1.0)
 
 
-class ErrorMappingTest(ControlTestBase):
+class ErrorMappingTest(ApiserviceTestBase):
 
     def _fail_with(self, status):
         self.fw.handler = lambda endpoint_id, request: [(status, request[:2])]
@@ -599,18 +599,18 @@ class ErrorMappingTest(ControlTestBase):
         for status, outcome_known in cases:
             with self.subTest(status=status):
                 self._fail_with(status)
-                with self.assertRaises(CrazyflieControlError) as cm:
+                with self.assertRaises(CrazyflieApiserviceError) as cm:
                     cam.get('a')
                 self.assertEqual(status, cm.exception.errno)
                 self.assertEqual(outcome_known, cm.exception.outcome_known)
 
-    def test_control_error(self):
+    def test_apiservice_error(self):
         with self.assertRaises(EndpointError) as cm:
             self.cam().get('no.such.path')
-        self.assertEqual(ControlErrorCode.UNKNOWN_PATH, cm.exception.code)
+        self.assertEqual(ApiserviceErrorCode.UNKNOWN_PATH, cm.exception.code)
         self.assertEqual('no such path', cm.exception.detail)
 
-    def test_unknown_control_error_code_stays_int(self):
+    def test_unknown_apiservice_error_code_stays_int(self):
         self.fw.handler = lambda endpoint_id, request: [(0, error(request, 0x42))]
         with self.assertRaises(EndpointError) as cm:
             self.cam().get('a')
@@ -625,7 +625,7 @@ class ErrorMappingTest(ControlTestBase):
             self.cam().set('a', None)
 
 
-class TimeoutAndBusyTest(ControlTestBase):
+class TimeoutAndBusyTest(ApiserviceTestBase):
 
     def test_timeout_then_late_answer(self):
         # Fixture
@@ -633,7 +633,7 @@ class TimeoutAndBusyTest(ControlTestBase):
         self.fw.handler = lambda endpoint_id, request: HOLD
 
         # Test
-        with self.assertRaises(ControlTimeoutError):
+        with self.assertRaises(ApiserviceTimeoutError):
             cam.get('stream.mjpeg_quality', timeout=0.1)
         late_id = self.fw.held[0][1][1]
 
@@ -681,12 +681,12 @@ class TimeoutAndBusyTest(ControlTestBase):
 
     def test_busy_at_the_timeout(self):
         self.fw.handler = lambda endpoint_id, request: [(FirmwareErrno.ENOBUFS, request[:2])]
-        with self.assertRaises(ControlBusyError):
+        with self.assertRaises(ApiserviceBusyError):
             self.cam().get('a', timeout=0.1)
         self.assertGreater(len(self.fw.requests), 1)
 
 
-class SubmitTest(ControlTestBase):
+class SubmitTest(ApiserviceTestBase):
 
     def _submit(self, endpoint, message):
         done = threading.Event()
@@ -719,7 +719,7 @@ class SubmitTest(ControlTestBase):
 
         # Assert
         self.assertTrue(done.wait(1))
-        self.assertIsInstance(result['error'], ControlBusyError)
+        self.assertIsInstance(result['error'], ApiserviceBusyError)
         time.sleep(0.05)
         self.assertEqual(1, len(self.fw.requests))
 
@@ -732,7 +732,7 @@ class SubmitTest(ControlTestBase):
 
         # Test
         # Assert
-        with self.assertRaises(ControlBusyError):
+        with self.assertRaises(ApiserviceBusyError):
             self._submit(cam, b'\x01\x00\x01a')
 
     def test_out_of_order_responses(self):
@@ -796,7 +796,7 @@ class SubmitTest(ControlTestBase):
         self.assertIsInstance(result['error'], RuntimeError)
 
 
-class DisconnectTest(ControlTestBase):
+class DisconnectTest(ApiserviceTestBase):
 
     def test_disconnect_wakes_waiting_calls(self):
         # Fixture
@@ -824,9 +824,9 @@ class DisconnectTest(ControlTestBase):
         # Assert
         self.assertLess(time.monotonic() - start, 1)
         self.assertEqual(1, len(errors))
-        self.assertIsInstance(errors[0], ControlDisconnectedError)
+        self.assertIsInstance(errors[0], ApiserviceDisconnectedError)
         self.assertTrue(submitted.wait(1))
-        self.assertIsInstance(submit_errors[0], ControlDisconnectedError)
+        self.assertIsInstance(submit_errors[0], ApiserviceDisconnectedError)
 
     def test_disconnect_clears_the_catalog(self):
         # Fixture
@@ -836,7 +836,7 @@ class DisconnectTest(ControlTestBase):
         self.cf.connection_lost.call('radio://0/80/2M', 'lost')
 
         # Assert
-        with self.assertRaises(ControlDisconnectedError):
+        with self.assertRaises(ApiserviceDisconnectedError):
             cam.get('stream.mjpeg_quality')
         self.fw.uplink.clear()
         self.assertEqual(2, len(self.sut.endpoints()))
@@ -861,14 +861,14 @@ class DisconnectTest(ControlTestBase):
         thread.join(1)
 
         # Assert
-        self.assertIsInstance(errors[0], ControlDisconnectedError)
+        self.assertIsInstance(errors[0], ApiserviceDisconnectedError)
 
 
 def notify_body(path, value_, value_type=None):
     return b'\xc0' + encode_path(path) + encode_value(value_, value_type)
 
 
-class SetNotifyTest(ControlTestBase):
+class SetNotifyTest(ApiserviceTestBase):
 
     def test_enable_and_disable(self):
         # Fixture
@@ -878,14 +878,14 @@ class SetNotifyTest(ControlTestBase):
         cam.set_notify(True)
 
         # Assert
-        self.assertEqual((CRTPPort.CONTROL, 1, b'\x01\x01\x01', (0x01,)), self.fw.uplink[-1])
+        self.assertEqual((CRTPPort.APISERVICE, 1, b'\x01\x01\x01', (0x01,)), self.fw.uplink[-1])
         self.assertEqual({1}, self.fw.notify_enabled)
 
         # Test
         cam.set_notify(False)
 
         # Assert
-        self.assertEqual((CRTPPort.CONTROL, 1, b'\x01\x01\x00', (0x01,)), self.fw.uplink[-1])
+        self.assertEqual((CRTPPort.APISERVICE, 1, b'\x01\x01\x00', (0x01,)), self.fw.uplink[-1])
         self.assertEqual(set(), self.fw.notify_enabled)
 
     def test_adding_a_callback_does_not_enable_forwarding(self):
@@ -907,7 +907,7 @@ class SetNotifyTest(ControlTestBase):
         cam = self.cam()
 
         # Test
-        with self.assertRaises(CrazyflieControlError) as cm:
+        with self.assertRaises(CrazyflieApiserviceError) as cm:
             cam.set_notify(True)
 
         # Assert
@@ -916,7 +916,7 @@ class SetNotifyTest(ControlTestBase):
 
     def test_einval(self):
         self.fw.set_notify_errors = [FirmwareErrno.EINVAL]
-        with self.assertRaises(CrazyflieControlError) as cm:
+        with self.assertRaises(CrazyflieApiserviceError) as cm:
             self.cam().set_notify(True)
         self.assertEqual(FirmwareErrno.EINVAL, cm.exception.errno)
 
@@ -963,11 +963,11 @@ class SetNotifyTest(ControlTestBase):
     def test_after_disconnect_raises(self):
         cam = self.cam()
         self.cf.disconnected.call('radio://0/80/2M')
-        with self.assertRaises(ControlDisconnectedError):
+        with self.assertRaises(ApiserviceDisconnectedError):
             cam.set_notify(True)
 
 
-class NotifyTest(ControlTestBase):
+class NotifyTest(ApiserviceTestBase):
 
     def _collect(self, caller):
         received = []
@@ -1032,7 +1032,7 @@ class NotifyTest(ControlTestBase):
         ]
 
         # Test
-        with self.assertLogs('cflib.crazyflie.control', level='WARNING') as logs:
+        with self.assertLogs('cflib.crazyflie.apiservice', level='WARNING') as logs:
             for body in malformed:
                 self.fw.notify(1, body)
             self.fw.notify(1, notify_body('a.b', 7, ValueType.U8))
@@ -1048,7 +1048,7 @@ class NotifyTest(ControlTestBase):
         cam, received = self._subscribed_cam()
 
         # Test
-        with self.assertLogs('cflib.crazyflie.control', level='DEBUG') as logs:
+        with self.assertLogs('cflib.crazyflie.apiservice', level='DEBUG') as logs:
             self.fw.notify(1, b'\xc1\x03a.b\x10\x01\x01')
             self.fw.notify(1, b'\xff')
             self.fw.notify(1, notify_body('a.b', None))
@@ -1063,7 +1063,7 @@ class NotifyTest(ControlTestBase):
         cam, received = self._subscribed_cam()
 
         # Test
-        with self.assertLogs('cflib.crazyflie.control', level='DEBUG') as logs:
+        with self.assertLogs('cflib.crazyflie.apiservice', level='DEBUG') as logs:
             self.fw.answer(5, 0, notify_body('a.b', True))
             self.fw.flush()
 
@@ -1097,7 +1097,7 @@ class NotifyTest(ControlTestBase):
         cam.set_notify(True)
 
         # Test
-        with self.assertLogs('cflib.crazyflie.control', level='ERROR') as logs:
+        with self.assertLogs('cflib.crazyflie.apiservice', level='ERROR') as logs:
             self.fw.notify(1, notify_body('a', 1, ValueType.U8))
             self.fw.notify(1, notify_body('a', 2, ValueType.U8))
             self.fw.flush()
@@ -1127,7 +1127,7 @@ class NotifyTest(ControlTestBase):
         lost = self._collect(cam.notify_lost)
 
         # Test
-        with self.assertLogs('cflib.crazyflie.control', level='DEBUG'):
+        with self.assertLogs('cflib.crazyflie.apiservice', level='DEBUG'):
             self.fw.send_raw(3, b'\x00\x01\x02')    # reserved STATE event
             self.fw.send_raw(3, b'\x7f\x01\x02')    # unknown event
             self.fw.send_raw(3, b'\x01\x01')        # short NOTIFY_LOST

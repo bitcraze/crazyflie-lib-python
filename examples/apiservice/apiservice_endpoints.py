@@ -22,13 +22,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-List the Control endpoints of a Crazyflie, and read or write a path on one.
+List the API Service endpoints of a Crazyflie, and read or write a path on one.
 
-    python3 control_endpoints.py
+    python3 apiservice_endpoints.py
         prints the catalog, with readiness and limits
-    python3 control_endpoints.py deck:bcCam stream.mjpeg_quality
+    python3 apiservice_endpoints.py deck:bcCam stream.mjpeg_quality
         reads a path
-    python3 control_endpoints.py deck:bcCam stream.mjpeg_quality 80
+    python3 apiservice_endpoints.py deck:bcCam stream.mjpeg_quality 80
         writes a path. The value is converted to the type the path has now,
         or to the type given with --type (for example --type u8)
 
@@ -39,8 +39,8 @@ import logging
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie.control import ControlError
-from cflib.crazyflie.control import ValueType
+from cflib.crazyflie.apiservice import ApiserviceError
+from cflib.crazyflie.apiservice import ValueType
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 
@@ -48,19 +48,19 @@ from cflib.utils import uri_helper
 logging.basicConfig(level=logging.ERROR)
 
 
-def print_catalog(control):
-    info = control.info()
+def print_catalog(apiservice):
+    info = apiservice.info()
     if info is None:
-        print('This Crazyflie has no Control bridge (CRTP protocol 14 or later is needed)')
+        print('This Crazyflie has no API Service bridge (CRTP protocol 14 or later is needed)')
         return
     print(f'{info.count} endpoint(s), {info.max_in_flight} request(s) in flight, '
           f'messages up to {info.max_message} bytes')
-    for endpoint in control.endpoints():
+    for endpoint in apiservice.endpoints():
         try:
             status = endpoint.status()
             state = 'ready' if status.ready else 'not ready'
             limits = f'max request {status.max_request} B, max response {status.max_response} B'
-        except ControlError as e:
+        except ApiserviceError as e:
             state = 'unknown'
             limits = str(e)
         print(f'  {endpoint.id:3}  {endpoint.path:20}  {state:9}  {limits}')
@@ -86,8 +86,8 @@ def parse_value(text, value_type):
     return int(text, 0)
 
 
-def get_or_set(control, endpoint_path, path, text=None, type_name=None):
-    endpoint = control.endpoint(endpoint_path)
+def get_or_set(apiservice, endpoint_path, path, text=None, type_name=None):
+    endpoint = apiservice.endpoint(endpoint_path)
     if text is None:
         typed = endpoint.get_typed(path)
         print(f'{endpoint.path} {path} = {typed.value!r} ({_type_name(typed.type)})')
@@ -110,7 +110,7 @@ def _type_name(value_type):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='List Control endpoints, and read or write a path on one.')
+    parser = argparse.ArgumentParser(description='List API Service endpoints, and read or write a path on one.')
     parser.add_argument('--uri', default=uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7'),
                         help='Crazyflie URI (default: CFLIB_URI or radio://0/80/2M/E7E7E7E7E7)')
     parser.add_argument('--type', dest='type_name', choices=[t.name.lower() for t in ValueType],
@@ -126,13 +126,13 @@ def main():
     cflib.crtp.init_drivers()
 
     with SyncCrazyflie(args.uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-        control = scf.cf.control
+        apiservice = scf.cf.apiservice
         try:
             if args.endpoint is None:
-                print_catalog(control)
+                print_catalog(apiservice)
             else:
-                get_or_set(control, args.endpoint, args.path, args.value, args.type_name)
-        except (ControlError, ValueError, TypeError) as e:
+                get_or_set(apiservice, args.endpoint, args.path, args.value, args.type_name)
+        except (ApiserviceError, ValueError, TypeError) as e:
             print(f'{type(e).__name__}: {e}')
 
 

@@ -22,12 +22,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Byte-level code for the Control bridge (CRTP port 10).
+Byte-level code for the API Service bridge (CRTP port 10).
 
 This module has no dependency on a Crazyflie, so it can be tested on its own.
 It contains:
 
-* the Control value encoding (type, len, data TLV) and its checks,
+* the API Service value encoding (type, len, data TLV) and its checks,
 * builders for GET, SET and CMD requests and a parser for responses,
 * a decoder for NOTIFY messages,
 * the fragmenter and reassembler used on the tunnel channel (channel 2).
@@ -41,7 +41,7 @@ from typing import Union
 
 __author__ = 'Bitcraze AB'
 __all__ = ['ValueType', 'TypedValue', 'UnknownValue', 'MessageKind',
-           'ControlErrorCode', 'ControlResponse', 'ControlError',
+           'ApiserviceErrorCode', 'ApiserviceResponse', 'ApiserviceError',
            'MalformedValueError', 'NO_ARG', 'encode_value', 'decode_value',
            'encode_path', 'build_get', 'build_set', 'build_cmd',
            'parse_response', 'decode_notify', 'fragment', 'Reassembler',
@@ -58,16 +58,16 @@ _LAST_FRAGMENT = 0x80
 _INDEX_MASK = 0x7f
 
 
-class ControlError(Exception):
-    """Base class for every error raised by cf.control"""
+class ApiserviceError(Exception):
+    """Base class for every error raised by cf.apiservice"""
 
 
-class MalformedValueError(ControlError):
-    """Bytes received from the Crazyflie break the Control encoding rules"""
+class MalformedValueError(ApiserviceError):
+    """Bytes received from the Crazyflie break the API Service encoding rules"""
 
 
 class ValueType(IntEnum):
-    """Control value type codes"""
+    """API Service value type codes"""
     NULL = 0x00
     BOOL = 0x01
     U8 = 0x10
@@ -84,7 +84,7 @@ class ValueType(IntEnum):
 
 
 class MessageKind(IntEnum):
-    """Control message kinds"""
+    """API Service message kinds"""
     GET = 0x01
     SET = 0x02
     CMD = 0x03
@@ -94,8 +94,8 @@ class MessageKind(IntEnum):
     NOTIFY = 0xc0
 
 
-class ControlErrorCode(IntEnum):
-    """Error codes carried by a Control ERROR response"""
+class ApiserviceErrorCode(IntEnum):
+    """Error codes carried by an API Service ERROR response"""
     MALFORMED_MESSAGE = 0x01
     UNKNOWN_OPERATION = 0x02
     UNKNOWN_PATH = 0x03
@@ -123,16 +123,16 @@ class TypedValue(NamedTuple):
     value: object
 
 
-class ControlResponse(NamedTuple):
-    """A parsed Control response.
+class ApiserviceResponse(NamedTuple):
+    """A parsed API Service response.
 
     value is set for VALUE, error_code and detail for ERROR. error_code is a
-    ControlErrorCode, or a plain int for a code this library does not know.
+    ApiserviceErrorCode, or a plain int for a code this library does not know.
     """
     kind: int
     request_id: int
     value: Optional[TypedValue] = None
-    error_code: Optional[Union[ControlErrorCode, int]] = None
+    error_code: Optional[Union[ApiserviceErrorCode, int]] = None
     detail: Optional[str] = None
 
 
@@ -172,7 +172,7 @@ _MAX_TLV_DATA = 0xff
 
 def _tlv(type_code, data):
     if len(data) > _MAX_TLV_DATA:
-        raise ValueError('Value is {} bytes, a Control value holds at most {}'.format(
+        raise ValueError('Value is {} bytes, an API Service value holds at most {}'.format(
             len(data), _MAX_TLV_DATA))
     return bytes((type_code, len(data))) + bytes(data)
 
@@ -180,7 +180,7 @@ def _tlv(type_code, data):
 def _encode_string(value):
     data = value.encode('utf-8')
     if b'\x00' in data:
-        raise ValueError('Control strings cannot contain NUL')
+        raise ValueError('API Service strings cannot contain NUL')
     return data
 
 
@@ -197,7 +197,7 @@ def _infer_type(value):
         return ValueType.BYTES
     if isinstance(value, ipaddress.IPv4Address):
         return ValueType.IPV4
-    raise TypeError('Cannot send a {} as a Control value'.format(type(value).__name__))
+    raise TypeError('Cannot send a {} as an API Service value'.format(type(value).__name__))
 
 
 def encode_value(value, value_type=None):
@@ -372,11 +372,11 @@ def build_cmd(request_id, path, arg=NO_ARG, arg_type=None):
 
 
 def parse_response(message):
-    """Parse a Control response (OK, VALUE or ERROR).
+    """Parse an API Service response (OK, VALUE or ERROR).
 
     Other kinds are returned with only kind and request_id set, so the caller
     can decide what to do with them. Raises MalformedValueError when the bytes
-    break the Control rules.
+    break the API Service rules.
     """
     message = bytes(message)
     if len(message) < 2:
@@ -387,10 +387,10 @@ def parse_response(message):
     if kind == MessageKind.OK:
         if len(message) != 2:
             raise MalformedValueError('{} bytes after OK'.format(len(message) - 2))
-        return ControlResponse(kind, request_id)
+        return ApiserviceResponse(kind, request_id)
 
     if kind == MessageKind.VALUE:
-        return ControlResponse(kind, request_id, value=decode_value(message[2:]))
+        return ApiserviceResponse(kind, request_id, value=decode_value(message[2:]))
 
     if kind == MessageKind.ERROR:
         if len(message) < 4:
@@ -401,21 +401,21 @@ def parse_response(message):
             raise MalformedValueError('ERROR detail_len {} does not match the {} bytes left'.format(
                 detail_len, len(message) - 4))
         try:
-            code = ControlErrorCode(code)
+            code = ApiserviceErrorCode(code)
         except ValueError:
             pass
         # The detail is diagnostic text only: never fail on it
         detail = message[4:].decode('utf-8', errors='replace')
-        return ControlResponse(kind, request_id, error_code=code, detail=detail)
+        return ApiserviceResponse(kind, request_id, error_code=code, detail=detail)
 
-    return ControlResponse(kind, request_id)
+    return ApiserviceResponse(kind, request_id)
 
 
 def decode_notify(message):
     """Decode a NOTIFY message: kind 0xc0, path_len, path, then one value.
 
     A NOTIFY has no request ID. Returns (path, TypedValue). Raises
-    MalformedValueError when the bytes break the Control rules, trailing bytes
+    MalformedValueError when the bytes break the API Service rules, trailing bytes
     included.
     """
     message = bytes(message)

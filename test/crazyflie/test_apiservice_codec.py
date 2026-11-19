@@ -24,23 +24,23 @@
 import ipaddress
 import unittest
 
-from cflib.crazyflie.control_codec import build_cmd
-from cflib.crazyflie.control_codec import build_get
-from cflib.crazyflie.control_codec import build_set
-from cflib.crazyflie.control_codec import ControlError
-from cflib.crazyflie.control_codec import ControlErrorCode
-from cflib.crazyflie.control_codec import decode_notify
-from cflib.crazyflie.control_codec import decode_value
-from cflib.crazyflie.control_codec import encode_path
-from cflib.crazyflie.control_codec import encode_value
-from cflib.crazyflie.control_codec import fragment
-from cflib.crazyflie.control_codec import MalformedValueError
-from cflib.crazyflie.control_codec import MessageKind
-from cflib.crazyflie.control_codec import parse_response
-from cflib.crazyflie.control_codec import Reassembler
-from cflib.crazyflie.control_codec import TypedValue
-from cflib.crazyflie.control_codec import UnknownValue
-from cflib.crazyflie.control_codec import ValueType
+from cflib.crazyflie.apiservice_codec import ApiserviceError
+from cflib.crazyflie.apiservice_codec import ApiserviceErrorCode
+from cflib.crazyflie.apiservice_codec import build_cmd
+from cflib.crazyflie.apiservice_codec import build_get
+from cflib.crazyflie.apiservice_codec import build_set
+from cflib.crazyflie.apiservice_codec import decode_notify
+from cflib.crazyflie.apiservice_codec import decode_value
+from cflib.crazyflie.apiservice_codec import encode_path
+from cflib.crazyflie.apiservice_codec import encode_value
+from cflib.crazyflie.apiservice_codec import fragment
+from cflib.crazyflie.apiservice_codec import MalformedValueError
+from cflib.crazyflie.apiservice_codec import MessageKind
+from cflib.crazyflie.apiservice_codec import parse_response
+from cflib.crazyflie.apiservice_codec import Reassembler
+from cflib.crazyflie.apiservice_codec import TypedValue
+from cflib.crazyflie.apiservice_codec import UnknownValue
+from cflib.crazyflie.apiservice_codec import ValueType
 
 
 class ValueRoundTripTest(unittest.TestCase):
@@ -188,8 +188,8 @@ class DecodeChecksTest(unittest.TestCase):
                 with self.assertRaises(MalformedValueError):
                     decode_value(data)
 
-    def test_malformed_value_error_is_a_control_error(self):
-        self.assertTrue(issubclass(MalformedValueError, ControlError))
+    def test_malformed_value_error_is_a_apiservice_error(self):
+        self.assertTrue(issubclass(MalformedValueError, ApiserviceError))
 
 
 class RequestTest(unittest.TestCase):
@@ -237,14 +237,14 @@ class ResponseTest(unittest.TestCase):
 
     def test_error(self):
         actual = parse_response(b'\x82\x03\x03\x04nope')
-        self.assertEqual(ControlErrorCode.UNKNOWN_PATH, actual.error_code)
-        self.assertIsInstance(actual.error_code, ControlErrorCode)
+        self.assertEqual(ApiserviceErrorCode.UNKNOWN_PATH, actual.error_code)
+        self.assertIsInstance(actual.error_code, ApiserviceErrorCode)
         self.assertEqual('nope', actual.detail)
 
     def test_error_with_unknown_code_keeps_int(self):
         actual = parse_response(b'\x82\x03\x42\x00')
         self.assertEqual(0x42, actual.error_code)
-        self.assertNotIsInstance(actual.error_code, ControlErrorCode)
+        self.assertNotIsInstance(actual.error_code, ApiserviceErrorCode)
         self.assertEqual('', actual.detail)
 
     def test_error_detail_is_never_fatal(self):
@@ -333,7 +333,7 @@ class FragmentTest(unittest.TestCase):
         self.assertEqual(self._message(300), b''.join(p[1:] for p in packets))
 
     def test_worked_example_two_packet_set(self):
-        # Tunnel message: endpoint 1, then the Control request
+        # Tunnel message: endpoint 1, then the API Service request
         message = b'\x01' + build_set(8, 'wifi.ssid', 'a' * 32)
         packets = fragment(message)
         self.assertEqual(b'\x00\x01\x02\x08\x09wifi.ssid\x20\x20' + b'a' * 14, packets[0])

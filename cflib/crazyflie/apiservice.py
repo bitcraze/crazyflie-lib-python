@@ -22,14 +22,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Control endpoints (cf.control), carried by the Control bridge on CRTP port 10.
+API Service endpoints (cf.apiservice), carried by the API Service bridge on CRTP port 10.
 
-A Control endpoint is a device, such as a deck, that serves the
-bitcraze.control request/response protocol. The Crazyflie lists its endpoints
-in a catalog and tunnels Control requests to them.
+An API Service endpoint is a device, such as a deck, that serves the
+bitcraze.api request/response protocol. The Crazyflie lists its endpoints
+in a catalog and tunnels API Service requests to them.
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-        cam = scf.cf.control.endpoint('deck:bcCam')
+        cam = scf.cf.apiservice.endpoint('deck:bcCam')
         quality = cam.get_typed('stream.mjpeg_quality')
         cam.set('stream.mjpeg_quality', 80, quality.type)
 
@@ -37,7 +37,7 @@ The calls block and raise, with a timeout on each of them. submit() is a
 non-blocking primitive for code that runs in callbacks.
 
 An endpoint can also report changes of its values. Callbacks are registered on
-ControlEndpoint.notified and ControlEndpoint.notify_lost, and the Crazyflie
+ApiserviceEndpoint.notified and ApiserviceEndpoint.notify_lost, and the Crazyflie
 forwards the changes once set_notify(True) is called on the connection.
 """
 import logging
@@ -52,43 +52,43 @@ from threading import Semaphore
 from typing import NamedTuple
 from typing import Union
 
-from .control_codec import build_cmd
-from .control_codec import build_get
-from .control_codec import build_set
-from .control_codec import ControlError
-from .control_codec import ControlErrorCode
-from .control_codec import decode_notify
-from .control_codec import fragment
-from .control_codec import MalformedValueError
-from .control_codec import MessageKind
-from .control_codec import NO_ARG
-from .control_codec import parse_response
-from .control_codec import Reassembler
-from .control_codec import TypedValue
-from .control_codec import UnknownValue
-from .control_codec import ValueType
+from .apiservice_codec import ApiserviceError
+from .apiservice_codec import ApiserviceErrorCode
+from .apiservice_codec import build_cmd
+from .apiservice_codec import build_get
+from .apiservice_codec import build_set
+from .apiservice_codec import decode_notify
+from .apiservice_codec import fragment
+from .apiservice_codec import MalformedValueError
+from .apiservice_codec import MessageKind
+from .apiservice_codec import NO_ARG
+from .apiservice_codec import parse_response
+from .apiservice_codec import Reassembler
+from .apiservice_codec import TypedValue
+from .apiservice_codec import UnknownValue
+from .apiservice_codec import ValueType
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
 
 __author__ = 'Bitcraze AB'
-__all__ = ['Control', 'ControlEndpoint', 'EndpointStatus', 'BridgeInfo', 'FirmwareErrno',
+__all__ = ['Apiservice', 'ApiserviceEndpoint', 'EndpointStatus', 'BridgeInfo', 'FirmwareErrno',
            'DEFAULT_TIMEOUT', 'NO_ARG', 'ValueType', 'TypedValue', 'UnknownValue',
-           'ControlErrorCode', 'ControlError', 'UnknownEndpointError', 'EndpointNotReadyError',
-           'CrazyflieControlError', 'EndpointError', 'ControlTimeoutError', 'ControlBusyError',
-           'ControlDisconnectedError', 'MessageTooLargeError', 'UnexpectedResponseError',
+           'ApiserviceErrorCode', 'ApiserviceError', 'UnknownEndpointError', 'EndpointNotReadyError',
+           'CrazyflieApiserviceError', 'EndpointError', 'ApiserviceTimeoutError', 'ApiserviceBusyError',
+           'ApiserviceDisconnectedError', 'MessageTooLargeError', 'UnexpectedResponseError',
            'MalformedValueError']
 
 logger = logging.getLogger(__name__)
 
 # Timeout of the blocking calls, in seconds. Change it for all calls with
-# cf.control.default_timeout, or per call with timeout=.
+# cf.apiservice.default_timeout, or per call with timeout=.
 DEFAULT_TIMEOUT = 3.0
 
 # Interval between retries while the bridge answers EAGAIN, ENOBUFS or EBUSY
 RETRY_INTERVAL = 0.01
 
-# First CRTP protocol version with the Control bridge
+# First CRTP protocol version with the API Service bridge
 MIN_PROTOCOL_VERSION = 14
 
 CHANNEL_CATALOG = 0
@@ -110,7 +110,7 @@ ValueTypes = Union[None, bool, int, str, bytes, IPv4Address, UnknownValue]
 
 
 class FirmwareErrno(IntEnum):
-    """Status numbers of the Control bridge.
+    """Status numbers of the API Service bridge.
 
     These are the firmware's newlib numbers, part of the wire protocol. They
     can differ from the host's errno module.
@@ -146,15 +146,15 @@ def _errno_name(number):
         return 'errno {}'.format(number)
 
 
-class UnknownEndpointError(ControlError):
+class UnknownEndpointError(ApiserviceError):
     """The path or ID is not in the catalog"""
 
 
-class EndpointNotReadyError(ControlError):
+class EndpointNotReadyError(ApiserviceError):
     """The endpoint is not ready (ENOTCONN)"""
 
 
-class CrazyflieControlError(ControlError):
+class CrazyflieApiserviceError(ApiserviceError):
     """The bridge failed the request with a status (errno).
 
     outcome_known is True when the status says the request never reached the
@@ -169,36 +169,36 @@ class CrazyflieControlError(ControlError):
         super().__init__(message)
 
 
-class EndpointError(ControlError):
-    """The endpoint answered with a Control ERROR.
+class EndpointError(ApiserviceError):
+    """The endpoint answered with an API Service ERROR.
 
-    code is a ControlErrorCode, or a plain int for an unknown code.
+    code is a ApiserviceErrorCode, or a plain int for an unknown code.
     """
 
     def __init__(self, code, detail):
         self.code = code
         self.detail = detail
-        name = code.name if isinstance(code, ControlErrorCode) else 'error 0x{:02x}'.format(code)
+        name = code.name if isinstance(code, ApiserviceErrorCode) else 'error 0x{:02x}'.format(code)
         super().__init__('{}: {}'.format(name, detail) if detail else name)
 
 
-class ControlTimeoutError(ControlError, TimeoutError):
+class ApiserviceTimeoutError(ApiserviceError, TimeoutError):
     """No answer within the timeout. A request was sent: its outcome is unknown."""
 
 
-class ControlBusyError(ControlError):
+class ApiserviceBusyError(ApiserviceError):
     """Still busy at the timeout. The request was never applied and is safe to resend."""
 
 
-class ControlDisconnectedError(ControlError):
+class ApiserviceDisconnectedError(ApiserviceError):
     """The Crazyflie is not connected, or the connection ended during the call"""
 
 
-class MessageTooLargeError(ControlError):
+class MessageTooLargeError(ApiserviceError):
     """The request is larger than the bridge or the endpoint accepts. Nothing was sent."""
 
 
-class UnexpectedResponseError(ControlError):
+class UnexpectedResponseError(ApiserviceError):
     """The answer is not the one the call expects, for example OK when VALUE was expected"""
 
 
@@ -210,7 +210,7 @@ class EndpointStatus(NamedTuple):
 
 
 class BridgeInfo(NamedTuple):
-    """Catalog and limits of the Control bridge, from GET_INFO"""
+    """Catalog and limits of the API Service bridge, from GET_INFO"""
     count: int
     catalog_crc: int
     max_in_flight: int
@@ -242,7 +242,7 @@ class _Command:
 
 
 class _Session:
-    """State of cf.control for one connection"""
+    """State of cf.apiservice for one connection"""
 
     def __init__(self):
         self.closed = False
@@ -264,17 +264,17 @@ def _remaining(deadline):
     return deadline - time.monotonic()
 
 
-class ControlEndpoint:
+class ApiserviceEndpoint:
     """One endpoint of the catalog, valid for the connection it was read on"""
 
-    def __init__(self, control, session, endpoint_id, path):
-        self._control = control
+    def __init__(self, apiservice, session, endpoint_id, path):
+        self._apiservice = apiservice
         self._session = session
         self.id = endpoint_id
         self.path = path
 
     def __repr__(self):
-        return 'ControlEndpoint(id={}, path={!r})'.format(self.id, self.path)
+        return 'ApiserviceEndpoint(id={}, path={!r})'.format(self.id, self.path)
 
     @property
     def notified(self):
@@ -282,11 +282,11 @@ class ControlEndpoint:
 
         callback(path, value) runs on the incoming-packet thread, with value
         the plain Python value as get() returns it. The Caller is shared by
-        every ControlEndpoint with this path, so its callbacks survive a
+        every ApiserviceEndpoint with this path, so its callbacks survive a
         reconnect. Adding a callback does not enable forwarding: see
         set_notify().
         """
-        return self._control._notified_caller(self.path)
+        return self._apiservice._notified_caller(self.path)
 
     @property
     def notify_lost(self):
@@ -297,16 +297,16 @@ class ControlEndpoint:
         from notifications should be read again (from another thread).
         Shared like notified.
         """
-        return self._control._notify_lost_caller(self.path)
+        return self._apiservice._notify_lost_caller(self.path)
 
     def set_notify(self, enabled, timeout=None):
         """Enable or disable the forwarding of this endpoint's notifications.
 
         Forwarding is off on every new connection: call this again after a
-        reconnect. Raises CrazyflieControlError with errno ENOSYS when the
+        reconnect. Raises CrazyflieApiserviceError with errno ENOSYS when the
         Crazyflie has no notification support.
         """
-        self._control._set_notify(self, enabled, timeout)
+        self._apiservice._set_notify(self, enabled, timeout)
 
     def is_ready(self, timeout=None):
         """True when the endpoint can take requests (GET_STATUS)"""
@@ -314,7 +314,7 @@ class ControlEndpoint:
 
     def status(self, timeout=None):
         """Readiness and the endpoint's own size limits (GET_STATUS)"""
-        return self._control._endpoint_status(self, timeout)
+        return self._apiservice._endpoint_status(self, timeout)
 
     def get(self, path, timeout=None):
         """Read a path. Returns the plain Python value."""
@@ -347,21 +347,21 @@ class ControlEndpoint:
         raise UnexpectedResponseError('CMD {} answered kind 0x{:02x}, expected OK or VALUE'.format(path, response.kind))
 
     def request_raw(self, message, timeout=None):
-        """Send any Control request. The library sets byte 1. Returns the whole response."""
-        return self._control._transact(self, message, timeout)
+        """Send any API Service request. The library sets byte 1. Returns the whole response."""
+        return self._apiservice._transact(self, message, timeout)
 
     def submit(self, message, callback):
-        """Send a Control request without blocking.
+        """Send an API Service request without blocking.
 
         callback(error, response) runs once, on the incoming-packet thread
-        (or on the thread that reports a disconnect), with error a ControlError
+        (or on the thread that reports a disconnect), with error a ApiserviceError
         or None and response the whole response bytes or None. There is no
-        timeout and no retry: a busy bridge gives ControlBusyError at once.
+        timeout and no retry: a busy bridge gives ApiserviceBusyError at once.
 
         Errors found before anything is sent are raised by submit() itself,
         and the callback is then never called.
         """
-        self._control._submit(self, message, callback)
+        self._apiservice._submit(self, message, callback)
 
     def _call(self, message, timeout):
         response = parse_response(self.request_raw(message, timeout))
@@ -370,8 +370,8 @@ class ControlEndpoint:
         return response
 
 
-class Control:
-    """Access to the Control endpoints of a Crazyflie (cf.control)"""
+class Apiservice:
+    """Access to the API Service endpoints of a Crazyflie (cf.apiservice)"""
 
     def __init__(self, crazyflie):
         self._cf = crazyflie
@@ -388,7 +388,7 @@ class Control:
         self._notified = {}
         self._notify_lost = {}
 
-        self._cf.add_port_callback(CRTPPort.CONTROL, self._incoming)
+        self._cf.add_port_callback(CRTPPort.APISERVICE, self._incoming)
         self._cf.disconnected.add_callback(self._disconnected)
         self._cf.connection_lost.add_callback(self._disconnected)
 
@@ -396,7 +396,7 @@ class Control:
         """The catalog for this connection.
 
         The first call on a connection sends RESET, GET_INFO and GET_ITEM. The
-        catalog is empty when the Crazyflie has no Control bridge.
+        catalog is empty when the Crazyflie has no API Service bridge.
         """
         session = self._ensure_catalog(timeout)
         return list(session.catalog) if session is not None else []
@@ -406,10 +406,10 @@ class Control:
         for endpoint in self.endpoints(timeout):
             if endpoint.path == path:
                 return endpoint
-        raise UnknownEndpointError('No Control endpoint {!r}'.format(path))
+        raise UnknownEndpointError('No API Service endpoint {!r}'.format(path))
 
     def info(self, timeout=None):
-        """Catalog size and bridge limits, or None without a Control bridge"""
+        """Catalog size and bridge limits, or None without an API Service bridge"""
         session = self._ensure_catalog(timeout)
         return session.info if session is not None else None
 
@@ -417,8 +417,8 @@ class Control:
 
     def _check_thread(self):
         if self._cf.is_called_by_incoming_handler_thread():
-            raise RuntimeError('Blocking cf.control calls would deadlock on the incoming-packet thread. '
-                               'Use ControlEndpoint.submit() there.')
+            raise RuntimeError('Blocking cf.apiservice calls would deadlock on the incoming-packet thread. '
+                               'Use ApiserviceEndpoint.submit() there.')
 
     def _deadline(self, timeout):
         if timeout is None:
@@ -428,7 +428,7 @@ class Control:
     def _open_session(self):
         with self._lock:
             if self._cf.link is None:
-                raise ControlDisconnectedError('The Crazyflie is not connected')
+                raise ApiserviceDisconnectedError('The Crazyflie is not connected')
             if self._session is None:
                 self._session = _Session()
             return self._session
@@ -436,7 +436,7 @@ class Control:
     @staticmethod
     def _check_open(session):
         if session.closed:
-            raise ControlDisconnectedError('The connection this endpoint was read on has ended')
+            raise ApiserviceDisconnectedError('The connection this endpoint was read on has ended')
 
     def _ensure_catalog(self, timeout):
         """Return the session with its catalog, or None without a bridge"""
@@ -445,7 +445,7 @@ class Control:
         session = self._open_session()
 
         if not session.init_lock.acquire(timeout=max(0.0, _remaining(deadline))):
-            raise ControlTimeoutError('Timed out waiting for the Control catalog')
+            raise ApiserviceTimeoutError('Timed out waiting for the API Service catalog')
         try:
             self._check_open(session)
             if session.catalog is not None:
@@ -479,17 +479,17 @@ class Control:
                 path = raw_path.decode('ascii')
             except UnicodeDecodeError:
                 raise UnexpectedResponseError('Endpoint {} path is not ASCII'.format(endpoint_id)) from None
-            catalog.append(ControlEndpoint(self, session, endpoint_id, path))
+            catalog.append(ApiserviceEndpoint(self, session, endpoint_id, path))
             crc_data += bytes((endpoint_id,)) + raw_path
 
         if zlib.crc32(crc_data) != crc:
-            raise UnexpectedResponseError('Control catalog CRC mismatch: got 0x{:08x}, expected 0x{:08x}'.format(
+            raise UnexpectedResponseError('API Service catalog CRC mismatch: got 0x{:08x}, expected 0x{:08x}'.format(
                 zlib.crc32(crc_data), crc))
 
         session.info = info
         session.in_flight = Semaphore(max_in_flight)
         session.catalog = catalog
-        logger.info('Control catalog: %s', ', '.join(e.path for e in catalog) or 'empty')
+        logger.info('API Service catalog: %s', ', '.join(e.path for e in catalog) or 'empty')
 
     @staticmethod
     def _id_matcher(endpoint_id):
@@ -504,14 +504,14 @@ class Control:
         cmd = payload[0]
         while True:
             if not self._command_lock.acquire(timeout=max(0.0, _remaining(deadline))):
-                raise ControlTimeoutError('Timed out waiting to send a Control command')
+                raise ApiserviceTimeoutError('Timed out waiting to send an API Service command')
             try:
                 waiter = _Command(channel, cmd, match)
                 with self._lock:
                     self._check_open(session)
                     session.command = waiter
                 pk = CRTPPacket()
-                pk.set_header(CRTPPort.CONTROL, channel)
+                pk.set_header(CRTPPort.APISERVICE, channel)
                 pk.data = payload
                 self._cf.send_packet(pk, expected_reply=(cmd,))
                 answered = waiter.event.wait(max(0.0, _remaining(deadline)))
@@ -522,20 +522,20 @@ class Control:
                 self._command_lock.release()
 
             if waiter.disconnected:
-                raise ControlDisconnectedError('Disconnected during a Control command')
+                raise ApiserviceDisconnectedError('Disconnected during an API Service command')
             if not answered and waiter.data is None:
-                raise ControlTimeoutError('No answer to Control command {}/0x{:02x}'.format(channel, cmd))
+                raise ApiserviceTimeoutError('No answer to API Service command {}/0x{:02x}'.format(channel, cmd))
 
             status = waiter.data[1]
             if status == 0:
                 return waiter.data
             if status == FirmwareErrno.EAGAIN and _remaining(deadline) > RETRY_INTERVAL:
                 if session.closed_event.wait(RETRY_INTERVAL):
-                    raise ControlDisconnectedError('Disconnected during a Control command')
+                    raise ApiserviceDisconnectedError('Disconnected during an API Service command')
                 continue
             if status == FirmwareErrno.ENOENT:
                 raise UnknownEndpointError('The Crazyflie does not know this endpoint ID')
-            raise CrazyflieControlError(status, True)
+            raise CrazyflieApiserviceError(status, True)
 
     def _endpoint_status(self, endpoint, timeout):
         self._check_thread()
@@ -566,17 +566,17 @@ class Control:
         try:
             data = self._command(session, CHANNEL_ENDPOINT, bytes((CMD_SET_NOTIFY, endpoint.id, flag)),
                                  match, deadline)
-        except CrazyflieControlError as e:
+        except CrazyflieApiserviceError as e:
             if e.errno == FirmwareErrno.ENOSYS:
-                raise CrazyflieControlError(e.errno, True, 'The Crazyflie has no Control notification '
-                                            'support (ENOSYS)') from None
+                raise CrazyflieApiserviceError(e.errno, True, 'The Crazyflie has no API Service notification '
+                                               'support (ENOSYS)') from None
             raise
         if len(data) < 4:
             raise UnexpectedResponseError('SET_NOTIFY answer is {} bytes, expected 4'.format(len(data)))
 
     def _check_request(self, session, endpoint, message):
         if len(message) < 2:
-            raise ValueError('A Control request holds at least a kind and a request ID')
+            raise ValueError('An API Service request holds at least a kind and a request ID')
         if message[0] & 0x80:
             raise ValueError('Request kind 0x{:02x} has bit 7 set'.format(message[0]))
         if len(message) > session.info.max_message:
@@ -595,7 +595,7 @@ class Control:
             if key not in session.pending and key not in session.abandoned:
                 session.next_id[endpoint_id] = (request_id + 1) & 0xff
                 return request_id
-        raise ControlBusyError('No free request ID for endpoint {}'.format(endpoint_id))
+        raise ApiserviceBusyError('No free request ID for endpoint {}'.format(endpoint_id))
 
     def _send_request(self, session, endpoint, message, callback=None):
         """Register a pending request and send it. Returns (key, pending)."""
@@ -611,7 +611,7 @@ class Control:
             with self._tunnel_lock:
                 for payload in fragment(tunnel_message):
                     pk = CRTPPacket()
-                    pk.set_header(CRTPPort.CONTROL, CHANNEL_TUNNEL)
+                    pk.set_header(CRTPPort.APISERVICE, CHANNEL_TUNNEL)
                     pk.data = payload
                     # Never resent: a repeated fragment breaks reassembly
                     self._cf.send_packet(pk)
@@ -632,7 +632,7 @@ class Control:
         self._check_request(session, endpoint, message)
 
         if not session.in_flight.acquire(timeout=max(0.0, _remaining(deadline))):
-            raise ControlBusyError('{} requests already in flight'.format(session.info.max_in_flight))
+            raise ApiserviceBusyError('{} requests already in flight'.format(session.info.max_in_flight))
         try:
             while True:
                 key, pending = self._send_request(session, endpoint, message)
@@ -642,17 +642,17 @@ class Control:
                         if session.pending.get(key) is pending:
                             del session.pending[key]
                             session.abandoned.add(key)
-                            raise ControlTimeoutError('No answer from {} within the timeout, outcome unknown'.format(
+                            raise ApiserviceTimeoutError('No answer from {} within the timeout, outcome unknown'.format(
                                 endpoint.path))
 
                 if pending.disconnected:
-                    raise ControlDisconnectedError('Disconnected while waiting for {}'.format(endpoint.path))
+                    raise ApiserviceDisconnectedError('Disconnected while waiting for {}'.format(endpoint.path))
                 if pending.status in _BUSY:
                     if _remaining(deadline) <= RETRY_INTERVAL:
-                        raise ControlBusyError('{} still busy ({}) at the timeout'.format(
+                        raise ApiserviceBusyError('{} still busy ({}) at the timeout'.format(
                             endpoint.path, _errno_name(pending.status)))
                     if session.closed_event.wait(RETRY_INTERVAL):
-                        raise ControlDisconnectedError('Disconnected while waiting for {}'.format(endpoint.path))
+                        raise ApiserviceDisconnectedError('Disconnected while waiting for {}'.format(endpoint.path))
                     continue
                 if pending.status != 0:
                     raise self._tunnel_error(endpoint, pending.status)
@@ -666,7 +666,7 @@ class Control:
         message = bytes(message)
         self._check_request(session, endpoint, message)
         if not session.in_flight.acquire(blocking=False):
-            raise ControlBusyError('{} requests already in flight'.format(session.info.max_in_flight))
+            raise ApiserviceBusyError('{} requests already in flight'.format(session.info.max_in_flight))
         try:
             self._send_request(session, endpoint, message, callback)
         except Exception:
@@ -680,8 +680,8 @@ class Control:
         if status == FirmwareErrno.ENOENT:
             return UnknownEndpointError('The Crazyflie does not know endpoint {}'.format(endpoint.id))
         if status in _BUSY:
-            return ControlBusyError('{} is busy ({})'.format(endpoint.path, _errno_name(status)))
-        return CrazyflieControlError(status, status in _NOT_APPLIED)
+            return ApiserviceBusyError('{} is busy ({})'.format(endpoint.path, _errno_name(status)))
+        return CrazyflieApiserviceError(status, status in _NOT_APPLIED)
 
     def _finish(self, session, pending):
         """Wake the blocking caller, or run the submit() callback"""
@@ -690,7 +690,7 @@ class Control:
             return
         session.in_flight.release()
         if pending.disconnected:
-            error, response = ControlDisconnectedError('Disconnected before the answer'), None
+            error, response = ApiserviceDisconnectedError('Disconnected before the answer'), None
         elif pending.status != 0:
             error, response = self._tunnel_error(pending.endpoint, pending.status), None
         else:
@@ -698,7 +698,7 @@ class Control:
         try:
             pending.callback(error, response)
         except Exception:
-            logger.exception('Exception in a cf.control submit() callback')
+            logger.exception('Exception in a cf.apiservice submit() callback')
 
     # Notifications
 
@@ -724,20 +724,20 @@ class Control:
             try:
                 callback(*args)
             except Exception:
-                logger.exception('Exception in a cf.control notification callback')
+                logger.exception('Exception in a cf.apiservice notification callback')
 
     def _notification(self, session, endpoint_id, body):
         endpoint_path = self._endpoint_path(session, endpoint_id)
         if endpoint_path is None:
-            logger.debug('Control: notification for unknown endpoint %d dropped', endpoint_id)
+            logger.debug('API Service: notification for unknown endpoint %d dropped', endpoint_id)
             return
         if body[0] != MessageKind.NOTIFY:
-            logger.debug('Control: notification kind 0x%02x from %s ignored', body[0], endpoint_path)
+            logger.debug('API Service: notification kind 0x%02x from %s ignored', body[0], endpoint_path)
             return
         try:
             path, typed = decode_notify(body)
         except MalformedValueError as e:
-            logger.warning('Control: malformed NOTIFY from %s skipped: %s (%s)', endpoint_path, e, body.hex())
+            logger.warning('API Service: malformed NOTIFY from %s skipped: %s (%s)', endpoint_path, e, body.hex())
             return
         with self._lock:
             caller = self._notified.get(endpoint_path)
@@ -746,21 +746,21 @@ class Control:
 
     def _event(self, session, data):
         if not session.reset_done:
-            logger.debug('Control: event before RESET dropped')
+            logger.debug('API Service: event before RESET dropped')
             return
         if not data:
             return
         if data[0] != EVENT_NOTIFY_LOST:
-            logger.debug('Control: unknown event 0x%02x ignored', data[0])
+            logger.debug('API Service: unknown event 0x%02x ignored', data[0])
             return
         # Trailing bytes are for later versions
         if len(data) < 3:
-            logger.debug('Control: short NOTIFY_LOST dropped: %s', data.hex())
+            logger.debug('API Service: short NOTIFY_LOST dropped: %s', data.hex())
             return
         endpoint_id, dropped = data[1], data[2]
         endpoint_path = self._endpoint_path(session, endpoint_id)
         if endpoint_path is None:
-            logger.debug('Control: NOTIFY_LOST for unknown endpoint %d dropped', endpoint_id)
+            logger.debug('API Service: NOTIFY_LOST for unknown endpoint %d dropped', endpoint_id)
             return
         with self._lock:
             caller = self._notify_lost.get(endpoint_path)
@@ -779,7 +779,7 @@ class Control:
             self._command_answer(session, pk.channel, data)
         elif pk.channel == CHANNEL_TUNNEL:
             if not session.reset_done:
-                logger.debug('Control: tunnel packet before RESET dropped')
+                logger.debug('API Service: tunnel packet before RESET dropped')
                 return
             message = session.reassembler.feed(data)
             if message is not None:
@@ -793,10 +793,10 @@ class Control:
         with self._lock:
             waiter = session.command
             if waiter is None or waiter.channel != channel or waiter.cmd != data[0]:
-                logger.debug('Control: unexpected answer on channel %d: %s', channel, data.hex())
+                logger.debug('API Service: unexpected answer on channel %d: %s', channel, data.hex())
                 return
             if data[1] == 0 and waiter.match is not None and not waiter.match(data):
-                logger.debug('Control: stale answer on channel %d: %s', channel, data.hex())
+                logger.debug('API Service: stale answer on channel %d: %s', channel, data.hex())
                 return
             session.command = None
             waiter.data = data
@@ -808,14 +808,14 @@ class Control:
 
     def _dispatch(self, session, message):
         if len(message) < 3:
-            logger.debug('Control: short tunnel message dropped: %s', message.hex())
+            logger.debug('API Service: short tunnel message dropped: %s', message.hex())
             return
         endpoint_id, status, body = message[0], message[1], message[2:]
         if status == 0 and body[0] >= MessageKind.NOTIFY:
             self._notification(session, endpoint_id, body)
             return
         if len(body) < 2:
-            logger.debug('Control: short tunnel message dropped: %s', message.hex())
+            logger.debug('API Service: short tunnel message dropped: %s', message.hex())
             return
         key = (endpoint_id, body[1])
         with self._lock:
@@ -823,9 +823,9 @@ class Control:
             if pending is None:
                 if key in session.abandoned:
                     session.abandoned.discard(key)
-                    logger.debug('Control: late answer for endpoint %d, request %d', *key)
+                    logger.debug('API Service: late answer for endpoint %d, request %d', *key)
                 else:
-                    logger.debug('Control: unmatched tunnel message: %s', message.hex())
+                    logger.debug('API Service: unmatched tunnel message: %s', message.hex())
                 return
             pending.status = status
             pending.body = body

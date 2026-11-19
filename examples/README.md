@@ -8,7 +8,7 @@ This folder contains basic examples for getting started with the Crazyflie Pytho
 |--------|-------------|
 | `logging/` | Read sensor data and log variables from the Crazyflie |
 | `parameters/` | Read and write parameters, including persistent parameter storage |
-| `control/` | List the Control endpoints of a Crazyflie, such as decks, and read or write their settings |
+| `apiservice/` | List the API Service endpoints of a Crazyflie, such as decks, and read or write their settings |
 | `autonomy/` | Basic autonomous flight using different commanders |
 | `step-by-step/` | Step-by-step tutorial scripts that accompany the [user guides](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/user-guides/) |
 

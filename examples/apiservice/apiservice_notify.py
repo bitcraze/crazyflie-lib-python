@@ -22,11 +22,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-Print the changes a Control endpoint reports, until Ctrl-C.
+Print the changes an API Service endpoint reports, until Ctrl-C.
 
-    python3 control_notify.py
+    python3 apiservice_notify.py
         prints the changes of deck:bcCam
-    python3 control_notify.py deck:bcCam --set stream.max_mjpeg_quality 60
+    python3 apiservice_notify.py deck:bcCam --set stream.max_mjpeg_quality 60
         also writes a path once subscribed, to show the changes it causes.
         The value is converted to the type the path has now, or to the type
         given with --type (for example --type u8)
@@ -39,10 +39,10 @@ import time
 
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie.control import ControlError
-from cflib.crazyflie.control import CrazyflieControlError
-from cflib.crazyflie.control import FirmwareErrno
-from cflib.crazyflie.control import ValueType
+from cflib.crazyflie.apiservice import ApiserviceError
+from cflib.crazyflie.apiservice import CrazyflieApiserviceError
+from cflib.crazyflie.apiservice import FirmwareErrno
+from cflib.crazyflie.apiservice import ValueType
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 
@@ -92,7 +92,7 @@ def set_path(endpoint, path, text, type_name):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Print the changes a Control endpoint reports.')
+    parser = argparse.ArgumentParser(description='Print the changes an API Service endpoint reports.')
     parser.add_argument('--uri', default=uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7'),
                         help='Crazyflie URI (default: CFLIB_URI or radio://0/80/2M/E7E7E7E7E7)')
     parser.add_argument('--set', nargs=2, metavar=('PATH', 'VALUE'),
@@ -107,27 +107,27 @@ def main():
 
     with SyncCrazyflie(args.uri, cf=Crazyflie(rw_cache='./cache')) as scf:
         try:
-            endpoint = scf.cf.control.endpoint(args.endpoint)
+            endpoint = scf.cf.apiservice.endpoint(args.endpoint)
 
             # Register the callbacks first, then turn forwarding on
             endpoint.notified.add_callback(on_change)
             endpoint.notify_lost.add_callback(on_lost)
             endpoint.set_notify(True)
             print(f'Changes of {endpoint.path} (Ctrl-C to stop):')
-        except CrazyflieControlError as e:
+        except CrazyflieApiserviceError as e:
             if e.errno == FirmwareErrno.ENOSYS:
-                print('This Crazyflie firmware cannot forward Control notifications')
+                print('This Crazyflie firmware cannot forward API Service notifications')
             else:
                 print(f'{type(e).__name__}: {e}')
             return
-        except (ControlError, ValueError, TypeError) as e:
+        except (ApiserviceError, ValueError, TypeError) as e:
             print(f'{type(e).__name__}: {e}')
             return
 
         if args.set is not None:
             try:
                 set_path(endpoint, args.set[0], args.set[1], args.type_name)
-            except (ControlError, ValueError, TypeError) as e:
+            except (ApiserviceError, ValueError, TypeError) as e:
                 print(f'{type(e).__name__}: {e}')
 
         try:

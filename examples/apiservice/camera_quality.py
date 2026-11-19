@@ -24,12 +24,12 @@
 """
 Set the Camera Deck's maximum JPEG quality, then read the quality it uses.
 
-The Camera Deck is reached through the Crazyflie as the Control endpoint
+The Camera Deck is reached through the Crazyflie as the API Service endpoint
 "deck:bcCam". Change the URI below, or set the CFLIB_URI environment variable.
 """
 import cflib.crtp
 from cflib.crazyflie import Crazyflie
-from cflib.crazyflie.control import ValueType
+from cflib.crazyflie.apiservice import ValueType
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.utils import uri_helper
 
@@ -38,7 +38,7 @@ uri = uri_helper.uri_from_env(default='radio://0/80/2M/E7E7E7E7E7')
 cflib.crtp.init_drivers()
 
 with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
-    camera = scf.cf.control.endpoint('deck:bcCam')
+    camera = scf.cf.apiservice.endpoint('deck:bcCam')
 
     # Integers need their wire type: the deck stores this one as a u8.
     camera.set('stream.max_mjpeg_quality', 80, ValueType.U8)

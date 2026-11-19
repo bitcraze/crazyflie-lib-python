@@ -88,12 +88,6 @@ if __name__ == '__main__':
             print('Printing console output, press Ctrl+C to stop')
             try:
                 while True:
-                    print(scf.cf.param.get_value('supervisor.infdmp'))
-                    if scf.cf.param.get_value('supervisor.infdmp') == '0':
-                        scf.cf.param.set_value('supervisor.infdmp', '1')
-                        time.sleep(0.3)
-                    else:
-                        scf.cf.param.set_value('supervisor.infdmp', '0')
                     time.sleep(1)
             except KeyboardInterrupt:
                 pass

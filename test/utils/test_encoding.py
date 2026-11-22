@@ -19,12 +19,15 @@
 #  GNU General Public License for more details.
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
+import math
+import struct
 import unittest
 
 import numpy as np
 
 from cflib.utils.encoding import compress_quaternion
 from cflib.utils.encoding import decompress_quaternion
+from cflib.utils.encoding import fp16_to_float
 
 
 class EncodingTest(unittest.TestCase):
@@ -63,6 +66,33 @@ class EncodingTest(unittest.TestCase):
 
         # Assert
         np.testing.assert_allclose(actual, expected, 0.001)
+
+    def test_fp16_to_float_matches_ieee_half(self):
+        # Fixture
+        for bits in range(0x10000):
+            expected = struct.unpack('<e', struct.pack('<H', bits))[0]
+
+            # Test
+            actual = fp16_to_float(bits)
+
+            # Assert
+            if math.isnan(expected):
+                self.assertTrue(math.isnan(actual), hex(bits))
+            else:
+                self.assertEqual(expected, actual, hex(bits))
+                self.assertEqual(math.copysign(1.0, expected), math.copysign(1.0, actual), hex(bits))
+
+    def test_fp16_to_float_signed_input(self):
+        # Fixture
+        # The lighthouse angle stream unpacks the fp16 fields with 'h'
+        negative_zero = struct.unpack('<h', struct.pack('<H', 0x8000))[0]
+        negative_inf = struct.unpack('<h', struct.pack('<H', 0xfc00))[0]
+
+        # Test
+        # Assert
+        self.assertEqual(0.0, fp16_to_float(negative_zero))
+        self.assertEqual(-1.0, math.copysign(1.0, fp16_to_float(negative_zero)))
+        self.assertEqual(-math.inf, fp16_to_float(negative_inf))
 
     def _normalize_quat(self, quat):
         quat = np.array(quat)

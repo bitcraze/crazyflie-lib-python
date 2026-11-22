@@ -25,32 +25,16 @@ import struct
 import numpy as np
 
 
-# Code from davidejones at https://gamedev.stackexchange.com/a/28756
 def fp16_to_float(float16):
-    s = int((float16 >> 15) & 0x00000001)    # sign
-    e = int((float16 >> 10) & 0x0000001f)    # exponent
-    f = int(float16 & 0x000003ff)            # fraction
+    """Convert the bits of an IEEE 754 half precision float to a float
 
-    if e == 0:
-        if f == 0:
-            return int(s << 31)
-        else:
-            while not (f & 0x00000400):
-                f <<= 1
-                e -= 1
-            e += 1
-            f &= ~0x00000400
-            # print(s,e,f)
-    elif e == 31:
-        if f == 0:
-            return int((s << 31) | 0x7f800000)
-        else:
-            return int((s << 31) | 0x7f800000 | (f << 13))
+    Args:
+        float16 int: The 16 bits, signed or unsigned
 
-    e += 127 - 15
-    f <<= 13
-    result = int((s << 31) | (e << 23) | f)
-    return struct.unpack('f', struct.pack('I', result))[0]
+    Returns:
+        float: The value
+    """
+    return struct.unpack('<e', struct.pack('<H', float16 & 0xffff))[0]
 
 
 def decompress_quaternion(comp):

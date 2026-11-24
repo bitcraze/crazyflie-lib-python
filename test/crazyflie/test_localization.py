@@ -133,3 +133,25 @@ class LocalizationTest(unittest.TestCase):
             self.assertEqual(expected, actual)
         else:
             self.fail('Expect exception')
+
+    def test_that_lh_angle_stream_decodes_negative_zero_delta(self):
+        # fixture
+        # 0x0000 is +0.0 and 0x8000 is -0.0 as half precision floats
+        data = struct.pack('<BfHHHfHHH', 1,
+                           0.5, 0x3800, 0x0000, 0x8000,
+                           -0.25, 0x0000, 0x8000, 0x3400)
+        packet = CRTPPacket()
+        packet.port = CRTPPort.LOCALIZATION
+        packet.channel = self.sut.GENERIC_CH
+        packet.data = struct.pack('<B', Localization.LH_ANGLE_STREAM) + data
+        received = MagicMock()
+        self.sut.receivedLocationPacket.add_callback(received)
+
+        # test
+        self.sut._incoming(packet)
+
+        # assert
+        actual = received.call_args[0][0].data
+        self.assertEqual(1, actual['basestation'])
+        self.assertEqual([0.5, 0.0, 0.5, 0.5], actual['x'])
+        self.assertEqual([-0.25, -0.25, -0.25, -0.5], actual['y'])

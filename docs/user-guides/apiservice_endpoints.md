@@ -15,6 +15,8 @@ An example is in [examples/apiservice/apiservice_endpoints.py](https://github.co
 It prints the endpoints and reads or writes a path on one of them.
 [examples/apiservice/apiservice_notify.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/apiservice/apiservice_notify.py)
 prints the changes an endpoint reports, see [Change notifications](#change-notifications).
+[examples/apiservice/wifi_scan.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/apiservice/wifi_scan.py)
+lets the camera deck scan for WiFi access points and prints the ones it found.
 
 ## Usage
 

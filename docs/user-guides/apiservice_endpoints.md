@@ -15,8 +15,11 @@ An example is in [examples/apiservice/apiservice_endpoints.py](https://github.co
 It prints the endpoints and reads or writes a path on one of them.
 [examples/apiservice/apiservice_notify.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/apiservice/apiservice_notify.py)
 prints the changes an endpoint reports, see [Change notifications](#change-notifications).
-[examples/apiservice/wifi_scan.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/apiservice/wifi_scan.py)
-lets the camera deck scan for WiFi access points and prints the ones it found.
+[examples/apiservice/wifi_connect.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/apiservice/wifi_connect.py)
+connects the camera deck to a WiFi network with `cf.wifi`, see [WiFi](#wifi). It scans, lets the user pick a network
+and enter its password, sends the credentials to the deck, joins the network and prints the IP settings.
+[examples/apiservice/wifi_disconnect.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/apiservice/wifi_disconnect.py)
+makes the deck leave the network.
 
 ## Usage
 
@@ -151,6 +154,56 @@ say which one.
 * Strings are UTF-8 without NUL bytes, and a value holds at most 255 bytes.
 * Received values are checked against the API Service encoding rules: exact length for fixed-size types, bool 0 or 1,
   valid UTF-8 without NUL. A violation raises `MalformedValueError`.
+
+## WiFi
+
+`cf.wifi` configures the WiFi of a deck, such as the Camera Deck, on top of `cf.apiservice`. Each call runs the whole
+exchange with the deck and returns the result, so a script does not use paths or encodings.
+
+```python
+with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+    wifi = scf.cf.wifi
+    for ap in wifi.scan():
+        print(ap.ssid, ap.rssi, ap.channel)
+    wifi.set_credentials('my-network', 'my-password')
+    ip = wifi.connect()
+    print('Joined, IP address', ip)
+```
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `scan(timeout=15)` | `list[AccessPoint]` | Scan and return the access points found, strongest first. |
+| `set_credentials(ssid, password)` | `None` | Store the network to join on the deck. `ssid` is `bytes`, or a `str` that is encoded as UTF-8, 1 to 32 bytes. `password` is 8 to 63 characters, or empty for an open network. |
+| `connect(timeout=30)` | `IPv4Address` | Join the network and wait until the deck has an IP address. |
+| `disconnect()` | `None` | Leave the network. |
+| `state()` | `WifiState` | `DISCONNECTED`, `CONNECTING`, `CONNECTED`, `GOT_IP` or `FAILED`. |
+| `ip_info()` | `IpInfo` | `ip`, `netmask`, `gateway` and `dns`, each an `ipaddress.IPv4Address`, `0.0.0.0` without one. |
+
+`AccessPoint` holds `ssid` (`bytes`, empty for a hidden network, since an SSID is not guaranteed to be UTF-8), `rssi`
+in dBm, `channel`, `auth` (a `WifiAuth`) and `bssid` (6 `bytes`).
+
+The deck keeps the credentials in RAM only, so they are set again after the deck is powered on. It never returns the
+password. After `connect()` the deck keeps rejoining the network if it is lost, until `disconnect()`. When `connect()`
+fails, or times out, it therefore stops the deck with `disconnect()` before it raises.
+
+`cf.wifi` finds the deck in the endpoint catalog the first time it is used on a connection. It uses the endpoints listed
+in `cflib.crazyflie.wifi.WIFI_ENDPOINTS`, currently only `deck:bcCam`.
+
+The errors, in `cflib.crazyflie.wifi`:
+
+| Exception | When |
+|-----------|------|
+| `WifiConnectError` | The join failed. `.reason` is a `WifiFailReason`: `AP_NOT_FOUND`, `AUTHENTICATION_FAILED` (for example a wrong password), `NO_IP_ADDRESS` or `OTHER`. |
+| `WifiScanError` | The deck reported a failed scan. |
+| `WifiNotAvailableError` | No WiFi endpoint, or more than one, in the catalog. |
+| `TimeoutError` | The scan or the join did not finish in time. |
+
+They derive from `WifiError`, except `TimeoutError`. The errors of `cf.apiservice` are raised as they are, for example
+`EndpointError` with `INVALID_VALUE` for a password of the wrong length, or `COMMAND_REJECTED` from `connect()` when
+no SSID is set.
+
+The WiFi of the deck shares the 2.4 GHz band with the Crazyradio, and scans find fewer access points while the
+Crazyflie is connected over the radio than over USB.
 
 ## Errors
 

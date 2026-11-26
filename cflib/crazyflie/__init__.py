@@ -54,6 +54,7 @@ from .param import Param
 from .platformservice import PlatformService
 from .supervisor import Supervisor
 from .toccache import TocCache
+from .wifi import Wifi
 from cflib.crazyflie.high_level_commander import HighLevelCommander
 from cflib.utils.callbacks import Caller
 
@@ -128,6 +129,7 @@ class Crazyflie():
         self.link_statistics = LinkStatistics(self)
         self.supervisor = Supervisor(self)
         self.apiservice = Apiservice(self)
+        self.wifi = Wifi(self)
 
         self.link_uri = ''
 
